@@ -1,0 +1,13 @@
+{
+    "name": "hvu-admissions",
+    "version": "1.0.0",
+    "description": "Hung Vuong University Admissions Portal",
+    "main": "index.php",
+    "scripts": {
+        "build:css": "npx tailwindcss -i ./public/assets/css/input.css -o ./public/assets/css/tailwind.min.css --minify",
+        "watch:css": "npx tailwindcss -i ./public/assets/css/input.css -o ./public/assets/css/tailwind.min.css --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.1"
+    }
+}

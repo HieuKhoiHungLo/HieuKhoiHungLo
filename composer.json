@@ -1,0 +1,20 @@
+{
+    "name": "hvu/admissions",
+    "description": "Hung Vuong University Admissions Portal",
+    "type": "project",
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "vlucas/phpdotenv": "^5.5",
+        "google/apiclient": "^2.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "HVU Team"
+        }
+    ]
+}

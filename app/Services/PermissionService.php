@@ -1,0 +1,167 @@
+<?php
+namespace App\Services;
+
+use App\Core\Database;
+
+class PermissionService {
+    protected $db;
+    protected $userPermissions = null;
+
+    public function __construct() {
+        $this->db = Database::getInstance()->getConnection();
+    }
+
+    /**
+     * Centralized Permission Check (User + Role)
+     */
+    public function checkUserPermission($user, $permissionKey) {
+        // 1. Super Admin always true
+        if ($user['id'] == 1) return true;
+
+        // 2. Check Direct Permissions
+        $directPerms = json_decode($user['permissions'] ?? '[]', true);
+        if (is_array($directPerms) && (in_array('all', $directPerms) || in_array($permissionKey, $directPerms))) {
+            return true;
+        }
+
+        // 3. Check Role Permissions
+        if (!empty($user['role_id'])) {
+            $rolePerms = $this->getRolePermissions($user['role_id']);
+            if (in_array('all', $rolePerms) || in_array($permissionKey, $rolePerms)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getRolePermissions($roleId) {
+        // Simple cache could be added here
+        $stmt = $this->db->prepare("SELECT permissions FROM roles WHERE id = ?");
+        $stmt->execute([$roleId]);
+        $role = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $role ? (json_decode($role['permissions'], true) ?? []) : [];
+    }
+
+    /**
+     * Load permissions for current user
+     */
+    public function loadUserPermissions() {
+        if ($this->userPermissions !== null) {
+            return $this->userPermissions;
+        }
+
+        $adminId = $_SESSION['admin_id'] ?? null;
+        if (!$adminId) {
+            $this->userPermissions = [];
+            return [];
+        }
+
+        $sql = "SELECT r.permissions FROM quan_tri_vien q 
+                JOIN roles r ON q.role_id = r.id 
+                WHERE q.id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$adminId]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        $this->userPermissions = $result ? json_decode($result['permissions'], true) : [];
+        return $this->userPermissions;
+    }
+
+    /**
+     * Check if current user has permission
+     */
+    public function can($permission) {
+        $permissions = $this->loadUserPermissions();
+        return in_array($permission, $permissions);
+    }
+
+    /**
+     * Check multiple permissions (OR)
+     */
+    public function canAny(array $permissions) {
+        foreach ($permissions as $p) {
+            if ($this->can($p)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check multiple permissions (AND)
+     */
+    public function canAll(array $permissions) {
+        foreach ($permissions as $p) {
+            if (!$this->can($p)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Get all roles
+     */
+    public function getAllRoles() {
+        $stmt = $this->db->query("SELECT * FROM roles ORDER BY id");
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get role by ID
+     */
+    public function getRole($id) {
+        $stmt = $this->db->prepare("SELECT * FROM roles WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Update role permissions
+     */
+    public function updateRole($id, $displayName, $permissions) {
+        $sql = "UPDATE roles SET display_name = ?, permissions = ? WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$displayName, json_encode($permissions), $id]);
+    }
+
+    /**
+     * Get all available permissions
+     */
+    public static function getAvailablePermissions() {
+        return [
+            'Thí sinh' => [
+                'candidate.view' => 'Xem danh sách thí sinh',
+                'candidate.edit' => 'Chỉnh sửa thông tin thí sinh',
+                'candidate.delete' => 'Xóa thí sinh',
+                'candidate.bulk' => 'Thao tác hàng loạt',
+            ],
+            'Ngành đào tạo' => [
+                'major.view' => 'Xem danh mục ngành',
+                'major.edit' => 'Chỉnh sửa danh mục',
+                'major.delete' => 'Xóa danh mục',
+            ],
+            'Cài đặt' => [
+                'settings.view' => 'Xem cài đặt hệ thống',
+                'settings.edit' => 'Sửa cài đặt hệ thống',
+            ],
+            'Nhật ký' => [
+                'audit.view' => 'Xem nhật ký hoạt động',
+            ],
+            'Vai trò' => [
+                'role.view' => 'Xem vai trò',
+                'role.edit' => 'Chỉnh sửa vai trò',
+            ],
+            'Báo cáo' => [
+                'report.view' => 'Xem báo cáo',
+                'report.export' => 'Xuất báo cáo',
+            ]
+        ];
+    }
+}
+
+// Helper function for views
+function can($permission) {
+    static $service = null;
+    if ($service === null) {
+        $service = new \App\Services\PermissionService();
+    }
+    return $service->can($permission);
+}

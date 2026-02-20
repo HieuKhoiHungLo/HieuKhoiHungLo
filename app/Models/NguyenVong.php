@@ -1,0 +1,98 @@
+<?php
+namespace App\Models;
+
+use App\Core\Model;
+use PDO;
+
+class NguyenVong extends Model {
+    protected $table = 'nguyen_vong';
+
+    public function getByCCCD($cccd) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd = ? ORDER BY thu_tu_nguyen_vong ASC");
+        $stmt->execute([$cccd]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getByHoSoId($hoSoId) {
+        $sql = "SELECT * FROM {$this->table} WHERE ho_so_id = :ho_so_id ORDER BY thu_tu_nguyen_vong ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['ho_so_id' => $hoSoId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function add($data) {
+        $sql = "INSERT INTO {$this->table} (so_cccd, ho_so_id, thu_tu_nguyen_vong, ma_truong, ma_nganh, ten_nganh, ma_phuong_thuc, ten_phuong_thuc, to_hop_mon) 
+                VALUES (:so_cccd, :ho_so_id, :thu_tu_nguyen_vong, :ma_truong, :ma_nganh, :ten_nganh, :ma_phuong_thuc, :ten_phuong_thuc, :to_hop_mon)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($data);
+    }
+
+    public function save($cccd, $hoSoId, $data) { 
+        // Note: hoSoId is ignored because the schema lacks a column for it. 
+        // We link purely by CCCD, assuming only one active set of choices per student.
+        $this->db->beginTransaction();
+        try {
+            // Delete old choices for this CCCD
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
+            $stmt->execute([$cccd]);
+
+            $sql = "INSERT INTO {$this->table} (
+                so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                ma_phuong_thuc, ten_phuong_thuc, to_hop_mon
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)"; 
+            
+            $stmt = $this->db->prepare($sql);
+            
+            foreach ($data as $index => $item) {
+                $stmt->execute([
+                    $cccd,
+                    $index + 1,
+                    $item['ma_nganh'], // Warning: This must exist in dm_nganh
+                    $item['ten_nganh'] ?? null,
+                    $item['ma_phuong_thuc'] ?? '200', 
+                    $item['ten_phuong_thuc'] ?? 'Xét học bạ',
+                    $item['to_hop_mon'] ?? 'A00'
+                ]);
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            // Log error if possible: error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateStatus($cccd, $status) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET trang_thai = ?, updated_at = NOW() WHERE so_cccd = ?");
+        return $stmt->execute([$status, $cccd]);
+    }
+
+    public function getMajorStats($limit = 10, $startDate = null, $endDate = null, $sessionId = null) {
+        $sql = "SELECT nv.ma_nganh, nv.ten_nganh, COUNT(*) as count 
+                FROM {$this->table} nv
+                JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd
+                WHERE 1=1";
+        
+        $params = [];
+        if ($startDate && $endDate) {
+            $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
+            $params[] = $startDate . ' 00:00:00';
+            $params[] = $endDate . ' 23:59:59';
+        }
+
+        if ($sessionId) {
+             $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+             $params[] = $sessionId;
+        }
+
+        $sql .= " GROUP BY nv.ma_nganh, nv.ten_nganh 
+                  ORDER BY count DESC 
+                  LIMIT " . intval($limit);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}

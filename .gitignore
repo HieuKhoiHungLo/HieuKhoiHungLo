@@ -1,0 +1,38 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Archives
+*.zip
+
+# Environment & Secrets
+.env
+client_secret.json
+credentials.json
+token.json
+service_account.json
+
+# Cache & Storage
+/storage/cache/*
+/storage/logs/*
+!/storage/cache/.gitkeep
+!/storage/logs/.gitkeep
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Agent Config (AI dev tools)
+.agent/
+.gemini/
+
+# Compiled / Temp
+*.log
+*.bak
+inspect_*.php
+check_*.php
+test_*.php
