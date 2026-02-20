@@ -535,6 +535,13 @@ class ThiSinhRepository {
         return $this->model->getObjectStats($startDate, $endDate, $sessionId);
     }
 
+    /**
+     * Consolidated query: gender + area + object in ONE round-trip
+     */
+    public function getCombinedDemographicStats($startDate, $endDate, $sessionId = null): array {
+        return $this->model->getCombinedDemographicStats($startDate, $endDate, $sessionId);
+    }
+
     public function saveImportedCandidate($data) {
         // 1. Check if exists
         $existing = $this->findByCCCD($data['so_cccd']);

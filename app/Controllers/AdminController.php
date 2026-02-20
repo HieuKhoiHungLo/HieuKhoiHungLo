@@ -373,96 +373,57 @@ class AdminController extends Controller {
     public function stats() {
         $this->checkPermission('stats');
         
-        // Load sessions first to get years
+        // Load sessions first to get years (needed for filter dropdowns only)
         $sessionModel = new \App\Models\AdmissionSession();
-        $sessions = $sessionModel->getAll();
+        $sessions = \App\Core\Cache::remember('all_sessions', 30, fn() => $sessionModel->getAll());
         
         // Extract years
         $years = array_unique(array_column($sessions, 'nam_tuyen_sinh'));
         rsort($years);
         
         $selectedYear = $_GET['year'] ?? null;
-        $sessionId = $_GET['session_id'] ?? null;
+        $sessionId    = $_GET['session_id'] ?? null;
 
         // Default to Active Session if no filters provided
         if ($selectedYear === null && $sessionId === null) {
             $activeSession = $sessionModel->getActiveSession();
             if (!$activeSession) {
-                // Fallback to latest if no active session
                 $activeSession = $sessionModel->getLatestActiveSession();
             }
-            
             if ($activeSession) {
-                $sessionId = $activeSession['id'];
+                $sessionId   = $activeSession['id'];
                 $selectedYear = $activeSession['nam_tuyen_sinh'];
             } elseif (!empty($sessions)) {
-                // Absolute fallback: Use the first session (latest due to sort)
                 $firstSession = $sessions[0];
-                $sessionId = $firstSession['id'];
+                $sessionId   = $firstSession['id'];
                 $selectedYear = $firstSession['nam_tuyen_sinh'];
             } else {
                 $selectedYear = date('Y');
             }
         } elseif ($selectedYear === null) {
-             // If year not selected, try to pick latest available year
-             $selectedYear = !empty($years) ? reset($years) : date('Y');
+            $selectedYear = !empty($years) ? reset($years) : date('Y');
         }
         
-        // Determine date range based on Year
+        // Determine date range (passed to view as defaults for AJAX calls)
         if ($selectedYear && !isset($_GET['start']) && !isset($_GET['end'])) {
             $startDate = "$selectedYear-01-01";
-            $endDate = "$selectedYear-12-31";
+            $endDate   = "$selectedYear-12-31";
         } else {
-             $y = $selectedYear ?: date('Y');
-             $startDate = $_GET['start'] ?? "$y-01-01";
-             $endDate = $_GET['end'] ?? "$y-12-31";
+            $y         = $selectedYear ?: date('Y');
+            $startDate = $_GET['start'] ?? "$y-01-01";
+            $endDate   = $_GET['end']   ?? "$y-12-31";
         }
 
-        // Fetch Data
-        $dailyStats = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
-        $statusStats = $this->applicationRepo->getStatusStats($startDate, $endDate, $sessionId);
-        
-        $majorStats = $this->nguyenVongRepo->getMajorStats(10, $startDate, $endDate, $sessionId);
-        $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
-        $schoolStats = $this->thiSinhRepo->getSchoolStats(10, $startDate, $endDate, $sessionId);
-        $genderStats = $this->thiSinhRepo->getGenderStats($startDate, $endDate, $sessionId);
-        $areaStats = $this->thiSinhRepo->getAreaStats($startDate, $endDate, $sessionId);
-        $objectStats = $this->thiSinhRepo->getObjectStats($startDate, $endDate, $sessionId);
-
-        // Aggregate stats for view compatibility
-        $stats = [
-            'total' => 0,
-            'pending' => 0,
-            'approved' => 0,
-            'rejected' => 0,
-            'by_major' => $majorStats,
-            'daily' => $dailyStats
-        ];
-        
-        foreach ($statusStats as $st) {
-            $stats['total'] += $st['count'];
-            if ($st['trang_thai'] == UserStatus::PENDING) $stats['pending'] = $st['count'];
-            if ($st['trang_thai'] == UserStatus::APPROVED) $stats['approved'] = $st['count'];
-            if ($st['trang_thai'] == UserStatus::REJECTED) $stats['rejected'] = $st['count'];
-        }
-
+        // NOTE: No heavy stat queries here — all data is loaded via AJAX to /admin/stats/api
         $this->view('admin/stats', [
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'sessions' => $sessions,
-            'years' => $years,
-            'selectedYear' => $selectedYear,
-            'currentSessionId' => $sessionId,
-            'stats' => $stats,
-            'dailyStats' => $dailyStats,
-            'statusStats' => $statusStats,
-            'majorStats' => $majorStats,
-            'provinceStats' => $provinceStats,
-            'schoolStats' => $schoolStats,
-            'genderStats' => $genderStats,
-            'areaStats' => $areaStats,
-            'objectStats' => $objectStats,
-            'user' => $this->currentUser
+            'startDate'       => $startDate,
+            'endDate'         => $endDate,
+            'sessions'        => $sessions,
+            'years'           => $years,
+            'selectedYear'    => $selectedYear,
+            'currentSessionId'=> $sessionId,
+            'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'rejected' => 0],
+            'user'            => $this->currentUser
         ]);
     }
 
@@ -517,36 +478,40 @@ class AdminController extends Controller {
              $endDate = $_GET['end'] ?? "$y-12-31";
         }
 
-        // Fetch Data
+        // Fetch Data — cached per unique filter combo (5 min TTL)
+        $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate");
         try {
-            $dailyStats = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
-            $majorStats = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
-            $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
-            $schoolStats = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
-            $genderStats = $this->thiSinhRepo->getGenderStats($startDate, $endDate, $sessionId);
-            $areaStats = $this->thiSinhRepo->getAreaStats($startDate, $endDate, $sessionId);
-            $objectStats = $this->thiSinhRepo->getObjectStats($startDate, $endDate, $sessionId);
-            
-            // Overview Stats
-            $overviewStats = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
+            $result = \App\Core\Cache::remember($cacheKey, 5, function() use ($startDate, $endDate, $sessionId, $selectedYear) {
+                $dailyStats    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
+                $majorStats    = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
+                $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
+                $schoolStats   = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
+                $overviewStats = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
+
+                // Consolidated query: gender + area + object in ONE round-trip
+                $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
+
+                return [
+                    'overview' => $overviewStats,
+                    'daily'    => $dailyStats,
+                    'major'    => $majorStats,
+                    'province' => $provinceStats,
+                    'school'   => $schoolStats,
+                    'gender'   => $demographic['gender'],
+                    'area'     => $demographic['area'],
+                    'object'   => $demographic['object'],
+                ];
+            });
+
+            $result['meta'] = [
+                'year'       => $selectedYear,
+                'session_id' => $sessionId,
+                'start'      => $startDate,
+                'end'        => $endDate
+            ];
 
             header('Content-Type: application/json');
-            echo json_encode([
-                'overview' => $overviewStats,
-                'daily' => $dailyStats,
-                'major' => $majorStats,
-                'province' => $provinceStats,
-                'school' => $schoolStats,
-                'gender' => $genderStats,
-                'area' => $areaStats,
-                'object' => $objectStats,
-                'meta' => [
-                    'year' => $selectedYear,
-                    'session_id' => $sessionId,
-                    'start' => $startDate,
-                    'end' => $endDate
-                ]
-            ]);
+            echo json_encode($result);
             exit;
         } catch (\Exception $e) {
             http_response_code(500);

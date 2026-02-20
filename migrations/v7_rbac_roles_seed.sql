@@ -14,8 +14,15 @@ CREATE TABLE IF NOT EXISTS public.roles (
 
 -- 2. Grant access to roles table (if using Supabase RLS)
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Allow authenticated read roles"
-    ON public.roles FOR SELECT USING (true);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'roles' AND policyname = 'Allow authenticated read roles'
+    ) THEN
+        EXECUTE 'CREATE POLICY "Allow authenticated read roles" ON public.roles FOR SELECT USING (true)';
+    END IF;
+END $$;
 
 -- 3. Upsert the 3 roles
 -- Role 1: Quản trị hệ thống (Super Admin) — toàn quyền

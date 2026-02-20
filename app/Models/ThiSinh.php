@@ -466,6 +466,57 @@ class ThiSinh extends Model {
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * ONE query → gender + area + object stats (replaces 3 separate queries)
+     * Uses a single JOIN to ho_so_xet_tuyen with conditional counts.
+     */
+    public function getCombinedDemographicStats($startDate = null, $endDate = null, $sessionId = null): array {
+        $where  = "WHERE 1=1";
+        $params = [];
+        if ($startDate && $endDate) {
+            $where   .= " AND hs.created_at >= ? AND hs.created_at <= ?";
+            $params[] = $startDate . ' 00:00:00';
+            $params[] = $endDate   . ' 23:59:59';
+        }
+        if ($sessionId) {
+            $where   .= " AND hs.dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        }
+
+        $sql = "
+            SELECT
+                CASE WHEN ts.gioi_tinh = 'Nam' THEN 'Nam'
+                     WHEN ts.gioi_tinh = 'Nữ'  THEN 'Nữ'
+                     ELSE 'Khác' END                        AS gender_label,
+                COALESCE(ts.khu_vuc_uu_tien,  'Không')     AS area_label,
+                COALESCE(ts.doi_tuong_uu_tien, 'Không')    AS object_label,
+                ts.so_cccd
+            FROM {$this->table} ts
+            JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
+            $where
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Aggregate in PHP (faster than multiple GROUP BY round-trips to Supabase)
+        $gender = []; $area = []; $object = [];
+        foreach ($rows as $r) {
+            $gender[$r['gender_label']]  = ($gender[$r['gender_label']]  ?? 0) + 1;
+            $area[$r['area_label']]      = ($area[$r['area_label']]      ?? 0) + 1;
+            $object[$r['object_label']]  = ($object[$r['object_label']]  ?? 0) + 1;
+        }
+
+        $toArr = fn($map) => array_map(fn($label, $cnt) => ['label' => $label, 'count' => $cnt], array_keys($map), $map);
+
+        return [
+            'gender' => $toArr($gender),
+            'area'   => $toArr($area),
+            'object' => $toArr($object),
+        ];
+    }
+
     public function delete($cccd) {
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
         return $stmt->execute([$cccd]);
