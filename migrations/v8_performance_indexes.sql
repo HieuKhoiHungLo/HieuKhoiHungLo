@@ -26,9 +26,9 @@ CREATE INDEX IF NOT EXISTS idx_thisinh_khu_vuc
 CREATE INDEX IF NOT EXISTS idx_thisinh_doi_tuong
     ON public.thi_sinh(doi_tuong_uu_tien);
 
--- 6. nguyen_vong: INDEX cho getMajorStats (JOIN + WHERE thu_tu = 1)
-CREATE INDEX IF NOT EXISTS idx_nguyenvong_nganh_thutu
-    ON public.nguyen_vong(ma_nganh, thu_tu);
+-- 6. nguyen_vong: INDEX cho getMajorStats (JOIN + GROUP BY ma_nganh)
+CREATE INDEX IF NOT EXISTS idx_nguyenvong_nganh
+    ON public.nguyen_vong(ma_nganh);
 
 CREATE INDEX IF NOT EXISTS idx_nguyenvong_cccd
     ON public.nguyen_vong(so_cccd);
