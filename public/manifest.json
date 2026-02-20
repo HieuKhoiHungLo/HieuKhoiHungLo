@@ -1,0 +1,58 @@
+{
+    "name": "Đại Học Hùng Vương - Tuyển Sinh",
+    "short_name": "HVU Tuyển Sinh",
+    "description": "Hệ thống Đăng ký và Xét tuyển trực tuyến - Trường Đại học Hùng Vương",
+    "start_url": "/TS/",
+    "scope": "/TS/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#BE1E2D",
+    "orientation": "portrait-primary",
+    "lang": "vi",
+    "categories": [
+        "education"
+    ],
+    "icons": [
+        {
+            "src": "/TS/assets/img/icon-pwa.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any"
+        },
+        {
+            "src": "/TS/assets/img/icon-pwa.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any"
+        },
+        {
+            "src": "/TS/assets/img/icon-pwa.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Đăng nhập",
+            "url": "/TS/login",
+            "icons": [
+                {
+                    "src": "/TS/assets/img/icon-pwa.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Tra cứu Kết quả",
+            "url": "/TS/application/results",
+            "icons": [
+                {
+                    "src": "/TS/assets/img/icon-pwa.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}

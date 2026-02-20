@@ -1,0 +1,60 @@
+<?php
+// public/index.php
+
+// Autoloader (load first for middleware)
+require_once __DIR__ . '/../vendor/autoload.php';
+
+spl_autoload_register(function ($class) {
+    $prefix = 'App\\';
+    $base_dir = __DIR__ . '/../app/';
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relative_class = substr($class, $len);
+    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
+
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+require_once __DIR__ . '/../app/Helpers/functions.php';
+
+// Secure session setup
+\App\Middleware\SecurityMiddleware::secureSession();
+
+// Fix session path for Windows XAMPP
+$sessionPath = 'D:\\xampp\\tmp';
+if (!is_dir($sessionPath)) {
+    $sessionPath = sys_get_temp_dir();
+}
+session_save_path($sessionPath);
+session_start();
+
+// Security headers
+\App\Middleware\SecurityMiddleware::setSecurityHeaders();
+
+// Session timeout check (1 day = 1440 minutes)
+\App\Middleware\SecurityMiddleware::checkSessionTimeout(1440);
+
+// Load Env
+try {
+    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
+    $dotenv->load();
+} catch (\Exception $e) {
+    // Fail silently if .env not found
+}
+
+require_once __DIR__ . '/../routes/web.php';
+
+// Helper function
+function url($path = '') {
+    return App\Core\App::url($path);
+}
+
+$app = new App\Core\App();
+$app->router = $router;
+$app->run();

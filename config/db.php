@@ -1,0 +1,35 @@
+<?php
+// config/db.php
+
+// MẪU KẾT NỐI CSDL SUPABASE
+
+// MẪU KẾT NỐI CSDL SUPABASE
+$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+$db   = $_ENV['DB_DATABASE'] ?? 'test';
+$user = $_ENV['DB_USERNAME'] ?? 'root'; 
+$pass = $_ENV['DB_PASSWORD'] ?? '';
+$port = $_ENV['DB_PORT'] ?? '5432';
+
+$dsn = "pgsql:host=$host;port=$port;dbname=$db";
+
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_PERSISTENT         => true,
+];
+
+try {
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+    // Trong môi trường Production nên ghi log thay vì hiện lỗi ra màn hình
+    // die("Lỗi kết nối CSDL: " . $e->getMessage());
+}
+
+return [
+    'dsn' => $dsn,
+    'user' => $user,
+    'pass' => $pass,
+    'options' => $options
+];
+?>
