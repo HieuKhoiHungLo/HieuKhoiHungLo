@@ -2,8 +2,9 @@
 /vendor/
 /node_modules/
 
-# Archives
+# Archives & Deploy
 *.zip
+/TS_Project_Deploy/
 
 # Environment & Secrets
 .env
@@ -11,6 +12,21 @@ client_secret.json
 credentials.json
 token.json
 service_account.json
+
+# Database scripts (one-time setup)
+/database/
+
+# Debug & Seed scripts
+debug_*.php
+seed_*.php
+output_*.txt
+inspect_*.php
+check_*.php
+test_*.php
+CODEBASE.md
+
+# Local scripts
+*.bat
 
 # Cache & Storage
 /storage/cache/*
@@ -30,9 +46,5 @@ Thumbs.db
 .agent/
 .gemini/
 
-# Compiled / Temp
+# Logs
 *.log
-*.bak
-inspect_*.php
-check_*.php
-test_*.php
