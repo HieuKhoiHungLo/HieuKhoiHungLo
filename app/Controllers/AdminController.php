@@ -481,7 +481,7 @@ class AdminController extends Controller {
         // Fetch Data — cached per unique filter combo (5 min TTL)
         $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate");
         try {
-            $result = \App\Core\Cache::remember($cacheKey, 5, function() use ($startDate, $endDate, $sessionId, $selectedYear) {
+            $result = \App\Core\Cache::remember($cacheKey, 30, function() use ($startDate, $endDate, $sessionId, $selectedYear) {
                 $dailyStats    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
                 $majorStats    = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
                 $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
