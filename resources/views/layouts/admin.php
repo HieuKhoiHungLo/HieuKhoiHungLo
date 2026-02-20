@@ -108,56 +108,80 @@
             $currentUri = $_SERVER['REQUEST_URI'];
             $menu = [
                 ['section' => 'TỔNG QUAN'],
-                ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Dashboard'],
-                ['url' => '/admin/stats', 'icon' => 'fa-chart-pie', 'label' => 'Báo cáo Thống kê'],
+                ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Dashboard',            'perm' => 'dashboard'],
+                ['url' => '/admin/stats',     'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê',    'perm' => 'stats'],
                 
                 ['section' => 'QUẢN LÝ TUYỂN SINH'],
-                ['url' => '/admin/review', 'icon' => 'fa-user-graduate', 'label' => 'Xét duyệt Hồ sơ'],
-                ['url' => '/admin/notifications', 'icon' => 'fa-bell', 'label' => 'Gửi Thông báo'],
-                ['url' => '/admin/admission/results', 'icon' => 'fa-list-ol', 'label' => 'Kết quả Trúng tuyển'],
-                ['url' => '/admin/reports', 'icon' => 'fa-file-export', 'label' => 'Xuất dữ liệu'],
-                ['url' => '/admin/aptitude-scores', 'icon' => 'fa-music', 'label' => 'Điểm Năng khiếu'],
+                ['url' => '/admin/review',             'icon' => 'fa-user-graduate', 'label' => 'Xét duyệt Hồ sơ',    'perm' => 'candidate.view'],
+                ['url' => '/admin/notifications',       'icon' => 'fa-bell',          'label' => 'Gửi Thông báo',      'perm' => 'candidate.view'],
+                ['url' => '/admin/admission/results',   'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển','perm' => 'candidate.view'],
+                ['url' => '/admin/reports',             'icon' => 'fa-file-export',   'label' => 'Xuất dữ liệu',       'perm' => 'report.export'],
+                ['url' => '/admin/aptitude-scores',     'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',    'perm' => 'aptitude.view'],
 
                 ['section' => 'CẤU HÌNH TUYỂN SINH'],
-                ['url' => '/admin/master-data/sessions', 'icon' => 'fa-calendar-alt', 'label' => 'Đợt tuyển sinh'],
-                ['url' => '/admin/admission/benchmarks', 'icon' => 'fa-sliders-h', 'label' => 'Thiết lập Điểm chuẩn'],
-                ['url' => '#', 'icon' => 'fa-gavel', 'label' => 'Điều kiện & Quy tắc', 'submenu' => [
-                     ['url' => '/admin/rules', 'label' => 'Điều kiện Xét tuyển'],
-                     ['url' => '/admin/master-data/zones', 'label' => 'Cấu hình Vùng (Sư phạm)'],
-                     ['url' => '/admin/settings/scoring', 'label' => 'Cấu hình Điểm'],
+                ['url' => '/admin/master-data/sessions',   'icon' => 'fa-calendar-alt', 'label' => 'Đợt tuyển sinh',     'perm' => 'settings.edit'],
+                ['url' => '/admin/admission/benchmarks',   'icon' => 'fa-sliders-h',    'label' => 'Thiết lập Điểm chuẩn','perm' => 'settings.edit'],
+                ['url' => '#', 'icon' => 'fa-gavel', 'label' => 'Điều kiện & Quy tắc', 'perm' => 'settings.edit', 'submenu' => [
+                     ['url' => '/admin/rules',                'label' => 'Điều kiện Xét tuyển'],
+                     ['url' => '/admin/master-data/zones',    'label' => 'Cấu hình Vùng (Sư phạm)'],
+                     ['url' => '/admin/settings/scoring',     'label' => 'Cấu hình Điểm'],
                 ]],
 
                 ['section' => 'DỮ LIỆU ĐÀO TẠO'],
-                ['url' => '/admin/master-data/majors', 'icon' => 'fa-graduation-cap', 'label' => 'Ngành đào tạo'],
-                ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group', 'label' => 'Tổ hợp xét tuyển'],
-                ['url' => '/admin/master-data/subjects', 'icon' => 'fa-book', 'label' => 'Môn học'],
+                ['url' => '/admin/master-data/majors',       'icon' => 'fa-graduation-cap', 'label' => 'Ngành đào tạo',      'perm' => 'major.view'],
+                ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group',    'label' => 'Tổ hợp xét tuyển',  'perm' => 'major.view'],
+                ['url' => '/admin/master-data/subjects',     'icon' => 'fa-book',           'label' => 'Môn học',            'perm' => 'major.view'],
 
                 ['section' => 'NỘI DUNG & TRƯỜNG'],
-                ['url' => '/admin/posts', 'icon' => 'fa-newspaper', 'label' => 'Tin tức & Bài viết'],
-                ['url' => '/admin/master-data/schools', 'icon' => 'fa-school', 'label' => 'Trường THPT'],
+                ['url' => '/admin/posts',                'icon' => 'fa-newspaper', 'label' => 'Tin tức & Bài viết', 'perm' => 'posts.view'],
+                ['url' => '/admin/master-data/schools',  'icon' => 'fa-school',    'label' => 'Trường THPT',        'perm' => 'major.view'],
                 
                 ['section' => 'HỆ THỐNG'],
-                ['url' => '#', 'icon' => 'fa-users-cog', 'label' => 'Tài khoản & Phân quyền', 'submenu' => [
+                ['url' => '#', 'icon' => 'fa-users-cog', 'label' => 'Tài khoản & Phân quyền', 'perm' => 'role.view', 'submenu' => [
                      ['url' => '/admin/accounts', 'label' => 'Tài khoản Admin'],
-                     ['url' => '/admin/roles', 'label' => 'Quản lý Vai trò'],
+                     ['url' => '/admin/roles',    'label' => 'Quản lý Vai trò'],
                 ]],
-                ['url' => '#', 'icon' => 'fa-cogs', 'label' => 'Cấu hình Hệ thống', 'submenu' => [
-                     ['url' => '/admin/master-data/settings', 'label' => 'Cấu hình Chung'],
-                     ['url' => '/admin/settings/email', 'label' => 'Cấu hình Email'],
-                     ['url' => '/admin/settings/email-templates', 'label' => 'Mẫu Email'],
+                ['url' => '#', 'icon' => 'fa-cogs', 'label' => 'Cấu hình Hệ thống', 'perm' => 'settings.edit', 'submenu' => [
+                     ['url' => '/admin/master-data/settings',    'label' => 'Cấu hình Chung'],
+                     ['url' => '/admin/settings/email',          'label' => 'Cấu hình Email'],
+                     ['url' => '/admin/settings/email-templates','label' => 'Mẫu Email'],
                 ]],
-                ['url' => '/admin/audit', 'icon' => 'fa-history', 'label' => 'Nhật ký Hoạt động'],
+                ['url' => '/admin/audit', 'icon' => 'fa-history', 'label' => 'Nhật ký Hoạt động', 'perm' => 'audit.view'],
             ];
 
+            // Load current user once for sidebar permission checks
+            static $_sidebarUser = null;
+            if ($_sidebarUser === null && !empty($_SESSION['admin_id'])) {
+                $_sidebarUser = (new \App\Models\QuanTriVien())->find($_SESSION['admin_id']);
+            }
+
+            // Closure: can this user see the given permission key?
+            $canSee = function(string $perm) use ($_sidebarUser): bool {
+                if (!$_sidebarUser) return false;
+                return \App\Models\QuanTriVien::hasPermission($_sidebarUser, $perm);
+            };
+
+            // Render menu — only print a section header when at least one visible item follows
+            $pendingSection = null;
             foreach ($menu as $item):
-                if (isset($item['section'])): ?>
+                if (isset($item['section'])):
+                    $pendingSection = $item['section'];
+                    continue;
+                endif;
+
+                // Permission gate
+                $perm = $item['perm'] ?? null;
+                if ($perm !== null && !$canSee($perm)) continue;
+
+                // Now we have a visible item — flush the pending section header
+                if ($pendingSection !== null): ?>
                     <div class="px-4 mt-6 mb-2 sidebar-section">
-                        <p class="text-[10px] font-black text-sky-400 uppercase tracking-widest"><?= $item['section'] ?></p>
+                        <p class="text-[10px] font-black text-sky-400 uppercase tracking-widest"><?= $pendingSection ?></p>
                     </div>
-                <?php continue; endif;
+                <?php $pendingSection = null; endif;
 
                 $isActive = strpos($currentUri, $item['url']) !== false && $item['url'] !== '#';
-                if ($item['url'] == '/admin/dashboard' && $currentUri == '/TS/admin/dashboard') $isActive = true;
+                if ($item['url'] === '/admin/dashboard' && $currentUri === '/TS/admin/dashboard') $isActive = true;
             ?>
                 <?php if (isset($item['submenu'])): ?>
                     <div x-data="{ open: false }" class="mb-1">
@@ -169,7 +193,7 @@
                             <i class="fas fa-chevron-right text-[10px] transition-transform duration-200 text-sky-400 sidebar-text" :class="{'rotate-90': open}"></i>
                         </button>
                         <div x-show="open" x-cloak class="pl-11 pr-2 py-1 space-y-1 mt-1 sidebar-text">
-                            <?php foreach ($item['submenu'] as $sub): 
+                            <?php foreach ($item['submenu'] as $sub):
                                 $isSubActive = strpos($currentUri, $sub['url']) !== false;
                             ?>
                                 <a href="<?= url($sub['url']) ?>" class="block px-3 py-2 rounded-lg text-xs font-semibold transition-colors <?= $isSubActive ? 'bg-sky-500 text-white shadow-md' : 'text-sky-300 hover:text-white hover:bg-white/5' ?>">

@@ -127,32 +127,44 @@ class PermissionService {
      */
     public static function getAvailablePermissions() {
         return [
+            'Tổng quan' => [
+                'dashboard'       => 'Xem Dashboard',
+                'stats'           => 'Xem Báo cáo Thống kê',
+            ],
             'Thí sinh' => [
-                'candidate.view' => 'Xem danh sách thí sinh',
-                'candidate.edit' => 'Chỉnh sửa thông tin thí sinh',
-                'candidate.delete' => 'Xóa thí sinh',
-                'candidate.bulk' => 'Thao tác hàng loạt',
-            ],
-            'Ngành đào tạo' => [
-                'major.view' => 'Xem danh mục ngành',
-                'major.edit' => 'Chỉnh sửa danh mục',
-                'major.delete' => 'Xóa danh mục',
-            ],
-            'Cài đặt' => [
-                'settings.view' => 'Xem cài đặt hệ thống',
-                'settings.edit' => 'Sửa cài đặt hệ thống',
-            ],
-            'Nhật ký' => [
-                'audit.view' => 'Xem nhật ký hoạt động',
-            ],
-            'Vai trò' => [
-                'role.view' => 'Xem vai trò',
-                'role.edit' => 'Chỉnh sửa vai trò',
+                'candidate.view'  => 'Xem danh sách thí sinh',
+                'candidate.edit'  => 'Chỉnh sửa thông tin thí sinh',
+                'candidate.delete'=> 'Xóa thí sinh',
+                'candidate.bulk'  => 'Thao tác hàng loạt',
             ],
             'Báo cáo' => [
-                'report.view' => 'Xem báo cáo',
-                'report.export' => 'Xuất báo cáo',
-            ]
+                'report.view'     => 'Xem báo cáo',
+                'report.export'   => 'Xuất báo cáo',
+            ],
+            'Điểm Năng khiếu' => [
+                'aptitude.view'   => 'Xem/Nhập điểm năng khiếu',
+            ],
+            'Ngành đào tạo' => [
+                'major.view'      => 'Xem danh mục ngành',
+                'major.edit'      => 'Chỉnh sửa danh mục',
+                'major.delete'    => 'Xóa danh mục',
+            ],
+            'Bài viết' => [
+                'posts.view'      => 'Xem danh sách bài viết',
+                'posts.edit'      => 'Chỉnh sửa bài viết',
+                'posts.delete'    => 'Xóa bài viết',
+            ],
+            'Cài đặt' => [
+                'settings.view'   => 'Xem cài đặt hệ thống',
+                'settings.edit'   => 'Sửa cài đặt hệ thống',
+            ],
+            'Nhật ký' => [
+                'audit.view'      => 'Xem nhật ký hoạt động',
+            ],
+            'Vai trò' => [
+                'role.view'       => 'Xem vai trò',
+                'role.edit'       => 'Chỉnh sửa vai trò',
+            ],
         ];
     }
 }
