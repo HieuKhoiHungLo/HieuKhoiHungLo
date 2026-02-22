@@ -74,7 +74,7 @@ class AdminPostController extends Controller {
                 'content' => $_POST['content'],
                 'category' => $_POST['category'],
                 'status' => $_POST['status'],
-                'is_featured' => isset($_POST['is_featured']) ? true : false,
+                'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
                 'thumbnail' => $thumbnailPath,
                 'updated_at' => date('Y-m-d H:i:s')
             ];

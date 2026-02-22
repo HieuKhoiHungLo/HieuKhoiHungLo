@@ -70,18 +70,31 @@ class Post extends Model {
         $placeholders = array_fill(0, count($fields), '?');
         $sql = "INSERT INTO {$this->table} (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $placeholders) . ")";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute(array_values($data));
+        
+        $i = 1;
+        foreach ($data as $value) {
+            $type = is_int($value) ? PDO::PARAM_INT : (is_bool($value) ? PDO::PARAM_BOOL : PDO::PARAM_STR);
+            $stmt->bindValue($i++, $value, $type);
+        }
+        
+        return $stmt->execute();
     }
 
     public function update($id, $data) {
-        unset($data['updated_at']); // Avoid duplicate — appended as NOW() below
+        unset($data['updated_at']);
         $fields = array_keys($data);
         $setClause = implode(', ', array_map(fn($f) => "{$f} = ?", $fields));
         $sql = "UPDATE {$this->table} SET {$setClause}, updated_at = NOW() WHERE id = ?";
-        $params = array_values($data);
-        $params[] = $id;
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        
+        $i = 1;
+        foreach ($data as $value) {
+            $type = is_int($value) ? PDO::PARAM_INT : (is_bool($value) ? PDO::PARAM_BOOL : PDO::PARAM_STR);
+            $stmt->bindValue($i++, $value, $type);
+        }
+        
+        $stmt->bindValue($i, $id, is_int($id) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        return $stmt->execute();
     }
 
     public function delete($id) {
