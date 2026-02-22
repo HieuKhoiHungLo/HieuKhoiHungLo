@@ -13,7 +13,7 @@
     
     <!-- Dependencies -->
     <!-- Dependencies -->
-    <link rel="stylesheet" href="<?= url('/public/assets/css/tailwind.min.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -94,7 +94,7 @@
         <!-- Brand -->
         <div class="h-20 flex items-center px-6 border-b border-white/10 bg-black/10">
             <div class="flex items-center justify-center">
-                <img src="<?= url('/public/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-10 w-auto object-contain">
+                <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-10 w-auto object-contain">
             </div>
             <div class="ml-4 sidebar-text">
                 <h1 class="font-black text-[10px] tracking-wider text-white font-heading uppercase leading-tight">QUẢN TRỊ HỆ THỐNG</h1>

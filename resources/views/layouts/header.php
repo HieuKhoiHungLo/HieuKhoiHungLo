@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="<?= url('/assets/img/icon-pwa.png') ?>">
     
     <!-- Tailwind CSS (Local Build) -->
-    <link rel="stylesheet" href="<?= url('/public/assets/css/tailwind.min.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
     
     <!-- Optimized Fonts (display=swap for faster load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -2,7 +2,7 @@
     <!-- Brand -->
     <div class="h-20 flex items-center px-6 border-b border-white/10 bg-black/10">
         <div class="flex items-center justify-center">
-            <img src="<?= url('/public/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-10 w-auto object-contain">
+            <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-10 w-auto object-contain">
         </div>
         <div class="ml-4">
             <h1 class="font-black text-[10px] tracking-wider text-white font-heading uppercase leading-tight">QUẢN TRỊ HỆ THỐNG</h1>

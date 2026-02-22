@@ -10,7 +10,7 @@ if (empty($_SESSION['csrf_token'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xác thực 2 lớp - HVU Admin</title>
-    <link rel="stylesheet" href="<?= url('/public/assets/css/tailwind.min.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -22,7 +22,7 @@ if (empty($_SESSION['csrf_token'])) {
     <div class="w-full max-w-md">
         <!-- Logo -->
         <div class="text-center mb-8">
-            <img src="<?= url('/public/assets/img/Logo.png') ?>" alt="HVU" class="h-16 mx-auto mb-4">
+            <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU" class="h-16 mx-auto mb-4">
             <h1 class="text-2xl font-black text-white uppercase tracking-tight">Xác thực 2 lớp</h1>
             <p class="text-slate-400 text-sm mt-1">Nhập mã từ ứng dụng Google Authenticator</p>
         </div>

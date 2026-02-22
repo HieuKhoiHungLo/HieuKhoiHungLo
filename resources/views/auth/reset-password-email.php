@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đặt lại Mật khẩu - HVU Tuyển sinh</title>
-    <link rel="stylesheet" href="<?= url('/public/assets/css/tailwind.min.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -16,7 +16,7 @@
     <div class="w-full max-w-md">
         <!-- Logo -->
         <div class="text-center mb-8">
-            <img src="<?= url('/public/assets/img/Logo.png') ?>" alt="HVU" class="h-16 mx-auto mb-4">
+            <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU" class="h-16 mx-auto mb-4">
             <h1 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Đặt lại Mật khẩu</h1>
         </div>
 
