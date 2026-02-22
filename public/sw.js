@@ -1,9 +1,9 @@
 const CACHE_VERSION = 'hvu-ts-v2';
 const STATIC_ASSETS = [
-    '/TS/',
-    '/TS/assets/css/tailwind.min.css',
-    '/TS/assets/img/Logo.png',
-    '/TS/assets/js/background-particles.js'
+    '/',
+    '/assets/css/tailwind.min.css',
+    '/assets/img/Logo.png',
+    '/assets/js/background-particles.js'
 ];
 
 // Install — pre-cache static assets
@@ -69,7 +69,7 @@ self.addEventListener('fetch', (event) => {
                 return caches.match(event.request).then((cached) => {
                     if (cached) return cached;
                     // Return offline page
-                    return caches.match('/TS/').then(homepage => {
+                    return caches.match('/').then(homepage => {
                         if (homepage) return homepage;
                         return new Response(
                             '<html><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;background:#f8fafc"><div style="text-align:center"><h1 style="color:#BE1E2D;font-size:2rem">📡</h1><h2>Không có kết nối Internet</h2><p style="color:#6b7280">Vui lòng kiểm tra kết nối mạng và thử lại.</p><button onclick="location.reload()" style="margin-top:1rem;padding:0.75rem 2rem;background:#BE1E2D;color:#fff;border:none;border-radius:9999px;cursor:pointer;font-weight:bold">Thử lại</button></div></body></html>',
