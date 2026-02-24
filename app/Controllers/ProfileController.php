@@ -173,8 +173,8 @@ class ProfileController extends Controller {
                 $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
 
                 if ($uploadDriver === 'google') {
-                    $clientSecretPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json');
-                    $tokenPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json');
+                    $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                    $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
                     $folderId = $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '';
                     $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $folderId);
 
@@ -328,8 +328,8 @@ class ProfileController extends Controller {
                     
                     // Google Config (Reuse if needed, brevity here)
                     if ($uploadDriver === 'google') {
-                        $clientSecretPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json');
-                        $tokenPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json');
+                        $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                        $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
                         $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                          // Resolve folder
                         $driveService = new \App\Services\DriveService($uploader);
@@ -422,8 +422,8 @@ class ProfileController extends Controller {
                    $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
                    
                    if ($uploadDriver === 'google') {
-                       $clientSecretPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json');
-                       $tokenPath = __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json');
+                       $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                       $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
                        $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         // Resolve folder
                         $driveService = new \App\Services\DriveService($uploader);

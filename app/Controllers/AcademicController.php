@@ -38,8 +38,8 @@ class AcademicController extends Controller {
                 
                 if ($uploadDriver === 'google') {
                     $uploader->setGoogleConfig(
-                        __DIR__ . '/../../' . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json'),
-                        __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'),
+                        self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
+                        self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
                         $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
                     );
                     
@@ -144,8 +144,8 @@ class AcademicController extends Controller {
                 
                 if ($uploadDriver === 'google') {
                     $uploader->setGoogleConfig(
-                        __DIR__ . '/../../' . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json'),
-                        __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'),
+                        self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
+                        self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
                         $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
                     );
                     

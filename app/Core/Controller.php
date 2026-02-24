@@ -65,5 +65,20 @@ class Controller {
         echo json_encode($data);
         exit;
     }
+
+    /**
+     * Resolve a config file path - handles both absolute and relative paths.
+     * If the path starts with / or X:\ it's treated as absolute.
+     * Otherwise it's relative to project root.
+     */
+    protected static function resolveConfigPath($envValue, $default = '') {
+        $path = $envValue ?: $default;
+        // Already absolute (Linux /path or Windows C:\path)
+        if (preg_match('#^(/|[A-Za-z]:\\\\)#', $path)) {
+            return $path;
+        }
+        // Relative: resolve from project root
+        return realpath(__DIR__ . '/../../') . '/' . $path;
+    }
 }
 
