@@ -292,9 +292,31 @@ include __DIR__ . '/../layouts/header.php';
 
 <script>
 const majorCombinations = {};
+const majorThresholds = {};
 <?php foreach ($majors as $m): ?>
     majorCombinations['<?= $m['ma_nganh'] ?>'] = '<?= htmlspecialchars($m['to_hop_xet_tuyen'] ?? '') ?>';
+    <?php if (!empty($m['nguong_hoc_luc']) || !empty($m['nguong_diem_thpt'])): ?>
+    majorThresholds['<?= $m['ma_nganh'] ?>'] = {
+        nhom: '<?= $m['nhom_nganh'] ?? 'Khac' ?>',
+        hocLuc: '<?= $m['nguong_hoc_luc'] ?? '' ?>',
+        diemThpt: <?= $m['nguong_diem_thpt'] ?? 'null' ?>
+    };
+    <?php endif; ?>
 <?php endforeach; ?>
+
+function getThresholdBadge(majorId) {
+    const t = majorThresholds[majorId];
+    if (!t) return '';
+    const hlLabels = {'Gioi':'Giỏi','Kha':'Khá'};
+    const nhomLabels = {'SuPham':'Sư phạm','SuPhamDacThu':'SP Đặc thù','DieuDuong':'Điều dưỡng'};
+    let parts = [];
+    if (t.hocLuc) parts.push('HL lớp 12 ≥ ' + (hlLabels[t.hocLuc]||t.hocLuc));
+    if (t.diemThpt) parts.push('Tổng ĐThi ≥ ' + t.diemThpt.toFixed(1));
+    const nhomLabel = nhomLabels[t.nhom] || '';
+    return `<div class="mt-2 flex flex-wrap items-center gap-1.5">`
+        + (nhomLabel ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded">${nhomLabel}</span>` : '')
+        + `<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200">⚡ ${parts.join(' | ')}</span></div>`;
+}
 
 function updateOrders() {
     // Desktop rows
@@ -331,9 +353,9 @@ function updateCombinationText(select, index) {
     const majorId = select.value;
     const comboText = document.getElementById('combo-text-' + index);
     if (majorId && majorCombinations[majorId]) {
-        comboText.textContent = majorCombinations[majorId];
+        comboText.innerHTML = majorCombinations[majorId] + getThresholdBadge(majorId);
     } else {
-        comboText.textContent = '';
+        comboText.innerHTML = '';
     }
 }
 
@@ -344,7 +366,7 @@ function updateMobileCombo(select, index) {
         const combos = majorCombinations[majorId].split(',').map(c => c.trim()).filter(Boolean);
         comboDiv.innerHTML = '<div class="flex flex-wrap gap-1.5">' +
             combos.map(c => `<span class="inline-block px-2.5 py-1 bg-red-50 text-hvu-red text-xs font-bold rounded-lg">${c}</span>`).join('') +
-            '</div>';
+            '</div>' + getThresholdBadge(majorId);
     } else {
         comboDiv.innerHTML = '<span class="text-xs text-gray-300 italic">Chọn ngành để xem tổ hợp</span>';
     }

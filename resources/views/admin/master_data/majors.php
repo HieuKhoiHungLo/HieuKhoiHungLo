@@ -40,9 +40,10 @@
                             </th>
                             <th class="px-6 py-4">Mã ngành</th>
                             <th class="px-6 py-4">Tên ngành</th>
+                            <th class="px-6 py-4 text-center">Nhóm</th>
                             <th class="px-6 py-4 text-center">Chỉ tiêu</th>
-                            <th class="px-6 py-4 text-center">Khối xét tuyển</th>
-                            <th class="px-6 py-4 text-center">Điểm 2025</th>
+                            <th class="px-6 py-4 text-center">Ngưỡng HL</th>
+                            <th class="px-6 py-4 text-center">Ngưỡng THPT</th>
                             <th class="px-6 py-4 text-center">Thao tác</th>
                         </tr>
                     </thead>
@@ -54,9 +55,25 @@
                                 </td>
                                 <td class="px-6 py-4 font-mono font-bold text-[#0066FF]"><?= $major['ma_nganh'] ?></td>
                                 <td class="px-6 py-4 font-bold text-slate-700"><?= htmlspecialchars($major['ten_nganh']) ?></td>
+                                <td class="px-6 py-4 text-center">
+                                    <?php 
+                                        $nhom = $major['nhom_nganh'] ?? 'Khac';
+                                        $nhomLabels = ['SuPham' => 'Sư phạm', 'SuPhamDacThu' => 'SP Đặc thù', 'DieuDuong' => 'Điều dưỡng', 'Khac' => ''];
+                                        $nhomColors = ['SuPham' => 'bg-purple-100 text-purple-700', 'SuPhamDacThu' => 'bg-orange-100 text-orange-700', 'DieuDuong' => 'bg-green-100 text-green-700', 'Khac' => ''];
+                                        if ($nhom !== 'Khac'): 
+                                    ?>
+                                        <span class="px-2 py-1 rounded text-[10px] font-bold <?= $nhomColors[$nhom] ?? '' ?>"><?= $nhomLabels[$nhom] ?? '' ?></span>
+                                    <?php else: echo '--'; endif; ?>
+                                </td>
                                 <td class="px-6 py-4 text-center font-bold text-slate-500"><?= $major['chi_tieu'] ?: '--' ?></td>
-                                <td class="px-6 py-4 text-center"><span class="px-2.5 py-1 bg-slate-100 rounded text-xs font-bold text-[#0066FF] border border-slate-200"><?= $major['khoi_xet_tuyen'] ?></span></td>
-                                <td class="px-6 py-4 text-center font-black text-amber-600"><?= $major['diem_nam_truoc'] ?: '--' ?></td>
+                                <td class="px-6 py-4 text-center font-bold text-sm">
+                                    <?php 
+                                        $nguongHL = $major['nguong_hoc_luc'] ?? null;
+                                        $hlLabels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá'];
+                                        echo $nguongHL ? '<span class="text-amber-600">' . ($hlLabels[$nguongHL] ?? $nguongHL) . '</span>' : '--';
+                                    ?>
+                                </td>
+                                <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] ? number_format($major['nguong_diem_thpt'], 1) : '--' ?></td>
                                 <td class="px-6 py-3 text-center flex items-center justify-center space-x-2">
                                     <button type="button" onclick='editMajor(<?= json_encode($major) ?>)' class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-[#0066FF] hover:bg-[#0066FF] hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
                                     <button type="button" onclick="deleteSingle('<?= $major['ma_nganh'] ?>')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition" title="Xóa"><i class="fas fa-trash-alt text-xs"></i></button>
@@ -111,6 +128,32 @@
                     <div>
                         <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Điểm năm ngoái (2025)</label>
                         <input type="number" step="0.01" name="diem_nam_truoc" id="diem_nam_truoc" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-bold">
+                    </div>
+                    <div class="col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <label class="block text-[10px] font-black text-amber-600 uppercase mb-3">⚡ Ngưỡng đầu vào (TT06/2026)</label>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Nhóm ngành</label>
+                                <select name="nhom_nganh" id="nhom_nganh" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
+                                    <option value="Khac">Khác (không ngưỡng)</option>
+                                    <option value="SuPham">Sư phạm</option>
+                                    <option value="SuPhamDacThu">SP Đặc thù (GDTC/ÂN/MT)</option>
+                                    <option value="DieuDuong">Điều dưỡng</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Ngưỡng Học lực L12</label>
+                                <select name="nguong_hoc_luc" id="nguong_hoc_luc" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
+                                    <option value="">-- Không yêu cầu --</option>
+                                    <option value="Gioi">≥ Giỏi</option>
+                                    <option value="Kha">≥ Khá</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Ngưỡng tổng điểm THPT</label>
+                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 20" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
+                            </div>
+                        </div>
                     </div>
                     <div class="col-span-2">
                         <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Ghi chú / Tham khảo</label>
@@ -182,6 +225,9 @@
             document.getElementById('chi_tieu').value = '';
             document.getElementById('diem_nam_truoc').value = '';
             document.getElementById('ghi_chu').value = '';
+            document.getElementById('nhom_nganh').value = 'Khac';
+            document.getElementById('nguong_hoc_luc').value = '';
+            document.getElementById('nguong_diem_thpt').value = '';
             
             // Reset checkboxes
             document.querySelectorAll('input[name="combinations[]"]').forEach(cb => cb.checked = false);
@@ -199,8 +245,11 @@
             document.getElementById('ma_nganh').value = m.ma_nganh;
             document.getElementById('ten_nganh').value = m.ten_nganh;
             document.getElementById('chi_tieu').value = m.chi_tieu;
-            document.getElementById('diem_nam_truoc').value = m.diem_nam_truoc;
+             document.getElementById('diem_nam_truoc').value = m.diem_nam_truoc;
             document.getElementById('ghi_chu').value = m.ghi_chu;
+            document.getElementById('nhom_nganh').value = m.nhom_nganh || 'Khac';
+            document.getElementById('nguong_hoc_luc').value = m.nguong_hoc_luc || '';
+            document.getElementById('nguong_diem_thpt').value = m.nguong_diem_thpt || '';
 
              // Check checkboxes based on m.combination_ids
              document.querySelectorAll('input[name="combinations[]"]').forEach(cb => {

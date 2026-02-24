@@ -104,8 +104,26 @@ class ScoreCalculationService {
                 }
             }
 
-            // 4. Update Nguyen Vong
-            $this->updateApplicationScore($cccd, $majorCode, $bestScore, $bestCombo, $bestMethod, $bestDetails);
+            // 4. Check Threshold (TT06/2026) and Update Nguyen Vong
+            $thresholdResult = null;
+            if (!empty($majorDetails['nguong_hoc_luc']) || !empty($majorDetails['nguong_diem_thpt'])) {
+                $scoreCalc = new \App\Services\ScoreCalculator();
+                $thresholdResult = $scoreCalc->checkAdmissionThreshold($cccd, $majorCode);
+            }
+            
+            // Set score to 0 and add failure note if threshold not met
+            $thresholdNote = '';
+            if ($thresholdResult && !$thresholdResult['passed']) {
+                $bestScore = 0;
+                $thresholdNote = 'KHÔNG ĐẠT NGƯỠNG: ' . implode('; ', $thresholdResult['errors']);
+            }
+            
+            $details = $bestDetails;
+            if ($thresholdNote) {
+                $details['threshold_note'] = $thresholdNote;
+            }
+            
+            $this->updateApplicationScore($cccd, $majorCode, $bestScore, $bestCombo, $bestMethod, $details);
         }
     }
     
@@ -165,15 +183,15 @@ class ScoreCalculationService {
         }
         
         $colToCode = [
-            'toan' => 'TOAN', 'van' => 'VAN', 'ngoai' => 'ANH',
+            'toan' => 'TOAN', 'van' => 'VAN', 'ngoai_ngu' => 'ANH',
             'ly' => 'LY', 'hoa' => 'HOA', 'sinh' => 'SINH',
             'su' => 'SU', 'dia' => 'DIA', 'gdcd' => 'GDCD',
             'cong_nghe' => 'CONG_NGHE', 'tin_hoc' => 'TIN'
         ];
         
         // Alias Helper
-        if (!isset($codeToId['ANH']) && isset($codeToId['NGOAI_NGU'])) $colToCode['ngoai'] = 'NGOAI_NGU';
-        if (!isset($codeToId['ANH']) && isset($codeToId['TIENG_ANH'])) $colToCode['ngoai'] = 'TIENG_ANH';
+        if (!isset($codeToId['ANH']) && isset($codeToId['NGOAI_NGU'])) $colToCode['ngoai_ngu'] = 'NGOAI_NGU';
+        if (!isset($codeToId['ANH']) && isset($codeToId['TIENG_ANH'])) $colToCode['ngoai_ngu'] = 'TIENG_ANH';
 
         $sums = []; 
         $counts = [];
@@ -184,16 +202,19 @@ class ScoreCalculationService {
                 if (!isset($codeToId[$checkCode])) continue;
                 $monId = $codeToId[$checkCode];
                 
-                $colPrefix = ($colKey == 'ngoai') ? "diem_ngoai_ngu" : "diem_{$colKey}";
-                $val1 = isset($r["{$colPrefix}_hk1"]) && $r["{$colPrefix}_hk1"] !== '' ? (float)$r["{$colPrefix}_hk1"] : null;
-                $val2 = isset($r["{$colPrefix}_hk2"]) && $r["{$colPrefix}_hk2"] !== '' ? (float)$r["{$colPrefix}_hk2"] : null;
+                // TT06/2026: Read annual score (diem_xxx_cn) instead of semester scores
+                $colPrefix = ($colKey == 'ngoai_ngu') ? "diem_ngoai_ngu" : "diem_{$colKey}";
+                $valCn = isset($r["{$colPrefix}_cn"]) && $r["{$colPrefix}_cn"] !== '' ? (float)$r["{$colPrefix}_cn"] : null;
                 
-                if (!isset($sums[$monId])) { $sums[$monId] = 0; $counts[$monId] = 0; }
-                if ($val1 !== null) { $sums[$monId] += $val1; $counts[$monId]++; }
-                if ($val2 !== null) { $sums[$monId] += $val2; $counts[$monId]++; }
+                if ($valCn !== null) {
+                    if (!isset($sums[$monId])) { $sums[$monId] = 0; $counts[$monId] = 0; }
+                    $sums[$monId] += $valCn;
+                    $counts[$monId]++;
+                }
             }
         }
         
+        // Average across grades (typically 3 grades: 10, 11, 12)
         $averages = [];
         foreach ($sums as $id => $total) {
             if ($counts[$id] > 0) $averages[$id] = round($total / $counts[$id], 2);

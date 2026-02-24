@@ -405,30 +405,30 @@ class MasterDataController extends Controller {
             $this->validateCsrf();
             $action = $_POST['action'] ?? '';
 
+            $majorData = [
+                'ma_nganh' => $_POST['ma_nganh'],
+                'ten_nganh' => $_POST['ten_nganh'],
+                'chi_tieu' => $_POST['chi_tieu'] ?: null,
+                'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
+                'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
+                'ghi_chu' => $_POST['ghi_chu'],
+                'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null,
+                'nhom_nganh' => $_POST['nhom_nganh'] ?? 'Khac',
+                'nguong_hoc_luc' => !empty($_POST['nguong_hoc_luc']) ? $_POST['nguong_hoc_luc'] : null,
+                'nguong_diem_thpt' => !empty($_POST['nguong_diem_thpt']) ? (float)$_POST['nguong_diem_thpt'] : null
+            ];
+
             if ($action === 'create') {
-                $this->masterData->create('dm_nganh', [
-                    'ma_nganh' => $_POST['ma_nganh'],
-                    'ten_nganh' => $_POST['ten_nganh'],
-                    'chi_tieu' => $_POST['chi_tieu'] ?: null,
-                    'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
-                    'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
-                    'ghi_chu' => $_POST['ghi_chu'],
-                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
-                ]);
+                $this->masterData->create('dm_nganh', $majorData);
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
 
             } elseif ($action === 'update') {
-                $this->masterData->update('dm_nganh', $_POST['old_ma'], [
-                    'ma_nganh' => $_POST['ma_nganh'],
-                    'ten_nganh' => $_POST['ten_nganh'],
-                    'chi_tieu' => $_POST['chi_tieu'] ?: null,
-                    'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
-                    'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
-                    'ghi_chu' => $_POST['ghi_chu'],
-                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
-                ], 'ma_nganh');
+                $this->masterData->update('dm_nganh', $_POST['old_ma'], $majorData, 'ma_nganh');
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
             }
+            // Clear cache for majors
+            \App\Core\Cache::forget('majors_with_combinations');
+            \App\Core\Cache::forget('master_majors');
             $this->redirect(url('/admin/master-data/majors'));
         }
     }

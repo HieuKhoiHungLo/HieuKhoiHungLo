@@ -266,7 +266,7 @@ class ProfileController extends Controller {
         $academicModel = new \App\Models\AcademicRecord();
         $masterData = new \App\Models\MasterData();
         
-        $records = $academicModel->getByCCCD($_SESSION['cccd']);
+        $records = $academicModel->getByCCCDIndexed($_SESSION['cccd']);
         $subjects = $masterData->getSubjects('Mon_hoc_ba'); 
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

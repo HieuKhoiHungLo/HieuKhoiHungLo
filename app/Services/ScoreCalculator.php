@@ -214,7 +214,6 @@ class ScoreCalculator {
         if (!$candidate) return 0;
 
         // 1. Check Graduation Year Condition (Grad Year + 1)
-        // If nam_tot_nghiep is NULL, assume eligible (or strict? assume eligible for now to avoid breaking old data)
         if (!empty($candidate['nam_tot_nghiep'])) {
             $currentYear = date('Y');
             if (($currentYear - $candidate['nam_tot_nghiep']) > 1) {
@@ -238,20 +237,86 @@ class ScoreCalculator {
             }
         }
 
-        // 3. Object Priority (Max of objects if multiple - distinct check?)
-        // Assuming doi_tuong_uu_tien is single string like "01" or "06"
+        // 3. Object Priority
         if (!empty($candidate['doi_tuong_uu_tien'])) {
             $dt = $candidate['doi_tuong_uu_tien'];
-            // Group 1: 01..04
             if (in_array($dt, ['01','02','03','04'])) {
                 $prioSum += (float)$this->masterData->getSetting('score_priority_ut1');
             } 
-            // Group 2: 05..07
             elseif (in_array($dt, ['05','06','07'])) {
                 $prioSum += (float)$this->masterData->getSetting('score_priority_ut2');
             }
         }
 
         return $prioSum;
+    }
+
+    /**
+     * Check admission threshold for a specific major (TT06/2026)
+     * Used during score calculation and admission processing
+     * 
+     * @param string $cccd Candidate's CCCD
+     * @param string $ma_nganh Major code
+     * @return array ['passed' => bool, 'errors' => string[], 'threshold' => [...]]
+     */
+    public function checkAdmissionThreshold($cccd, $ma_nganh) {
+        $result = ['passed' => true, 'errors' => [], 'threshold' => null];
+        
+        // Get major info
+        $major = $this->masterData->find('dm_nganh', $ma_nganh, 'ma_nganh');
+        if (!$major) return $result;
+        
+        $nhomNganh = $major['nhom_nganh'] ?? 'Khac';
+        $nguongHocLuc = $major['nguong_hoc_luc'] ?? null;
+        $nguongDiemTHPT = $major['nguong_diem_thpt'] ?? null;
+        
+        // No threshold for regular majors
+        if ($nhomNganh === 'Khac' && !$nguongHocLuc && !$nguongDiemTHPT) {
+            return $result;
+        }
+        
+        $result['threshold'] = [
+            'nhom_nganh' => $nhomNganh,
+            'nguong_hoc_luc' => $nguongHocLuc,
+            'nguong_diem_thpt' => $nguongDiemTHPT
+        ];
+        
+        // 1. Check Học lực lớp 12
+        if ($nguongHocLuc) {
+            $grade12 = $this->academicModel->getGrade12Summary($cccd);
+            $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
+            
+            if ($hocLuc12) {
+                $hocLucRank = ['Gioi' => 4, 'Kha' => 3, 'TrungBinh' => 2, 'Yeu' => 1];
+                $requiredRank = $hocLucRank[$nguongHocLuc] ?? 0;
+                $actualRank = $hocLucRank[$hocLuc12] ?? 0;
+                
+                if ($actualRank < $requiredRank) {
+                    $result['passed'] = false;
+                    $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu'];
+                    $result['errors'][] = "Học lực lớp 12 phải đạt loại " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) 
+                        . " trở lên (hiện tại: " . ($labels[$hocLuc12] ?? $hocLuc12) . ")";
+                }
+            } else {
+                $result['passed'] = false;
+                $result['errors'][] = "Chưa có thông tin Học lực lớp 12 (cần cập nhật Bước 2 - Học bạ)";
+            }
+        }
+        
+        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp
+        if ($nguongDiemTHPT) {
+            $bestScore = $this->calculateBestScore($cccd, $ma_nganh);
+            $thptTotal = $bestScore['thpt_total'] ?? 0;
+            
+            if ($thptTotal > 0 && $thptTotal < $nguongDiemTHPT) {
+                $result['passed'] = false;
+                $result['errors'][] = "Tổng điểm 3 môn thi THPT theo tổ hợp xét tuyển phải đạt từ " 
+                    . number_format($nguongDiemTHPT, 2) . " trở lên (hiện tại: " 
+                    . number_format($thptTotal, 2) . ")";
+            }
+            // If thptTotal == 0, candidate hasn't entered THPT scores yet - don't block
+        }
+        
+        return $result;
     }
 }

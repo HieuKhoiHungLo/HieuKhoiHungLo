@@ -2,10 +2,11 @@
 $title = 'Hồ sơ thí sinh - Bước 2';
 include __DIR__ . '/../layouts/header.php';
 
-$subjects = [
+// Map subject keys to names
+$subjectMap = [
     'toan' => 'Toán',
     'van' => 'Ngữ văn',
-    'ngoai' => 'Ngoại ngữ',
+    'ngoai_ngu' => 'Ngoại ngữ',
     'ly' => 'Vật lí',
     'hoa' => 'Hóa học',
     'sinh' => 'Sinh học',
@@ -16,31 +17,32 @@ $subjects = [
     'tin_hoc' => 'Tin học'
 ];
 
-$getVal = function($grade, $sem, $field) use ($records) {
-    if (!isset($records[$grade])) return '';
+// Helper to get annual score value
+$getVal = function($grade, $field) use ($records) {
+    if (!isset($records[$grade]) || empty($records[$grade])) return '';
     
-    $prefix = 'diem_';
-    if ($field === 'tb') $prefix = 'diem_';
-    if ($field === 'ngoai') $field = 'ngoai_ngu';
-    
-    if (in_array($field, ['hoc_luc', 'hanh_kiem'])) {
-        $col = "{$field}_{$sem}";
-        if ($sem === 'cn') $col = "{$field}_ca_nam"; 
-        return $records[$grade][$col] ?? ''; // Keep empty for dropdowns
-    } elseif ($field === 'tb') {
-        $col = "diem_tb_{$sem}"; 
-        if ($sem === 'cn') $col = "diem_tb_ca_nam";
-    } else {
-        $col = "diem_{$field}_{$sem}";
+    // Subject scores
+    if (array_key_exists($field, ['toan'=>1,'van'=>1,'ngoai_ngu'=>1,'ly'=>1,'hoa'=>1,'sinh'=>1,'su'=>1,'dia'=>1,'gdcd'=>1,'cong_nghe'=>1,'tin_hoc'=>1])) {
+        $col = "diem_{$field}_cn";
+        $val = $records[$grade][$col] ?? '';
+        return ($val === '') ? '' : $val;
     }
-
-    $val = $records[$grade][$col] ?? '';
-    return ($val === '') ? 0 : $val; // Default to 0 for numbers
+    
+    // Summary fields
+    if ($field === 'diem_tb') {
+        $val = $records[$grade]['diem_tb_ca_nam'] ?? '';
+        return ($val === '') ? '' : $val;
+    }
+    if ($field === 'hoc_luc') {
+        return $records[$grade]['hoc_luc_ca_nam'] ?? '';
+    }
+    if ($field === 'hanh_kiem') {
+        return $records[$grade]['hanh_kiem_ca_nam'] ?? '';
+    }
+    
+    return '';
 };
 ?>
-
-
-
 
 <div class="max-w-6xl mx-auto pb-20 px-4 sm:px-6">
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
@@ -48,7 +50,7 @@ $getVal = function($grade, $sem, $field) use ($records) {
         <!-- Header -->
         <div class="bg-hvu-red p-6 text-white text-center">
             <h2 class="text-2xl font-bold uppercase tracking-wide">Nhập Điểm Học Bạ THPT</h2>
-            <p class="text-white/80 text-sm font-bold italic">Bước 2/<?= $totalStepsCount ?>: Cập nhật điểm và tải học bạ</p>
+            <p class="text-white/80 text-sm font-bold italic">Bước 2/<?= $totalStepsCount ?>: Điểm trung bình cả năm theo Thông tư 06/2026</p>
         </div>
 
         <!-- Wizard Navigation -->
@@ -110,9 +112,12 @@ $getVal = function($grade, $sem, $field) use ($records) {
 
                 <fieldset <?= (!empty($isLocked)) ? 'disabled' : '' ?> class="group/locked contents">
                 
-                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex items-center">
-                     <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                     <span class="text-sm text-blue-800">Nhập đầy đủ điểm TB các môn học và <strong>tải lên ảnh chụp học bạ</strong> của 3 năm (Lớp 10, 11, 12).</span>
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex items-start">
+                     <svg class="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                     <div>
+                         <span class="text-sm text-blue-800 font-bold">Nhập điểm trung bình chung <u>cả năm</u> của từng môn cho các lớp 10, 11, 12.</span>
+                         <p class="text-xs text-blue-600 mt-1">(Theo quy định Thông tư 06/2026/TT-BGDĐT)</p>
+                     </div>
                 </div>
 
                 <!-- ========== DESKTOP VIEW: Full table (hidden on mobile) ========== -->
@@ -120,103 +125,66 @@ $getVal = function($grade, $sem, $field) use ($records) {
                     <table class="w-full text-sm text-center border-collapse">
                         <thead>
                             <tr class="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
-                                <th class="px-2 py-3 border whitespace-nowrap sticky left-0 bg-gray-100 z-20 shadow-sm" style="min-width: 150px;">Môn học</th>
-                                <th class="px-2 py-3 border bg-red-50 text-hvu-red" colspan="2">Lớp 10</th>
-                                <th class="px-2 py-3 border bg-blue-50 text-blue-700" colspan="2">Lớp 11</th>
-                                <th class="px-2 py-3 border bg-yellow-50 text-yellow-700" colspan="2">Lớp 12</th>
-                            </tr>
-                            <tr class="bg-gray-50 text-gray-600 font-semibold text-xs border-b">
-                                <th class="px-2 py-2 border sticky left-0 bg-gray-50 z-20"></th>
-                                <th class="px-1 py-2 border w-20">HK 1</th>
-                                <th class="px-1 py-2 border w-20">HK 2</th>
-                                <th class="px-1 py-2 border w-20">HK 1</th>
-                                <th class="px-1 py-2 border w-20">HK 2</th>
-                                <th class="px-1 py-2 border w-20">HK 1</th>
-                                <th class="px-1 py-2 border w-20">HK 2</th>
+                                <th class="px-3 py-3 border whitespace-nowrap sticky left-0 bg-gray-100 z-20 shadow-sm" style="min-width: 150px;">Môn học</th>
+                                <th class="px-3 py-3 border bg-red-50 text-hvu-red">Lớp 10<br><span class="text-[10px] font-medium normal-case">(ĐTB cả năm)</span></th>
+                                <th class="px-3 py-3 border bg-blue-50 text-blue-700">Lớp 11<br><span class="text-[10px] font-medium normal-case">(ĐTB cả năm)</span></th>
+                                <th class="px-3 py-3 border bg-yellow-50 text-yellow-700">Lớp 12<br><span class="text-[10px] font-medium normal-case">(ĐTB cả năm)</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
-                            <?php foreach ($subjects as $key => $name): ?>
+                            <?php foreach ($subjectMap as $key => $name): ?>
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-3 py-2 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
+                                <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
-                                <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm" name="grades[<?= $g ?>][hk1][<?= $key ?>]" value="<?= $getVal($g, 'hk1', $key) ?>" placeholder="-"></td>
-                                <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm" name="grades[<?= $g ?>][hk2][<?= $key ?>]" value="<?= $getVal($g, 'hk2', $key) ?>" placeholder="-"></td>
+                                <td class="p-1.5 border text-center">
+                                    <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm w-20" 
+                                           name="records[<?= $g ?>][<?= $key ?>]" 
+                                           value="<?= $getVal($g, $key) ?>" placeholder="-">
+                                </td>
                                 <?php endforeach; ?>
                             </tr>
                             <?php endforeach; ?>
 
+                            <!-- ĐTB cả năm -->
                             <tr class="bg-blue-50/50 border-t-2 border-blue-100 font-bold">
-                                <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB</td>
-                                <?php foreach ([10, 11, 12] as $g): foreach(['hk1','hk2'] as $s): ?>
-                                <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700" name="grades[<?= $g ?>][<?= $s ?>][tb]" value="<?= $getVal($g, $s, 'tb') ?>"></td>
-                                <?php endforeach; endforeach; ?>
-                            </tr>
-
-                             <tr class="bg-gray-50 border-t border-gray-200">
-                                <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-gray-50 z-10 font-medium">Học Lực</td>
-                                <?php foreach ([10, 11, 12] as $g): foreach(['hk1','hk2'] as $s): ?>
-                                <td class="p-1 border text-center">
-                                    <select class="hvu-input-sm font-bold" name="grades[<?= $g ?>][<?= $s ?>][hoc_luc]">
-                                        <option value="">--</option>
-                                        <option value="Gioi" <?= $getVal($g, $s, 'hoc_luc') == 'Gioi' ? 'selected' : '' ?>>Giỏi</option>
-                                        <option value="Kha" <?= $getVal($g, $s, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                        <option value="TrungBinh" <?= $getVal($g, $s, 'hoc_luc') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                        <option value="Yeu" <?= $getVal($g, $s, 'hoc_luc') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
-                                    </select>
-                                </td>
-                                <?php endforeach; endforeach; ?>
-                            </tr>
-
-                            <tr class="bg-white border-t border-gray-200">
-                                <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-white z-10 font-medium">Hạnh Kiểm</td>
-                                <?php foreach ([10, 11, 12] as $g): foreach(['hk1','hk2'] as $s): ?>
-                                <td class="p-1 border text-center">
-                                    <select class="hvu-input-sm font-bold" name="grades[<?= $g ?>][<?= $s ?>][hanh_kiem]">
-                                        <option value="">--</option>
-                                        <option value="Tot" <?= $getVal($g, $s, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                        <option value="Kha" <?= $getVal($g, $s, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                        <option value="TrungBinh" <?= $getVal($g, $s, 'hanh_kiem') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                        <option value="Yeu" <?= $getVal($g, $s, 'hanh_kiem') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
-                                    </select>
-                                </td>
-                                <?php endforeach; endforeach; ?>
-                            </tr>
-
-                            <tr class="bg-gray-50">
-                                <td class="px-3 py-4 text-gray-700 text-left border-r sticky left-0 bg-gray-50 z-10 font-bold italic">Minh chứng Học bạ</td>
+                                <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB cả năm</td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
-                                <td colspan="2" class="p-3 border">
-                                    <div class="flex flex-col space-y-3">
-                                        <label class="block cursor-pointer group/upload">
-                                            <div class="h-16 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center bg-white group-hover/upload:bg-red-50 group-hover/upload:border-hvu-red transition-all">
-                                                <?php 
-                                                    $hasFiles = !empty($records[$g]['file_minh_chung_1']) || !empty($records[$g]['file_minh_chung_2']);
-                                                    $label = $hasFiles ? 'Thay đổi file' : 'Tải lên (Tối đa 2)';
-                                                    $iconClass = $hasFiles ? 'text-hvu-red' : 'text-gray-400';
-                                                ?>
-                                                <div class="flex items-center <?= $iconClass ?> group-hover/upload:text-hvu-red">
-                                                    <i class="fas fa-image text-sm mr-2"></i>
-                                                    <span class="text-[10px] font-black uppercase tracking-tight transcript-label-<?= $g ?>"><?= $label ?></span>
-                                                </div>
-                                                <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewTranscript(this, <?= $g ?>)">
-                                            </div>
-                                        </label>
-                                        <div class="flex justify-center space-x-2">
-                                            <?php for($i=1; $i<=2; $i++): $field = "file_minh_chung_$i"; ?>
-                                                <?php if (!empty($records[$g][$field])): ?>
-                                                    <div class="relative group/thumb">
-                                                        <div class="w-10 h-10 rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                                                            <img loading="lazy" src="<?= url($records[$g][$field]) ?>" class="w-full h-full object-cover">
-                                                        </div>
-                                                        <a href="<?= url($records[$g][$field]) ?>" target="_blank" class="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center text-white text-[8px] transition-opacity">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                    </div>
-                                                <?php endif; ?>
-                                            <?php endfor; ?>
-                                        </div>
-                                    </div>
+                                <td class="p-1.5 border text-center">
+                                    <input type="number" step="0.01" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700 w-20" 
+                                           name="records[<?= $g ?>][diem_tb]" 
+                                           value="<?= $getVal($g, 'diem_tb') ?>">
+                                </td>
+                                <?php endforeach; ?>
+                            </tr>
+
+                            <!-- Học Lực cả năm -->
+                            <tr class="bg-gray-50 border-t border-gray-200">
+                                <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-gray-50 z-10 font-medium">Học Lực cả năm</td>
+                                <?php foreach ([10, 11, 12] as $g): ?>
+                                <td class="p-1.5 border text-center">
+                                    <select class="hvu-input-sm font-bold" name="records[<?= $g ?>][hoc_luc]">
+                                        <option value="">--</option>
+                                        <option value="Gioi" <?= $getVal($g, 'hoc_luc') == 'Gioi' ? 'selected' : '' ?>>Giỏi</option>
+                                        <option value="Kha" <?= $getVal($g, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
+                                        <option value="TrungBinh" <?= $getVal($g, 'hoc_luc') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
+                                        <option value="Yeu" <?= $getVal($g, 'hoc_luc') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                    </select>
+                                </td>
+                                <?php endforeach; ?>
+                            </tr>
+
+                            <!-- Hạnh Kiểm cả năm -->
+                            <tr class="bg-white border-t border-gray-200">
+                                <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-white z-10 font-medium">Hạnh Kiểm cả năm</td>
+                                <?php foreach ([10, 11, 12] as $g): ?>
+                                <td class="p-1.5 border text-center">
+                                    <select class="hvu-input-sm font-bold" name="records[<?= $g ?>][hanh_kiem]">
+                                        <option value="">--</option>
+                                        <option value="Tot" <?= $getVal($g, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
+                                        <option value="Kha" <?= $getVal($g, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
+                                        <option value="TrungBinh" <?= $getVal($g, 'hanh_kiem') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
+                                        <option value="Yeu" <?= $getVal($g, 'hanh_kiem') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                    </select>
                                 </td>
                                 <?php endforeach; ?>
                             </tr>
@@ -246,139 +214,66 @@ $getVal = function($grade, $sem, $field) use ($records) {
                         <table class="w-full text-sm text-center border-collapse">
                             <thead>
                                 <tr class="<?= $tabColors[$g]['bg'] ?> <?= $tabColors[$g]['text'] ?> font-bold text-xs uppercase">
-                                    <th class="px-3 py-2.5 text-left" style="width:50%">Môn học</th>
-                                    <th class="px-2 py-2.5 border-l border-white/50" style="width:25%">HK 1</th>
-                                    <th class="px-2 py-2.5 border-l border-white/50" style="width:25%">HK 2</th>
+                                    <th class="px-3 py-2.5 text-left" style="width:55%">Môn học</th>
+                                    <th class="px-2 py-2.5 border-l border-white/50" style="width:45%">ĐTB cả năm</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
-                                <?php foreach ($subjects as $key => $name): ?>
+                                <?php foreach ($subjectMap as $key => $name): ?>
                                 <tr>
                                     <td class="px-3 py-2 font-semibold text-gray-800 text-left text-[13px]"><?= $name ?></td>
                                     <td class="p-1.5 text-center">
                                         <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
                                             class="w-full text-center text-sm font-semibold rounded-lg border border-gray-200 py-2 focus:border-hvu-red focus:ring-1 focus:ring-hvu-red/30 outline-none transition"
-                                            name="grades[<?= $g ?>][hk1][<?= $key ?>]" value="<?= $getVal($g, 'hk1', $key) ?>" placeholder="-">
-                                    </td>
-                                    <td class="p-1.5 text-center">
-                                        <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
-                                            class="w-full text-center text-sm font-semibold rounded-lg border border-gray-200 py-2 focus:border-hvu-red focus:ring-1 focus:ring-hvu-red/30 outline-none transition"
-                                            name="grades[<?= $g ?>][hk2][<?= $key ?>]" value="<?= $getVal($g, 'hk2', $key) ?>" placeholder="-">
+                                            name="records[<?= $g ?>][<?= $key ?>]" value="<?= $getVal($g, $key) ?>" placeholder="-">
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
 
-                                <!-- Điểm TB -->
+                                <!-- Điểm TB cả năm -->
                                 <tr class="bg-blue-50/60 border-t-2 border-blue-200">
-                                    <td class="px-3 py-2.5 font-bold text-blue-800 text-left text-[13px]">Điểm TB</td>
+                                    <td class="px-3 py-2.5 font-bold text-blue-800 text-left text-[13px]">Điểm TB cả năm</td>
                                     <td class="p-1.5 text-center">
-                                        <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
+                                        <input type="number" step="0.01" min="0" max="10" inputmode="decimal"
                                             class="w-full text-center text-sm font-bold text-blue-700 rounded-lg border border-blue-200 py-2 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-300 outline-none transition"
-                                            name="grades[<?= $g ?>][hk1][tb]" value="<?= $getVal($g, 'hk1', 'tb') ?>">
-                                    </td>
-                                    <td class="p-1.5 text-center">
-                                        <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
-                                            class="w-full text-center text-sm font-bold text-blue-700 rounded-lg border border-blue-200 py-2 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-300 outline-none transition"
-                                            name="grades[<?= $g ?>][hk2][tb]" value="<?= $getVal($g, 'hk2', 'tb') ?>">
+                                            name="records[<?= $g ?>][diem_tb]" value="<?= $getVal($g, 'diem_tb') ?>">
                                     </td>
                                 </tr>
 
                                 <!-- Học Lực -->
                                 <tr class="bg-gray-50/50">
-                                    <td class="px-3 py-2 font-semibold text-gray-600 text-left text-[13px]">Học Lực</td>
-                                    <?php foreach(['hk1','hk2'] as $s): ?>
+                                    <td class="px-3 py-2 font-semibold text-gray-600 text-left text-[13px]">Học Lực cả năm</td>
                                     <td class="p-1.5 text-center">
-                                        <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="grades[<?= $g ?>][<?= $s ?>][hoc_luc]">
+                                        <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="records[<?= $g ?>][hoc_luc]">
                                             <option value="">--</option>
-                                            <option value="Gioi" <?= $getVal($g, $s, 'hoc_luc') == 'Gioi' ? 'selected' : '' ?>>Giỏi</option>
-                                            <option value="Kha" <?= $getVal($g, $s, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                            <option value="TrungBinh" <?= $getVal($g, $s, 'hoc_luc') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                            <option value="Yeu" <?= $getVal($g, $s, 'hoc_luc') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                            <option value="Gioi" <?= $getVal($g, 'hoc_luc') == 'Gioi' ? 'selected' : '' ?>>Giỏi</option>
+                                            <option value="Kha" <?= $getVal($g, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
+                                            <option value="TrungBinh" <?= $getVal($g, 'hoc_luc') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
+                                            <option value="Yeu" <?= $getVal($g, 'hoc_luc') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
                                         </select>
                                     </td>
-                                    <?php endforeach; ?>
                                 </tr>
 
                                 <!-- Hạnh Kiểm -->
                                 <tr>
-                                    <td class="px-3 py-2 font-semibold text-gray-600 text-left text-[13px]">Hạnh Kiểm</td>
-                                    <?php foreach(['hk1','hk2'] as $s): ?>
+                                    <td class="px-3 py-2 font-semibold text-gray-600 text-left text-[13px]">Hạnh Kiểm cả năm</td>
                                     <td class="p-1.5 text-center">
-                                        <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="grades[<?= $g ?>][<?= $s ?>][hanh_kiem]">
+                                        <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="records[<?= $g ?>][hanh_kiem]">
                                             <option value="">--</option>
-                                            <option value="Tot" <?= $getVal($g, $s, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                            <option value="Kha" <?= $getVal($g, $s, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                            <option value="TrungBinh" <?= $getVal($g, $s, 'hanh_kiem') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                            <option value="Yeu" <?= $getVal($g, $s, 'hanh_kiem') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                            <option value="Tot" <?= $getVal($g, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
+                                            <option value="Kha" <?= $getVal($g, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
+                                            <option value="TrungBinh" <?= $getVal($g, 'hanh_kiem') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
+                                            <option value="Yeu" <?= $getVal($g, 'hanh_kiem') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
                                         </select>
                                     </td>
-                                    <?php endforeach; ?>
                                 </tr>
                             </tbody>
                         </table>
-
-                        <!-- Upload Section for this grade -->
-                        <div class="p-4 bg-gray-50 border-t border-gray-200">
-                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"><i class="fas fa-image mr-1 text-hvu-red"></i>Minh chứng Học bạ Lớp <?= $g ?></p>
-                            <label class="block cursor-pointer">
-                                <div class="h-14 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-white active:bg-red-50 active:border-hvu-red transition-all">
-                                    <?php 
-                                        $hasFiles = !empty($records[$g]['file_minh_chung_1']) || !empty($records[$g]['file_minh_chung_2']);
-                                        $mLabel = $hasFiles ? 'Thay đổi file' : 'Tải lên (Tối đa 2 ảnh)';
-                                        $mIconClass = $hasFiles ? 'text-hvu-red' : 'text-gray-400';
-                                    ?>
-                                    <div class="flex items-center <?= $mIconClass ?>">
-                                        <i class="fas fa-cloud-upload-alt mr-2"></i>
-                                        <span class="text-xs font-bold uppercase tracking-tight mobile-transcript-label-<?= $g ?>"><?= $mLabel ?></span>
-                                    </div>
-                                    <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMobileTranscript(this, <?= $g ?>)">
-                                </div>
-                            </label>
-                            <!-- Existing thumbnails -->
-                            <?php 
-                            $hasAnyFile = false;
-                            for($i=1; $i<=2; $i++) { if (!empty($records[$g]["file_minh_chung_$i"])) $hasAnyFile = true; }
-                            if ($hasAnyFile): ?>
-                            <div class="flex gap-2 mt-2">
-                                <?php for($i=1; $i<=2; $i++): $field = "file_minh_chung_$i"; ?>
-                                    <?php if (!empty($records[$g][$field])): ?>
-                                    <a href="<?= url($records[$g][$field]) ?>" target="_blank" class="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden shadow-sm block">
-                                        <img loading="lazy" src="<?= url($records[$g][$field]) ?>" class="w-full h-full object-cover">
-                                    </a>
-                                    <?php endif; ?>
-                                <?php endfor; ?>
-                            </div>
-                            <?php endif; ?>
-                        </div>
                     </div>
                     <?php endforeach; ?>
                 </div>
 
-                <div class="mt-10 bg-gray-50 border border-gray-100 rounded-2xl p-6 shadow-inner">
-                    <h4 class="text-sm font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center">
-                        <i class="fas fa-tasks mr-2 text-hvu-red"></i> Xác nhận tình trạng học bạ
-                    </h4>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label class="group relative flex items-center p-4 bg-white border-2 border-transparent hover:border-hvu-red/20 rounded-xl cursor-pointer transition-all has-[:checked]:border-hvu-red has-[:checked]:bg-red-50/30">
-                            <input type="radio" name="da_du_6_ky" value="1" <?= ($user['da_du_6_ky'] ?? false) ? 'checked' : '' ?> class="w-5 h-5 text-hvu-red border-gray-300 focus:ring-hvu-red">
-                            <div class="ml-4">
-                                <span class="block text-sm font-bold text-gray-900 group-hover:text-hvu-red transition-colors">Đã đủ điểm 6 học kỳ</span>
-                                <span class="block text-xs text-gray-500">Thí sinh đã có đầy đủ điểm từ HK1 lớp 10 đến HK2 lớp 12.</span>
-                            </div>
-                        </label>
-
-                        <label class="group relative flex items-center p-4 bg-white border-2 border-transparent hover:border-gray-300 rounded-xl cursor-pointer transition-all has-[:checked]:border-gray-500 has-[:checked]:bg-gray-50">
-                            <input type="radio" name="da_du_6_ky" value="0" <?= !($user['da_du_6_ky'] ?? false) ? 'checked' : '' ?> class="w-5 h-5 text-gray-500 border-gray-300 focus:ring-gray-500">
-                            <div class="ml-4">
-                                <span class="block text-sm font-bold text-gray-900">Chưa đủ điểm 6 học kỳ</span>
-                                <span class="block text-xs text-gray-500">Thí sinh chưa có đủ điểm 6 kỳ (Ví dụ: đang học kỳ 2 lớp 12).</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 px-8 py-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="bg-gray-50 px-8 py-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 mt-6">
                     <a href="<?= url('/profile/step1') ?>" class="text-gray-600 hover:text-gray-900 font-bold flex items-center transition-colors">
                         <i class="fas fa-arrow-left mr-2"></i> Quay lại
                     </a>
@@ -386,7 +281,7 @@ $getVal = function($grade, $sem, $field) use ($records) {
                         Lưu thông tin và tiếp tục <i class="fas fa-arrow-right ml-2"></i>
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-4 italic text-center text-center">* Tải lên ảnh chụp Học bạ (không chấp nhận PDF) để Nhà trường đối soát.</p>
+                <p class="text-xs text-gray-400 mt-4 italic text-center">* Nhập điểm trung bình chung cả năm (không phải điểm từng học kỳ) theo Thông tư 06/2026/TT-BGDĐT.</p>
                 </fieldset>
             </form>
         </div>
@@ -394,24 +289,6 @@ $getVal = function($grade, $sem, $field) use ($records) {
 </div>
 
 <script>
-function previewTranscript(input, grade) {
-    const label = document.querySelector('.transcript-label-' + grade);
-    if (input.files && input.files.length > 0) {
-        label.textContent = 'Đã chọn: ' + input.files.length + ' tệp';
-        label.classList.remove('text-gray-400');
-        label.classList.add('text-hvu-red');
-    }
-}
-
-function previewMobileTranscript(input, grade) {
-    const label = document.querySelector('.mobile-transcript-label-' + grade);
-    if (input.files && input.files.length > 0) {
-        label.textContent = 'Đã chọn: ' + input.files.length + ' ảnh';
-        label.parentElement.classList.remove('text-gray-400');
-        label.parentElement.classList.add('text-hvu-red');
-    }
-}
-
 // Tab switching for mobile grade tabs
 const tabColorConfig = {
     10: { bg: 'bg-red-50', text: 'text-hvu-red', border: 'border-hvu-red' },

@@ -97,6 +97,9 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->post('/admin/candidates/bulk-action', 'CandidateController@bulkAction');
     $router->post('/admin/candidates/update', 'CandidateController@update');
     $router->post('/admin/candidates/transfer', 'CandidateController@transfer');
+    $router->get('/admin/candidates/trash', 'CandidateController@trash');
+    $router->post('/admin/candidates/restore', 'CandidateController@restore');
+    $router->post('/admin/candidates/force-delete', 'CandidateController@forceDelete');
     
     // Admin Accounts (RBAC)
     $router->get('/admin/accounts', 'AdminAccountController@index');
