@@ -46,6 +46,12 @@ $router->post('/profile/step4', 'ProfileController@step4');
 $router->get('/profile/step5', 'ApplicationController@step5');
 $router->post('/profile/step5', 'ApplicationController@step5');
 
+// Student Notification API
+$router->get('/api/notifications', 'NotificationController@getNotifications');
+$router->get('/api/notifications/unread-count', 'NotificationController@getUnreadCount');
+$router->post('/api/notifications/mark-read', 'NotificationController@markRead');
+$router->post('/api/notifications/mark-all-read', 'NotificationController@markAllRead');
+
 $router->get('/application/results', 'ApplicationController@results');
 $router->post('/application/requestEdit', 'ApplicationController@requestEdit');
 
@@ -89,6 +95,10 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/notifications/create', 'AdminNotificationController@create');
     $router->post('/admin/notifications/store', 'AdminNotificationController@store');
     $router->get('/admin/notifications/delete', 'AdminNotificationController@delete');
+    
+    // Footer Links Management
+    $router->get('/admin/footer-links', 'FooterLinksController@index');
+    $router->post('/admin/footer-links/save', 'FooterLinksController@save');
     
     // Candidate Management
     $router->get('/admin/candidates/edit', 'CandidateController@edit');

@@ -90,7 +90,7 @@
         </div>
 
         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 flex justify-end">
-            <button type="submit" class="px-6 py-2.5 bg-[#0066FF] text-white font-bold uppercase text-sm tracking-wider rounded-xl shadow hover:bg-blue-700 hover:shadow-lg transition-all">
+            <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white font-bold uppercase text-sm tracking-wider rounded-xl shadow hover:bg-emerald-700 hover:shadow-lg transition-all">
                 <i class="fas fa-paper-plane mr-2"></i> Gửi Thông báo
             </button>
         </div>

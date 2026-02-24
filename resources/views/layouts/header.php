@@ -105,17 +105,17 @@
                 <a href="<?= url('/') ?>" class="flex items-center space-x-3">
                     <img loading="lazy" src="<?= url('/assets/img/Logo.png') ?>" alt="Logo HVU" class="h-10 md:h-12">
                     <div class="hidden md:block">
-                        <h1 class="text-lg md:text-xl font-bold text-hvu-red uppercase leading-tight">Trường Đại học Hùng Vương</h1>
-                        <p class="text-xs md:text-sm text-gray-600">Cổng thông tin Đăng ký & Xét tuyển trực tuyến</p>
+                        <h1 class="text-lg md:text-xl font-bold text-hvu-red uppercase leading-tight">Trường Đại học Hùng Vương - Mã trường THV</h1>
+                        <p class="text-xs md:text-sm text-gray-600">Cổng Thông tin tuyển sinh</p>
                     </div>
                 </a>
 
                 <!-- Desktop Nav -->
-                <nav class="hidden md:flex items-center space-x-1 ml-auto">
+                <nav class="hidden md:flex items-center space-x-1 ml-6">
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <span class="text-gray-600 text-sm mr-2">Xin chào, <b><?= htmlspecialchars($_SESSION['user_name']) ?></b></span>
-                        <a href="<?= url('/application/results') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Tra cứu Kết quả</a>
-                        <a href="<?= url('/application/index') ?>" class="text-gray-700 hover:text-hvu-red font-bold px-3 py-2 rounded-md hover:bg-red-50 transition">Hồ sơ Xét tuyển</a>
+                        <!-- <a href="<?= url('/application/results') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Tra cứu Kết quả</a> -->
+                        <a href="<?= url('/application/index') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Hồ sơ Xét tuyển</a>
                         <a href="<?= url('/profile/step1') ?>" class="text-gray-600 hover:text-hvu-red font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition text-sm">Thông tin cá nhân</a>
                         <a href="<?= url('/logout') ?>" class="text-gray-500 hover:text-red-500 font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition text-sm ml-1" title="Đăng xuất">
                             <i class="fas fa-sign-out-alt mr-1"></i> Đăng xuất
@@ -164,8 +164,8 @@
                     <div class="py-3 px-2 text-gray-500 text-sm border-b border-gray-100 mb-2">
                         Xin chào, <b class="text-gray-800"><?= htmlspecialchars($_SESSION['user_name']) ?></b>
                     </div>
-                    <a href="<?= url('/application/results') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Tra cứu Kết quả</a>
-                    <a href="<?= url('/application/index') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">Hồ sơ Xét tuyển</a>
+                    <!-- <a href="<?= url('/application/results') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Tra cứu Kết quả</a> -->
+                    <a href="<?= url('/application/index') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Hồ sơ Xét tuyển</a>
                     <a href="<?= url('/profile/step1') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">Thông tin cá nhân</a>
                     <a href="<?= url('/logout') ?>" class="block px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg">Đăng xuất</a>
                 <?php else: ?>

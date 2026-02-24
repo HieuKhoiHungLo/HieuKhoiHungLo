@@ -54,7 +54,7 @@
             <p class="text-xs text-gray-500 mb-6 leading-relaxed">Nhập điểm trung bình các môn Lớp 10, 11, 12 để tính điểm tổ hợp.</p>
             <div class="mt-auto">
                 <?php if ($done2): ?>
-                    <a href="<?= url('/profile/step2') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">CẬP NHẬT</a>
+                    <a href="<?= url('/profile/step2') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">CHỈNH SỬA</a>
                 <?php elseif ($active2): ?>
                     <a href="<?= url('/profile/step2') ?>" class="inline-block w-full text-center py-3 bg-hvu-red text-white font-black text-[10px] rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-colors uppercase tracking-widest">Nhập liệu ngay</a>
                 <?php else: ?>
@@ -113,7 +113,7 @@
                 <p class="text-xs text-gray-500 mb-6 leading-relaxed">Cập nhật điểm thi THPT năm 2026 nếu đã có kết quả chính thức.</p>
                 <div class="mt-auto">
                     <?php if ($done4): ?>
-                        <a href="<?= url('/profile/step4') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">CẬP NHẬT</a>
+                        <a href="<?= url('/profile/step4') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">CHỈNH SỬA</a>
                     <?php elseif ($active4): ?>
                         <a href="<?= url('/profile/step4') ?>" class="inline-block w-full text-center py-3 bg-hvu-red text-white font-black text-[10px] rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-colors uppercase tracking-widest">Nhập liệu ngay</a>
                     <?php else: ?>
@@ -144,7 +144,7 @@
             <p class="text-xs text-gray-500 mb-6 leading-relaxed">Chọn ngành học và phương thức xét tuyển mong muốn của bạn.</p>
             <div class="mt-auto">
                 <?php if ($doneChoice): ?>
-                    <a href="<?= url('/profile/step5') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">SỬA LỰA CHỌN</a>
+                    <a href="<?= url('/profile/step5') ?>" class="text-green-600 font-black text-[10px] flex items-center hover:translate-x-1 transition-transform uppercase tracking-widest">CHỈNH SỬA</a>
                 <?php elseif ($activeChoice): ?>
                     <a href="<?= url('/profile/step5') ?>" class="inline-block w-full text-center py-3 bg-hvu-red text-white font-black text-[10px] rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-colors uppercase tracking-widest">Nhập liệu ngay</a>
                 <?php else: ?>

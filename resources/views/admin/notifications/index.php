@@ -9,7 +9,7 @@
             </a>
             <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">Quản lý Thông báo</h2>
         </div>
-        <a href="<?= url('/admin/notifications/create') ?>" class="px-5 py-2.5 bg-[#0066FF] text-white font-bold rounded-xl shadow hover:bg-blue-700 transition flex items-center">
+        <a href="<?= url('/admin/notifications/create') ?>" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow hover:bg-emerald-700 transition flex items-center">
             <i class="fas fa-plus mr-2"></i> Tạo Thông báo
         </a>
     </header>

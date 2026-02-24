@@ -12,43 +12,56 @@
                     <div class="flex space-x-4">
                         <a href="http://facebook.com/daihochungvuong" target="_blank" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition"><i class="fab fa-facebook-f"></i></a>
                         <a href="https://hvu.edu.vn/" target="_blank" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition"><i class="fas fa-globe"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition"><i class="fab fa-youtube"></i></a>
+                        <a href="https://www.youtube.com/@daihochungvuong1486" target="_blank" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">LIÊN KẾT NHANH</h3>
                     <ul class="space-y-3 text-sm text-gray-400">
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Trang chủ</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Giới thiệu chung</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Thông tin tuyển sinh</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Tin tức & Sự kiện</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Liên hệ</a></li>
+                        <li><a href="https://hvu.edu.vn" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Trang chủ HVU</a></li>
+                        <li><a href="https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1700635044.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Thông tin tuyển sinh 2026</a></li>
+                        <li><a href="https://www.hvu.edu.vn/file/1268204397/Quychetuyensinhdaihoc.pdf" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Quy chế tuyển sinh</a></li>
+                        <li><a href="https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1458613815.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Điểm trúng tuyển các năm</a></li>
+                        <li><a href="https://www.hvu.edu.vn/tin-tuc/thong-bao-tuyen-sinh.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Thông báo</a></li>
                     </ul>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">HỖ TRỢ THÍ SINH</h3>
+                    <?php
+                    if (!isset($_SESSION['cache_footer_links'])) {
+                        try {
+                            $__db = \App\Core\Database::getInstance()->getConnection();
+                            $__stmt = $__db->prepare("SELECT value FROM settings WHERE \"key\" = ?");
+                            $__stmt->execute(['footer_support_links']);
+                            $__json = $__stmt->fetchColumn();
+                            $_SESSION['cache_footer_links'] = $__json ? json_decode($__json, true) : [];
+                        } catch (\Exception $e) { $_SESSION['cache_footer_links'] = []; }
+                    }
+                    $footerLinks = $_SESSION['cache_footer_links'];
+                    if (empty($footerLinks)) {
+                        $footerLinks = [
+                            ['label' => 'Đăng ký xét tuyển', 'url' => url('/register'), 'icon' => 'fas fa-check-circle'],
+                            ['label' => 'Tra cứu hồ sơ', 'url' => url('/login'), 'icon' => 'fas fa-check-circle'],
+                        ];
+                    }
+                    ?>
                     <ul class="space-y-3 text-sm text-gray-400">
-                        <li><a href="<?= url('/register') ?>" class="hover:text-white transition flex items-center"><i class="fas fa-check-circle mr-2 text-hvu-red"></i> Đăng ký xét tuyển</a></li>
-                        <li><a href="<?= url('/login') ?>" class="hover:text-white transition flex items-center"><i class="fas fa-check-circle mr-2 text-hvu-red"></i> Tra cứu hồ sơ</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-check-circle mr-2 text-hvu-red"></i> Câu hỏi thường gặp</a></li>
-                        <li><a href="#" class="hover:text-white transition flex items-center"><i class="fas fa-check-circle mr-2 text-hvu-red"></i> Hướng dẫn đăng ký</a></li>
+                        <?php foreach ($footerLinks as $fl): ?>
+                        <li><a href="<?= htmlspecialchars($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?? 'fas fa-check-circle') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['label']) ?></a></li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">THÔNG TIN LIÊN HỆ</h3>
                     <ul class="space-y-4 text-sm text-gray-400">
-                        <li class="flex items-start"><i class="fas fa-map-marker-alt mt-1 mr-3 text-hvu-red"></i><span>Phường Nông Trang, TP. Việt Trì, Tỉnh Phú Thọ</span></li>
-                        <li class="flex items-center"><i class="fas fa-phone-alt mr-3 text-hvu-red"></i><span class="text-white font-bold text-lg">0210.3993.369</span></li>
-                        <li class="flex items-center"><i class="fas fa-envelope mr-3 text-hvu-red"></i><span>info@hvu.edu.vn</span></li>
+                        <li class="flex items-start"><i class="fas fa-map-marker-alt mt-1 mr-3 text-hvu-red"></i><span>Văn phòng Tuyển sinh<br>Phòng 114 nhà Điều hành<br>Phường Nông Trang, Tỉnh Phú Thọ</span></li>
+                        <li class="flex items-center"><i class="fas fa-phone-alt mr-3 text-hvu-red"></i><span class="text-white font-bold text-lg">0866 993 468</span></li>
+                        <li class="flex items-center"><i class="fas fa-envelope mr-3 text-hvu-red"></i><span>tuyensinh@hvu.edu.vn</span></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-8 flex justify-between items-center text-xs text-gray-500">
-                <p>&copy; <?= date('Y') ?> Trường Đại học Hùng Vương. All rights reserved.</p>
-                <div class="flex space-x-6">
-                    <a href="#" class="hover:text-white">Điều khoản sử dụng</a>
-                    <a href="#" class="hover:text-white">Chính sách bảo mật</a>
-                </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-xs text-gray-500">
+                <p>&copy; <?= date('Y') ?> Trường Đại học Hùng Vương</p>
             </div>
         </div>
     </footer>
@@ -58,18 +71,18 @@
         <div class="px-4 text-center">
             <p class="text-white font-bold text-sm">Trường Đại học Hùng Vương</p>
             <div class="flex items-center justify-center gap-4 mt-3 text-gray-400 text-xs">
-                <a href="tel:02103993369" class="flex items-center gap-1.5 hover:text-white transition">
-                    <i class="fas fa-phone-alt text-hvu-red"></i> 0210.3993.369
+                <a href="tel:0866993468" class="flex items-center gap-1.5 hover:text-white transition">
+                    <i class="fas fa-phone-alt text-hvu-red"></i> 0866 993 468
                 </a>
                 <span class="text-gray-600">|</span>
-                <a href="mailto:info@hvu.edu.vn" class="flex items-center gap-1.5 hover:text-white transition">
-                    <i class="fas fa-envelope text-hvu-red"></i> info@hvu.edu.vn
+                <a href="mailto:tuyensinh@hvu.edu.vn" class="flex items-center gap-1.5 hover:text-white transition">
+                    <i class="fas fa-envelope text-hvu-red"></i> tuyensinh@hvu.edu.vn
                 </a>
             </div>
             <div class="flex justify-center gap-3 mt-3">
                 <a href="http://facebook.com/daihochungvuong" target="_blank" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition text-sm"><i class="fab fa-facebook-f"></i></a>
                 <a href="https://hvu.edu.vn/" target="_blank" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition text-sm"><i class="fas fa-globe"></i></a>
-                <a href="#" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition text-sm"><i class="fab fa-youtube"></i></a>
+                <a href="https://www.youtube.com/@daihochungvuong1486" target="_blank" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition text-sm"><i class="fab fa-youtube"></i></a>
             </div>
             <p class="text-gray-600 text-[10px] mt-3">&copy; <?= date('Y') ?> Đại học Hùng Vương</p>
         </div>
