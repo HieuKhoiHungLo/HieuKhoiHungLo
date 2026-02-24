@@ -34,8 +34,8 @@ $router->get('/logout', 'AuthController@logout');
 $router->get('/profile/step1', 'ProfileController@step1');
 $router->post('/profile/step1', 'ProfileController@step1');
 
-$router->get('/profile/step2', 'AcademicController@step2');
-$router->post('/profile/step2', 'AcademicController@step2');
+$router->get('/profile/step2', 'ProfileController@step2');
+$router->post('/profile/step2', 'ProfileController@step2');
 
 $router->get('/profile/step3', 'AcademicController@step3');
 $router->post('/profile/step3', 'AcademicController@step3');
