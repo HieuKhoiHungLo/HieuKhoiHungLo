@@ -4,14 +4,9 @@
 <div class="max-w-6xl mx-auto pb-20 px-4 sm:px-6">
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
         <!-- Header Section -->
-        <div class="bg-gradient-to-r from-hvu-red to-red-800 p-8 text-white text-center relative overflow-hidden">
-            <div class="relative z-10">
-                <h2 class="text-3xl font-black uppercase tracking-widest mb-2">Chứng chỉ Quốc tế</h2>
-                <p class="text-white/80 text-sm font-bold italic">Bước 3/<?= $totalStepsCount ?>: Khai báo các chứng chỉ quốc tế bạn đang sở hữu</p>
-            </div>
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 opacity-10">
-                <i class="fas fa-certificate text-[120px]"></i>
-            </div>
+        <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
+            <h2 class="text-2xl font-bold uppercase tracking-wide">Chứng chỉ Quốc tế</h2>
+            <p class="text-white/80 text-sm mt-1">Bước 3/<?= $totalStepsCount ?>: Khai báo các chứng chỉ quốc tế bạn đang sở hữu</p>
         </div>
 
         <!-- Wizard Navigation -->

@@ -83,4 +83,19 @@ class AdminNotificationController extends Controller {
         
         $this->redirect(url('/admin/notifications?msg=deleted'));
     }
+
+    /**
+     * API: Get notifications as JSON (for admin bell dropdown)
+     */
+    public function api() {
+        header('Content-Type: application/json');
+
+        $notifications = $this->notificationModel->getAll(20);
+        
+        echo json_encode([
+            'success' => true,
+            'notifications' => $notifications,
+            'total' => count($notifications)
+        ]);
+    }
 }

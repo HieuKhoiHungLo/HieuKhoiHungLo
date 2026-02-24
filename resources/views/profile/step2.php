@@ -48,9 +48,9 @@ $getVal = function($grade, $field) use ($records) {
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
         
         <!-- Header -->
-        <div class="bg-hvu-red p-6 text-white text-center">
-            <h2 class="text-2xl font-bold uppercase tracking-wide">Nhập Điểm Học Bạ THPT</h2>
-            <p class="text-white/80 text-sm font-bold italic">Bước 2/<?= $totalStepsCount ?>: Điểm trung bình cả năm theo Thông tư 06/2026</p>
+        <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
+            <h2 class="text-2xl font-bold uppercase tracking-wide">Nhập điểm Học bạ THPT</h2>
+            <p class="text-white/80 text-sm mt-1">Bước 2/<?= $totalStepsCount ?>: Điểm trung bình cả năm theo Thông tư 06/2026</p>
         </div>
 
         <!-- Wizard Navigation -->

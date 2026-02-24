@@ -95,6 +95,7 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/notifications/create', 'AdminNotificationController@create');
     $router->post('/admin/notifications/store', 'AdminNotificationController@store');
     $router->get('/admin/notifications/delete', 'AdminNotificationController@delete');
+    $router->get('/admin/notifications/api', 'AdminNotificationController@api');
     
     // Footer Links Management
     $router->get('/admin/footer-links', 'FooterLinksController@index');

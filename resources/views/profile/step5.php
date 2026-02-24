@@ -5,11 +5,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <div class="max-w-6xl mx-auto pb-20 px-4 sm:px-6">
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-hvu-red to-red-700 px-6 py-4 border-b border-red-800">
-            <h2 class="text-xl font-bold text-white flex items-center">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                Đăng ký nguyện vọng xét tuyển
-            </h2>
+        <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
+            <h2 class="text-2xl font-bold uppercase tracking-wide">Đăng ký nguyện vọng xét tuyển</h2>
+            <p class="text-white/80 text-sm mt-1">Bước <?= $enableTHPTSetting ? '5' : '4' ?>/<?= $totalStepsCount ?? ($enableTHPTSetting ? 5 : 4) ?>: Chọn ngành và phương thức xét tuyển</p>
         </div>
 
         <!-- Wizard Navigation -->

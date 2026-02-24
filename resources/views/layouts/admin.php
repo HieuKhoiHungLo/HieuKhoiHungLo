@@ -240,10 +240,24 @@
                 </button>
                 
                 <!-- Notifications -->
-                <button class="relative text-slate-400 hover:text-slate-600 dark:hover:text-white transition">
-                    <i class="fas fa-bell text-lg"></i>
-                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <div class="relative" id="admin-notif-container">
+                    <button id="admin-notif-bell" class="relative text-slate-400 hover:text-slate-600 dark:hover:text-white transition">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span id="admin-notif-badge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                    </button>
+                    <!-- Dropdown -->
+                    <div id="admin-notif-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden">
+                        <div class="px-5 py-3 bg-gradient-to-r from-[#0066FF] to-blue-700 flex justify-between items-center rounded-t-2xl">
+                            <span class="font-bold text-white text-sm"><i class="fas fa-bell mr-2"></i>Thông báo đã gửi</span>
+                            <a href="<?= url('/admin/notifications') ?>" class="text-[10px] text-sky-200 hover:text-white font-bold uppercase tracking-wider">Xem tất cả</a>
+                        </div>
+                        <div id="admin-notif-list" class="overflow-y-auto max-h-80">
+                            <div class="p-4 text-center text-gray-400 text-sm">
+                                <i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-gray-600">
                     <div class="text-right hidden md:block">
@@ -361,6 +375,94 @@
     if (urlParams.get('msg') === 'bulk_success') showToast(`Cập nhật thành công ${urlParams.get('count') || ''} hồ sơ!`, 'success');
     if (urlParams.get('error')) {
         showToast(decodeURIComponent(urlParams.get('error')), 'error');
+    }
+
+    // Admin Notification Dropdown Logic
+    const adminBell = document.getElementById('admin-notif-bell');
+    const adminDropdown = document.getElementById('admin-notif-dropdown');
+    const adminBadge = document.getElementById('admin-notif-badge');
+    const adminNotifList = document.getElementById('admin-notif-list');
+
+    if (adminBell && adminDropdown) {
+        // Toggle dropdown
+        adminBell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = adminDropdown.classList.contains('hidden');
+            adminDropdown.classList.toggle('hidden');
+            
+            if (isHidden) {
+                fetchAdminNotifications();
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!adminDropdown.contains(e.target) && e.target !== adminBell && !adminBell.contains(e.target)) {
+                adminDropdown.classList.add('hidden');
+            }
+        });
+
+        // Fetch notifications
+        function fetchAdminNotifications() {
+            adminNotifList.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...</div>';
+            
+            fetch('<?= url("/admin/notifications/api") ?>')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.notifications || data.notifications.length === 0) {
+                        adminNotifList.innerHTML = '<div class="p-6 text-center text-gray-400 text-sm"><i class="fas fa-bell-slash text-2xl mb-2"></i><p>Chưa có thông báo nào được gửi.</p></div>';
+                        adminBadge.classList.add('hidden');
+                        return;
+                    }
+                    
+                    if (data.total > 0) {
+                        adminBadge.textContent = data.total > 9 ? '9+' : data.total;
+                        adminBadge.classList.remove('hidden');
+                    }
+                    
+                    const typeIcons = {
+                        'info': '<i class="fas fa-info text-blue-500"></i>',
+                        'warning': '<i class="fas fa-exclamation-triangle text-yellow-500"></i>',
+                        'success': '<i class="fas fa-check text-emerald-500"></i>',
+                        'important': '<i class="fas fa-fire text-red-500"></i>'
+                    };
+                    
+                    adminNotifList.innerHTML = data.notifications.map(n => {
+                        const icon = typeIcons[n.type] || typeIcons.info;
+                        const date = new Date(n.created_at).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'});
+                        
+                        let targetLabel = '';
+                        if (n.target_type === 'all') targetLabel = '<span class="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded ml-2">Tất cả</span>';
+                        else if (n.target_type === 'individual') targetLabel = `<span class="text-[10px] bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 px-2 py-0.5 rounded ml-2">Thí sinh: ${n.target_id}</span>`;
+                        else if (n.target_type === 'session') targetLabel = `<span class="text-[10px] bg-sky-50 dark:bg-sky-900/40 text-sky-600 px-2 py-0.5 rounded ml-2">Đợt: ${n.target_id}</span>`;
+                        
+                        return `
+                        <div class="px-5 py-3 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                            <div class="flex items-start">
+                                <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
+                                    ${icon}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate pr-2">${n.title}</h4>
+                                    </div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-1">${n.content.replace(/<[^>]*>/g, '')}</p>
+                                    <div class="flex items-center text-[10px] text-slate-400 mt-1">
+                                        <i class="fas fa-clock mr-1"></i> ${date} 
+                                        ${targetLabel}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                })
+                .catch(err => {
+                    adminNotifList.innerHTML = '<div class="p-4 text-center text-red-400 text-sm">Lỗi kết nối.</div>';
+                });
+        }
+        
+        // Initial fetch to update badge
+        fetchAdminNotifications();
     }
 
     // Auto-process email queue in background (non-blocking)

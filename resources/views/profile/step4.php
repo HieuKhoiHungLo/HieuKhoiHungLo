@@ -5,11 +5,9 @@ include __DIR__ . '/../layouts/header.php';
 
 <div class="max-w-6xl mx-auto pb-20 px-4 sm:px-6">
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-hvu-red to-red-700 px-6 py-4 border-b border-red-800">
-            <h2 class="text-xl font-bold text-white flex items-center">
-                <i class="fas fa-file-invoice-doll mr-2"></i>
-                Điểm thi THPT năm 2026
-            </h2>
+        <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
+            <h2 class="text-2xl font-bold uppercase tracking-wide">Điểm thi THPT năm 2026</h2>
+            <p class="text-white/80 text-sm mt-1">Bước 4/<?= $totalStepsCount ?? 5 ?>: Cập nhật điểm thi THPT Quốc gia</p>
         </div>
 
         <!-- Wizard Navigation -->
