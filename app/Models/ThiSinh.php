@@ -38,7 +38,7 @@ class ThiSinh extends Model {
 
         if ($hocBaStatus !== '') {
             $sql .= " AND t.da_du_6_ky = ?";
-            $params[] = ($hocBaStatus == '1' ? true : false);
+            $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
         
         if ($sessionId) {
@@ -155,7 +155,7 @@ class ThiSinh extends Model {
 
         if ($hocBaStatus !== '') {
             $sql .= " AND t.da_du_6_ky = ?";
-            $params[] = ($hocBaStatus == '1' ? true : false);
+            $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
         
         if ($sessionId) {
@@ -304,7 +304,7 @@ class ThiSinh extends Model {
 
     public function updateHocBaStatus($cccd, $status) {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET da_du_6_ky = ? WHERE so_cccd = ?");
-        return $stmt->execute([$status ? true : false, $cccd]);
+        return $stmt->execute([$status ? 'true' : 'false', $cccd]);
     }
 
     public function getCertifications($cccd) {
@@ -342,7 +342,7 @@ class ThiSinh extends Model {
 
             // Sync flag in thi_sinh for backward compatibility/quick filter
             $stmt = $this->db->prepare("UPDATE {$this->table} SET co_chung_chi_qt = ? WHERE so_cccd = ?");
-            $stmt->execute([$hasCert ? true : false, $cccd]);
+            $stmt->execute([$hasCert ? 'true' : 'false', $cccd]);
 
             $this->db->commit();
             return true;

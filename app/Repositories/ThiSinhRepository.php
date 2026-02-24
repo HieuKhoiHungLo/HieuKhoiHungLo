@@ -255,7 +255,7 @@ class ThiSinhRepository {
 
         if ($hocBaStatus !== '') {
             $sql .= " AND t.da_du_6_ky = ?";
-            $params[] = ($hocBaStatus == '1' ? true : false);
+            $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
 
         if ($sessionId) {
