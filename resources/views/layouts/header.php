@@ -111,7 +111,7 @@
                 </a>
 
                 <!-- Desktop Nav -->
-                <nav class="hidden md:flex items-center space-x-1 ml-6">
+                <nav class="hidden md:flex items-center space-x-1 ml-auto">
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <span class="text-gray-600 text-sm mr-2">Xin chào, <b><?= htmlspecialchars($_SESSION['user_name']) ?></b></span>
                         <!-- <a href="<?= url('/application/results') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Tra cứu Kết quả</a> -->
