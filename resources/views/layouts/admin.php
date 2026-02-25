@@ -13,7 +13,7 @@
     
     <!-- Dependencies -->
     <!-- Dependencies -->
-    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . filemtime(__DIR__ . '/../../../public/assets/css/tailwind.min.css')) ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
