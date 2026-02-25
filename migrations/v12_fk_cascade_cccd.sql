@@ -1,0 +1,12 @@
+ALTER TABLE public."chung_chi_thi_sinh" DROP CONSTRAINT "chung_chi_thi_sinh_so_cccd_fkey";
+ALTER TABLE public."chung_chi_thi_sinh" ADD CONSTRAINT "chung_chi_thi_sinh_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE public."ket_qua_hoc_tap" DROP CONSTRAINT "ket_qua_hoc_tap_so_cccd_fkey";
+ALTER TABLE public."ket_qua_hoc_tap" ADD CONSTRAINT "ket_qua_hoc_tap_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE public."nguyen_vong" DROP CONSTRAINT "nguyen_vong_so_cccd_fkey";
+ALTER TABLE public."nguyen_vong" ADD CONSTRAINT "nguyen_vong_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE public."ho_so_xet_tuyen" DROP CONSTRAINT "ho_so_xet_tuyen_so_cccd_fkey";
+ALTER TABLE public."ho_so_xet_tuyen" ADD CONSTRAINT "ho_so_xet_tuyen_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE public."diem_chi_tiet" DROP CONSTRAINT "diem_chi_tiet_so_cccd_fkey";
+ALTER TABLE public."diem_chi_tiet" ADD CONSTRAINT "diem_chi_tiet_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE public."diem_nang_khieu_ngoai" DROP CONSTRAINT "diem_nang_khieu_ngoai_so_cccd_fkey";
+ALTER TABLE public."diem_nang_khieu_ngoai" ADD CONSTRAINT "diem_nang_khieu_ngoai_so_cccd_fkey" FOREIGN KEY (so_cccd) REFERENCES public.thi_sinh(so_cccd) ON UPDATE CASCADE ON DELETE NO ACTION;

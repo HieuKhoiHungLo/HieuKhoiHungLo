@@ -1,8 +1,8 @@
-<?php ob_start(); ?>
+﻿<?php ob_start(); ?>
 
 <div class="mb-6">
     <a href="<?= url('/admin/dashboard') ?>" class="inline-flex items-center text-xs font-bold text-slate-500 hover:text-[#0066FF] uppercase tracking-wider mb-2 transition">
-        <i class="fas fa-arrow-left mr-2"></i> Quay lại Dashboard
+        <i class="fas fa-arrow-left mr-2"></i> Quay lß║íi Dashboard
     </a>
     
     <!-- Global Hidden Inputs for JS Save -->
@@ -11,19 +11,19 @@
 
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-3xl font-black text-slate-800 font-heading uppercase tracking-tight">DUYỆT HỒ SƠ THÍ SINH</h2>
+            <h2 class="text-3xl font-black text-slate-800 font-heading uppercase tracking-tight">DUYß╗åT Hß╗Æ S╞á TH├ì SINH</h2>
             <?php
-            $statusLabel = $user['trang_thai'] ?? 'Chờ duyệt';
+            $statusLabel = $user['trang_thai'] ?? 'Chß╗¥ duyß╗çt';
             $statusStyles = match($statusLabel) {
-                'Đã duyệt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                'Từ chối'    => 'bg-rose-50 text-rose-700 border-rose-200',
-                'Yêu cầu bổ sung' => 'bg-blue-50 text-blue-700 border-blue-200',
+                '─É├ú duyß╗çt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                'Tß╗½ chß╗æi'    => 'bg-rose-50 text-rose-700 border-rose-200',
+                'Y├¬u cß║ºu bß╗ò sung' => 'bg-blue-50 text-blue-700 border-blue-200',
                 default      => 'bg-amber-50 text-amber-700 border-amber-200',
             };
             $statusIcon = match($statusLabel) {
-                'Đã duyệt'  => 'fa-check-circle',
-                'Từ chối'    => 'fa-times-circle',
-                'Yêu cầu bổ sung' => 'fa-edit',
+                '─É├ú duyß╗çt'  => 'fa-check-circle',
+                'Tß╗½ chß╗æi'    => 'fa-times-circle',
+                'Y├¬u cß║ºu bß╗ò sung' => 'fa-edit',
                 default      => 'fa-clock',
             };
             ?>
@@ -33,7 +33,7 @@
         </div>
         <?php if (($navTotal ?? 0) > 0): ?>
         <span class="text-xs font-bold text-slate-400">
-            Hồ sơ chờ duyệt: <span class="text-[#0066FF]"><?= $navPosition ?? 0 ?>/<?= $navTotal ?></span>
+            Hß╗ô s╞í chß╗¥ duyß╗çt: <span class="text-[#0066FF]"><?= $navPosition ?? 0 ?>/<?= $navTotal ?></span>
         </span>
         <?php endif; ?>
     </div>
@@ -74,7 +74,7 @@
                 <?php else: ?>
                     <div class="flex flex-col items-center justify-center aspect-[3/4] text-slate-300 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                         <i class="fas fa-image text-4xl mb-2"></i>
-                        <span class="text-[10px] uppercase font-bold tracking-wider">Không có ảnh minh chứng</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider">Kh├┤ng c├│ ß║únh minh chß╗⌐ng</span>
                         <img id="<?= $imgId ?>" class="hidden w-full h-full object-cover absolute inset-0">
                     </div>
                 <?php endif; ?>
@@ -91,19 +91,19 @@
     <div class="bg-white rounded-t-2xl shadow-sm border-b border-slate-200">
         <div class="flex overflow-x-auto gap-1 p-2" id="reviewTabs">
             <button type="button" onclick="switchTab('personal')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
-                <i class="fas fa-user mr-2"></i> 1. Thông tin cá nhân
+                <i class="fas fa-user mr-2"></i> 1. Th├┤ng tin c├í nh├ón
             </button>
             <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
-                <i class="fas fa-graduation-cap mr-2"></i> 2. Học bạ
+                <i class="fas fa-graduation-cap mr-2"></i> 2. Hß╗ìc bß║í
             </button>
             <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
-                <i class="fas fa-certificate mr-2"></i> 3. Chứng chỉ
+                <i class="fas fa-certificate mr-2"></i> 3. Chß╗⌐ng chß╗ë
             </button>
             <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
-                <i class="fas fa-poll-h mr-2"></i> 4. Điểm THPT
+                <i class="fas fa-poll-h mr-2"></i> 4. ─Éiß╗âm THPT
             </button>
             <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
-                <i class="fas fa-list-ol mr-2"></i> 5. Nguyện vọng
+                <i class="fas fa-list-ol mr-2"></i> 5. Nguyß╗çn vß╗ìng
             </button>
         </div>
     </div>
@@ -126,27 +126,27 @@
             <!-- Previous -->
             <?php if (!empty($prevCCCD)): ?>
             <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 hover:-translate-x-0.5 transition-all">
-                <i class="fas fa-chevron-left"></i> Hồ sơ trước
+                <i class="fas fa-chevron-left"></i> Hß╗ô s╞í tr╞░ß╗¢c
             </a>
             <?php else: ?>
             <span class="inline-flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-300 font-bold text-sm rounded-xl cursor-not-allowed">
-                <i class="fas fa-chevron-left"></i> Hồ sơ trước
+                <i class="fas fa-chevron-left"></i> Hß╗ô s╞í tr╞░ß╗¢c
             </span>
             <?php endif; ?>
 
             <!-- Submit -->
             <button type="button" onclick="submitReview()" class="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-1 transition transform flex items-center text-lg">
-                <i class="fas fa-paper-plane mr-3"></i> DUYỆT HỒ SƠ & GỬI EMAIL
+                <i class="fas fa-paper-plane mr-3"></i> DUYß╗åT Hß╗Æ S╞á & Gß╗¼I EMAIL
             </button>
 
             <!-- Next -->
             <?php if (!empty($nextCCCD)): ?>
             <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 hover:translate-x-0.5 transition-all shadow-md shadow-blue-200/50">
-                Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
+                Hß╗ô s╞í tiß║┐p <i class="fas fa-chevron-right"></i>
             </a>
             <?php else: ?>
             <span class="inline-flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-300 font-bold text-sm rounded-xl cursor-not-allowed">
-                Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
+                Hß╗ô s╞í tiß║┐p <i class="fas fa-chevron-right"></i>
             </span>
             <?php endif; ?>
         </div>
@@ -239,7 +239,7 @@ sections.forEach(sec => {
 });
 
 function submitReview() {
-    if(confirm('Bạn có chắc chắn muốn HOÀN TẤT việc duyệt hồ sơ và GỬI EMAIL kết quả cho thí sinh?')) {
+    if(confirm('Bß║ín c├│ chß║»c chß║»n muß╗æn HO├ÇN Tß║ñT viß╗çc duyß╗çt hß╗ô s╞í v├á Gß╗¼I EMAIL kß║┐t quß║ú cho th├¡ sinh?')) {
         Loading.show();
         const form = document.getElementById('reviewForm');
         const formData = new FormData(form);
@@ -251,18 +251,18 @@ function submitReview() {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                const msg = data.is_rejected ? 'Đã lưu yêu cầu chỉnh sửa.' : 'Đã duyệt hồ sơ thành công!';
+                const msg = data.is_rejected ? '─É├ú l╞░u y├¬u cß║ºu chß╗ënh sß╗¡a.' : '─É├ú duyß╗çt hß╗ô s╞í th├ánh c├┤ng!';
                 if (typeof Toast !== 'undefined') Toast.success(msg);
-                // Redirect immediately — page load happens in background
+                // Redirect immediately ΓÇö page load happens in background
                 window.location.href = data.next_url;
             } else {
                 Loading.hide();
-                if (typeof Toast !== 'undefined') Toast.error(data.error || 'Có lỗi xảy ra');
+                if (typeof Toast !== 'undefined') Toast.error(data.error || 'C├│ lß╗ùi xß║úy ra');
             }
         })
         .catch(err => {
             Loading.hide();
-            if (typeof Toast !== 'undefined') Toast.error('Lỗi kết nối: ' + err.message);
+            if (typeof Toast !== 'undefined') Toast.error('Lß╗ùi kß║┐t nß╗æi: ' + err.message);
         });
     }
 }
@@ -307,11 +307,11 @@ function previewPersonalImg(input, previewId) {
 
 async function loadWards(provinceId, targetId, selectedValue = null) {
     const target = document.getElementById(targetId);
-    if (!provinceId) { target.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>'; return; }
+    if (!provinceId) { target.innerHTML = '<option value="">-- Chß╗ìn Ph╞░ß╗¥ng/X├ú --</option>'; return; }
     try {
         const res = await fetch(`/api/public/wards?province_id=${provinceId}`);
         const data = await res.json();
-        let html = '<option value="">-- Chọn Phường/Xã --</option>';
+        let html = '<option value="">-- Chß╗ìn Ph╞░ß╗¥ng/X├ú --</option>';
         data.forEach(item => {
             const isSelected = selectedValue && (item.ma_xa == selectedValue || item.ten_xa == selectedValue);
             html += `<option value="${item.ma_xa}" ${isSelected ? 'selected' : ''}>${item.ten_xa}</option>`;
@@ -323,14 +323,14 @@ async function loadWards(provinceId, targetId, selectedValue = null) {
 async function loadDistricts(provinceId, targetId, selectedValue = null) {
     const target = document.getElementById(targetId);
     if (!provinceId) { 
-        target.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>'; 
+        target.innerHTML = '<option value="">-- Chß╗ìn Quß║¡n/Huyß╗çn --</option>'; 
         window.dispatchEvent(new CustomEvent('district-change', {detail: ''}));
         return; 
     }
     try {
         const res = await fetch(`/api/public/districts?province_id=${provinceId}`);
         const data = await res.json();
-        let html = '<option value="">-- Chọn Quận/Huyện --</option>';
+        let html = '<option value="">-- Chß╗ìn Quß║¡n/Huyß╗çn --</option>';
         data.forEach(item => {
              const isSelected = selectedValue && (item.ma_huyen == selectedValue || item.ten_huyen == selectedValue);
              html += `<option value="${item.ma_huyen}" ${isSelected ? 'selected' : ''}>${item.ten_huyen}</option>`;
@@ -341,11 +341,11 @@ async function loadDistricts(provinceId, targetId, selectedValue = null) {
 
 async function loadSchools(provinceId, targetId, selectedValue = null) {
     const target = document.getElementById(targetId);
-    if (!provinceId) { target.innerHTML = '<option value="">-- Chọn Trường --</option>'; return; }
+    if (!provinceId) { target.innerHTML = '<option value="">-- Chß╗ìn Tr╞░ß╗¥ng --</option>'; return; }
     try {
         const res = await fetch(`<?= url('/api/public/schools') ?>?province_id=${provinceId}`);
         const data = await res.json();
-        let html = '<option value="">-- Chọn Trường --</option>';
+        let html = '<option value="">-- Chß╗ìn Tr╞░ß╗¥ng --</option>';
         data.forEach(item => {
              const isSelected = selectedValue && (item.ma_truong == selectedValue || item.ten_truong == selectedValue);
              html += `<option value="${item.ma_truong}" ${isSelected ? 'selected' : ''}>${item.ten_truong}</option>`;
@@ -358,14 +358,14 @@ async function saveSection(section) {
     try {
         console.log('Starting saveSection for: ' + section);
         const container = document.getElementById('form_' + section);
-        if (!container) { alert('Lỗi: Không tìm thấy container form_' + section); return; }
+        if (!container) { alert('Lß╗ùi: Kh├┤ng t├¼m thß║Ñy container form_' + section); return; }
 
         let btn = container.querySelector('button[onclick*="saveSection"]');
         if (!btn) {
              const buttons = container.querySelectorAll('button');
              if (buttons.length > 0) btn = buttons[buttons.length - 1]; 
         }
-        if (!btn) { alert('Lỗi: Không tìm thấy nút Lưu'); return; }
+        if (!btn) { alert('Lß╗ùi: Kh├┤ng t├¼m thß║Ñy n├║t L╞░u'); return; }
 
         const formData = new FormData();
         const inputs = container.querySelectorAll('input, select, textarea');
@@ -383,7 +383,7 @@ async function saveSection(section) {
         const cccdInput = document.querySelector('input[name="cccd"]');
         const csrfInput = document.querySelector('input[name="csrf_token"]');
         if (cccdInput) formData.append('cccd', cccdInput.value);
-        else { alert('Lỗi: Không tìm thấy thẻ input[name="cccd"]'); return; }
+        else { alert('Lß╗ùi: Kh├┤ng t├¼m thß║Ñy thß║╗ input[name="cccd"]'); return; }
         if (csrfInput) formData.append('csrf_token', csrfInput.value);
 
         // Capture Status/Note params even if they are outside the container
@@ -408,7 +408,7 @@ async function saveSection(section) {
         formData.append('section', section);
 
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang lưu...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ─Éang l╞░u...';
         btn.disabled = true;
 
         const url = '<?= url('/admin/candidates/update') ?>';
@@ -422,18 +422,10 @@ async function saveSection(section) {
             const data = await res.json();
             console.log('Response Data:', data);
             if (data.success) { 
-                showToast('Đã lưu dữ liệu thành công!', 'success');
-                setTimeout(() => {
-                    if (data.new_cccd) {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('cccd', data.new_cccd);
-                        window.location.href = url.toString();
-                    } else {
-                        location.reload();
-                    }
-                }, 1000); 
+                showToast('─É├ú l╞░u dß╗» liß╗çu th├ánh c├┤ng!', 'success');
+                setTimeout(() => location.reload(), 1000); 
             } else { 
-                showToast('Lỗi: ' + (data.error || 'Có lỗi xảy ra'), 'error');
+                showToast('Lß╗ùi: ' + (data.error || 'C├│ lß╗ùi xß║úy ra'), 'error');
                 if(data.debug_data) console.log('Debug:', data.debug_data);
                 btn.innerHTML = originalText; 
                 btn.disabled = false; 
@@ -441,13 +433,13 @@ async function saveSection(section) {
         } else {
             const text = await res.text();
             console.error('Non-JSON Response:', text);
-            showToast('Lỗi Server (Không phải JSON)', 'error');
+            showToast('Lß╗ùi Server (Kh├┤ng phß║úi JSON)', 'error');
             btn.innerHTML = originalText; 
             btn.disabled = false;
         }
     } catch (e) { 
         console.error(e);
-        showToast('Lỗi ngoại lệ: ' + e.message, 'error'); 
+        showToast('Lß╗ùi ngoß║íi lß╗ç: ' + e.message, 'error'); 
         const container = document.getElementById('form_' + section);
         if(container) {
              const btn = container.querySelector('button[onclick*="saveSection"]');

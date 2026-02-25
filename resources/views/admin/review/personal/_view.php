@@ -6,7 +6,12 @@
         <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div class="absolute bottom-0 left-1/2 w-24 h-24 bg-white/5 rounded-full translate-y-1/2"></div>
         <span class="block text-[11px] font-bold text-blue-100 uppercase tracking-widest mb-1"><i class="fas fa-user-tag mr-1.5"></i>Họ và tên thí sinh</span>
-        <span class="font-black text-white text-2xl tracking-tight drop-shadow"><?= htmlspecialchars($user['ho_va_ten']) ?></span>
+        <div class="flex justify-between items-center">
+            <span class="font-black text-white text-2xl tracking-tight drop-shadow"><?= htmlspecialchars($user['ho_va_ten']) ?></span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-lg text-white font-bold text-sm tracking-widest border border-white/30 backdrop-blur-sm shadow-sm" title="Số Căn cước công dân">
+                <i class="fas fa-id-card text-blue-100"></i> <?= $user['so_cccd'] ?>
+            </span>
+        </div>
     </div>
 
     <!-- Row: Ngày sinh / Giới tính / Dân tộc -->

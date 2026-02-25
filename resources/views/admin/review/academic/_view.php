@@ -93,20 +93,9 @@
                 <thead>
                     <tr class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-widest">
                         <th class="px-5 py-4 border-b border-r sticky left-0 bg-slate-50 z-10 w-48 text-left">Môn học</th>
-                        <th class="px-2 py-4 border-b bg-slate-50 text-center" colspan="2">Lớp 10</th>
-                        <th class="px-2 py-4 border-b bg-slate-50 text-center" colspan="2">Lớp 11</th>
-                        <th class="px-2 py-4 border-b bg-slate-50 text-center" colspan="2">Lớp 12</th>
-                    </tr>
-                    <tr class="bg-white text-slate-500 font-bold text-xs border-b uppercase tracking-tighter">
-                        <th class="px-5 py-2 border-r sticky left-0 bg-white z-10 border-slate-100"></th>
-                        <th class="px-2 py-2 border-r w-20 text-center border-slate-100">HK 1</th>
-                        <th class="px-2 py-2 border-r w-20 text-center border-slate-100">HK 2</th>
-                        
-                        <th class="px-2 py-2 border-r w-20 text-center border-slate-100">HK 1</th>
-                        <th class="px-2 py-2 border-r w-20 text-center border-slate-100">HK 2</th>
-
-                        <th class="px-2 py-2 border-r w-20 text-center border-slate-100">HK 1</th>
-                        <th class="px-2 py-2 w-20 text-center">HK 2</th>
+                        <th class="px-2 py-4 border-b border-r bg-slate-50 text-center">Lớp 10<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
+                        <th class="px-2 py-4 border-b border-r bg-slate-50 text-center">Lớp 11<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
+                        <th class="px-2 py-4 border-b bg-slate-50 text-center">Lớp 12<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
@@ -134,28 +123,22 @@
                         </td>
                         
                         <!-- Grade 10 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(10, "diem_{$fieldCode}_hk1") ?></td>
-                        <td class="px-2 py-3 text-center border-r border-slate-100 bg-white text-slate-700"><?= $getScore(10, "diem_{$fieldCode}_hk2") ?></td>
+                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(10, "diem_{$fieldCode}") ?></td>
                         
                         <!-- Grade 11 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(11, "diem_{$fieldCode}_hk1") ?></td>
-                        <td class="px-2 py-3 text-center border-r border-slate-100 bg-white text-slate-700"><?= $getScore(11, "diem_{$fieldCode}_hk2") ?></td>
+                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(11, "diem_{$fieldCode}") ?></td>
                         
                         <!-- Grade 12 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(12, "diem_{$fieldCode}_hk1") ?></td>
-                        <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0"><?= $getScore(12, "diem_{$fieldCode}_hk2") ?></td>
+                        <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0"><?= $getScore(12, "diem_{$fieldCode}") ?></td>
                     </tr>
                     <?php endforeach; ?>
                     
                     <!-- Avg Row -->
                     <tr class="bg-slate-50 font-medium text-xs text-slate-700 border-t-2 border-slate-200">
                         <td class="px-5 py-4 border-r sticky left-0 bg-slate-50 z-0 border-slate-200 uppercase tracking-widest">Điểm TB chung</td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(10, 'diem_tb_hk1') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200 underline underline-offset-4 decoration-slate-200"><?= $getScore(10, 'diem_tb_hk2') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(11, 'diem_tb_hk2') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200 underline underline-offset-4 decoration-slate-200"><?= $getScore(11, 'diem_tb_hk2') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(12, 'diem_tb_hk1') ?></td>
-                        <td class="px-2 py-4 text-center underline underline-offset-4 decoration-slate-200"><?= $getScore(12, 'diem_tb_hk2') ?></td>
+                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(10, 'diem_tb') ?></td>
+                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(11, 'diem_tb') ?></td>
+                        <td class="px-2 py-4 text-center"><?= $getScore(12, 'diem_tb') ?></td>
                     </tr>
                     
                     <?php 
@@ -171,8 +154,7 @@
                     <tr class="bg-white font-medium text-xs uppercase border-t border-slate-100 text-slate-700">
                         <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-white border-slate-100 tracking-tighter">Kết quả Học Lực</td>
                         <?php foreach([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50"><?= $mapDisplay($getScore($g, 'hoc_luc_hk1')) ?></td>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hoc_luc_hk2')) ?></td>
+                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hoc_luc')) ?></td>
                         <?php endforeach; ?>
                     </tr>
                     
@@ -180,8 +162,7 @@
                     <tr class="bg-slate-50 font-medium text-xs uppercase border-t border-slate-200 text-slate-700">
                         <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-slate-50 border-slate-200">Hạnh Kiểm</td>
                         <?php foreach([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50"><?= $mapDisplay($getScore($g, 'hanh_kiem_hk1')) ?></td>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hanh_kiem_hk2')) ?></td>
+                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hanh_kiem')) ?></td>
                         <?php endforeach; ?>
                     </tr>
 

@@ -18,6 +18,15 @@
                 </div>
             </div>
 
+            <!-- CCCD -->
+            <div class="col-span-2 md:col-span-1">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Số CCCD</label>
+                <div class="relative">
+                    <i class="fas fa-id-card absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" name="so_cccd" value="<?= $user['so_cccd'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none font-mono tracking-wider">
+                </div>
+            </div>
+
             <!-- Ngày sinh -->
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ngày sinh</label>

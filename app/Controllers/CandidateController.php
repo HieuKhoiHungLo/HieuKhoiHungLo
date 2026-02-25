@@ -555,6 +555,18 @@ class CandidateController extends Controller {
                         'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
                     ];
                     
+                    // Xử lý đổi Số CCCD nếu có
+                    if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
+                        $newCccd = trim($_POST['so_cccd']);
+                        // Kiểm tra trùng lặp CCCD
+                        $existing = $this->thiSinhRepo->findByCCCD($newCccd);
+                        if ($existing) {
+                            $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
+                            return;
+                        }
+                        $data['so_cccd'] = $newCccd;
+                    }
+                    
                     // Handle File Uploads — only if files are actually attached
                     $files = ['anh_dai_dien', 'anh_cccd_truoc', 'anh_cccd_sau'];
                     $hasFiles = false;
@@ -593,7 +605,7 @@ class CandidateController extends Controller {
                     $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
                     
                     if ($res) {
-                         $this->json(['success' => true, 'message' => 'Lưu thành công', 'debug_data' => $data]);
+                         $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
                     } else {
                          $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
                     }
@@ -633,22 +645,23 @@ class CandidateController extends Controller {
                     foreach ($grades as $g) {
                         $record = [];
                         
-                        // Collect Scores for HK1, HK2
-                        foreach ($subjects as $s) {
-                            if (isset($_POST["score_{$s}_{$g}_hk1"])) $record["diem_{$s}_hk1"] = $_POST["score_{$s}_{$g}_hk1"] !== '' ? (double)$_POST["score_{$s}_{$g}_hk1"] : null;
-                            if (isset($_POST["score_{$s}_{$g}_hk2"])) $record["diem_{$s}_hk2"] = $_POST["score_{$s}_{$g}_hk2"] !== '' ? (double)$_POST["score_{$s}_{$g}_hk2"] : null;
+                        if (isset($_POST['scores'][$g]) && is_array($_POST['scores'][$g])) {
+                            $gradeInputs = $_POST['scores'][$g];
+                            
+                            // Collect Scores for full year
+                            foreach ($subjects as $s) {
+                                if (isset($gradeInputs["diem_{$s}"])) {
+                                    $record["diem_{$s}"] = $gradeInputs["diem_{$s}"] !== '' ? (double)$gradeInputs["diem_{$s}"] : null;
+                                }
+                            }
+                            
+                            // Collect Rank & Conduct
+                            if (isset($gradeInputs["hoc_luc"])) $record['hoc_luc']     = $gradeInputs["hoc_luc"] ?: null;
+                            if (isset($gradeInputs["hanh_kiem"])) $record['hanh_kiem']   = $gradeInputs["hanh_kiem"] ?: null;
+                            
+                            // Collect GPA
+                            if (isset($gradeInputs["diem_tb"])) $record['diem_tb']     = $gradeInputs["diem_tb"] !== '' ? (double)$gradeInputs["diem_tb"] : null;
                         }
-                        
-                        // Collect Rank & Conduct (HK1, HK2)
-                        if (isset($_POST["rank_{$g}_hk1"]))    $record['hoc_luc_hk1']     = $_POST["rank_{$g}_hk1"] ?: null;
-                        if (isset($_POST["rank_{$g}_hk2"]))    $record['hoc_luc_hk2']     = $_POST["rank_{$g}_hk2"] ?: null;
-                        
-                        if (isset($_POST["conduct_{$g}_hk1"])) $record['hanh_kiem_hk1']   = $_POST["conduct_{$g}_hk1"] ?: null;
-                        if (isset($_POST["conduct_{$g}_hk2"])) $record['hanh_kiem_hk2']   = $_POST["conduct_{$g}_hk2"] ?: null;
-                        
-                        // Collect GPA (HK1, HK2)
-                        if (isset($_POST["avg_{$g}_hk1"]))     $record['diem_tb_hk1']     = $_POST["avg_{$g}_hk1"] !== '' ? (double)$_POST["avg_{$g}_hk1"] : null;
-                        if (isset($_POST["avg_{$g}_hk2"]))     $record['diem_tb_hk2']     = $_POST["avg_{$g}_hk2"] !== '' ? (double)$_POST["avg_{$g}_hk2"] : null;
 
                         // File Upload (Hoc Ba)
                         $fileKey = "hba_$g";

@@ -190,6 +190,35 @@ $getVal = function($grade, $field) use ($records) {
                             </tr>
                         </tbody>
                     </table>
+                    
+                    <!-- Desktop File Uploads -->
+                    <div class="p-6 bg-white border-t border-gray-200">
+                        <h4 class="font-bold text-gray-800 mb-4 text-sm"><i class="fas fa-camera mr-2 text-hvu-red"></i> Ảnh chụp minh chứng học bạ</h4>
+                        <div class="grid grid-cols-3 gap-6">
+                            <?php foreach ([10, 11, 12] as $g): ?>
+                            <div class="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                                <label class="block text-xs font-bold text-gray-800 mb-3 uppercase tracking-wide">Học bạ Lớp <?= $g ?></label>
+                                
+                                <!-- Existing Images -->
+                                <?php if (!empty($records[$g]['file_minh_chung_1']) || !empty($records[$g]['file_minh_chung_2'])): ?>
+                                    <div class="flex gap-2 mb-3">
+                                        <?php foreach ([1, 2] as $i): ?>
+                                            <?php if (!empty($records[$g]["file_minh_chung_$i"])): ?>
+                                                <a href="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? $records[$g]["file_minh_chung_$i"] : asset($records[$g]["file_minh_chung_$i"]) ?>" target="_blank" class="block w-16 h-16 rounded shadow-sm border border-gray-200 overflow-hidden hover:opacity-80 transition bg-white p-1">
+                                                    <img src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:font-semibold file:bg-white file:text-hvu-red file:border file:border-red-100 hover:file:bg-red-50 transition cursor-pointer outline-none"/>
+                                <p class="text-[10px] text-gray-400 mt-2 italic">Đăng tải tối đa 2 ảnh/năm (ví dụ: HK1, HK2)</p>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <!-- /Desktop File Uploads -->
                 </div>
 
                 <!-- ========== MOBILE VIEW: Tab-based (hidden on desktop) ========== -->
@@ -269,6 +298,26 @@ $getVal = function($grade, $field) use ($records) {
                                 </tr>
                             </tbody>
                         </table>
+                        
+                        <!-- Mobile File Uploads -->
+                        <div class="p-4 bg-gray-50 border-t border-gray-100">
+                            <label class="block text-xs font-bold text-gray-800 mb-3"><i class="fas fa-camera mr-1 text-hvu-red"></i> Ảnh chụp minh chứng Lớp <?= $g ?></label>
+                            
+                            <?php if (!empty($records[$g]['file_minh_chung_1']) || !empty($records[$g]['file_minh_chung_2'])): ?>
+                                <div class="flex gap-2 mb-3">
+                                    <?php foreach ([1, 2] as $i): ?>
+                                        <?php if (!empty($records[$g]["file_minh_chung_$i"])): ?>
+                                            <a href="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? $records[$g]["file_minh_chung_$i"] : asset($records[$g]["file_minh_chung_$i"]) ?>" target="_blank" class="block w-14 h-14 rounded shadow-sm border border-gray-200 overflow-hidden bg-white p-0.5">
+                                                <img src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
+                                            </a>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="block w-full text-[11px] text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:font-semibold file:bg-white file:text-hvu-red file:border file:border-red-100 hover:file:bg-red-50 cursor-pointer outline-none"/>
+                        </div>
+                        <!-- /Mobile File Uploads -->
                     </div>
                     <?php endforeach; ?>
                 </div>

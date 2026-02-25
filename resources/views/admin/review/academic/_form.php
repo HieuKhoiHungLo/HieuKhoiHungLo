@@ -92,8 +92,7 @@
                     <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
                         <span class="text-xs font-bold text-slate-600"><?= $name ?></span>
                         <div class="flex gap-2">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_<?= $code ?>_hk1]" value="<?= $gradeRow["diem_{$code}_hk1"] ?? '' ?>" placeholder="HK1" class="w-16 px-2 py-1 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-400 outline-none">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_<?= $code ?>_hk2]" value="<?= $gradeRow["diem_{$code}_hk2"] ?? '' ?>" placeholder="HK2" class="w-16 px-2 py-1 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-400 outline-none">
+                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_<?= $code ?>]" value="<?= $gradeRow["diem_{$code}"] ?? '' ?>" placeholder="Cả năm" class="w-20 px-2 py-1 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-400 outline-none">
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -101,42 +100,29 @@
 
                 <div class="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">GPA HK1/HK2</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">ĐTB Cả Năm</label>
                         <div class="flex gap-2">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb_hk1]" value="<?= $gradeRow['diem_tb_hk1'] ?? '' ?>" class="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-black text-blue-700 focus:bg-white outline-none" placeholder="TB HK1">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb_hk2]" value="<?= $gradeRow['diem_tb_hk2'] ?? '' ?>" class="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-black text-blue-700 focus:bg-white outline-none" placeholder="TB HK2">
+                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb]" value="<?= $gradeRow['diem_tb'] ?? '' ?>" class="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-black text-blue-700 focus:bg-white outline-none" placeholder="Cả năm">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Học lực HK1/HK2</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Học lực Cả Năm</label>
                         <div class="flex gap-2">
-                            <select name="scores[<?= $g ?>][hoc_luc_hk1]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- HK1 -</option>
+                            <select name="scores[<?= $g ?>][hoc_luc]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
+                                <option value="">- Chọn -</option>
                                 <?php foreach(['Gioi', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
-                                    <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc_hk1'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <select name="scores[<?= $g ?>][hoc_luc_hk2]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- HK2 -</option>
-                                <?php foreach(['Gioi', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
-                                    <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc_hk2'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
+                                    <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Hạnh kiểm HK1/HK2</label>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Hạnh kiểm Cả Năm</label>
                         <div class="flex gap-2">
-                            <select name="scores[<?= $g ?>][hanh_kiem_hk1]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- HK1 -</option>
+                            <select name="scores[<?= $g ?>][hanh_kiem]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
+                                <option value="">- Chọn -</option>
                                 <?php foreach(['Tot', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
-                                    <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem_hk1'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <select name="scores[<?= $g ?>][hanh_kiem_hk2]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- HK2 -</option>
-                                <?php foreach(['Tot', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
-                                    <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem_hk2'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
+                                    <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
