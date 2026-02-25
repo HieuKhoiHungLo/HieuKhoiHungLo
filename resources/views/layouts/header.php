@@ -29,15 +29,6 @@
         html, body {
             background-color: transparent !important;
         }
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1; /* Đẩy xuống phía dưới các lớp nội dung */
-            pointer-events: none;
-        }
         .glass-card {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(12px);

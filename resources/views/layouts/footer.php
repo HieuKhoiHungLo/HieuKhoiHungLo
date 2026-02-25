@@ -85,22 +85,7 @@
                 <a href="https://www.youtube.com/@daihochungvuong1486" target="_blank" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-hvu-red transition text-sm"><i class="fab fa-youtube"></i></a>
             </div>
             <p class="text-gray-600 text-[10px] mt-3">&copy; <?= date('Y') ?> Đại học Hùng Vương</p>
-        </div>
     </footer>
-
-    <!-- Background Particles (Desktop Only) -->
-    <script>
-        if (window.innerWidth >= 768) {
-            const threeJs = document.createElement('script');
-            threeJs.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-            threeJs.onload = function() {
-                const bgScript = document.createElement('script');
-                bgScript.src = "<?= url('/assets/js/background-particles.js') ?>";
-                document.body.appendChild(bgScript);
-            };
-            document.body.appendChild(threeJs);
-        }
-    </script>
 
     <script>
         // Mobile Menu Toggle
