@@ -23,10 +23,9 @@ class NotificationController extends Controller {
         }
         
         $cccd = $_SESSION['cccd'];
-        $sessionId = $_SESSION['session_id'] ?? null;
         
-        $notifications = $this->notificationModel->getForUser($cccd, $sessionId);
-        $unreadCount = $this->notificationModel->countUnread($cccd, $sessionId);
+        $notifications = $this->notificationModel->getForUser($cccd);
+        $unreadCount = $this->notificationModel->countUnread($cccd);
         
         echo json_encode([
             'success' => true,
@@ -70,9 +69,8 @@ class NotificationController extends Controller {
         }
         
         $cccd = $_SESSION['cccd'];
-        $sessionId = $_SESSION['session_id'] ?? null;
         
-        $this->notificationModel->markAllAsRead($cccd, $sessionId);
+        $this->notificationModel->markAllAsRead($cccd);
         
         echo json_encode(['success' => true]);
     }
@@ -89,9 +87,8 @@ class NotificationController extends Controller {
         }
         
         $cccd = $_SESSION['cccd'];
-        $sessionId = $_SESSION['session_id'] ?? null;
         
-        $count = $this->notificationModel->countUnread($cccd, $sessionId);
+        $count = $this->notificationModel->countUnread($cccd);
         
         echo json_encode(['count' => $count]);
     }
