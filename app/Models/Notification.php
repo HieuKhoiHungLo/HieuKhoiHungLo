@@ -61,13 +61,15 @@ class Notification {
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_cccd = ?
             WHERE (n.target_type = 'all')
                OR (n.target_type = 'individual' AND n.target_id = ?)
-               OR (n.target_type = 'session' AND n.target_id = ?)
+               OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
+                   SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
+               ))
             ORDER BY n.created_at DESC
             LIMIT 50
         ";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$cccd, $cccd, $sessionId]);
+        $stmt->execute([$cccd, $cccd, $cccd]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -82,11 +84,13 @@ class Notification {
             WHERE nr.id IS NULL
               AND ((n.target_type = 'all')
                OR (n.target_type = 'individual' AND n.target_id = ?)
-               OR (n.target_type = 'session' AND n.target_id = ?))
+               OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
+                   SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
+               )))
         ";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$cccd, $cccd, $sessionId]);
+        $stmt->execute([$cccd, $cccd, $cccd]);
         return (int)$stmt->fetchColumn();
     }
 
@@ -114,12 +118,14 @@ class Notification {
             WHERE nr.id IS NULL
               AND ((n.target_type = 'all')
                OR (n.target_type = 'individual' AND n.target_id = ?)
-               OR (n.target_type = 'session' AND n.target_id = ?))
+               OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
+                   SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
+               )))
             ON CONFLICT DO NOTHING
         ";
         
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$cccd, $cccd, $cccd, $sessionId]);
+        return $stmt->execute([$cccd, $cccd, $cccd, $cccd]);
     }
 
     /**
