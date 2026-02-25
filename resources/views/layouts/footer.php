@@ -88,9 +88,19 @@
         </div>
     </footer>
 
-    <!-- Three.js Library (Required for background particles) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="<?= url('/assets/js/background-particles.js') ?>" defer></script>
+    <!-- Background Particles (Desktop Only) -->
+    <script>
+        if (window.innerWidth >= 768) {
+            const threeJs = document.createElement('script');
+            threeJs.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+            threeJs.onload = function() {
+                const bgScript = document.createElement('script');
+                bgScript.src = "<?= url('/assets/js/background-particles.js') ?>";
+                document.body.appendChild(bgScript);
+            };
+            document.body.appendChild(threeJs);
+        }
+    </script>
 
     <script>
         // Mobile Menu Toggle
