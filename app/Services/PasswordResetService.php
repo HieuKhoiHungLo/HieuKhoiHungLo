@@ -32,30 +32,32 @@ class PasswordResetService {
 
         // Generate secure token
         $token = bin2hex(random_bytes(32));
+        $hashedToken = hash('sha256', $token);
         $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::TOKEN_EXPIRY_HOURS . ' hour'));
 
         // Delete existing tokens for this email
         $stmt = $this->db->prepare("DELETE FROM password_resets WHERE email = ?");
         $stmt->execute([$email]);
 
-        // Insert new token
+        // Insert new token as a hash
         $stmt = $this->db->prepare("INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)");
-        $stmt->execute([$email, $token, $expiresAt]);
+        $stmt->execute([$email, $hashedToken, $expiresAt]);
 
-        return $token;
+        return $token; // Retain plain token for sending via email
     }
 
     /**
      * Validate token and return email if valid
      */
     public function validateToken(string $token): ?array {
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db->prepare("
             SELECT * FROM password_resets 
             WHERE token = ? 
               AND expires_at > NOW() 
               AND (used = FALSE OR used IS NULL)
         ");
-        $stmt->execute([$token]);
+        $stmt->execute([$hashedToken]);
         return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
@@ -63,8 +65,9 @@ class PasswordResetService {
      * Mark token as used
      */
     public function markUsed(string $token): bool {
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db->prepare("UPDATE password_resets SET used = TRUE WHERE token = ?");
-        return $stmt->execute([$token]);
+        return $stmt->execute([$hashedToken]);
     }
 
     /**
