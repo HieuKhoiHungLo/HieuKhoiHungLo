@@ -148,18 +148,17 @@ class AcademicRecord extends \App\Core\Model {
                 'cong_nghe' => 'cong_nghe', 'tin_hoc' => 'tin_hoc'
             ];
 
+            $insertValues = [];
+            $insertParams = [];
+
+            // Delete old scores for these grades in a single query
+            $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem IN ('HB_CN_10', 'HB_CN_11', 'HB_CN_12')")
+                ->execute([$cccd]);
+
             foreach ([10, 11, 12] as $grade) {
                 $loaiDiem = "HB_CN_$grade";
-                
-                // Delete old scores for this grade
-                $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = ?")
-                    ->execute([$cccd, $loaiDiem]);
-
                 $record = $this->getByCCCDAndGrade($cccd, $grade);
                 if (!$record) continue;
-
-                $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES (?, ?, ?, ?)";
-                $insertStmt = $this->db->prepare($insertSql);
 
                 foreach ($subjects as $s) {
                     $colKey = $monToCol[$s['ma_mon']] ?? null;
@@ -169,9 +168,18 @@ class AcademicRecord extends \App\Core\Model {
                     $score = $record[$dbCol] ?? null;
                     
                     if ($score !== null && $score !== '') {
-                        $insertStmt->execute([$cccd, $s['id'], $loaiDiem, $score]);
+                        $insertValues[] = "(?, ?, ?, ?)";
+                        $insertParams[] = $cccd;
+                        $insertParams[] = $s['id'];
+                        $insertParams[] = $loaiDiem;
+                        $insertParams[] = $score;
                     }
                 }
+            }
+
+            if (!empty($insertValues)) {
+                $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES " . implode(', ', $insertValues);
+                $this->db->prepare($insertSql)->execute($insertParams);
             }
         } catch (\Exception $e) {
             error_log("syncToNormalizedTable failed: " . $e->getMessage());

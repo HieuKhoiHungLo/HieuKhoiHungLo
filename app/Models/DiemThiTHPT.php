@@ -74,25 +74,29 @@ class DiemThiTHPT extends Model {
 
     private function syncToNormalizedTable($cccd, $data) {
         try {
-            // Get Subject Mapping
-            // We need to instantiate Subject model or query directly.
-            // Since this model might not have access to Subject model easily without DI, we query raw.
             $stmt = $this->db->query("SELECT id, cot_diem FROM dm_mon WHERE cot_diem IS NOT NULL");
             $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $mapColToId = [];
             foreach ($subjects as $s) $mapColToId[$s['cot_diem']] = $s['id'];
 
             // Delete old THPT scores for this candidate to avoid duplicates/stale data
-            $delParams = [$cccd, 'THPT'];
-            $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = ?")->execute($delParams);
+            $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = 'THPT'")->execute([$cccd]);
 
-            $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES (?, ?, 'THPT', ?)";
-            $insertStmt = $this->db->prepare($insertSql);
+            $insertValues = [];
+            $insertParams = [];
 
             foreach ($mapColToId as $col => $monId) {
                 if (isset($data[$col]) && $data[$col] !== null && $data[$col] !== '') {
-                    $insertStmt->execute([$cccd, $monId, $data[$col]]);
+                    $insertValues[] = "(?, ?, 'THPT', ?)";
+                    $insertParams[] = $cccd;
+                    $insertParams[] = $monId;
+                    $insertParams[] = $data[$col];
                 }
+            }
+
+            if (!empty($insertValues)) {
+                $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES " . implode(', ', $insertValues);
+                $this->db->prepare($insertSql)->execute($insertParams);
             }
         } catch (\Exception $e) {
             // Silent fail for dual write to not block main flow? 

@@ -36,23 +36,30 @@ class NguyenVong extends Model {
             $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
             $stmt->execute([$cccd]);
 
-            $sql = "INSERT INTO {$this->table} (
-                so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
-                ma_phuong_thuc, ten_phuong_thuc, to_hop_mon
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)"; 
-            
-            $stmt = $this->db->prepare($sql);
-            
-            foreach ($data as $index => $item) {
-                $stmt->execute([
-                    $cccd,
-                    $index + 1,
-                    $item['ma_nganh'], // Warning: This must exist in dm_nganh
-                    $item['ten_nganh'] ?? null,
-                    $item['ma_phuong_thuc'] ?? '200', 
-                    $item['ten_phuong_thuc'] ?? 'Xét học bạ',
-                    $item['to_hop_mon'] ?? 'A00'
-                ]);
+            if (!empty($data)) {
+                $insertValues = [];
+                $insertParams = [];
+                
+                foreach ($data as $index => $item) {
+                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?)";
+                    array_push($insertParams,
+                        $cccd,
+                        $index + 1,
+                        $item['ma_nganh'], // Warning: This must exist in dm_nganh
+                        $item['ten_nganh'] ?? null,
+                        $item['ma_phuong_thuc'] ?? '200', 
+                        $item['ten_phuong_thuc'] ?? 'Xét học bạ',
+                        $item['to_hop_mon'] ?? 'A00'
+                    );
+                }
+
+                $sql = "INSERT INTO {$this->table} (
+                    so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                    ma_phuong_thuc, ten_phuong_thuc, to_hop_mon
+                ) VALUES " . implode(', ', $insertValues); 
+                
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($insertParams);
             }
 
             $this->db->commit();
