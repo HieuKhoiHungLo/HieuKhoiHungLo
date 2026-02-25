@@ -31,7 +31,7 @@ class DiemThiTHPT extends Model {
                     $val = $data[$field];
                     // Handle empty strings for numeric/boolean fields
                     if ($val === '') $val = null;
-                    if ($field === 'da_co_diem') $val = ($val ? true : false);
+                    if ($field === 'da_co_diem') $val = ($val ? 'true' : 'false');
                     
                     $setClauses[] = "{$field} = ?";
                     $params[] = $val;
@@ -51,7 +51,7 @@ class DiemThiTHPT extends Model {
                 if (array_key_exists($field, $data)) {
                     $val = $data[$field];
                     if ($val === '') $val = null;
-                    if ($field === 'da_co_diem') $val = ($val ? true : false);
+                    if ($field === 'da_co_diem') $val = ($val ? 'true' : 'false');
 
                     $cols[] = $field;
                     $placeholders[] = '?';
