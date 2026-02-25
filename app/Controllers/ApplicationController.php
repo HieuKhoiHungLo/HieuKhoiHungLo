@@ -77,7 +77,7 @@ class ApplicationController extends Controller {
             1 => !empty($user['ho_va_ten']) && !empty($user['anh_dai_dien']),
             2 => !empty($records),
             3 => !empty($certs) || (isset($user['co_chung_chi_qt']) && $user['co_chung_chi_qt'] == 0),
-            4 => !empty($thptScores),
+            4 => !empty($thptScores) && !empty($thptScores['nam_thi']),
             5 => !empty($choices)
         ];
         

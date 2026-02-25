@@ -360,8 +360,7 @@ if (isset($stepStatus)) {
                          <!-- Step 3 -->
                         <?php 
                         $s=3; 
-                        // Simplified check for display
-                        $sDone = !empty($user['co_chung_chi_qt']) && $user['co_chung_chi_qt'] == 1;
+                        $sDone=$isDone($s); 
                         $sActive=($nextStep==$s); 
                         ?>
                         <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">

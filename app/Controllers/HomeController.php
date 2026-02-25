@@ -74,18 +74,6 @@ class HomeController extends Controller {
             // Only consider Step 4 if Step 1 is done
             if (!empty($stepStatus[1]) && !empty($thptScores) && !empty($thptScores['nam_thi'])) {
                  $step4Done = true;
-                 
-                 // Heuristic: Check for "Phantom" record created at registration
-                 // If da_co_diem is empty (0/null) AND it seems like an auto-created record
-                 if (empty($thptScores['da_co_diem'])) {
-                     $uCreated = strtotime($user['ngay_tao'] ?? 'now');
-                     $tUpdated = strtotime($thptScores['ngay_cap_nhat'] ?? '');
-                     
-                     // If record hasn't been updated since creation (within 2 minutes of user creation)
-                     if ($uCreated && $tUpdated && abs($tUpdated - $uCreated) <= 120) {
-                         $step4Done = false;
-                     }
-                 }
             }
 
             $stepStatus = [
