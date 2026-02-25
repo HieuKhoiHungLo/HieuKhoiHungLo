@@ -87,7 +87,6 @@
     </style>
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col relative" style="background: transparent;">
-    <canvas id="bg-canvas"></canvas>
 
     <header class="bg-white shadow-md sticky top-0 z-50">
         <div class="container mx-auto px-4 py-3">
