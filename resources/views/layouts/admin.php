@@ -108,12 +108,13 @@
             $currentUri = $_SERVER['REQUEST_URI'];
             $menu = [
                 ['section' => 'TỔNG QUAN'],
-                ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Dashboard',            'perm' => 'dashboard'],
+                ['url' => '/admin/dashboard', 'icon' => 'fa-th-list', 'label' => 'Danh sách Hồ sơ',    'perm' => 'dashboard'],
                 ['url' => '/admin/stats',     'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê',    'perm' => 'stats'],
                 
                 ['section' => 'QUẢN LÝ TUYỂN SINH'],
-                ['url' => '/admin/review',             'icon' => 'fa-user-graduate', 'label' => 'Xét duyệt Hồ sơ',    'perm' => 'candidate.view'],
+                ['url' => '/admin/review-management',  'icon' => 'fa-user-check', 'label' => 'Xét duyệt Hồ sơ',    'perm' => 'candidate.view'],
                 ['url' => '/admin/notifications',       'icon' => 'fa-bell',          'label' => 'Gửi Thông báo',      'perm' => 'candidate.view'],
+                ['url' => '/admin/admission/virtual-filter','icon' => 'fa-filter',     'label' => 'Xét tuyển Lọc ảo',   'perm' => 'settings.edit'],
                 ['url' => '/admin/admission/results',   'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển','perm' => 'candidate.view'],
                 ['url' => '/admin/reports',             'icon' => 'fa-file-export',   'label' => 'Xuất dữ liệu',       'perm' => 'report.export'],
                 ['url' => '/admin/aptitude-scores',     'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',    'perm' => 'aptitude.view'],
@@ -146,6 +147,7 @@
                      ['url' => '/admin/settings/email',          'label' => 'Cấu hình Email'],
                      ['url' => '/admin/settings/email-templates','label' => 'Mẫu Email'],
                 ]],
+                ['url' => '/admin/import', 'icon' => 'fa-cloud-upload-alt', 'label' => 'Nhập dữ liệu GD&ĐT', 'perm' => 'settings.edit'],
                 ['url' => '/admin/audit', 'icon' => 'fa-history', 'label' => 'Nhật ký Hoạt động', 'perm' => 'audit.view'],
             ];
 

@@ -4,14 +4,30 @@
 
 <!-- Main Content Area with AlpineJS context -->
 <div x-data="{ 
-    showCols: JSON.parse(localStorage.getItem('admin_cols')) || { province: false, school: false, nv1: false },
+    showCols: JSON.parse(localStorage.getItem('admin_cols')) || { 
+        cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
+        gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false
+    },
     toggleCol(col) {
         this.showCols[col] = !this.showCols[col];
         localStorage.setItem('admin_cols', JSON.stringify(this.showCols));
     },
     colLabel(col) {
-        const labels = { province: 'Hộ khẩu', school: 'Trường THPT', nv1: 'NV1' };
-        return labels[col];
+        const labels = { 
+            cccd: 'Số CCCD',
+            phone: 'Điện thoại',
+            email: 'Email',
+            province: 'Hộ khẩu', 
+            school: 'Trường THPT', 
+            nv1: 'NV1',
+            gender: 'Giới tính',
+            dob: 'Ngày sinh',
+            ethnicity: 'Dân tộc',
+            area: 'Khu vực ƯT',
+            object: 'Đối tượng ƯT',
+            grad_year: 'Năm tốt nghiệp'
+        };
+        return labels[col] || col;
     }
 }">
 

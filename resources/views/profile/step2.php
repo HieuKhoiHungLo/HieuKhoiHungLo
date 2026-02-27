@@ -205,7 +205,7 @@ $getVal = function($grade, $field) use ($records) {
                                         <?php foreach ([1, 2] as $i): ?>
                                             <?php if (!empty($records[$g]["file_minh_chung_$i"])): ?>
                                                 <a href="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? $records[$g]["file_minh_chung_$i"] : asset($records[$g]["file_minh_chung_$i"]) ?>" target="_blank" class="block w-16 h-16 rounded shadow-sm border border-gray-200 overflow-hidden hover:opacity-80 transition bg-white p-1">
-                                                    <img src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
+                                                    <img loading="lazy" src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
                                                 </a>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
@@ -308,7 +308,7 @@ $getVal = function($grade, $field) use ($records) {
                                     <?php foreach ([1, 2] as $i): ?>
                                         <?php if (!empty($records[$g]["file_minh_chung_$i"])): ?>
                                             <a href="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? $records[$g]["file_minh_chung_$i"] : asset($records[$g]["file_minh_chung_$i"]) ?>" target="_blank" class="block w-14 h-14 rounded shadow-sm border border-gray-200 overflow-hidden bg-white p-0.5">
-                                                <img src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
+                                                <img loading="lazy" src="<?= strpos($records[$g]["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($records[$g]["file_minh_chung_$i"], 'w100') : asset($records[$g]["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover rounded-sm">
                                             </a>
                                         <?php endif; ?>
                                     <?php endforeach; ?>

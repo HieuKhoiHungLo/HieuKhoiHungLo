@@ -2,6 +2,22 @@
 <?php ob_start(); ?>
 
 <div class="max-w-7xl mx-auto p-8">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
         <header class="mb-8 flex justify-between items-center">
             <div>
                 <a href="<?= url('/admin/master-data') ?>" class="text-[#0066FF] text-xs font-bold uppercase tracking-widest hover:underline transition block mb-2">&larr; Quay lại danh mục</a>
@@ -93,91 +109,142 @@
     </form>
 
     <!-- Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl">
-            <h3 id="modal-title" class="text-xl font-black uppercase mb-8 border-b pb-4">Thêm Ngành học</h3>
-            <form action="<?= url('/admin/master-data/majors') ?>" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
-                <input type="hidden" name="action" id="form-action" value="create">
-                <input type="hidden" name="old_ma" id="old_ma">
-                
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Mã ngành</label>
-                        <input type="text" name="ma_nganh" id="ma_nganh" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-mono font-bold">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Khối xét tuyển</label>
-                        <div class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl">
-                            <?php foreach ($combinations as $c): ?>
-                            <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded hover:bg-[#0066FF]/10 cursor-pointer">
-                                <input type="checkbox" name="combinations[]" value="<?= $c['ma_to_hop'] ?>" class="form-checkbox text-[#0066FF] rounded focus:ring-[#0066FF]">
-                                <span class="font-bold text-sm text-gray-700"><?= $c['ma_to_hop'] ?></span>
-                            </label>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Tên ngành</label>
-                        <input type="text" name="ten_nganh" id="ten_nganh" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-bold text-lg">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Chỉ tiêu (CT)</label>
-                        <input type="number" name="chi_tieu" id="chi_tieu" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-bold">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Điểm năm ngoái (2025)</label>
-                        <input type="number" step="0.01" name="diem_nam_truoc" id="diem_nam_truoc" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-bold">
-                    </div>
-                    <div class="col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4">
-                        <label class="block text-[10px] font-black text-amber-600 uppercase mb-3">⚡ Ngưỡng đầu vào (TT06/2026)</label>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Nhóm ngành</label>
-                                <select name="nhom_nganh" id="nhom_nganh" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
-                                    <option value="Khac">Khác (không ngưỡng)</option>
-                                    <option value="SuPham">Sư phạm</option>
-                                    <option value="SuPhamDacThu">SP Đặc thù (GDTC/ÂN/MT)</option>
-                                    <option value="DieuDuong">Điều dưỡng</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Ngưỡng Học lực L12</label>
-                                <select name="nguong_hoc_luc" id="nguong_hoc_luc" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
-                                    <option value="">-- Không yêu cầu --</option>
-                                    <option value="Gioi">≥ Giỏi</option>
-                                    <option value="Kha">≥ Khá</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 mb-1">Ngưỡng tổng điểm THPT</label>
-                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 20" class="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Ghi chú / Tham khảo</label>
-                        <textarea name="ghi_chu" id="ghi_chu" rows="2" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-medium text-sm"></textarea>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Khu vực tuyển sinh (Giới hạn nơi thường trú)</label>
-                        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl">
-                            <?php foreach ($provinces as $p): ?>
-                            <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded hover:bg-[#0066FF]/10 cursor-pointer">
-                                <input type="checkbox" name="provinces[]" value="<?= $p['ma_tinh'] ?>" class="form-checkbox text-[#0066FF] rounded focus:ring-[#0066FF]">
-                                <span class="font-bold text-xs text-gray-700"><?= $p['ten_tinh'] ?></span>
-                            </label>
-                            <?php endforeach; ?>
-                        </div>
-                        <p class="text-[10px] text-gray-400 mt-1 italic">* Bỏ chọn tất cả để tuyển sinh toàn quốc</p>
-                    </div>
-                </div>
+    <div id="modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[95vh]">
+            <!-- Modal Header -->
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <h3 id="modal-title" class="text-xl font-black uppercase text-slate-800">Thêm Ngành học</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
 
-                <div class="flex space-x-3 pt-8 mt-4">
-                    <button type="button" onclick="closeModal()" class="flex-grow py-3 bg-gray-100 text-gray-600 font-black uppercase text-xs tracking-widest rounded-xl hover:bg-gray-200 transition">Hủy</button>
-                    <button type="submit" class="flex-grow py-3 bg-[#BE1E2D] text-white font-black uppercase text-xs tracking-widest rounded-xl shadow-lg hover:shadow-xl hover:bg-[#9d1926] transition">Lưu dữ liệu</button>
-                </div>
-            </form>
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <form action="<?= url('/admin/master-data/majors') ?>" method="POST" id="major-form">
+                    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                    <input type="hidden" name="action" id="form-action" value="create">
+                    <input type="hidden" name="old_ma" id="old_ma">
+                    
+                    <div class="space-y-8">
+                        <!-- Section: Thông tin cơ bản -->
+                        <section>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
+                                <span class="bg-slate-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-slate-500">1</span>
+                                Thông tin cơ bản
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div class="md:col-span-1">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5 ml-1">Mã ngành <span class="text-red-500">*</span></label>
+                                    <input type="text" name="ma_nganh" id="ma_nganh" required 
+                                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition font-mono font-bold text-slate-700">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5 ml-1">Tên ngành <span class="text-red-500">*</span></label>
+                                    <input type="text" name="ten_nganh" id="ten_nganh" required 
+                                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition font-bold text-slate-700">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5 ml-1">Chỉ tiêu (CT)</label>
+                                    <input type="number" name="chi_tieu" id="chi_tieu" 
+                                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition font-bold text-slate-700">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5 ml-1">Điểm nhận HS năm 2025</label>
+                                    <input type="number" step="0.01" name="diem_nam_truoc" id="diem_nam_truoc" 
+                                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition font-bold text-slate-700">
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Section: Ngưỡng đầu vào -->
+                        <section class="bg-amber-50/50 border border-amber-100 rounded-2xl p-5">
+                            <h4 class="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-4 flex items-center">
+                                <span class="bg-amber-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-amber-600">2</span>
+                                Ngưỡng đầu vào (TT06/2026)
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Nhóm ngành</label>
+                                    <select name="nhom_nganh" id="nhom_nganh" 
+                                            class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
+                                        <option value="Khac">Khác (không ngưỡng)</option>
+                                        <option value="SuPham">Sư phạm</option>
+                                        <option value="SuPhamDacThu">SP Đặc thù (GDTC/ÂN/MT)</option>
+                                        <option value="DieuDuong">Điều dưỡng</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng HL L12</label>
+                                    <select name="nguong_hoc_luc" id="nguong_hoc_luc" 
+                                            class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
+                                        <option value="">-- Không yêu cầu --</option>
+                                        <option value="Gioi">≥ Giỏi</option>
+                                        <option value="Kha">≥ Khá</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng THPT</label>
+                                    <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 20" 
+                                           class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Section: Khối xét tuyển -->
+                        <section>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                                <span class="bg-slate-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-slate-500">3</span>
+                                Khối xét tuyển
+                            </h4>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-3 border border-slate-100 rounded-2xl bg-slate-50/30">
+                                <?php foreach ($combinations as $c): ?>
+                                <label class="flex items-center space-x-2 bg-white p-2 rounded-lg border border-slate-200 hover:border-[#0066FF] hover:bg-[#0066FF]/5 cursor-pointer transition shadow-sm">
+                                    <input type="checkbox" name="combinations[]" value="<?= $c['ma_to_hop'] ?>" class="form-checkbox text-[#0066FF] rounded focus:ring-[#0066FF] border-slate-300">
+                                    <span class="font-bold text-xs text-slate-700"><?= $c['ma_to_hop'] ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+
+                        <!-- Section: Khu vực tuyển sinh -->
+                        <section>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                                <span class="bg-slate-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-slate-500">4</span>
+                                Khu vực tuyển sinh
+                            </h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-100 rounded-2xl bg-slate-50/30">
+                                <?php foreach ($provinces as $p): ?>
+                                <label class="flex items-center space-x-2 bg-white p-2 rounded-lg border border-slate-200 hover:border-[#0066FF] hover:bg-[#0066FF]/5 cursor-pointer transition shadow-sm">
+                                    <input type="checkbox" name="provinces[]" value="<?= $p['ma_tinh'] ?>" class="form-checkbox text-[#0066FF] rounded focus:ring-[#0066FF] border-slate-300">
+                                    <span class="font-bold text-[10px] leading-tight text-slate-700 line-clamp-1"><?= $p['ten_tinh'] ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-2 italic px-1">* Bỏ chọn tất cả để tuyển sinh toàn quốc</p>
+                        </section>
+
+                        <!-- Section: Ghi chú -->
+                        <section>
+                            <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                                <span class="bg-slate-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-slate-500">5</span>
+                                Ghi chú
+                            </h4>
+                            <textarea name="ghi_chu" id="ghi_chu" rows="2" 
+                                      class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] outline-none transition font-medium text-sm text-slate-700" 
+                                      placeholder="Thông tin bổ sung..."></textarea>
+                        </section>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-6 border-t bg-slate-50 rounded-b-3xl flex space-x-3">
+                <button type="button" onclick="closeModal()" 
+                        class="flex-1 py-3 bg-white border border-slate-200 text-slate-600 font-black uppercase text-xs tracking-widest rounded-xl hover:bg-slate-100 transition shadow-sm">Hủy</button>
+                <button type="submit" form="major-form" 
+                        class="flex-1 py-3 bg-[#BE1E2D] text-white font-black uppercase text-xs tracking-widest rounded-xl shadow-lg shadow-red-200 hover:bg-[#9d1926] transition transform active:scale-95">Lưu dữ liệu</button>
+            </div>
         </div>
     </div>
 

@@ -1,239 +1,243 @@
 <?php
 $title = 'Import dữ liệu Bộ GD&ĐT';
-require_once __DIR__ . '/../../layouts/admin.php';
+include __DIR__ . '/../../layouts/admin.php';
 ?>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Import Dữ liệu Bộ GD&ĐT</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createBatchModal">
-            <i class="fas fa-plus"></i> Tạo Đợt Tuyển sinh Mới
+<div class="p-6 bg-gray-50 min-h-screen" x-data="importApp()">
+    <div class="mb-6 flex justify-between items-end">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Import Dữ liệu Bộ GD&ĐT</h1>
+            <p class="text-sm text-gray-500 mt-1">Đẩy file CSV trích xuất từ Hệ thống chung của Bộ Giáo dục & Đào tạo.</p>
+        </div>
+        <button @click="openBatchModal = true" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+            <i class="fas fa-plus mr-2"></i> Tạo đợt mới
         </button>
     </div>
-</div>
 
-<!-- Active Batch Info -->
-<?php if ($activeBatch): ?>
-<div class="alert alert-info d-flex align-items-center" role="alert">
-    <i class="fas fa-info-circle me-2"></i>
-    <div>
-        <strong>Đợt đang hoạt động:</strong> <?= htmlspecialchars($activeBatch['ten_dot']) ?> (Năm <?= $activeBatch['nam'] ?>)
-    </div>
-</div>
-<?php else: ?>
-    <div class="alert alert-warning" role="alert">
-        Chưa có đợt tuyển sinh nào đang hoạt động. Vui lòng tạo đợt mới.
-    </div>
-<?php endif; ?>
-
-<!-- Admissions Processing Phase 5 -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card border-primary">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Xử lý Xét tuyển (Phase 5)</h5>
-                <span class="badge bg-light text-primary">Mới</span>
+    <!-- Active Batch Info -->
+    <?php if ($activeBatch): ?>
+        <div class="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-400 mr-3"></i>
+                <p class="text-sm text-blue-700">
+                    <strong>Đợt đang hoạt động:</strong> <?= htmlspecialchars($activeBatch['ten_dot']) ?> (Năm <?= $activeBatch['nam'] ?>)
+                </p>
             </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title">Tính điểm và Xếp hạng</h6>
-                        <p class="card-text small text-muted">Hệ thống sẽ tính điểm xét tuyển cho tất cả thí sinh trong đợt tuyển sinh này dựa trên điểm THPT và Nguyện vọng.</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                            <form action="<?= url('/admin/admission/process') ?>" method="POST" onsubmit="return confirm('Hành động này sẽ tính điểm cho TẤT CẢ thí sinh trong đợt này. Quá trình có thể mất vài phút. Bạn có chắc chắn?');">
-                            <?= csrf_field() ?? '' ?>
-                            <button type="submit" class="btn btn-primary" <?= empty($activeBatch) ? 'disabled' : '' ?>>
-                                <i class="fas fa-calculator me-2"></i>Tính điểm Xét tuyển
-                            </button>
-                        </form>
-                        <a href="<?= url('/admin/admission/results') ?>" class="btn btn-outline-primary">
-                            <i class="fas fa-list me-2"></i>Xem Kết quả
-                        </a>
-                    </div>
+        </div>
+    <?php else: ?>
+        <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
+                <p class="text-sm text-yellow-700">Chưa có đợt tuyển sinh nào đang hoạt động. Vui lòng tạo đợt mới phía trên.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- File 1: Candidates -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div class="bg-blue-600 px-4 py-3 border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-white">1. File Thí sinh & Điểm (Bảng 1)</h3>
+            </div>
+            <div class="p-4 flex-grow flex flex-col justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 mb-4">Import thông tin cá nhân (SBD, Họ tên, Quê quán) và Điểm bài thi THPT Quốc gia để dùng làm Điểm thành phần.</p>
+                    <form @submit.prevent="upload('candidates', $event)" class="mb-2">
+                        <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 1)</label>
+                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                        <button type="submit" :disabled="!hasBatch || loading.candidates" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <i class="fas fa-upload mr-2" x-show="!loading.candidates"></i>
+                            <i class="fas fa-spinner fa-spin mr-2" x-show="loading.candidates" x-cloak></i>
+                            <span x-text="loading.candidates ? 'Đang tải lên...' : 'Upload & Import'"></span>
+                        </button>
+                    </form>
                 </div>
+                <!-- Status Message -->
+                <div x-show="msg.candidates" x-html="msg.candidates" class="mt-2 text-sm" x-cloak></div>
+            </div>
+        </div>
+
+        <!-- File 3: Applications -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div class="bg-green-600 px-4 py-3 border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-white">2. File Nguyện vọng (Bảng 3)</h3>
+            </div>
+            <div class="p-4 flex-grow flex flex-col justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 mb-4">Import danh sách Hàng vạn nguyện vọng Đăng ký vào Trường kèm Thứ tự Ưu tiên (Do Bộ trả về).</p>
+                    <form @submit.prevent="upload('applications', $event)" class="mb-2">
+                        <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 3)</label>
+                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 mb-4">
+                        <button type="submit" :disabled="!hasBatch || loading.applications" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <i class="fas fa-upload mr-2" x-show="!loading.applications"></i>
+                            <i class="fas fa-spinner fa-spin mr-2" x-show="loading.applications" x-cloak></i>
+                            <span x-text="loading.applications ? 'Đang tải lên...' : 'Upload & Import'"></span>
+                        </button>
+                    </form>
+                </div>
+                <!-- Status Message -->
+                <div x-show="msg.applications" x-html="msg.applications" class="mt-2 text-sm" x-cloak></div>
+            </div>
+        </div>
+
+        <!-- File 9: Transcripts -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div class="bg-yellow-500 px-4 py-3 border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-white">3. File Học Bạ (Bảng 9)</h3>
+            </div>
+            <div class="p-4 flex-grow flex flex-col justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 mb-4">Import Bảng điểm tổng kết cả năm lớp 10, 11 và 12 của tất cả các môn.</p>
+                    <form @submit.prevent="upload('transcripts', $event)" class="mb-2">
+                        <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 9)</label>
+                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 mb-4">
+                        <button type="submit" :disabled="!hasBatch || loading.transcripts" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <i class="fas fa-upload mr-2" x-show="!loading.transcripts"></i>
+                            <i class="fas fa-spinner fa-spin mr-2" x-show="loading.transcripts" x-cloak></i>
+                            <span x-text="loading.transcripts ? 'Đang tải lên...' : 'Upload & Import'"></span>
+                        </button>
+                    </form>
+                </div>
+                <!-- Status Message -->
+                <div x-show="msg.transcripts" x-html="msg.transcripts" class="mt-2 text-sm" x-cloak></div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <!-- File 1: Candidates -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                File 1: Thí sinh & Điểm thi
-            </div>
-            <div class="card-body">
-                <p class="card-text small">Import thông tin cá nhân, khu vực ưu tiên và điểm thi THPT.</p>
-                <form id="form-candidates" class="import-form">
-                    <input type="hidden" name="type" value="candidates">
-                    <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                    <div class="mb-3">
-                        <label for="file1" class="form-label">Chọn file CSV</label>
-                        <input class="form-control" type="file" id="file1" name="file" accept=".csv" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100" <?= empty($activeBatch) ? 'disabled' : '' ?>>
-                        <i class="fas fa-upload"></i> Upload & Import
-                    </button>
-                    <div class="mt-2 status-msg"></div>
-                </form>
-            </div>
+    <!-- History Table -->
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Lịch sử Import gần đây</h3>
         </div>
-    </div>
-
-    <!-- File 3: Applications -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header bg-success text-white">
-                File 3: Nguyện vọng
-            </div>
-            <div class="card-body">
-                <p class="card-text small">Import danh sách nguyện vọng xét tuyển.</p>
-                <form id="form-applications" class="import-form">
-                    <input type="hidden" name="type" value="applications">
-                    <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                    <div class="mb-3">
-                        <label for="file3" class="form-label">Chọn file CSV</label>
-                        <input class="form-control" type="file" id="file3" name="file" accept=".csv" required>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100" <?= empty($activeBatch) ? 'disabled' : '' ?>>
-                        <i class="fas fa-upload"></i> Upload & Import
-                    </button>
-                    <div class="mt-2 status-msg"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- File 9: Transcripts -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header bg-warning text-dark">
-                File 9: Học bạ
-            </div>
-            <div class="card-body">
-                <p class="card-text small">Import điểm học tập THPT (Nếu có).</p>
-                <form id="form-transcripts" class="import-form">
-                    <input type="hidden" name="type" value="transcripts">
-                    <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                    <div class="mb-3">
-                        <label for="file9" class="form-label">Chọn file CSV</label>
-                        <input class="form-control" type="file" id="file9" name="file" accept=".csv" required>
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100" <?= empty($activeBatch) ? 'disabled' : '' ?>>
-                        <i class="fas fa-upload"></i> Upload & Import
-                    </button>
-                    <div class="mt-2 status-msg"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card mb-4">
-    <div class="card-header">
-        Lịch sử Import
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped table-sm">
-                <thead>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th>ID</th>
-                        <th>Ngày</th>
-                        <th>File</th>
-                        <th>Loại</th>
-                        <th>Số bản ghi</th>
-                        <th>Người Import</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên File</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại (Bảng)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kết quả (Dòng)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người chạy</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php foreach ($history as $log): ?>
+                <tbody class="bg-white divide-y divide-gray-200 text-sm">
+                    <?php if(empty($history)): ?>
                     <tr>
-                        <td><?= $log['id'] ?></td>
-                        <td><?= $log['created_at'] ?></td>
-                        <td><?= htmlspecialchars($log['file_name']) ?></td>
-                        <td><?= $log['loai_file'] ?></td>
-                        <td><?= $log['record_count'] ?></td>
-                        <td>Admin #<?= $log['imported_by'] ?></td>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử import nào.</td>
                     </tr>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                    <?php foreach ($history as $log): ?>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500"><?= $log['created_at'] ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900"><?= htmlspecialchars($log['file_name']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <?= $log['loai_file'] == 'candidates' ? 'bg-blue-100 text-blue-800' : 
+                                   ($log['loai_file'] == 'applications' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800') ?>">
+                                <?= ucfirst($log['loai_file']) ?>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-bold"><?= number_format($log['record_count']) ?> dòng</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">Admin #<?= $log['imported_by'] ?></td>
+                    </tr>
+                    <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<!-- Modal Create Batch -->
-<div class="modal fade" id="createBatchModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/admin/import/batch/create" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title">Tạo Đợt Tuyển sinh Mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Tên đợt</label>
-                        <input type="text" class="form-control" name="name" required placeholder="Ví dụ: Đợt bổ sung tháng 9">
+    <!-- Modal Create Batch -->
+    <div x-show="openBatchModal" class="fixed z-50 inset-0 overflow-y-auto" role="dialog" aria-modal="true" x-cloak>
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="openBatchModal" @click="openBatchModal = false" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="openBatchModal" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form action="<?= url('/admin/import/batch/create') ?>" method="POST">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-calendar-plus text-blue-600"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Tạo đợt Tuyển sinh & Import mới</h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Tên đợt tuyển</label>
+                                        <input type="text" name="name" required class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" placeholder="VD: Xét tuyển Đợt 1 / 2026">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Năm tuyển sinh</label>
+                                        <input type="number" name="year" value="<?= date('Y') ?>" required class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Năm</label>
-                        <input type="number" class="form-control" name="year" value="<?= date('Y') ?>" required>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">Tạo mới Đợt</button>
+                        <button type="button" @click="openBatchModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Hủy bỏ</button>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">Lưu</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-document.querySelectorAll('.import-form').forEach(form => {
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]');
-        const msgDiv = this.querySelector('.status-msg');
-        
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
-        msgDiv.innerHTML = '';
-
-        const formData = new FormData(this);
-
-        try {
-            const response = await fetch('/admin/import/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-
-            if (result.status) {
-                msgDiv.innerHTML = `<div class="alert alert-success mt-2">Thành công! Import ${result.success}/${result.count} dòng.</div>`;
-                setTimeout(() => location.reload(), 2000);
-            } else {
-                let errorHtml = `<strong>Lỗi:</strong> ${result.message}`;
-                if (result.errors && result.errors.length > 0) {
-                    errorHtml += '<ul class="mb-0 small">';
-                    result.errors.slice(0, 5).forEach(err => errorHtml += `<li>${err}</li>`);
-                    if (result.errors.length > 5) errorHtml += `<li>... và ${result.errors.length - 5} lỗi khác</li>`;
-                    errorHtml += '</ul>';
+function importApp() {
+    return {
+        hasBatch: <?= $activeBatch ? 'true' : 'false' ?>,
+        openBatchModal: false,
+        loading: {
+            candidates: false,
+            applications: false,
+            transcripts: false
+        },
+        msg: {
+            candidates: '',
+            applications: '',
+            transcripts: ''
+        },
+        async upload(type, event) {
+            const form = event.target;
+            const formData = new FormData(form);
+            formData.append('type', type);
+            
+            this.loading[type] = true;
+            this.msg[type] = '';
+            
+            try {
+                const response = await fetch('/TS/admin/import/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.status) {
+                    this.msg[type] = `<div class="p-3 bg-green-100 text-green-700 rounded"><i class="fas fa-check-circle mr-1"></i> Thành công! Đã nạp ${result.success}/${result.count} dòng. Khôi phục tải lại trang.</div>`;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    let errorHtml = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-exclamation-triangle mr-1"></i> Lỗi: ${result.message}`;
+                    if (result.errors && result.errors.length > 0) {
+                        errorHtml += '<ul class="mt-2 list-disc pl-5 text-xs text-red-600">';
+                        result.errors.slice(0, 5).forEach(err => errorHtml += `<li>${err}</li>`);
+                        if (result.errors.length > 5) errorHtml += `<li>... và ${result.errors.length - 5} lỗi khác</li>`;
+                        errorHtml += '</ul>';
+                    }
+                    errorHtml += '</div>';
+                    this.msg[type] = errorHtml;
                 }
-                msgDiv.innerHTML = `<div class="alert alert-danger mt-2">${errorHtml}</div>`;
+            } catch (error) {
+                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ!</div>`;
+            } finally {
+                this.loading[type] = false;
+                form.reset();
             }
-        } catch (error) {
-            msgDiv.innerHTML = `<div class="alert alert-danger mt-2">Lỗi kết nối: ${error.message}</div>`;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-upload"></i> Upload & Import';
         }
-    });
-});
+    }
+}
 </script>
-
-<?php require_once __DIR__ . '/../../layouts/footer.php'; ?>

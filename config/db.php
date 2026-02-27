@@ -15,8 +15,8 @@ $dsn = "pgsql:host=$host;port=$port;dbname=$db";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::ATTR_PERSISTENT         => true,
+    PDO::ATTR_EMULATE_PREPARES   => true, // Required for Supabase PgBouncer (Port 6543)
+    PDO::ATTR_PERSISTENT         => false, // PgBouncer handles pooling
 ];
 
 try {

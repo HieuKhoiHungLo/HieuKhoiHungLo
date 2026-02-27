@@ -1,6 +1,8 @@
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-4">
-        <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">Danh sách Thí sinh</h3>
+        <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">
+            <?= $mode === 'review' ? 'Xét duyệt Hồ sơ' : 'Danh sách Thí sinh' ?>
+        </h3>
         
         <!-- Column Config Dropdown (Alpine context from parent) -->
         <div class="relative" x-data="{ open: false }">
@@ -31,7 +33,7 @@
         </a>
     </div>
     
-    <form action="<?= url('/admin/dashboard') ?>" method="GET" class="flex flex-wrap gap-3">
+    <form action="<?= $mode === 'review' ? url('/admin/review-management') : url('/admin/dashboard') ?>" method="GET" class="flex flex-wrap gap-3">
         <!-- Persist Sort Params -->
         <input type="hidden" name="sort" value="<?= $filters['sort'] ?>">
         <input type="hidden" name="dir" value="<?= $filters['dir'] ?>">

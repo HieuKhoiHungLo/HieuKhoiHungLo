@@ -104,15 +104,47 @@ include __DIR__ . '/../layouts/header.php';
                                             <input type="text" value="THV" class="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg px-2 text-center font-bold" readonly>
                                         </td>
                                         <td class="py-4 px-4 text-xs font-medium text-gray-500">
-                                            <span id="combo-text-<?= $index ?>">
+                                            <span id="combo-text-<?= $index ?>" class="block">
                                                 <?php 
+                                                    $comboStrDesktop = '';
+                                                    $matchedMajorDesktop = null;
                                                     foreach($majors as $m) {
                                                         if(isset($choice['ma_nganh']) && $m['ma_nganh'] == $choice['ma_nganh']) {
-                                                            echo htmlspecialchars($m['to_hop_xet_tuyen'] ?? ''); 
+                                                            $comboStrDesktop = $m['to_hop_xet_tuyen'] ?? '';
+                                                            $matchedMajorDesktop = $m;
                                                             break;
                                                         }
                                                     }
+                                                    if ($comboStrDesktop): 
+                                                        $combosD = array_map('trim', explode(',', $comboStrDesktop));
                                                 ?>
+                                                    <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1.5">
+                                                        <?php foreach ($combosD as $c): ?>
+                                                            <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-bold rounded shadow-sm border border-gray-200"><?= htmlspecialchars($c) ?></span>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <?php 
+                                                        // Render badge điều kiện trực tiếp từ PHP
+                                                        if ($matchedMajorDesktop && (!empty($matchedMajorDesktop['nguong_hoc_luc']) || !empty($matchedMajorDesktop['nguong_diem_thpt']))) {
+                                                            $nhomLabels = ['SuPham' => 'Sư phạm', 'SuPhamDacThu' => 'SP Đặc thù', 'DieuDuong' => 'Điều dưỡng'];
+                                                            $hlLabels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá'];
+                                                            $nhom = $matchedMajorDesktop['nhom_nganh'] ?? '';
+                                                            $nhomLabel = $nhomLabels[$nhom] ?? '';
+                                                            $parts = [];
+                                                            if (!empty($matchedMajorDesktop['nguong_hoc_luc'])) {
+                                                                $hl = $hlLabels[$matchedMajorDesktop['nguong_hoc_luc']] ?? $matchedMajorDesktop['nguong_hoc_luc'];
+                                                                $parts[] = 'HL lớp 12 ≥ ' . $hl;
+                                                            }
+                                                            if (!empty($matchedMajorDesktop['nguong_diem_thpt'])) {
+                                                                $parts[] = 'Tổng ĐThi ≥ ' . number_format((float)$matchedMajorDesktop['nguong_diem_thpt'], 1);
+                                                            }
+                                                            echo '<div class="mt-2 flex flex-col md:flex-row items-center justify-center gap-1.5">';
+                                                            if ($nhomLabel) echo '<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded whitespace-nowrap">' . htmlspecialchars($nhomLabel) . '</span>';
+                                                            echo '<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200 whitespace-nowrap">⚡ ' . htmlspecialchars(implode(' | ', $parts)) . '</span>';
+                                                            echo '</div>';
+                                                        }
+                                                    ?>
+                                                <?php endif; ?>
                                             </span>
                                         </td>
                                         <td class="py-4 px-4 text-center">
@@ -173,9 +205,11 @@ include __DIR__ . '/../layouts/header.php';
                                     <div class="mt-1.5" id="mobile-combo-<?= $index ?>">
                                         <?php 
                                             $comboStr = '';
+                                            $matchedMajorMobile = null;
                                             foreach($majors as $m) {
                                                 if(isset($choice['ma_nganh']) && $m['ma_nganh'] == $choice['ma_nganh']) {
                                                     $comboStr = $m['to_hop_xet_tuyen'] ?? '';
+                                                    $matchedMajorMobile = $m;
                                                     break;
                                                 }
                                             }
@@ -187,6 +221,27 @@ include __DIR__ . '/../layouts/header.php';
                                                     <span class="inline-block px-2.5 py-1 bg-red-50 text-hvu-red text-xs font-bold rounded-lg"><?= htmlspecialchars($c) ?></span>
                                                 <?php endforeach; ?>
                                             </div>
+                                            <?php 
+                                                // Render badge điều kiện trực tiếp từ PHP
+                                                if ($matchedMajorMobile && (!empty($matchedMajorMobile['nguong_hoc_luc']) || !empty($matchedMajorMobile['nguong_diem_thpt']))) {
+                                                    $nhomLabels = ['SuPham' => 'Sư phạm', 'SuPhamDacThu' => 'SP Đặc thù', 'DieuDuong' => 'Điều dưỡng'];
+                                                    $hlLabels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá'];
+                                                    $nhom = $matchedMajorMobile['nhom_nganh'] ?? '';
+                                                    $nhomLabel = $nhomLabels[$nhom] ?? '';
+                                                    $parts = [];
+                                                    if (!empty($matchedMajorMobile['nguong_hoc_luc'])) {
+                                                        $hl = $hlLabels[$matchedMajorMobile['nguong_hoc_luc']] ?? $matchedMajorMobile['nguong_hoc_luc'];
+                                                        $parts[] = 'HL lớp 12 ≥ ' . $hl;
+                                                    }
+                                                    if (!empty($matchedMajorMobile['nguong_diem_thpt'])) {
+                                                        $parts[] = 'Tổng ĐThi ≥ ' . number_format((float)$matchedMajorMobile['nguong_diem_thpt'], 1);
+                                                    }
+                                                    echo '<div class="mt-2 flex flex-wrap items-center gap-1.5">';
+                                                    if ($nhomLabel) echo '<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded">' . htmlspecialchars($nhomLabel) . '</span>';
+                                                    echo '<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200">⚡ ' . htmlspecialchars(implode(' | ', $parts)) . '</span>';
+                                                    echo '</div>';
+                                                }
+                                            ?>
                                         <?php else: ?>
                                             <span class="text-xs text-gray-300 italic">Chọn ngành để xem tổ hợp</span>
                                         <?php endif; ?>
@@ -297,12 +352,12 @@ const majorThresholds = {};
     majorThresholds['<?= $m['ma_nganh'] ?>'] = {
         nhom: '<?= $m['nhom_nganh'] ?? 'Khac' ?>',
         hocLuc: '<?= $m['nguong_hoc_luc'] ?? '' ?>',
-        diemThpt: <?= $m['nguong_diem_thpt'] ?? 'null' ?>
+        diemThpt: <?= empty($m['nguong_diem_thpt']) ? 'null' : (float)$m['nguong_diem_thpt'] ?>
     };
     <?php endif; ?>
 <?php endforeach; ?>
 
-function getThresholdBadge(majorId) {
+function getThresholdBadge(majorId, isDesktop = false) {
     const t = majorThresholds[majorId];
     if (!t) return '';
     const hlLabels = {'Gioi':'Giỏi','Kha':'Khá'};
@@ -311,9 +366,16 @@ function getThresholdBadge(majorId) {
     if (t.hocLuc) parts.push('HL lớp 12 ≥ ' + (hlLabels[t.hocLuc]||t.hocLuc));
     if (t.diemThpt) parts.push('Tổng ĐThi ≥ ' + t.diemThpt.toFixed(1));
     const nhomLabel = nhomLabels[t.nhom] || '';
-    return `<div class="mt-2 flex flex-wrap items-center gap-1.5">`
-        + (nhomLabel ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded">${nhomLabel}</span>` : '')
-        + `<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200">⚡ ${parts.join(' | ')}</span></div>`;
+    
+    if (isDesktop) {
+        return `<div class="mt-2 flex flex-col md:flex-row items-center justify-center gap-1.5">`
+            + (nhomLabel ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded whitespace-nowrap">${nhomLabel}</span>` : '')
+            + `<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200 whitespace-nowrap">⚡ ${parts.join(' | ')}</span></div>`;
+    } else {
+        return `<div class="mt-2 flex flex-wrap items-center gap-1.5">`
+            + (nhomLabel ? `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-bold rounded">${nhomLabel}</span>` : '')
+            + `<span class="px-2 py-0.5 bg-red-50 text-red-600 text-[11px] font-bold rounded border border-red-200">⚡ ${parts.join(' | ')}</span></div>`;
+    }
 }
 
 function updateOrders() {
@@ -351,7 +413,10 @@ function updateCombinationText(select, index) {
     const majorId = select.value;
     const comboText = document.getElementById('combo-text-' + index);
     if (majorId && majorCombinations[majorId]) {
-        comboText.innerHTML = majorCombinations[majorId] + getThresholdBadge(majorId);
+        const combos = majorCombinations[majorId].split(',').map(c => c.trim()).filter(Boolean);
+        comboText.innerHTML = '<div class="flex flex-wrap items-center justify-center gap-1.5 mb-1.5">' +
+            combos.map(c => `<span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-bold rounded shadow-sm border border-gray-200">${c}</span>`).join('') +
+            '</div>' + getThresholdBadge(majorId, true);
     } else {
         comboText.innerHTML = '';
     }
@@ -364,14 +429,9 @@ function updateMobileCombo(select, index) {
         const combos = majorCombinations[majorId].split(',').map(c => c.trim()).filter(Boolean);
         comboDiv.innerHTML = '<div class="flex flex-wrap gap-1.5">' +
             combos.map(c => `<span class="inline-block px-2.5 py-1 bg-red-50 text-hvu-red text-xs font-bold rounded-lg">${c}</span>`).join('') +
-            '</div>' + getThresholdBadge(majorId);
+            '</div>' + getThresholdBadge(majorId, false);
     } else {
         comboDiv.innerHTML = '<span class="text-xs text-gray-300 italic">Chọn ngành để xem tổ hợp</span>';
-    }
-    // Sync desktop combo text
-    const comboText = document.getElementById('combo-text-' + index);
-    if (comboText) {
-        comboText.textContent = majorId ? (majorCombinations[majorId] || '') : '';
     }
 }
 
@@ -462,6 +522,9 @@ function syncActiveView() {
 
 // Run on page load
 syncActiveView();
+
+// Bỏ init JS on load để ưu tiên render server-side cho các lựa chọn đã lưu trong DB
+// Chỉ render cập nhật bằng JS khi user thực hiện OnChange
 
 // Run on resize (in case user rotates device)
 window.addEventListener('resize', syncActiveView);

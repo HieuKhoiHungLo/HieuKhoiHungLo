@@ -190,7 +190,7 @@ class AuthController extends Controller {
                         'ho_ten' => trim($_POST['fullname']),
                         'cccd' => $cccd,
                         'mat_khau' => $password, // Plain password before hash
-                        'login_url' => url('/login')
+                        'login_url' => url('/login', true)
                     ]);
                 } catch (\Exception $e) {
                     // Log error but don't block registration
@@ -223,19 +223,20 @@ class AuthController extends Controller {
             $this->validateCsrf();
             
             $email = trim($_POST['email'] ?? '');
+            $cccd = trim($_POST['cccd'] ?? '');
             
-            if (empty($email)) {
-                $this->view('auth/forgot-password', ['error' => 'Vui lòng nhập email.']);
+            if (empty($email) || empty($cccd)) {
+                $this->view('auth/forgot-password', ['error' => 'Vui lòng nhập đầy đủ Email và số CCCD.']);
                 return;
             }
 
             $resetService = new \App\Services\PasswordResetService();
-            $token = $resetService->createToken($email);
+            $token = $resetService->createToken($email, $cccd);
             
             if ($token) {
                 // Send email
-                $sent = $resetService->sendResetEmail($email, $token);
-                $this->auditService->log('PASSWORD_RESET_REQUEST', 'candidate', null, null, ['email' => $email, 'sent' => $sent]);
+                $sent = $resetService->sendResetEmail($email, $token, $cccd);
+                $this->auditService->log('PASSWORD_RESET_REQUEST', 'candidate', null, null, ['email' => $email, 'cccd' => $cccd, 'sent' => $sent]);
             }
             
             // Always show success message (don't reveal if email exists)
@@ -252,8 +253,9 @@ class AuthController extends Controller {
      */
     public function resetPasswordEmail() {
         $token = $_GET['token'] ?? $_POST['token'] ?? '';
+        $cccd = $_GET['cccd'] ?? $_POST['cccd'] ?? '';
         
-        if (empty($token)) {
+        if (empty($token) || empty($cccd)) {
             $this->redirect(url('/forgot-password?error=invalid_token'));
             return;
         }
@@ -285,13 +287,13 @@ class AuthController extends Controller {
                 return;
             }
 
-            if ($resetService->resetPassword($token, $password)) {
+            if ($resetService->resetPassword($token, $password, $cccd)) {
                 $this->redirect(url('/login?reset=1'));
             } else {
-                $this->view('auth/reset-password-email', ['error' => 'Lỗi cập nhật. Vui lòng thử lại.', 'token' => $token]);
+                $this->view('auth/reset-password-email', ['error' => 'Lỗi cập nhật. Vui lòng thử lại.', 'token' => $token, 'cccd' => $cccd]);
             }
         } else {
-            $this->view('auth/reset-password-email', ['token' => $token, 'email' => $tokenData['email']]);
+            $this->view('auth/reset-password-email', ['token' => $token, 'email' => $tokenData['email'], 'cccd' => $cccd]);
         }
     }
 

@@ -140,12 +140,32 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 gap-8 mb-8">
     <!-- Chart: Top High Schools (Full Width) -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <h3 class="font-bold text-slate-800 mb-4">Top Trường THPT</h3>
         <div class="relative h-96">
             <canvas id="schoolChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-8 mb-8">
+    <!-- Reviewer Stats Table -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 tracking-tight uppercase text-sm">Thống kê duyệt hồ sơ theo cán bộ</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Cán bộ</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Tên đăng nhập</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Số hồ sơ đã duyệt</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewerTableBody">
+                    <!-- Dynamic Content -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -237,6 +257,26 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePieChartGeneric('genderChart', data.gender, 'Giới tính');
         updatePieChartGeneric('areaChart', data.area, 'Khu vực');
         updatePieChartGeneric('objectChart', data.object, 'Đối tượng');
+
+        // Update Reviewer Table
+        const tableBody = document.getElementById('reviewerTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            if (data.reviewers && data.reviewers.length > 0) {
+                data.reviewers.forEach(rev => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-bold text-slate-700">${rev.ho_ten}</td>
+                        <td class="py-3 px-4 text-slate-500">${rev.ten_dang_nhap}</td>
+                        <td class="py-3 px-4 font-black text-[#0066FF] text-right text-lg">${rev.review_count}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-slate-400 font-medium">Chưa có dữ liệu duyệt hồ sơ.</td></tr>';
+            }
+        }
     }
 
     function updateChart(canvasId, type, data, labelKey, valueKey, label) {

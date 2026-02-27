@@ -475,4 +475,44 @@ class ProfileController extends Controller {
             ]);
         }
     }
+
+    public function changePassword() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $currentPassword = $_POST['current_password'] ?? '';
+            $newPassword = $_POST['new_password'] ?? '';
+            $confirmPassword = $_POST['confirm_password'] ?? '';
+
+            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+                $this->view('profile/change_password', ['user' => $this->user, 'error' => 'Vui lòng điền đầy đủ thông tin.']);
+                return;
+            }
+
+            if ($newPassword !== $confirmPassword) {
+                $this->view('profile/change_password', ['user' => $this->user, 'error' => 'Mật khẩu mới không khớp.']);
+                return;
+            }
+
+            if (strlen($newPassword) < 6) {
+                $this->view('profile/change_password', ['user' => $this->user, 'error' => 'Mật khẩu mới phải có ít nhất 6 ký tự.']);
+                return;
+            }
+
+            // Verify current password
+            if (!password_verify($currentPassword, $this->user['mat_khau'])) {
+                $this->view('profile/change_password', ['user' => $this->user, 'error' => 'Mật khẩu hiện tại không chính xác.']);
+                return;
+            }
+
+            // Update password
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            if ($this->thiSinhRepo->updatePasswordByCCCD($_SESSION['cccd'], $hashedPassword)) {
+                $this->invalidateUserCache();
+                $this->view('profile/change_password', ['user' => $this->user, 'success' => 'Đổi mật khẩu thành công.']);
+            } else {
+                $this->view('profile/change_password', ['user' => $this->user, 'error' => 'Có lỗi xảy ra, vui lòng thử lại sau.']);
+            }
+        } else {
+            $this->view('profile/change_password', ['user' => $this->user]);
+        }
+    }
 }

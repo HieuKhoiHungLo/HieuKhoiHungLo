@@ -1,7 +1,9 @@
 <!-- Bulk Actions & Table -->
-<form action="<?= url('/admin/candidates/bulk-action') ?>" method="POST" id="bulk-form">
+<form action="<?= $mode === 'review' ? url('/admin/candidates/bulk-action') : '#' ?>" method="POST" id="bulk-form">
     <?= csrf_field() ?>
+    <input type="hidden" name="redirect_to" value="<?= $_SERVER['REQUEST_URI'] ?>">
     
+    <?php if ($mode === 'review'): ?>
     <div id="bulk-actions" class="hidden bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-4 flex items-center justify-between shadow-sm animate-fade-in-down">
         <div class="flex items-center space-x-3">
             <span class="font-bold text-indigo-700 text-sm"><span id="selected-count">0</span> đã chọn</span>
@@ -23,6 +25,7 @@
         </div>
         <button type="submit" onclick="return confirm('Xác nhận thực hiện hành động này?')" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">Apply</button>
     </div>
+    <?php endif; ?>
 
     <!-- Mobile Card View -->
     <div class="block md:hidden space-y-4">
@@ -96,7 +99,7 @@
                         <input type="checkbox" id="select-all" class="rounded border-gray-300 text-[#0066FF] focus:ring-indigo-600">
                     </th>
                     <th class="px-4 py-3 min-w-[200px]">
-                        <a href="<?= url('/admin/dashboard?' . http_build_query(array_merge($filters, ['sort' => 'name', 'dir' => ($filters['sort'] == 'name' && $filters['dir'] == 'asc') ? 'desc' : 'asc']))) ?>" class="flex items-center hover:text-[#0066FF] group">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['sort' => 'name', 'dir' => ($filters['sort'] == 'name' && $filters['dir'] == 'asc') ? 'desc' : 'asc'])) ?>" class="flex items-center hover:text-[#0066FF] group">
                             Thí sinh
                             <span class="ml-1 text-[10px] opacity-50 group-hover:opacity-100">
                                 <?php if($filters['sort'] == 'name'): ?>
@@ -107,16 +110,56 @@
                             </span>
                         </a>
                     </th>
-                    <th class="px-4 py-3">Liên hệ</th>
+                    <th x-show="showCols.phone" class="px-4 py-3">Điện thoại</th>
+                    <th x-show="showCols.email" class="px-4 py-3">Email</th>
+                    <th x-show="showCols.gender" class="px-4 py-3">Giới tính</th>
+                    <th x-show="showCols.dob" class="px-4 py-3">Ngày sinh</th>
+                    <th x-show="showCols.ethnicity" class="px-4 py-3">Dân tộc</th>
+                    <th x-show="showCols.area" class="px-4 py-3">KVƯT</th>
+                    <th x-show="showCols.object" class="px-4 py-3">ĐTƯT</th>
+                    <th x-show="showCols.grad_year" class="px-4 py-3">Năm TN</th>
 
                     <!-- Dynamic Columns -->
-                    <th x-show="showCols.province" class="px-4 py-3">Hộ khẩu</th>
-                    <th x-show="showCols.school" class="px-4 py-3">Trường THPT</th>
-                    <th x-show="showCols.nv1" class="px-4 py-3">Nguyện vọng 1</th>
+                    <th x-show="showCols.province" class="px-4 py-3 whitespace-nowrap">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['sort' => 'province', 'dir' => ($filters['sort'] == 'province' && $filters['dir'] == 'asc') ? 'desc' : 'asc'])) ?>" class="flex items-center hover:text-[#0066FF] group">
+                            Hộ khẩu
+                            <span class="ml-1 text-[10px] opacity-50 group-hover:opacity-100">
+                                <?php if($filters['sort'] == 'province'): ?>
+                                    <i class="fas fa-sort-<?= $filters['dir'] == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-sort"></i>
+                                <?php endif; ?>
+                            </span>
+                        </a>
+                    </th>
+                    <th x-show="showCols.school" class="px-4 py-3 whitespace-nowrap">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['sort' => 'school', 'dir' => ($filters['sort'] == 'school' && $filters['dir'] == 'asc') ? 'desc' : 'asc'])) ?>" class="flex items-center hover:text-[#0066FF] group">
+                            Trường THPT
+                            <span class="ml-1 text-[10px] opacity-50 group-hover:opacity-100">
+                                <?php if($filters['sort'] == 'school'): ?>
+                                    <i class="fas fa-sort-<?= $filters['dir'] == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-sort"></i>
+                                <?php endif; ?>
+                            </span>
+                        </a>
+                    </th>
+                    <th x-show="showCols.nv1" class="px-4 py-3 whitespace-nowrap">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['sort' => 'nv1', 'dir' => ($filters['sort'] == 'nv1' && $filters['dir'] == 'asc') ? 'desc' : 'asc'])) ?>" class="flex items-center hover:text-[#0066FF] group">
+                            NV1
+                            <span class="ml-1 text-[10px] opacity-50 group-hover:opacity-100">
+                                <?php if($filters['sort'] == 'nv1'): ?>
+                                    <i class="fas fa-sort-<?= $filters['dir'] == 'asc' ? 'up' : 'down' ?>"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-sort"></i>
+                                <?php endif; ?>
+                            </span>
+                        </a>
+                    </th>
 
                     <th class="px-4 py-3">Trạng thái</th>
                     <th class="px-4 py-3 text-right">
-                        <a href="<?= url('/admin/dashboard?' . http_build_query(array_merge($filters, ['sort' => 'created_at', 'dir' => ($filters['sort'] == 'created_at' && $filters['dir'] == 'asc') ? 'desc' : 'asc']))) ?>" class="flex items-center justify-end hover:text-[#0066FF] group">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['sort' => 'created_at', 'dir' => ($filters['sort'] == 'created_at' && $filters['dir'] == 'asc') ? 'desc' : 'asc'])) ?>" class="flex items-center justify-end hover:text-[#0066FF] group">
                             Ngày nhận
                             <span class="ml-1 text-[10px] opacity-50 group-hover:opacity-100">
                                 <?php if($filters['sort'] == 'created_at'): ?>
@@ -153,13 +196,33 @@
                                         <p class="font-bold text-slate-700 truncate group-hover:text-[#0066FF] transition" title="<?= htmlspecialchars($c['ho_va_ten']) ?>">
                                             <?= htmlspecialchars($c['ho_va_ten']) ?>
                                         </p>
-                                        <p class="text-xs text-slate-400 font-mono"><?= htmlspecialchars($c['so_cccd']) ?></p>
+                                        <p x-show="showCols.cccd" class="text-xs text-slate-400 font-mono"><?= htmlspecialchars($c['so_cccd']) ?></p>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-slate-600 text-xs"><?= htmlspecialchars($c['dien_thoai']) ?></p>
-                                <p class="text-xs text-slate-400 truncate max-w-[150px]" title="<?= htmlspecialchars($c['email']) ?>"><?= htmlspecialchars($c['email']) ?></p>
+                            <td x-show="showCols.phone" class="px-4 py-3 text-slate-600 font-medium">
+                                <?= htmlspecialchars($c['dien_thoai']) ?>
+                            </td>
+                            <td x-show="showCols.email" class="px-4 py-3 text-slate-500 truncate max-w-[150px]" title="<?= htmlspecialchars($c['email']) ?>">
+                                <?= htmlspecialchars($c['email']) ?>
+                            </td>
+                            <td x-show="showCols.gender" class="px-4 py-3 text-slate-600">
+                                <?= htmlspecialchars($c['gioi_tinh'] ?: '-') ?>
+                            </td>
+                            <td x-show="showCols.dob" class="px-4 py-3 text-slate-600">
+                                <?= $c['ngay_sinh'] ? date('d/m/Y', strtotime($c['ngay_sinh'])) : '-' ?>
+                            </td>
+                            <td x-show="showCols.ethnicity" class="px-4 py-3 text-slate-600">
+                                <?= htmlspecialchars($c['dan_toc'] ?: '-') ?>
+                            </td>
+                            <td x-show="showCols.area" class="px-4 py-3 text-slate-600">
+                                <?= htmlspecialchars($c['khu_vuc_uu_tien'] ?: '-') ?>
+                            </td>
+                            <td x-show="showCols.object" class="px-4 py-3 text-slate-600">
+                                <?= htmlspecialchars($c['doi_tuong_uu_tien'] ?: '-') ?>
+                            </td>
+                            <td x-show="showCols.grad_year" class="px-4 py-3 text-slate-600">
+                                <?= htmlspecialchars($c['nam_tot_nghiep'] ?: '-') ?>
                             </td>
 
                             <!-- Dynamic Columns Data -->
@@ -209,11 +272,19 @@
                                 <?= date('d/m/Y', strtotime($c['ngay_tao'])) ?>
                             </td>
                             <td class="px-4 py-3 text-right">
+                                <?php if ($mode === 'review'): ?>
                                 <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg text-xs font-bold transition shadow-sm border border-emerald-100" title="Duyệt & Chỉnh sửa hồ sơ">
                                         <i class="fas fa-file-signature"></i> Duyệt
                                     </a>
                                 </div>
+                                <?php else: ?>
+                                <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-xs font-bold transition shadow-sm border border-blue-100" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i> Xem
+                                    </a>
+                                </div>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -223,6 +294,8 @@
         <!-- Preserve filters -->
         <input type="hidden" name="current_status" value="<?= htmlspecialchars($filters['status'] ?? '') ?>">
         <input type="hidden" name="current_search" value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+        <input type="hidden" name="current_year" value="<?= htmlspecialchars($filters['year'] ?? '') ?>">
+        <input type="hidden" name="current_session_id" value="<?= htmlspecialchars($filters['session_id'] ?? '') ?>">
     </div>
 
     <!-- Pagination -->
@@ -237,19 +310,19 @@
         </div>
         <div class="flex gap-2">
             <?php if($page > 1): ?>
-                <a href="<?= url('/admin/dashboard?' . http_build_query(array_merge($filters, ['page' => $page - 1]))) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Trước</a>
+                <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Trước</a>
             <?php endif; ?>
             
             <div class="hidden md:flex gap-1">
                 <?php for($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-                    <a href="<?= url('/admin/dashboard?' . http_build_query(array_merge($filters, ['page' => $i]))) ?>" class="w-10 h-10 flex items-center justify-center border rounded-lg font-bold transition shadow-sm <?= $i == $page ? 'bg-[#0066FF] border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-10 h-10 flex items-center justify-center border rounded-lg font-bold transition shadow-sm <?= $i == $page ? 'bg-[#0066FF] border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
             </div>
 
             <?php if($page < $totalPages): ?>
-                <a href="<?= url('/admin/dashboard?' . http_build_query(array_merge($filters, ['page' => $page + 1]))) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Sau</a>
+                <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Sau</a>
             <?php endif; ?>
         </div>
     </div>

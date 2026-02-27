@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="theme-color" content="#BE1E2D">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,12 +15,20 @@
     <link rel="icon" type="image/png" href="<?= url('/assets/img/icon-pwa.png') ?>">
     <link rel="apple-touch-icon" href="<?= url('/assets/img/icon-pwa.png') ?>">
     
-    <!-- Tailwind CSS (Local Build) -->
-    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css') ?>">
+    <!-- Tailwind CSS (Local Build with Cache Busting) -->
+    <?php $tailwindPath = __DIR__ . '/../../../public/assets/css/tailwind.min.css'; ?>
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css' . (file_exists($tailwindPath) ? '?v=' . filemtime($tailwindPath) : '')) ?>">
+    
+    <!-- Custom CSS (Local Build with Cache Busting) -->
+    <?php $customCssPath = __DIR__ . '/../../../public/assets/css/index.css'; ?>
+    <?php if (file_exists($customCssPath)): ?>
+    <link rel="stylesheet" href="<?= url('/assets/css/index.css?v=' . filemtime($customCssPath)) ?>">
+    <?php endif; ?>
     
     <!-- Optimized Fonts (display=swap for faster load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
@@ -29,60 +38,71 @@
         html, body {
             background-color: transparent !important;
         }
+        /* Glassmorphism Card Style */
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+            border-radius: 1.5rem; /* 24px */
         }
+        /* Premium Input Style */
         .hvu-input {
             background: rgba(249, 250, 251, 0.8) !important;
-            border: 1.5px solid #d1d5db !important;
-            border-radius: 0.75rem !important;
-            padding: 0.75rem 1rem !important;
-            transition: all 0.2s ease-in-out !important;
+            border: 1.5px solid #e5e7eb !important;
+            border-radius: 1rem !important; /* 16px */
+            padding: 0.875rem 1.25rem !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
             width: 100% !important;
             outline: none !important;
+            color: #1f2937 !important;
+            font-weight: 500 !important;
         }
         .hvu-input:focus {
             border-color: #BE1E2D !important;
             background: #ffffff !important;
-            box-shadow: 0 0 0 4px rgba(190, 30, 45, 0.1) !important;
+            box-shadow: 0 0 0 4px rgba(190, 30, 45, 0.15), 0 4px 6px -1px rgba(0,0,0,0.05) !important;
         }
+        /* Premium Small Input Style */
         .hvu-input-sm {
             background: rgba(249, 250, 251, 0.8) !important;
-            border: 1.5px solid #d1d5db !important;
-            border-radius: 0.5rem !important;
-            padding: 0.4rem 0.6rem !important;
-            transition: all 0.2s ease-in-out !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.75rem !important; /* 12px */
+            padding: 0.5rem 0.875rem !important;
+            transition: all 0.3s ease !important;
             width: 100% !important;
             outline: none !important;
-            font-size: 0.75rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
         }
         .hvu-input-sm:focus {
             border-color: #BE1E2D !important;
             background: #ffffff !important;
-            box-shadow: 0 0 0 3px rgba(190, 30, 45, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(190, 30, 45, 0.15) !important;
         }
+        /* Premium Primary Button */
         .hvu-btn-primary {
-            background-color: #BE1E2D;
+            background: linear-gradient(135deg, #BE1E2D 0%, #A01926 100%);
             color: #ffffff;
             font-weight: 700;
-            padding: 0.75rem 1.5rem;
-            border-radius: 9999px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(190, 30, 45, 0.2);
+            padding: 0.875rem 1.75rem;
+            border-radius: 9999px; /* Fully rounded */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px 0 rgba(190, 30, 45, 0.39);
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            border: none;
         }
         .hvu-btn-primary:hover {
-            background-color: #a01926;
-            transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(190, 30, 45, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(190, 30, 45, 0.5);
+            background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
         }
         .hvu-btn-primary:active {
-            transform: translateY(0);
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(190, 30, 45, 0.4);
         }
     </style>
 </head>
@@ -103,14 +123,10 @@
                 <!-- Desktop Nav -->
                 <nav class="hidden md:flex items-center space-x-1 ml-auto">
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <span class="text-gray-600 text-sm mr-2">Xin chào, <b><?= htmlspecialchars($_SESSION['user_name']) ?></b></span>
                         <!-- <a href="<?= url('/application/results') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Tra cứu Kết quả</a> -->
-                        <a href="<?= url('/application/index') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Hồ sơ Xét tuyển</a>
-                        <a href="<?= url('/profile/step1') ?>" class="text-gray-600 hover:text-hvu-red font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition text-sm">Thông tin cá nhân</a>
-                        <a href="<?= url('/logout') ?>" class="text-gray-500 hover:text-red-500 font-medium px-3 py-2 rounded-md hover:bg-gray-50 transition text-sm ml-1" title="Đăng xuất">
-                            <i class="fas fa-sign-out-alt mr-1"></i> Đăng xuất
+                        <a href="<?= url('/application/index') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">
+                            <i class="fas fa-file-alt mr-1.5 opacity-80"></i> Hồ sơ Xét tuyển
                         </a>
-                        
                     <?php else: ?>
                         <a href="<?= url('/login') ?>" class="text-gray-700 hover:text-hvu-red font-medium px-4 py-2">Đăng nhập</a>
                         <a href="<?= url('/register') ?>" class="bg-hvu-red text-white px-5 py-2 rounded-full hover:bg-red-700 transition shadow-md font-medium">Đăng ký ngay</a>
@@ -128,14 +144,123 @@
                             </button>
                             <!-- Dropdown -->
                             <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 max-h-96 overflow-hidden">
-                                <div class="px-4 py-3 bg-gray-50 border-b flex justify-between items-center">
-                                    <span class="font-bold text-gray-700"><i class="fas fa-bell mr-2"></i>Thông báo</span>
-                                    <button id="mark-all-read" class="text-xs text-blue-600 hover:underline">Đánh dấu tất cả đã đọc</button>
+                                <div class="px-4 py-3 bg-white border-b">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <span class="text-xl font-bold text-gray-900 tracking-tight">Thông báo</span>
+                                        <button id="mark-all-read" class="text-xs text-blue-600 hover:text-blue-800 font-semibold transition">Đánh dấu tất cả đã đọc</button>
+                                    </div>
+                                    <!-- Tabs Facebook-style -->
+                                    <div class="flex space-x-2">
+                                        <button id="tab-all" onclick="switchNotifTab('all')" class="notif-tab active px-3 py-1.5 text-sm font-semibold rounded-full transition-all">
+                                            Tất cả
+                                        </button>
+                                        <button id="tab-unread" onclick="switchNotifTab('unread')" class="notif-tab px-3 py-1.5 text-sm font-semibold rounded-full transition-all">
+                                            Chưa đọc
+                                        </button>
+                                    </div>
                                 </div>
+                                <style>
+                                    .notif-tab {
+                                        color: #65676B;
+                                    }
+                                    .notif-tab:hover {
+                                        background-color: #F2F3F5;
+                                    }
+                                    .notif-tab.active {
+                                        background-color: #E7F3FF;
+                                        color: #1877F2;
+                                    }
+                                    #notification-list::-webkit-scrollbar {
+                                        width: 6px;
+                                    }
+                                    #notification-list::-webkit-scrollbar-track {
+                                        background: transparent;
+                                    }
+                                    #notification-list::-webkit-scrollbar-thumb {
+                                        background: #d1d5db;
+                                        border-radius: 10px;
+                                    }
+                                </style>
                                 <div id="notification-list" class="overflow-y-auto max-h-72">
                                     <div class="p-4 text-center text-gray-400 text-sm">
                                         <i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Avatar Menu (Desktop Only) -->
+                        <div class="relative hidden md:block ml-2" id="user-menu-container">
+                            <?php 
+                            // Lấy thông tin người dùng hiện tại để lấy ảnh thẻ
+                            $currentAvatar = '';
+                            if (isset($_SESSION['user_id'])) {
+                                try {
+                                    $__db = \App\Core\Database::getInstance()->getConnection();
+                                    $__stmt = $__db->prepare("SELECT anh_dai_dien FROM thi_sinh WHERE id = ?");
+                                    $__stmt->execute([$_SESSION['user_id']]);
+                                    $currentAvatar = $__stmt->fetchColumn() ?: '';
+                                } catch (\Exception $e) { }
+                            }
+                            $avatarUrl = $currentAvatar ? url('/' . $currentAvatar) : 'https://ui-avatars.com/api/?name='.urlencode($_SESSION['user_name']).'&background=E5E7EB&color=374151&bold=true';
+                            // Đối với Admin
+                            if (isset($_SESSION['admin_id'])) {
+                                $avatarUrl = !empty($_SESSION['admin_avatar']) && file_exists($_SESSION['admin_avatar']) ? url('/' . $_SESSION['admin_avatar']) : 'https://ui-avatars.com/api/?name='.urlencode($_SESSION['admin_name'] ?? 'Admin').'&background=4f46e5&color=fff';
+                            }
+                            ?>
+                            <!-- Trigger Button -->
+                            <button id="user-avatar-btn" class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-hvu-red/30 relative">
+                                <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-gray-200" onerror="this.src='<?= url('/assets/img/default-avatar.png') ?>'">
+                                <!-- Small arrow at bottom right -->
+                                <div class="absolute -bottom-1 -right-1 bg-gray-200 rounded-full w-4 h-4 flex items-center justify-center shadow-sm border-2 border-white">
+                                    <i class="fas fa-chevron-down text-[8px] text-gray-700"></i>
+                                </div>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="user-menu-dropdown" class="hidden absolute right-0 mt-3 w-[350px] bg-white rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.15)] border border-gray-100 z-50 overflow-hidden p-3" style="font-family: 'Inter', sans-serif;">
+                                <!-- User Header Card -->
+                                <div class="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100 mb-2 p-1.5 relative">
+                                    <div class="flex items-center space-x-3 p-2.5 rounded-lg hover:bg-gray-50 transition cursor-pointer" onclick="window.location.href='<?= url('/profile/step1') ?>'">
+                                        <div class="w-10 h-10 rounded-full flex-shrink-0 border border-gray-200 overflow-hidden shadow-sm">
+                                            <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-full h-full object-cover" onerror="this.src='<?= url('/assets/img/default-avatar.png') ?>'">
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-bold text-gray-900 text-[16px] truncate leading-tight"><?= htmlspecialchars($_SESSION['user_name']) ?></h3>
+                                        </div>
+                                    </div>
+                                    <div class="px-2 pb-2 mt-1">
+                                        <hr class="border-gray-200 mb-3">
+                                        <a href="<?= url('/profile/step1') ?>" class="block w-full py-1.5 text-center bg-gray-100 hover:bg-gray-200 text-blue-600 font-semibold text-[14px] rounded-lg transition duration-200">
+                                            Xem hồ sơ cá nhân
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- Menu Items -->
+                                <div class="space-y-1 mt-3">
+                                    <a href="<?= url('/profile/step1') ?>" class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 transition duration-200 text-gray-900 font-medium text-[15px] group">
+                                        <div class="w-9 h-9 rounded-full bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center mr-3 transition duration-200">
+                                            <i class="fas fa-cog text-[16px]"></i>
+                                        </div>
+                                        <span class="flex-1">Thông tin cá nhân</span>
+                                        <i class="fas fa-chevron-right text-gray-400 text-[13px]"></i>
+                                    </a>
+                                    
+                                    <a href="<?= url('/profile/change-password') ?>" class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 transition duration-200 text-gray-900 font-medium text-[15px] group">
+                                        <div class="w-9 h-9 rounded-full bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center mr-3 transition duration-200">
+                                            <i class="fas fa-shield-alt text-[16px]"></i>
+                                        </div>
+                                        <span class="flex-1">Đổi mật khẩu</span>
+                                        <i class="fas fa-chevron-right text-gray-400 text-[13px]"></i>
+                                    </a>
+
+                                    <a href="<?= url('/logout') ?>" class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 transition duration-200 text-gray-900 font-medium text-[15px] group">
+                                        <div class="w-9 h-9 rounded-full bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center mr-3 transition duration-200">
+                                            <i class="fas fa-sign-out-alt text-[16px]"></i>
+                                        </div>
+                                        <span class="flex-1">Đăng xuất</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -157,6 +282,7 @@
                     <!-- <a href="<?= url('/application/results') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Tra cứu Kết quả</a> -->
                     <a href="<?= url('/application/index') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Hồ sơ Xét tuyển</a>
                     <a href="<?= url('/profile/step1') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">Thông tin cá nhân</a>
+                    <a href="<?= url('/profile/change-password') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium text-blue-600 bg-blue-50">Đổi mật khẩu</a>
                     <a href="<?= url('/logout') ?>" class="block px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg">Đăng xuất</a>
                 <?php else: ?>
                     <a href="<?= url('/login') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center">Đăng nhập</a>
@@ -166,6 +292,31 @@
         </div>
     </header>
 
-
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle Dropdown Menu Avatar
+        const userBtn = document.getElementById('user-avatar-btn');
+        const userDropdown = document.getElementById('user-menu-dropdown');
+        const notifDropdown = document.getElementById('notification-dropdown');
+        
+        if (userBtn && userDropdown) {
+            userBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Close notification if it's open
+                if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+                    notifDropdown.classList.add('hidden');
+                }
+                userDropdown.classList.toggle('hidden');
+            });
+            
+            // Close dropdowns on outside click
+            document.addEventListener('click', function(e) {
+                if (!userDropdown.contains(e.target) && e.target !== userBtn) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+        }
+    });
+    </script>
 
     <main class="flex-grow container mx-auto px-4 py-6 md:py-8">

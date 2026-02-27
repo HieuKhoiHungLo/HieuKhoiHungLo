@@ -39,13 +39,29 @@ class App {
         return self::$baseUrl;
     }
 
-    public static function url($path = '') {
+    public static function url($path = '', $absolute = false) {
         if (empty($path)) return '';
         if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
             return $path;
         }
+
+        if ($absolute) {
+            return self::fullUrl($path);
+        }
+
         $base = self::getBaseUrl();
         return $base . '/' . ltrim($path, '/');
+    }
+
+    public static function fullUrl($path = '') {
+        $baseUrl = rtrim($_ENV['APP_URL'] ?? '', '/');
+        if (empty($baseUrl)) {
+            // Fallback to auto-detection of host if APP_URL missing
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $baseUrl = $protocol . "://" . $host . self::getBaseUrl();
+        }
+        return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
     }
 
     public function run() {

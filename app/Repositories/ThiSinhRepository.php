@@ -206,7 +206,14 @@ class ThiSinhRepository {
         }
 
         // Sorting
-        $allowedSorts = ['created_at' => 't.ngay_tao', 'name' => 't.ho_va_ten', 'cccd' => 't.so_cccd'];
+        $allowedSorts = [
+            'created_at' => 't.ngay_tao', 
+            'name' => 't.ho_va_ten', 
+            'cccd' => 't.so_cccd',
+            'province' => 'p.ten_tinh',
+            'school' => 'sc.ten_truong',
+            'nv1' => 'nv1'
+        ];
         $sortField = $allowedSorts[$sort] ?? 't.ngay_tao';
         $sortDir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
         
@@ -383,17 +390,22 @@ class ThiSinhRepository {
         return $stmt->execute([$applicationId]);
     }
 
-    public function updateApplicationStatus($cccd, $status, $note = null) {
+    public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null) {
         // Also update ho_so_xet_tuyen
-        $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = ?";
+        $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, yeu_cau_chinh_sua = FALSE";
         $params = [$status];
         
         if ($note !== null) {
             $sql .= ", ghi_chu = ?";
             $params[] = $note;
         }
+
+        if ($reviewerId !== null) {
+            $sql .= ", nguoi_duyet_id = ?";
+            $params[] = $reviewerId;
+        }
         
-        $sql .= " WHERE so_cccd = ?";
+        $sql .= ", updated_at = NOW() WHERE so_cccd = ?";
         $params[] = $cccd;
         
         $stmt2 = $this->db->prepare($sql);
@@ -404,47 +416,67 @@ class ThiSinhRepository {
     }
 
     public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null) {
-        $sql = "SELECT hs.so_cccd 
-                FROM ho_so_xet_tuyen hs
-                LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
-                WHERE hs.so_cccd != ? AND hs.trang_thai = 'Chờ duyệt'";
+        // Get current candidate metadata for sequence
+        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at FROM ho_so_xet_tuyen WHERE so_cccd = ?");
+        $stmt->execute([$currentCCCD]);
+        $current = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $params = [$currentCCCD];
-
-        if ($sessionId) {
-            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
-            $params[] = $sessionId;
-        } elseif ($year) {
-             $sql .= " AND (dt.dm_nam_tuyen_sinh_nam = ? OR dt.nam_tuyen_sinh = ?)"; 
-             $params[] = $year;
-             $params[] = $year;
+        if (!$current) {
+            // Fallback to simpler search if current record not found
+            $sql = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.trang_thai = 'Chờ duyệt'";
+            $params = [];
+            if ($sessionId) {
+                $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            }
+            $sql .= " ORDER BY hs.created_at ASC LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
         }
 
-        // Default to FIFO (Oldest first)
-        $sql .= " ORDER BY hs.created_at ASC LIMIT 1";
+        $sid = $sessionId ?: $current['dot_tuyen_sinh_id'];
 
+        // Try to find the next pending candidate in the SAME session after current timestamp
+        $sql = "SELECT hs.so_cccd 
+                FROM ho_so_xet_tuyen hs
+                WHERE hs.dot_tuyen_sinh_id = ? 
+                AND hs.trang_thai = 'Chờ duyệt'
+                AND hs.created_at > ?
+                ORDER BY hs.created_at ASC LIMIT 1";
+        
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute([$sid, $current['created_at']]);
+        $next = $stmt->fetchColumn();
+
+        if ($next) return $next;
+
+        // If nothing after, find the FIRST pending in the same session (looping or fallback)
+        $sqlFallback = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.dot_tuyen_sinh_id = ? AND hs.trang_thai = 'Chờ duyệt' AND hs.so_cccd != ? ORDER BY hs.created_at ASC LIMIT 1";
+        $stmt = $this->db->prepare($sqlFallback);
+        $stmt->execute([$sid, $currentCCCD]);
         return $stmt->fetchColumn();
     }
 
-    /**
-     * Get adjacent candidates (prev/next) for review navigation.
-     * Returns ['prev' => cccd|null, 'next' => cccd|null, 'position' => int, 'total' => int]
-     */
     public function getAdjacentCandidates($currentCCCD) {
-        // Get all pending candidates in FIFO order
+        // Get the current candidate's session
+        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ?");
+        $stmt->execute([$currentCCCD]);
+        $sessionId = $stmt->fetchColumn();
+
+        // Get all candidates in the SAME session for navigation, 
+        // regardless of whether they are pending or already reviewed, 
+        // to maintain a consistent sequence.
         $sql = "SELECT hs.so_cccd 
                 FROM ho_so_xet_tuyen hs
-                WHERE hs.trang_thai = 'Chờ duyệt'
+                WHERE hs.dot_tuyen_sinh_id = ?
                 ORDER BY hs.created_at ASC";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([$sessionId]);
         $allCCCDs = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $currentIndex = array_search($currentCCCD, $allCCCDs);
         
-        // Current candidate might not be "Chờ duyệt" (already reviewed) — still show nav
         if ($currentIndex === false) {
             return [
                 'prev' => null,
@@ -460,6 +492,33 @@ class ThiSinhRepository {
             'position' => $currentIndex + 1,
             'total' => count($allCCCDs)
         ];
+    }
+
+    /**
+     * Get statistics on how many applications each admin has reviewed.
+     */
+    public function getReviewerStats($sessionId = null, $year = null) {
+        $sql = "SELECT qtv.ho_ten, qtv.ten_dang_nhap, COUNT(hs.id) as review_count
+                FROM quan_tri_vien qtv
+                JOIN ho_so_xet_tuyen hs ON qtv.id = hs.nguoi_duyet_id
+                LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
+                WHERE 1=1";
+        $params = [];
+
+        if ($sessionId) {
+            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        } elseif ($year) {
+            $sql .= " AND (dt.nam_tuyen_sinh = ? OR dt.dm_nam_tuyen_sinh_nam = ?)";
+            $params[] = $year;
+            $params[] = $year;
+        }
+
+        $sql .= " GROUP BY qtv.id, qtv.ho_ten, qtv.ten_dang_nhap ORDER BY review_count DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 
@@ -514,6 +573,14 @@ class ThiSinhRepository {
 
     public function updatePasswordByEmail($email, $hashedPassword) {
         return $this->model->updatePasswordByEmail($email, $hashedPassword);
+    }
+
+    public function verifyEmailAndCCCD($email, $cccd) {
+        return $this->model->verifyEmailAndCCCD($email, $cccd);
+    }
+
+    public function updatePasswordByCCCD($cccd, $hashedPassword) {
+        return $this->model->updatePasswordByCCCD($cccd, $hashedPassword);
     }
     public function getProvinceStats($limit = 10, $startDate, $endDate, $sessionId = null) {
         return $this->model->getProvinceStats($limit, $startDate, $endDate, $sessionId);

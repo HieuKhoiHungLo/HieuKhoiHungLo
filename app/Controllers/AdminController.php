@@ -53,12 +53,14 @@ class AdminController extends Controller {
     public function bulkAction() {
         $this->checkPermission('manage_candidates'); // Assume basic permission
 
+        $redirectTo = $_POST['redirect_to'] ?? url('/admin/dashboard');
+
         // Check forced_action first (from JS fix)
         $action = $_POST['forced_action'] ?? $_POST['action'] ?? '';
         $ids = $_POST['ids'] ?? [];
 
         if (empty($ids)) {
-            $this->redirect(url('/admin/dashboard?error=No candidates selected'));
+            $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=No candidates selected');
             return;
         }
 
@@ -70,9 +72,9 @@ class AdminController extends Controller {
                 if ($status && !empty($ids)) {
                     if ($this->thiSinhRepo->bulkUpdateStatus($ids, $status)) {
                         $count = count($ids);
-                        $this->redirect(url("/admin/dashboard?success=Cập nhật trạng thái cho $count thí sinh thành công."));
+                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Cập nhật trạng thái cho $count thí sinh thành công.");
                     } else {
-                        $this->redirect(url("/admin/dashboard?error=Lỗi cập nhật trạng thái."));
+                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Lỗi cập nhật trạng thái.");
                     }
                 }
                 break;
@@ -84,7 +86,7 @@ class AdminController extends Controller {
                         $count++;
                     }
                 }
-                $this->redirect(url("/admin/dashboard?success=Deleted $count candidates"));
+                $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Deleted $count candidates");
                 break;
                 
             case 'transfer':
@@ -102,12 +104,12 @@ class AdminController extends Controller {
                             'search' => $_POST['current_search'] ?? ''
                         ];
                         
-                        $this->redirect(url("/admin/dashboard?" . http_build_query(array_filter($filters))));
+                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . http_build_query(array_filter($filters)));
                     } catch (\Throwable $e) {
-                         $this->redirect(url("/admin/dashboard?error=Lỗi hệ thống: " . urlencode($e->getMessage())));
+                         $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Lỗi hệ thống: " . urlencode($e->getMessage()));
                     }
                 } else {
-                    $this->redirect(url("/admin/dashboard?error=Chưa chọn đợt đích."));
+                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Chưa chọn đợt đích.");
                 }
                 break;
                 
@@ -126,15 +128,15 @@ class AdminController extends Controller {
                             $count++;
                         }
                     }
-                    $this->redirect(url("/admin/dashboard?success=Đã gửi email tới $count thí sinh."));
+                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Đã gửi email tới $count thí sinh.");
                 } else {
-                    $this->redirect(url("/admin/dashboard?error=Thiếu tiêu đề hoặc nội dung email."));
+                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Thiếu tiêu đề hoặc nội dung email.");
                 }
                 break;
 
             default:
                 $debugAction = is_array($action) ? 'Array' : $action;
-                $this->redirect(url('/admin/dashboard?error=Invalid action: ' . urlencode((string)$debugAction)));
+                $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=Invalid action: ' . urlencode((string)$debugAction));
         }
     }
 
@@ -146,6 +148,14 @@ class AdminController extends Controller {
     }
 
     public function dashboard() {
+        return $this->handleCandidateList('dashboard');
+    }
+
+    public function reviewList() {
+        return $this->handleCandidateList('review');
+    }
+
+    private function handleCandidateList($mode = 'dashboard') {
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
         $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
@@ -234,6 +244,7 @@ class AdminController extends Controller {
         });
 
         $this->view('admin/dashboard', [
+            'mode' => $mode,
             'candidates' => $candidates,
             'stats' => $stats,
             'sessions' => $sessions,
@@ -487,6 +498,7 @@ class AdminController extends Controller {
                 $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
                 $schoolStats   = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
                 $overviewStats = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
+                $reviewerStats = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
 
                 // Consolidated query: gender + area + object in ONE round-trip
                 $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
@@ -497,6 +509,7 @@ class AdminController extends Controller {
                     'major'    => $majorStats,
                     'province' => $provinceStats,
                     'school'   => $schoolStats,
+                    'reviewers'=> $reviewerStats,
                     'gender'   => $demographic['gender'],
                     'area'     => $demographic['area'],
                     'object'   => $demographic['object'],
@@ -618,7 +631,8 @@ class AdminController extends Controller {
         ] : null;
 
         $admissionService = new \App\Services\AdmissionService();
-        $result = $admissionService->processReview($cccd, $_POST, $candidateInfo);
+        $reviewerId = $_SESSION['admin_id'] ?? null;
+        $result = $admissionService->processReview($cccd, $_POST, $candidateInfo, $reviewerId);
 
         // Return JSON for AJAX handling
         header('Content-Type: application/json');

@@ -52,18 +52,21 @@ class Notification {
     /**
      * Get notifications for a specific user
      */
-    public function getForUser(string $cccd, ?int $sessionId = null): array {
+    public function getForUser(string $cccd, bool $onlyUnread = false): array {
+        $unreadFilter = $onlyUnread ? " AND nr.id IS NULL " : "";
+        
         $sql = "
             SELECT n.*, 
                    CASE WHEN nr.id IS NOT NULL THEN true ELSE false END as is_read,
                    nr.read_at
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_cccd = ?
-            WHERE (n.target_type = 'all')
-               OR (n.target_type = 'individual' AND n.target_id = ?)
-               OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
-                   SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
-               ))
+            WHERE ((n.target_type = 'all')
+                OR (n.target_type = 'individual' AND n.target_id = ?)
+                OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
+                    SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
+                )))
+            {$unreadFilter}
             ORDER BY n.created_at DESC
             LIMIT 50
         ";

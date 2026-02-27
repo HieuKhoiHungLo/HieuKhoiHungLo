@@ -7,10 +7,20 @@ use PDO;
 class Subject extends Model {
     protected $table = 'dm_mon';
 
-    public function getAllSubjects() {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} ORDER BY loai_mon ASC, ma_mon ASC");
+    public function getAllSubjects($limit = null, $offset = null) {
+        $sql = "SELECT * FROM {$this->table} ORDER BY loai_mon ASC, ma_mon ASC";
+        if ($limit !== null && $offset !== null) {
+            $sql .= " LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countAll() {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table}");
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
     }
     
     public function getByCode($code) {

@@ -52,6 +52,7 @@
                 <form action="<?= url('/reset-password-email') ?>" method="POST">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                     <input type="hidden" name="token" value="<?= htmlspecialchars($token ?? '') ?>">
+                    <input type="hidden" name="cccd" value="<?= htmlspecialchars($cccd ?? '') ?>">
                     
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Mật khẩu mới</label>

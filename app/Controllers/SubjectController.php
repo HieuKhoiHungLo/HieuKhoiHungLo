@@ -90,8 +90,22 @@ class SubjectController extends Controller {
             }
         }
 
-        $subjects = $subjectModel->getAllSubjects();
-        $this->view('admin/master_data/subjects', ['subjects' => $subjects, 'user' => $this->currentUser]);
+        // Pagination setup
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 15; // Số môn mỗi trang
+        $offset = ($page - 1) * $limit;
+        
+        $totalRecords = $subjectModel->countAll();
+        $totalPages = ceil($totalRecords / $limit);
+        $subjects = $subjectModel->getAllSubjects($limit, $offset);
+
+        $this->view('admin/master_data/subjects', [
+            'subjects' => $subjects, 
+            'user' => $this->currentUser,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalRecords' => $totalRecords
+        ]);
     }
 
     public function export() {

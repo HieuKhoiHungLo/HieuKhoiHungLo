@@ -86,6 +86,62 @@
                 </tbody>
             </table>
         </form>
+
+        <!-- Pagination UI -->
+        <?php if ($totalPages > 1): ?>
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Hiển thị <span class="text-slate-800"><?= count($subjects) ?></span> / <span class="text-slate-800"><?= $totalRecords ?></span> môn học
+            </div>
+            
+            <nav class="flex items-center space-x-1">
+                <!-- Previous Page -->
+                <?php if ($currentPage > 1): ?>
+                    <a href="?page=<?= $currentPage - 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
+                        <i class="fas fa-chevron-left text-xs"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+                        <i class="fas fa-chevron-left text-xs"></i>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Page Numbers -->
+                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-1 shadow-sm">
+                    <?php 
+                    $start = max(1, $currentPage - 2);
+                    $end = min($totalPages, $currentPage + 2);
+                    
+                    if ($start > 1): ?>
+                        <a href="?page=1" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]">1</a>
+                        <?php if ($start > 2): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
+                    <?php endif;
+
+                    for ($i = $start; $i <= $end; $i++): ?>
+                        <a href="?page=<?= $i ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition <?= $i === $currentPage ? 'bg-[#0066FF] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 hover:text-[#0066FF]' ?>">
+                            <?= $i ?>
+                        </a>
+                    <?php endfor;
+
+                    if ($end < $totalPages): ?>
+                        <?php if ($end < $totalPages - 1): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
+                        <a href="?page=<?= $totalPages ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]"><?= $totalPages ?></a>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Next Page -->
+                <?php if ($currentPage < $totalPages): ?>
+                    <a href="?page=<?= $currentPage + 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </div>
+                <?php endif; ?>
+            </nav>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

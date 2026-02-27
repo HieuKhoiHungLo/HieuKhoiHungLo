@@ -23,15 +23,24 @@ class NotificationController extends Controller {
         }
         
         $cccd = $_SESSION['cccd'];
+        $filter = $_GET['filter'] ?? 'all';
+        $onlyUnread = ($filter === 'unread');
         
-        $notifications = $this->notificationModel->getForUser($cccd);
-        $unreadCount = $this->notificationModel->countUnread($cccd);
-        
-        echo json_encode([
-            'success' => true,
-            'notifications' => $notifications,
-            'unread_count' => $unreadCount
-        ]);
+        try {
+            $notifications = $this->notificationModel->getForUser($cccd, $onlyUnread);
+            $unreadCount = $this->notificationModel->countUnread($cccd);
+            
+            error_log("Notif Debug: CCCD={$cccd}, Filter={$filter}, Count=" . count($notifications));
+            
+            return $this->json([
+                'success' => true,
+                'notifications' => $notifications,
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            error_log("Notif Error: " . $e->getMessage());
+            return $this->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**

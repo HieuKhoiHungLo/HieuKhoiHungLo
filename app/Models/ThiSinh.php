@@ -244,6 +244,17 @@ class ThiSinh extends Model {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET mat_khau = ? WHERE email = ?");
         return $stmt->execute([$hashedPassword, $email]);
     }
+
+    public function verifyEmailAndCCCD($email, $cccd) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = ? AND so_cccd = ?");
+        $stmt->execute([$email, $cccd]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updatePasswordByCCCD($cccd, $hashedPassword) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET mat_khau = ? WHERE so_cccd = ?");
+        return $stmt->execute([$hashedPassword, $cccd]);
+    }
     public function updateFullProfile($cccd, $data) {
         $allowed = [
             'ho_va_ten', 'ngay_sinh', 'gioi_tinh', 'dan_toc', 

@@ -21,10 +21,10 @@ class PasswordResetService {
     /**
      * Create password reset token
      */
-    public function createToken(string $email): ?string {
-        // Check if email exists
+    public function createToken(string $email, string $cccd): ?string {
+        // Check if email and CCCD match
         $thiSinh = new ThiSinh();
-        $user = $thiSinh->findByEmail($email);
+        $user = $thiSinh->verifyEmailAndCCCD($email, $cccd);
         
         if (!$user) {
             return null;
@@ -73,8 +73,8 @@ class PasswordResetService {
     /**
      * Send password reset email
      */
-    public function sendResetEmail(string $email, string $token): bool {
-        $resetUrl = \App\Core\App::url('/reset-password-email?token=' . $token);
+    public function sendResetEmail(string $email, string $token, string $cccd): bool {
+        $resetUrl = \App\Core\App::url('/reset-password-email?token=' . $token . '&cccd=' . $cccd, true);
         
         $subject = "Đặt lại mật khẩu - HVU Tuyển sinh";
         $body = $this->getEmailTemplate($resetUrl);
@@ -85,7 +85,7 @@ class PasswordResetService {
     /**
      * Reset password with token
      */
-    public function resetPassword(string $token, string $newPassword): bool {
+    public function resetPassword(string $token, string $newPassword, string $cccd): bool {
         $tokenData = $this->validateToken($token);
         
         if (!$tokenData) {
@@ -93,18 +93,25 @@ class PasswordResetService {
         }
 
         $email = $tokenData['email'];
+        
+        // Final verification that email and CCCD belong together
+        $thiSinh = new ThiSinh();
+        $user = $thiSinh->verifyEmailAndCCCD($email, $cccd);
+        if (!$user) {
+            return false;
+        }
+
         $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
 
-        // Update password
-        $thiSinh = new ThiSinh();
-        $result = $thiSinh->updatePasswordByEmail($email, $hashedPassword);
+        // Update password by CCCD (most specific)
+        $result = $thiSinh->updatePasswordByCCCD($cccd, $hashedPassword);
 
         if ($result) {
             $this->markUsed($token);
             
             // Audit log
             $auditService = new AuditService();
-            $auditService->log('PASSWORD_RESET_EMAIL', 'candidate', null, null, ['email' => $email]);
+            $auditService->log('PASSWORD_RESET_EMAIL', 'candidate', null, null, ['email' => $email, 'cccd' => $cccd]);
         }
 
         return $result;

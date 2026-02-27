@@ -61,8 +61,7 @@ class ScoreCalculationService {
                 if (!$comboSubjects) continue;
                 // echo "    Subjects: " . json_encode($comboSubjects) . "\n"; flush();
 
-                // 3a. Calculate HOC_BA
-                // echo "    Calculating HOC_BA...\n"; flush();
+                // 3a. Calculate HOC_BA (Method 200)
                 $hbResult = $this->calculateMethodScore(
                     'HOC_BA', 
                     $comboSubjects, 
@@ -72,18 +71,16 @@ class ScoreCalculationService {
                     $majorDetails,
                     $priorityPoints
                 );
-                // echo "    HOC_BA Result: " . json_encode($hbResult) . "\n"; flush();
                 
                 if ($hbResult && $hbResult['total'] > $bestScore) {
                     $bestScore = $hbResult['total'];
                     $bestCombo = $comboCode;
-                    $bestMethod = 'HOC_BA';
+                    $bestMethod = '200'; // Code 200 for Hoc Ba
                     $bestDetails = $hbResult['details'];
                 }
 
-                // 3b. Calculate DIEM_THI (Only if THPT scores exist)
+                // 3b. Calculate DIEM_THI (Method 100)
                 if (!empty($thptScores)) {
-                    // echo "    Calculating DIEM_THI...\n"; flush();
                     $thptResult = $this->calculateMethodScore(
                         'DIEM_THI', 
                         $comboSubjects, 
@@ -93,12 +90,11 @@ class ScoreCalculationService {
                         $majorDetails,
                         $priorityPoints
                     );
-                    // echo "    DIEM_THI Result: " . json_encode($thptResult) . "\n"; flush();
 
                     if ($thptResult && $thptResult['total'] > $bestScore) {
                         $bestScore = $thptResult['total'];
                         $bestCombo = $comboCode;
-                        $bestMethod = 'DIEM_THI';
+                        $bestMethod = '100'; // Code 100 for THPT
                         $bestDetails = $thptResult['details'];
                     }
                 }
@@ -321,16 +317,23 @@ class ScoreCalculationService {
         return $comboCache[$comboCode];
     }
 
-    protected function calculateMethodScore($method, $subjects, $scores, $certs, $aptitude, $majorDetails, $priorityPoints) {
+    protected function calculateMethodScore($method, $subjects, $scores, $certs, $aptitude, $majorDetails, $priorityPointsRaw) {
         $totalRaw = 0;
         $details = [];
+        $monScores = []; // Trace individual subject points
+        
         $allowCert = $majorDetails['co_xet_chung_chi'] ?? false;
-
+        
+        $subjectIdx = 1;
         foreach ($subjects as $monId) {
             $baseScore = $scores[$monId] ?? 0;
-            $certScore = ($allowCert && isset($certs[$monId])) ? $certs[$monId] : 0;
             
-            // Aptitude Override
+            // Theo quy định của HVU, điểm học bạ nhận hệ số quy đổi 95%
+            if ($method === 'HOC_BA') {
+                $baseScore = $baseScore * 0.95;
+            }
+
+            $certScore = ($allowCert && isset($certs[$monId])) ? $certs[$monId] : 0;
             $aptitudeScore = isset($aptitude[$monId]) ? $aptitude[$monId] : null;
 
             $finalScore = 0;
@@ -340,7 +343,6 @@ class ScoreCalculationService {
                 $finalScore = $aptitudeScore;
                 $source = 'APTITUDE';
             } else {
-                // Take max of base (transcript/thpt) and cert
                 $finalScore = max($baseScore, $certScore);
                 if ($finalScore > 0) {
                      $source = ($finalScore == $certScore && $certScore > $baseScore) ? 'CERT' : $method;
@@ -348,6 +350,9 @@ class ScoreCalculationService {
             }
 
             $totalRaw += $finalScore;
+            $monScores['mon_'.$subjectIdx] = $finalScore;
+            $subjectIdx++;
+            
             $details[$monId] = [
                 'base' => $baseScore, 
                 'cert' => $certScore, 
@@ -357,12 +362,21 @@ class ScoreCalculationService {
             ];
         }
         
-        // Add Priority Points
-        $totalFinal = $totalRaw + $priorityPoints;
+        // Công thức tính Điểm Ưu tiên Quy đổi của Bộ GD&ĐT (Áp dụng từ mốc 22.5 điểm)
+        $priorityConverted = $priorityPointsRaw;
+        if ($totalRaw >= 22.5) {
+            $priorityConverted = ((30 - $totalRaw) / 7.5) * $priorityPointsRaw;
+        }
+        $priorityConverted = round($priorityConverted, 2);
+
+        $totalFinal = $totalRaw + $priorityConverted;
         
-        // Add Priority to details for transparency
-        $details['priority'] = $priorityPoints;
+        $details['priority_raw'] = $priorityPointsRaw;
+        $details['priority_converted'] = $priorityConverted;
         $details['total_raw'] = $totalRaw;
+        $details['diem_mon_1'] = $monScores['mon_1'] ?? 0;
+        $details['diem_mon_2'] = $monScores['mon_2'] ?? 0;
+        $details['diem_mon_3'] = $monScores['mon_3'] ?? 0;
 
         return ['total' => $totalFinal, 'details' => $details];
     }
@@ -372,12 +386,25 @@ class ScoreCalculationService {
             $stmtCombo = $this->db->prepare("SELECT id FROM dm_to_hop WHERE ma_to_hop = ? LIMIT 1");
             $stmtCombo->execute([$combo]);
             $comboId = $stmtCombo->fetchColumn();
+            
+            $diem_mon_1 = $details['diem_mon_1'] ?? 0;
+            $diem_mon_2 = $details['diem_mon_2'] ?? 0;
+            $diem_mon_3 = $details['diem_mon_3'] ?? 0;
+            $priority_raw = $details['priority_raw'] ?? 0;
+            $priority_converted = $details['priority_converted'] ?? 0;
 
             $sql = "UPDATE nguyen_vong SET 
                     diem_xet_tuyen = ?, 
                     to_hop_xet_tuyen_id = ?,
                     phuong_thuc_xet_tuyen = ?,
-                    chi_tiet_diem = ?
+                    chi_tiet_diem = ?,
+                    to_hop_toi_uu = ?,
+                    phuong_thuc_toi_uu = ?,
+                    diem_mon_1 = ?,
+                    diem_mon_2 = ?,
+                    diem_mon_3 = ?,
+                    diem_uu_tien_goc = ?,
+                    diem_uu_tien_qd = ?
                     WHERE so_cccd = ? AND ma_nganh = ?";
             
             $stmt = $this->db->prepare($sql);
@@ -386,16 +413,20 @@ class ScoreCalculationService {
                 $comboId ?: null,
                 $method,
                 json_encode($details),
+                $combo,
+                $method,
+                $diem_mon_1,
+                $diem_mon_2,
+                $diem_mon_3,
+                $priority_raw,
+                $priority_converted,
                 $cccd,
                 $majorCode
             ]);
         } catch (\PDOException $e) {
             $msg = "SQL Error: " . $e->getMessage() . "\n" .
-                   "SQL: $sql\n" .
-                   "Params: " . json_encode([$score, $combo, $method, $details, $cccd, $majorCode]);
+                   "SQL: UPDATE nguyen_vong ... WHERE cccd=$cccd AND nganh=$majorCode\n";
             file_put_contents('error_log_service.txt', $msg, FILE_APPEND);
-            // Don't throw to stop other calculations? Or throw?
-            // Logging is enough for batch process.
         }
     }
 }

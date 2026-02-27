@@ -46,6 +46,9 @@ $router->post('/profile/step4', 'ProfileController@step4');
 $router->get('/profile/step5', 'ApplicationController@step5');
 $router->post('/profile/step5', 'ApplicationController@step5');
 
+$router->get('/profile/change-password', 'ProfileController@changePassword');
+$router->post('/profile/change-password', 'ProfileController@changePassword');
+
 // Student Notification API
 $router->get('/api/notifications', 'NotificationController@getNotifications');
 $router->get('/api/notifications/unread-count', 'NotificationController@getUnreadCount');
@@ -83,6 +86,7 @@ $router->group(['middleware' => 'rate_limit:5,1'], function($router) {
 // Nhóm các route bảo mật bằng AuthMiddleware
 $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/dashboard', 'AdminController@dashboard');
+    $router->get('/admin/review-management', 'AdminController@reviewList');
     $router->get('/admin/review', 'AdminController@review');
     $router->post('/admin/update-status', 'AdminController@updateStatus');
     $router->post('/admin/review/submit', 'AdminController@submitReview');
@@ -177,6 +181,12 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/admission/results', 'AdmissionController@results');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notifyAdmitted');
+
+    // Virtual Filter Dashboard
+    $router->get('/admin/admission/virtual-filter', 'VirtualFilterController@index');
+    $router->get('/admin/admission/virtual-filter/api-load', 'VirtualFilterController@loadBatchData');
+    $router->post('/admin/admission/virtual-filter/api-recalculate', 'VirtualFilterController@recalculateScores');
+    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering');
 
     // Aptitude Scores
     $router->get('/admin/aptitude-scores', 'AptitudeScoreController@index');

@@ -48,8 +48,8 @@ require_once __DIR__ . '/../../layouts/header.php';
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Ngành: <?= htmlspecialchars($ma_nganh) ?> (<?= count($rows) ?> thí sinh)</h5>
                 <div>
-                    <a href="<?= url('/admin/reports/export-admitted?ma_nganh=' . $ma_nganh) ?>" class="btn btn-sm btn-success me-2" target="_blank">
-                        <i class="fas fa-file-excel"></i> Xuất DS Trúng tuyển
+                    <a href="<?= url('/admin/reports/export-admitted?ma_nganh=' . $ma_nganh) ?>" class="btn btn-sm btn-success me-2" target="_blank" title="Dùng cho tính năng Mail Merge trong Word">
+                        <i class="fas fa-file-excel"></i> Xuất dữ liệu Chộn thư
                     </a>
                     <form action="<?= url('/admin/admission/notify') ?>" method="POST" class="d-inline" onsubmit="return confirm('Gửi email thông báo cho tất cả thí sinh trúng tuyển ngành này? Quy trình này có thể mất vài phút.');">
                         <?= csrf_field() ?>

@@ -70,14 +70,16 @@ class HomeController extends Controller {
                 }
             }
 
+            $step1Done = !empty($user['ho_va_ten']) && !empty($user['anh_dai_dien']);
+            
             $step4Done = false;
             // Only consider Step 4 if Step 1 is done
-            if (!empty($stepStatus[1]) && !empty($thptScores) && !empty($thptScores['nam_thi'])) {
+            if ($step1Done && !empty($thptScores) && !empty($thptScores['nam_thi'])) {
                  $step4Done = true;
             }
 
             $stepStatus = [
-                1 => !empty($user['ho_va_ten']) && !empty($user['anh_dai_dien']),
+                1 => $step1Done,
                 2 => !empty($records),
                 3 => !empty($certs) || (isset($user['co_chung_chi_qt']) && $user['co_chung_chi_qt'] == 0),
                 4 => $step4Done,

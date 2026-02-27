@@ -12,8 +12,8 @@ if (!function_exists('csrf_token')) {
 }
 
 if (!function_exists('url')) {
-    function url($path) {
-        return \App\Core\App::url($path);
+    function url($path, $absolute = false) {
+        return \App\Core\App::url($path, $absolute);
     }
 }
 

@@ -57,14 +57,20 @@ class PermissionService {
             return [];
         }
 
+        // Super Admin ID 1 always has 'all' permission
+        if ($adminId == 1) {
+            $this->userPermissions = ['all'];
+            return $this->userPermissions;
+        }
+
         $sql = "SELECT r.permissions FROM quan_tri_vien q 
-                JOIN roles r ON q.role_id = r.id 
+                LEFT JOIN roles r ON q.role_id = r.id 
                 WHERE q.id = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$adminId]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        $this->userPermissions = $result ? json_decode($result['permissions'], true) : [];
+        $this->userPermissions = $result ? (json_decode($result['permissions'], true) ?? []) : [];
         return $this->userPermissions;
     }
 
@@ -73,7 +79,7 @@ class PermissionService {
      */
     public function can($permission) {
         $permissions = $this->loadUserPermissions();
-        return in_array($permission, $permissions);
+        return in_array('all', $permissions) || in_array($permission, $permissions);
     }
 
     /**

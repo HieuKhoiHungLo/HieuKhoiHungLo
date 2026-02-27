@@ -14,7 +14,7 @@
             <?php 
                 $avatarSrc = strpos($user['anh_dai_dien'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_dai_dien'], 'w400') : asset($user['anh_dai_dien']);
             ?>
-            <img src="<?= $avatarSrc ?>" ondblclick="window.open('<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>', '_blank')" class="w-full aspect-[2/3] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
+            <img loading="lazy" src="<?= $avatarSrc ?>" ondblclick="window.open('<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>', '_blank')" class="w-full aspect-[2/3] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
             <a href="<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>" target="_blank" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 rounded-xl transition"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
             <span class="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded whitespace-nowrap">Ảnh thẻ 4x6</span>
         </div>
@@ -34,7 +34,7 @@
         <?php if (!empty($user['anh_cccd_truoc'])): ?>
             <div class="relative group mb-3">
                 <?php $cccdFrontSrc = strpos($user['anh_cccd_truoc'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_cccd_truoc'], 'w400') : asset($user['anh_cccd_truoc']); ?>
-                <img id="current_cccd_front" src="<?= $cccdFrontSrc ?>" ondblclick="window.open('<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>', '_blank')" class="w-full aspect-[3/2] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
+                <img id="current_cccd_front" loading="lazy" src="<?= $cccdFrontSrc ?>" ondblclick="window.open('<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>', '_blank')" class="w-full aspect-[3/2] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
                 <a href="<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>" target="_blank" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 rounded-xl transition"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
                 <span class="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded whitespace-nowrap">CCCD Mặt trước</span>
             </div>
@@ -56,7 +56,7 @@
         <?php if (!empty($user['anh_cccd_sau'])): ?>
             <div class="relative group mb-3">
                 <?php $cccdBackSrc = strpos($user['anh_cccd_sau'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_cccd_sau'], 'w400') : asset($user['anh_cccd_sau']); ?>
-                <img id="current_cccd_back" src="<?= $cccdBackSrc ?>" ondblclick="window.open('<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>', '_blank')" class="w-full aspect-[3/2] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
+                <img id="current_cccd_back" loading="lazy" src="<?= $cccdBackSrc ?>" ondblclick="window.open('<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>', '_blank')" class="w-full aspect-[3/2] object-cover rounded-xl shadow-md border-2 border-slate-200 transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative cursor-pointer" title="Double click to view full size">
                 <a href="<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>" target="_blank" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 rounded-xl transition"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
                 <span class="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded whitespace-nowrap">CCCD Mặt sau</span>
             </div>

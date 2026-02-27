@@ -114,7 +114,7 @@
             const badge = document.getElementById('notification-badge');
             const list = document.getElementById('notification-list');
             const markAllBtn = document.getElementById('mark-all-read');
-            const baseUrl = '<?= url('') ?>';
+            const baseUrl = '<?= \App\Core\App::getBaseUrl() ?>';
             
             if (!bell) return;
             
@@ -132,15 +132,23 @@
                     });
             }
             
+            let currentFilter = 'all';
+
             // Fetch notifications
-            function fetchNotifications() {
+            window.fetchNotifications = function(filter = 'all') {
+                currentFilter = filter;
                 list.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...</div>';
                 
-                fetch(baseUrl + '/api/notifications')
-                    .then(r => r.json())
+                fetch(baseUrl + '/api/notifications?filter=' + filter)
+                    .then(r => {
+                        if (!r.ok) throw new Error('HTTP error ' + r.status);
+                        return r.json();
+                    })
                     .then(data => {
-                        if (!data.success || !data.notifications.length) {
-                            list.innerHTML = '<div class="p-6 text-center text-gray-400 text-sm"><i class="fas fa-bell-slash text-2xl mb-2"></i><p>Không có thông báo</p></div>';
+                        console.log('Notif Data:', data);
+                        if (!data.success || !data.notifications || !data.notifications.length) {
+                            const msg = filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Không có thông báo';
+                            list.innerHTML = `<div class="p-6 text-center text-gray-400 text-sm"><i class="fas fa-bell-slash text-2xl mb-2"></i><p>${msg}</p></div>`;
                             return;
                         }
                         
@@ -153,28 +161,46 @@
                         
                         list.innerHTML = data.notifications.map(n => `
                             <div class="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition ${n.is_read ? 'opacity-60' : ''}" 
-                                 onclick="markNotificationRead(${n.id}, this)">
+                                 onclick="window.markNotificationRead(${n.id}, this)">
                                 <div class="flex items-start">
                                     <div class="w-8 h-8 rounded-full ${typeColors[n.type] || typeColors.info} flex items-center justify-center mr-3 flex-shrink-0">
                                         <i class="fas fa-${n.type === 'warning' ? 'exclamation-triangle' : n.type === 'success' ? 'check' : n.type === 'important' ? 'fire' : 'info'}"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="font-bold text-gray-800 text-sm truncate">${n.title}</p>
-                                        <p class="text-xs text-gray-500 line-clamp-2">${n.content.replace(/<[^>]*>/g, '').substring(0, 80)}...</p>
-                                        <p class="text-xs text-gray-400 mt-1">${new Date(n.created_at).toLocaleDateString('vi-VN')}</p>
+                                        <p class="font-bold text-gray-800 text-sm truncate">${n.title || 'Thông báo'}</p>
+                                        <p class="text-xs text-gray-500 line-clamp-2">${(n.content || '').replace(/<[^>]*>/g, '').substring(0, 80)}...</p>
+                                        <p class="text-xs text-gray-400 mt-1">${n.created_at ? new Date(n.created_at).toLocaleDateString('vi-VN') : ''}</p>
                                     </div>
                                     ${!n.is_read ? '<span class="w-2 h-2 bg-red-500 rounded-full ml-2"></span>' : ''}
                                 </div>
                             </div>
                         `).join('');
+                    })
+                    .catch(err => {
+                        console.error('Notif Fetch Error:', err);
+                        list.innerHTML = '<div class="p-4 text-center text-red-500 text-xs">Lỗi tải thông báo</div>';
                     });
+            }
+
+            // Tab Switching Logic
+            window.switchNotifTab = function(filter) {
+                // Update UI tabs
+                document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
+                const targetTab = document.getElementById('tab-' + filter);
+                if (targetTab) targetTab.classList.add('active');
+                
+                // Fetch filtered data
+                window.fetchNotifications(filter);
             }
             
             // Mark as read
             window.markNotificationRead = function(id, el) {
                 fetch(baseUrl + '/api/notifications/mark-read', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
                     body: 'id=' + id
                 }).then(() => {
                     el.classList.add('opacity-60');
@@ -185,9 +211,14 @@
             
             // Mark all read
             markAllBtn?.addEventListener('click', () => {
-                fetch(baseUrl + '/api/notifications/mark-all-read', {method: 'POST'})
+                fetch(baseUrl + '/api/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
                     .then(() => {
-                        fetchNotifications();
+                        window.fetchNotifications();
                         fetchUnreadCount();
                     });
             });
@@ -197,7 +228,7 @@
                 e.stopPropagation();
                 dropdown.classList.toggle('hidden');
                 if (!dropdown.classList.contains('hidden')) {
-                    fetchNotifications();
+                    window.fetchNotifications(currentFilter);
                 }
             });
             
