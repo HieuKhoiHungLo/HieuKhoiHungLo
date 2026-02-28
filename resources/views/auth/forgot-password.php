@@ -11,13 +11,23 @@
         <?php endif; ?>
 
         <?php if (isset($success)): ?>
-            <div class="bg-green-50 border border-green-200 text-green-800 p-5 rounded-xl mb-6 text-sm flex items-start shadow-sm">
-                <i class="fas fa-check-circle text-green-500 text-xl mr-3 mt-0.5"></i>
-                <div>
-                    <strong class="block text-green-900 mb-1 lg:text-base">Đã gửi yêu cầu thành công!</strong>
-                    <?= nl2br(htmlspecialchars($success)) ?>
-                </div>
-            </div>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    Swal.fire({
+                        title: 'Đã gửi yêu cầu thành công!',
+                        html: '<?= str_replace(array("\r", "\n"), array("", "<br>"), addslashes($success)) ?>',
+                        icon: 'success',
+                        confirmButtonText: 'Quay lại Đăng nhập',
+                        confirmButtonColor: '#8b0000',
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '<?= url('/login') ?>';
+                        }
+                    });
+                });
+            </script>
         <?php endif; ?>
 
         <form method="POST" action="<?= url('/forgot-password') ?>">
