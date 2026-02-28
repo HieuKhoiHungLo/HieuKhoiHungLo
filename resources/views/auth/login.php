@@ -36,11 +36,17 @@
                 </label>
                 <input type="text" name="cccd" value="<?= htmlspecialchars($old['cccd'] ?? '') ?>" required class="hvu-input" placeholder="Nhập số CCCD của bạn">
             </div>
-            <div class="mb-8">
+            <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-lock text-hvu-red mr-2"></i> Mật khẩu
                 </label>
                 <input type="password" name="password" required class="hvu-input" placeholder="Nhập mật khẩu">
+            </div>
+            <div class="mb-8 flex items-center">
+                <input type="checkbox" name="remember" id="remember" class="w-4 h-4 text-hvu-red bg-white border-gray-300 rounded focus:ring-hvu-red/50 focus:ring-2">
+                <label for="remember" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                    Ghi nhớ đăng nhập
+                </label>
             </div>
             <button type="submit" class="w-full hvu-btn-primary py-3 mb-4">
                 <i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập ngay

@@ -622,4 +622,21 @@ class ThiSinhRepository {
             return $this->model->create($data);
         }
     }
+
+    /**
+     * Tìm thí sinh qua remember_token
+     */
+    public function findByRememberToken($token) {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE remember_token = ?");
+        $stmt->execute([$token]);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Cập nhật remember_token cho thí sinh
+     */
+    public function updateRememberToken($id, $token) {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET remember_token = ? WHERE id = ?");
+        return $stmt->execute([$token, $id]);
+    }
 }

@@ -56,6 +56,21 @@ class AuthController extends Controller {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
+                // --- REMEMBER ME LOGIC ---
+                if (isset($_POST['remember']) && $_POST['remember'] === 'on') {
+                    $token = bin2hex(random_bytes(32)); // Generate secure 64-char hex token
+                    $this->thiSinhRepo->updateRememberToken($user['id'], $token);
+                    // Set cookie for 30 days
+                    setcookie('remember_ts', $token, [
+                        'expires' => time() + (30 * 24 * 60 * 60),
+                        'path' => '/',
+                        'domain' => '',
+                        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                        'httponly' => true,
+                        'samesite' => 'Lax'
+                    ]);
+                }
+                
                 // Clear rate limiting on successful login
                 $this->auditService->clearLoginAttempts();
                 
@@ -208,6 +223,18 @@ class AuthController extends Controller {
 
     public function logout(): void {
         $this->auditService->log('LOGOUT', 'user', $_SESSION['user_id'] ?? null);
+        
+        // --- REMEMBER ME LOGIC (Clear) ---
+        if (isset($_SESSION['user_id'])) {
+            $this->thiSinhRepo->updateRememberToken($_SESSION['user_id'], null);
+        }
+        if (isset($_COOKIE['remember_ts'])) {
+            setcookie('remember_ts', '', [
+                'expires' => time() - 3600,
+                'path' => '/'
+            ]);
+        }
+        
         session_destroy();
         $this->redirect(url('/'));
     }
