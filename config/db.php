@@ -16,15 +16,10 @@ $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => true, // Required for Supabase PgBouncer (Port 6543)
-    PDO::ATTR_PERSISTENT         => false, // PgBouncer handles pooling
+    PDO::ATTR_PERSISTENT         => true, // PHP level Keep-Alive to avoid TLS Handshake hell
 ];
 
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-    // Trong môi trường Production nên ghi log thay vì hiện lỗi ra màn hình
-    // die("Lỗi kết nối CSDL: " . $e->getMessage());
-}
+
 
 return [
     'dsn' => $dsn,
