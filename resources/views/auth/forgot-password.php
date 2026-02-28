@@ -10,6 +10,16 @@
             </div>
         <?php endif; ?>
 
+        <?php if (isset($success)): ?>
+            <div class="bg-green-50 border border-green-200 text-green-800 p-5 rounded-xl mb-6 text-sm flex items-start shadow-sm">
+                <i class="fas fa-check-circle text-green-500 text-xl mr-3 mt-0.5"></i>
+                <div>
+                    <strong class="block text-green-900 mb-1 lg:text-base">Đã gửi yêu cầu thành công!</strong>
+                    <?= nl2br(htmlspecialchars($success)) ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" action="<?= url('/forgot-password') ?>">
             <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
             <div class="mb-4">

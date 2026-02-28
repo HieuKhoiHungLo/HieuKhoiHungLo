@@ -268,7 +268,7 @@ class AuthController extends Controller {
             
             // Always show success message (don't reveal if email exists)
             $this->view('auth/forgot-password', [
-                'success' => 'Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.'
+                'success' => "Hệ thống đã gửi hướng dẫn đặt lại mật khẩu của bạn qua Email: <b>$email</b>\n\nVui lòng kiểm tra Hộp thư đến. \nNếu không thấy, hãy kiểm tra mục <b>Thư rác (Spam)</b> hoặc <b>Quảng cáo</b>."
             ]);
         } else {
             $this->view('auth/forgot-password');
