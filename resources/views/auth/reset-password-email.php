@@ -1,3 +1,9 @@
+<?php
+// Khởi tạo CSRF Token tránh lỗi Phiên làm việc hết hạn
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
