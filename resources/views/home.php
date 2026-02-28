@@ -73,11 +73,16 @@ $isDone = function($step) use ($stepStatus) {
 $totalSteps = $enableTHPT ? 5 : 4;
 $nextStep = 1;
 if (isset($stepStatus)) {
+    $allDone = true;
     for($i=1; $i<=$totalSteps; $i++) {
         if (!$isDone($i)) {
             $nextStep = $i;
+            $allDone = false;
             break;
         }
+    }
+    if ($allDone) {
+        $nextStep = $totalSteps + 1;
     }
 }
 ?>
