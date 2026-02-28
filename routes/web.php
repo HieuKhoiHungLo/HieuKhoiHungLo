@@ -12,7 +12,7 @@ $router = new App\Core\Router();
 $router->get('/', 'HomeController@index');
 $router->get('/news/detail', 'NewsController@detail');
 
-$router->group(['middleware' => 'rate_limit:5,1'], function($router) {
+$router->group(['middleware' => 'rate_limit:30,1'], function($router) {
     $router->get('/login', 'AuthController@login');
     $router->post('/login', 'AuthController@login');
 
@@ -78,7 +78,7 @@ $router->get('/application/index', 'ApplicationController@index');
 
 // Tuyến đường Admin
 // Tuyến đường Admin
-$router->group(['middleware' => 'rate_limit:5,1'], function($router) {
+$router->group(['middleware' => 'rate_limit:30,1'], function($router) {
     $router->get('/admin/login', 'AuthController@adminLogin');
     $router->post('/admin/login', 'AuthController@adminLogin');
 });
