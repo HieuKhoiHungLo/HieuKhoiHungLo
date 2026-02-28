@@ -62,12 +62,12 @@ class SecurityMiddleware {
         if (session_status() === PHP_SESSION_NONE) {
             $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
             session_set_cookie_params([
-                'lifetime' => 0,
+                'lifetime' => 86400, // 24 hours (Matches checkSessionTimeout)
                 'path' => '/',
                 'domain' => '',
                 'secure' => $isSecure,
                 'httponly' => true,
-                'samesite' => 'Strict'
+                'samesite' => 'Lax' // Allowed for top-level navigation, prevents mobile webview session dropping
             ]);
         }
     }

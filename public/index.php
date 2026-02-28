@@ -32,6 +32,10 @@ if (!is_dir($sessionPath)) {
     $sessionPath = sys_get_temp_dir();
 }
 session_save_path($sessionPath);
+
+// Prevent PHP Garbage Collector from clearing the session file before 24 hours
+ini_set('session.gc_maxlifetime', 86400);
+
 session_start();
 
 // Security headers
