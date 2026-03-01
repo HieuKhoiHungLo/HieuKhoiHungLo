@@ -3,10 +3,10 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="theme-color" content="#BE1E2D">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?= isset($title) ? $title : 'Tuyển sinh Đại học Hùng Vương' ?></title>
     
@@ -15,96 +15,32 @@
     <link rel="icon" type="image/png" href="<?= url('/assets/img/icon-pwa.png') ?>">
     <link rel="apple-touch-icon" href="<?= url('/assets/img/icon-pwa.png') ?>">
     
-    <!-- Tailwind CSS (Local Build with Cache Busting) -->
+    <!-- Critical CSS (Local) -->
     <?php $tailwindPath = __DIR__ . '/../../../public/assets/css/tailwind.min.css'; ?>
     <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css' . (file_exists($tailwindPath) ? '?v=' . filemtime($tailwindPath) : '')) ?>">
     
-    <!-- Custom CSS (Local Build with Cache Busting) -->
-    <?php $customCssPath = __DIR__ . '/../../../public/assets/css/index.css'; ?>
-    <?php if (file_exists($customCssPath)): ?>
-    <link rel="stylesheet" href="<?= url('/assets/css/index.css?v=' . filemtime($customCssPath)) ?>">
-    <?php endif; ?>
+    <!-- HVU Components CSS (extracted from inline for browser caching) -->
+    <?php $hvuCssPath = __DIR__ . '/../../../public/assets/css/hvu-components.css'; ?>
+    <link rel="stylesheet" href="<?= url('/assets/css/hvu-components.css' . (file_exists($hvuCssPath) ? '?v=' . filemtime($hvuCssPath) : '')) ?>">
     
-    <!-- Optimized Fonts (display=swap for faster load) -->
+    <!-- DNS Prefetch + Preconnect for external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <style>
-        html, body {
-            background-color: transparent !important;
-        }
-        /* Glassmorphism Card Style */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
-            border-radius: 1.5rem; /* 24px */
-        }
-        /* Premium Input Style */
-        .hvu-input {
-            background: rgba(249, 250, 251, 0.8) !important;
-            border: 1.5px solid #e5e7eb !important;
-            border-radius: 1rem !important; /* 16px */
-            padding: 0.875rem 1.25rem !important;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            width: 100% !important;
-            outline: none !important;
-            color: #1f2937 !important;
-            font-weight: 500 !important;
-        }
-        .hvu-input:focus {
-            border-color: #BE1E2D !important;
-            background: #ffffff !important;
-            box-shadow: 0 0 0 4px rgba(190, 30, 45, 0.15), 0 4px 6px -1px rgba(0,0,0,0.05) !important;
-        }
-        /* Premium Small Input Style */
-        .hvu-input-sm {
-            background: rgba(249, 250, 251, 0.8) !important;
-            border: 1px solid #e5e7eb !important;
-            border-radius: 0.75rem !important; /* 12px */
-            padding: 0.5rem 0.875rem !important;
-            transition: all 0.3s ease !important;
-            width: 100% !important;
-            outline: none !important;
-            font-size: 0.875rem !important;
-            font-weight: 500 !important;
-        }
-        .hvu-input-sm:focus {
-            border-color: #BE1E2D !important;
-            background: #ffffff !important;
-            box-shadow: 0 0 0 3px rgba(190, 30, 45, 0.15) !important;
-        }
-        /* Premium Primary Button */
-        .hvu-btn-primary {
-            background: linear-gradient(135deg, #BE1E2D 0%, #A01926 100%);
-            color: #ffffff;
-            font-weight: 700;
-            padding: 0.875rem 1.75rem;
-            border-radius: 9999px; /* Fully rounded */
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 14px 0 rgba(190, 30, 45, 0.39);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-        }
-        .hvu-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(190, 30, 45, 0.5);
-            background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
-        }
-        .hvu-btn-primary:active {
-            transform: translateY(1px);
-            box-shadow: 0 2px 8px rgba(190, 30, 45, 0.4);
-        }
-    </style>
+    <!-- Google Fonts (non-render-blocking with media swap) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- Font Awesome (preloaded for faster icon rendering) -->
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- Fallback for browsers with JS disabled -->
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </noscript>
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col relative" style="background: transparent;">
 

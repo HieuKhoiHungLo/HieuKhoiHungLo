@@ -1,0 +1,78 @@
+/* ======================================
+   HVU Components - Core Design System
+   Extracted from inline styles for browser caching
+   ====================================== */
+
+html, body {
+    background-color: transparent !important;
+}
+
+/* Glassmorphism Card Style */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+    border-radius: 1.5rem;
+}
+
+/* Premium Input Style */
+.hvu-input {
+    background: rgba(249, 250, 251, 0.8) !important;
+    border: 1.5px solid #e5e7eb !important;
+    border-radius: 1rem !important;
+    padding: 0.875rem 1.25rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    width: 100% !important;
+    outline: none !important;
+    color: #1f2937 !important;
+    font-weight: 500 !important;
+}
+.hvu-input:focus {
+    border-color: #BE1E2D !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(190, 30, 45, 0.15), 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+}
+
+/* Premium Small Input Style */
+.hvu-input-sm {
+    background: rgba(249, 250, 251, 0.8) !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.75rem !important;
+    padding: 0.5rem 0.875rem !important;
+    transition: all 0.3s ease !important;
+    width: 100% !important;
+    outline: none !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+}
+.hvu-input-sm:focus {
+    border-color: #BE1E2D !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(190, 30, 45, 0.15) !important;
+}
+
+/* Premium Primary Button */
+.hvu-btn-primary {
+    background: linear-gradient(135deg, #BE1E2D 0%, #A01926 100%);
+    color: #ffffff;
+    font-weight: 700;
+    padding: 0.875rem 1.75rem;
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px 0 rgba(190, 30, 45, 0.39);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+}
+.hvu-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(190, 30, 45, 0.5);
+    background: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+}
+.hvu-btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(190, 30, 45, 0.4);
+}

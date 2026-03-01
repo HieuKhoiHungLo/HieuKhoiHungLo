@@ -14,19 +14,19 @@
     ],
     "icons": [
         {
-            "src": "/assets/img/icon-pwa.png",
+            "src": "assets/img/icon-pwa.png",
             "type": "image/png",
             "sizes": "192x192",
             "purpose": "any"
         },
         {
-            "src": "/assets/img/icon-pwa.png",
+            "src": "assets/img/icon-pwa.png",
             "type": "image/png",
             "sizes": "512x512",
             "purpose": "any"
         },
         {
-            "src": "/assets/img/icon-pwa.png",
+            "src": "assets/img/icon-pwa.png",
             "type": "image/png",
             "sizes": "192x192",
             "purpose": "maskable"
@@ -39,7 +39,7 @@
             "url": "/login",
             "icons": [
                 {
-                    "src": "/assets/img/icon-pwa.png",
+                    "src": "assets/img/icon-pwa.png",
                     "sizes": "192x192"
                 }
             ]
@@ -49,7 +49,7 @@
             "url": "/application/results",
             "icons": [
                 {
-                    "src": "/assets/img/icon-pwa.png",
+                    "src": "assets/img/icon-pwa.png",
                     "sizes": "192x192"
                 }
             ]
