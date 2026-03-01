@@ -639,4 +639,12 @@ class ThiSinhRepository {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET remember_token = ? WHERE id = ?");
         return $stmt->execute([$token, $id]);
     }
+
+    public function getRecentRegistrationStats($sessionId = null) {
+        return $this->model->getRecentRegistrationStats($sessionId);
+    }
+
+    public function getLatestCandidates($limit = 5, $sessionId = null) {
+        return $this->model->getLatestCandidates($limit, $sessionId);
+    }
 }

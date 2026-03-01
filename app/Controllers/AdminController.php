@@ -499,6 +499,8 @@ class AdminController extends Controller {
                 $schoolStats   = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
                 $overviewStats = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
                 $reviewerStats = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
+                $recentStats   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
+                $latestCands   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
 
                 // Consolidated query: gender + area + object in ONE round-trip
                 $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
@@ -513,6 +515,8 @@ class AdminController extends Controller {
                     'gender'   => $demographic['gender'],
                     'area'     => $demographic['area'],
                     'object'   => $demographic['object'],
+                    'recent'   => $recentStats,
+                    'latest'   => $latestCands,
                 ];
             });
 

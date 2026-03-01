@@ -75,6 +75,55 @@
     </div>
 </div>
 
+<!-- Recent Registrations & Latest Candidates -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Left: Today & Week Cards -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-gradient-to-r from-sky-500 to-sky-600 p-6 rounded-2xl shadow-lg shadow-sky-200 text-white relative overflow-hidden group">
+            <div class="relative z-10">
+                <p class="text-sky-100 text-xs font-bold uppercase tracking-wider mb-2">Đăng ký hôm nay</p>
+                <div class="flex items-baseline">
+                    <p class="text-4xl font-black" id="recentToday">0</p>
+                    <span class="ml-2 text-sm text-sky-200 font-medium">hồ sơ</span>
+                </div>
+            </div>
+            <i class="fas fa-calendar-day absolute -bottom-4 -right-4 text-8xl text-sky-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
+        </div>
+        <div class="bg-gradient-to-r from-teal-500 to-teal-600 p-6 rounded-2xl shadow-lg shadow-teal-200 text-white relative overflow-hidden group">
+            <div class="relative z-10">
+                <p class="text-teal-100 text-xs font-bold uppercase tracking-wider mb-2">Đăng ký tuần này</p>
+                <div class="flex items-baseline">
+                    <p class="text-4xl font-black" id="recentWeek">0</p>
+                    <span class="ml-2 text-sm text-teal-200 font-medium">hồ sơ</span>
+                </div>
+            </div>
+            <i class="fas fa-calendar-week absolute -bottom-4 -right-4 text-8xl text-teal-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
+        </div>
+    </div>
+    <!-- Right: Latest 5 Candidates Table -->
+    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">5 Hồ sơ mới đăng ký gần nhất</h3>
+            <a href="<?= url('/admin/applications') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Xem tất cả &rarr;</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Thí sinh</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">CCCD</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Thời gian</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="latestCandidatesBody">
+                    <!-- Dynamic Content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 gap-8 mb-8">
     <!-- Chart: Admissions by Major (Full Width) -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -247,6 +296,51 @@ document.addEventListener('DOMContentLoaded', function() {
             // Rejected
             StatCards[2].querySelector('.text-3xl').textContent = overview.rejected;
         }
+
+        // Update Recent Stats
+        const todayEl = document.getElementById('recentToday');
+        if (todayEl && data.recent) todayEl.textContent = data.recent.today;
+        
+        const weekEl = document.getElementById('recentWeek');
+        if (weekEl && data.recent) weekEl.textContent = data.recent.this_week;
+
+        // Update Latest Candidates Table
+        const latestBody = document.getElementById('latestCandidatesBody');
+        if (latestBody && data.latest) {
+            latestBody.innerHTML = '';
+            if (data.latest.length > 0) {
+                data.latest.forEach(cand => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    
+                    // Format date to DD/MM/YYYY HH:mm
+                    const d = new Date(cand.created_at);
+                    const formattedDate = (d.getDate() < 10 ? '0' : '') + d.getDate() + '/' + 
+                                          ((d.getMonth() + 1) < 10 ? '0' : '') + (d.getMonth() + 1) + '/' + 
+                                          d.getFullYear() + ' ' + 
+                                          (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + 
+                                          (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+                    
+                    let statusHtml = '';
+                    switch(cand.trang_thai) {
+                        case 'Đã duyệt': statusHtml = '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold">Đã duyệt</span>'; break;
+                        case 'Từ chối': statusHtml = '<span class="px-2.5 py-1 bg-rose-100 text-rose-700 rounded-lg text-xs font-bold">Từ chối</span>'; break;
+                        default: statusHtml = '<span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">Chờ duyệt</span>'; break;
+                    }
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-bold text-slate-700">${cand.ho_ten}</td>
+                        <td class="py-3 px-4 text-slate-500 font-mono text-xs">${cand.so_cccd}</td>
+                        <td class="py-3 px-4 text-slate-500 text-xs">${formattedDate}</td>
+                        <td class="py-3 px-4 text-right">${statusHtml}</td>
+                    `;
+                    latestBody.appendChild(tr);
+                });
+            } else {
+                latestBody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-400 font-medium">Chưa có hồ sơ mới.</td></tr>';
+            }
+        }
+
 
         // Update Charts
         updateChart('dailyRegistrationChart', 'daily', data.daily, 'date', 'count', 'Số lượng hồ sơ');

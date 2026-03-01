@@ -537,4 +537,57 @@ class ThiSinh extends Model {
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$status, $cccd]);
     }
+
+    /**
+     * Get recent registrations count (today and this week)
+     */
+    public function getRecentRegistrationStats($sessionId = null) {
+        $todayStart = date('Y-m-d 00:00:00');
+        $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
+        
+        $sqlToday = "SELECT COUNT(DISTINCT so_cccd) FROM ho_so_xet_tuyen WHERE created_at >= ?";
+        $sqlWeek = "SELECT COUNT(DISTINCT so_cccd) FROM ho_so_xet_tuyen WHERE created_at >= ?";
+        $paramsToday = [$todayStart];
+        $paramsWeek = [$weekStart];
+
+        if ($sessionId) {
+            $sqlToday .= " AND dot_tuyen_sinh_id = ?";
+            $sqlWeek .= " AND dot_tuyen_sinh_id = ?";
+            $paramsToday[] = $sessionId;
+            $paramsWeek[] = $sessionId;
+        }
+
+        $stmtToday = $this->db->prepare($sqlToday);
+        $stmtToday->execute($paramsToday);
+        $countToday = $stmtToday->fetchColumn();
+
+        $stmtWeek = $this->db->prepare($sqlWeek);
+        $stmtWeek->execute($paramsWeek);
+        $countWeek = $stmtWeek->fetchColumn();
+
+        return [
+            'today' => (int)$countToday,
+            'this_week' => (int)$countWeek
+        ];
+    }
+
+    /**
+     * Get top N latest candidates
+     */
+    public function getLatestCandidates($limit = 5, $sessionId = null) {
+        $sql = "SELECT ts.ho_va_ten AS ho_ten, ts.so_cccd, hs.created_at, hs.trang_thai 
+                FROM {$this->table} ts
+                JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
+                WHERE 1=1";
+        $params = [];
+        if ($sessionId) {
+            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        }
+        $sql .= " ORDER BY hs.created_at DESC LIMIT " . intval($limit);
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
