@@ -38,28 +38,14 @@
         <input type="hidden" name="sort" value="<?= $filters['sort'] ?>">
         <input type="hidden" name="dir" value="<?= $filters['dir'] ?>">
 
-        <div class="relative">
-            <input type="text" name="search" placeholder="Tìm CCCD / Tiêu đề..." 
-                   value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
-                   class="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-56 shadow-sm">
-            <i class="fas fa-search absolute left-3.5 top-2.5 text-slate-400 text-xs"></i>
-        </div>
-        
-        <select name="status" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer">
-            <option value="">-- Trạng thái --</option>
-            <option value="Chờ duyệt" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
-            <option value="Đã duyệt" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
-            <option value="Từ chối" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
-        </select>
-
-        <select name="year" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer min-w-[100px]">
+        <select name="year" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer min-w-[100px]">
             <?php foreach ($years as $y): ?>
-                <option value="<?= $y ?>" <?= ($filters['year'] ?? '') == $y ? 'selected' : '' ?>>Năm <?= $y ?></option>
+                <option value="<?= $y ?>" <?= ($filters['year'] ?? '') == $y ? 'selected' : '' ?>>Khóa <?= $y ?></option>
             <?php endforeach; ?>
         </select>
 
-        <select name="session_id" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer max-w-[200px]">
-            <option value="">-- Tất cả đợt --</option>
+        <select name="session_id" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer max-w-[250px]">
+            <option value="">-- Tất cả các đợt --</option>
             <?php foreach ($yearSessions as $s): ?>
                 <option value="<?= $s['id'] ?>" <?= ($filters['session_id'] ?? '') == $s['id'] ? 'selected' : '' ?>>
                     <?= htmlspecialchars(!empty($s['ten_dot']) ? $s['ten_dot'] : (!empty($s['ma_dot']) ? $s['ma_dot'] : 'Đợt ' . $s['id'] . ' - ' . date('d/m/Y', strtotime($s['ngay_bat_dau'])))) ?>
@@ -67,8 +53,8 @@
             <?php endforeach; ?>
         </select>
         
-        <button type="submit" class="w-9 h-9 flex items-center justify-center bg-[#0066FF] text-white rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition">
-            <i class="fas fa-filter text-xs"></i>
+        <button type="submit" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-blue-600 hover:border-blue-200 transition shadow-sm">
+            <i class="fas fa-sync-alt text-sm"></i>
         </button>
     </form>
 </div>

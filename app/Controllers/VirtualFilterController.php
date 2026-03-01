@@ -13,7 +13,6 @@ class VirtualFilterController extends Controller {
     protected $db;
 
     public function __construct() {
-        parent::__construct();
         $this->filterService = new VirtualFilterService();
         $this->scoreService = new ScoreCalculationService();
         $this->db = Database::getInstance()->getConnection();
@@ -22,7 +21,7 @@ class VirtualFilterController extends Controller {
     // Hiển thị giao diện Dashboard Xét tuyển Lọc Ảo
     public function index() {
         // Lấy danh sách các đợt tuyển sinh đang mở
-        $stmt = $this->db->query("SELECT id, ten_dot, nam_tuyen_sinh, trang_thai FROM dot_tuyen_sinh ORDER BY created_at DESC");
+        $stmt = $this->db->query("SELECT id, ten_dot, nam_tuyen_sinh, kich_hoat FROM dot_tuyen_sinh ORDER BY id DESC");
         $batches = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $this->view('admin/admission/virtual_filter', [

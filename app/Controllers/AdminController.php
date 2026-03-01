@@ -214,6 +214,14 @@ class AdminController extends Controller {
         $sort = $_GET['sort'] ?? 'created_at';
         $dir = $_GET['dir'] ?? 'DESC';
 
+        // Extra Column Filters
+        $extraFilters = [
+            'phone' => $_GET['f_phone'] ?? '',
+            'dob' => $_GET['f_dob'] ?? '',
+            'province' => $_GET['f_province'] ?? '',
+            'school' => $_GET['f_school'] ?? '',
+        ];
+
         // Single query: candidates + total count (via COUNT OVER window function)
         $candidates = $this->thiSinhRepo->getFiltered(
             $search, $status, $hocBaStatus, $limit, $offset, 
@@ -221,7 +229,9 @@ class AdminController extends Controller {
             $editRequest == '1',
             $year,
             $sort,
-            $dir
+            $dir,
+            false,
+            $extraFilters
         );
 
         // Extract total from _total_count window function — no separate countFiltered query needed
@@ -258,7 +268,11 @@ class AdminController extends Controller {
                 'session_id' => $sessionId,
                 'year' => $year,
                 'sort' => $sort,
-                'dir' => $dir
+                'dir' => $dir,
+                'f_phone' => $extraFilters['phone'],
+                'f_dob' => $extraFilters['dob'],
+                'f_province' => $extraFilters['province'],
+                'f_school' => $extraFilters['school'],
             ],
             'pagination' => ['current_page' => $page, 'total_pages' => $totalPages],
             'emailTemplates' => $emailTemplates
@@ -344,7 +358,8 @@ class AdminController extends Controller {
             $sendEmail = isset($_POST['send_email']) && $_POST['send_email'] == '1';
             
             // Sync status to ho_so_xet_tuyen (and nguyen_vong) using Repository
-            $this->thiSinhRepo->updateApplicationStatus($so_cccd, $status, $note);
+            $reviewerId = $this->currentUser['id'] ?? null;
+            $this->thiSinhRepo->updateApplicationStatus($so_cccd, $status, $note, $reviewerId);
 
             // Send email notification if requested
             if ($sendEmail) {
@@ -377,7 +392,15 @@ class AdminController extends Controller {
                 }
             }
 
-            $this->redirect(url('/admin/review?cccd=' . $so_cccd . '&updated=1'));
+            $nextCccd = $this->thiSinhRepo->getNextPendingCandidate($so_cccd);
+            
+            if ($nextCccd) {
+                // Tự động chuyển trang đến hồ sơ chờ duyệt kế tiếp
+                $this->redirect(url('/admin/review?cccd=' . $nextCccd . '&updated=1'));
+            } else {
+                // Trở về danh sách nếu đã duyệt hết tất cả
+                $this->redirect(url('/admin/candidates?success=1'));
+            }
         }
     }
 
@@ -501,6 +524,7 @@ class AdminController extends Controller {
                 $reviewerStats = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
                 $recentStats   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
                 $latestCands   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
+                $detailedMajorStats = $this->nguyenVongRepo->getDetailedMajorStats($startDate, $endDate, $sessionId);
 
                 // Consolidated query: gender + area + object in ONE round-trip
                 $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
@@ -517,6 +541,7 @@ class AdminController extends Controller {
                     'object'   => $demographic['object'],
                     'recent'   => $recentStats,
                     'latest'   => $latestCands,
+                    'detailed_major_stats' => $detailedMajorStats,
                 ];
             });
 

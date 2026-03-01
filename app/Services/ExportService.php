@@ -100,7 +100,7 @@ class ExportService {
         $stats['by_status'] = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
         
         // By major
-        $stmt = $this->db->query("SELECT n.ten_nganh, COUNT(*) as count FROM nguyen_vong nv JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh WHERE nv.thu_tu = 1 GROUP BY n.ten_nganh ORDER BY count DESC LIMIT 10");
+        $stmt = $this->db->query("SELECT n.ten_nganh, COUNT(*) as count FROM nguyen_vong nv JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh WHERE nv.thu_tu_nguyen_vong = 1 GROUP BY n.ten_nganh ORDER BY count DESC LIMIT 10");
         $stats['by_major'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
         // By date (last 14 days)

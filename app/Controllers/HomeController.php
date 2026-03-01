@@ -9,6 +9,12 @@ use App\Models\NguyenVong;
 
 class HomeController extends Controller {
     public function index() {
+        // Redirect logged-in students to the full application dashboard
+        if (isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
+            header('Location: ' . url('/application/index'));
+            exit;
+        }
+
         $postModel = new \App\Models\Post();
         $sessionModel = new \App\Models\AdmissionSession();
         $db = \App\Core\Database::getInstance()->getConnection();

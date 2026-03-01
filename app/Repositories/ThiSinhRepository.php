@@ -143,7 +143,7 @@ class ThiSinhRepository {
         return $this->model->delete($cccd);
     }
 
-    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'created_at', $dir = 'desc', $trashed = false) {
+    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'created_at', $dir = 'desc', $trashed = false, $extraFilters = []) {
         // Single query with all JOINs + COUNT OVER() — eliminates 7 separate queries
         $sql = "SELECT DISTINCT t.*,
                 p.ten_tinh as province_name,
@@ -152,6 +152,7 @@ class ThiSinhRepository {
                 (SELECT CONCAT(nv3.ma_nganh, ' - ', nv3.ten_nganh) FROM nguyen_vong nv3 WHERE nv3.so_cccd = t.so_cccd AND nv3.thu_tu_nguyen_vong = 1 LIMIT 1) as nv1,
                 COALESCE(hs.yeu_cau_chinh_sua, false) as has_edit_request,
                 hs.dot_tuyen_sinh_id,
+                hs.ghi_chu,
                 COUNT(*) OVER() as _total_count
                 FROM {$this->table} t";
         
@@ -176,10 +177,50 @@ class ThiSinhRepository {
         $params = [];
 
         if (!empty($search)) {
-            $sql .= " AND (t.ho_va_ten LIKE ? OR t.so_cccd LIKE ? OR t.email LIKE ?)";
+            // Function to generate nested replace for unaccenting in PostgreSQL
+            $replacements = [
+                'à'=>'a','á'=>'a','ả'=>'a','ã'=>'a','ạ'=>'a','ă'=>'a','ằ'=>'a','ắ'=>'a','ẳ'=>'a','ẵ'=>'a','ặ'=>'a','â'=>'a','ầ'=>'a','ấ'=>'a','ẩ'=>'a','ẫ'=>'a','ậ'=>'a',
+                'è'=>'e','é'=>'e','ẻ'=>'e','ẽ'=>'e','ẹ'=>'e','ê'=>'e','ề'=>'e','ế'=>'e','ể'=>'e','ễ'=>'e','ệ'=>'e',
+                'ì'=>'i','í'=>'i','ỉ'=>'i','ĩ'=>'i','ị'=>'i',
+                'ò'=>'o','ó'=>'o','ỏ'=>'o','õ'=>'o','ọ'=>'o','ô'=>'o','ồ'=>'o','ố'=>'o','ổ'=>'o','ỗ'=>'o','ộ'=>'o','ơ'=>'o','ờ'=>'o','ớ'=>'o','ở'=>'o','ỡ'=>'o','ợ'=>'o',
+                'ù'=>'u','ú'=>'u','ủ'=>'u','ũ'=>'u','ụ'=>'u','ư'=>'u','ừ'=>'u','ứ'=>'u','ử'=>'u','ữ'=>'u','ự'=>'u',
+                'ỳ'=>'y','ý'=>'y','ỷ'=>'y','ỹ'=>'y','ỵ'=>'y',
+                'đ'=>'d'
+            ];
+            
+            $unaccentedColumn = "lower(t.ho_va_ten)";
+            foreach ($replacements as $accented => $unaccented) {
+                $unaccentedColumn = "replace($unaccentedColumn, '$accented', '$unaccented')";
+            }
+
+            // Normal search logic for exact match/accents and unaccented search
+            $sql .= " AND ({$unaccentedColumn} ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ? OR t.ho_va_ten ILIKE ?)";
+            
+            // Unaccent the search term in PHP for the first placeholder
+            $searchUnaccented = str_replace(array_keys($replacements), array_values($replacements), mb_strtolower($search, 'UTF-8'));
+            
+            $params[] = "%$searchUnaccented%";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
+        }
+
+        // Additional Column Filters
+        if (!empty($extraFilters['phone'])) {
+            $sql .= " AND t.dien_thoai ILIKE ?";
+            $params[] = "%" . $extraFilters['phone'] . "%";
+        }
+        if (!empty($extraFilters['dob'])) {
+            $sql .= " AND CAST(t.ngay_sinh AS TEXT) ILIKE ?";
+            $params[] = "%" . $extraFilters['dob'] . "%";
+        }
+        if (!empty($extraFilters['province'])) {
+            $sql .= " AND p.ten_tinh ILIKE ?";
+            $params[] = "%" . $extraFilters['province'] . "%";
+        }
+        if (!empty($extraFilters['school'])) {
+            $sql .= " AND sc.ten_truong ILIKE ?";
+            $params[] = "%" . $extraFilters['school'] . "%";
         }
 
         if (!empty($status)) {
@@ -226,7 +267,7 @@ class ThiSinhRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $trashed = false) {
+    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $trashed = false, $extraFilters = []) {
         $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t";
         
         // Always join ho_so_xet_tuyen
@@ -236,6 +277,11 @@ class ThiSinhRepository {
             $sql .= " LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id";
         }
         
+        if (!empty($status) || !empty($extraFilters['province']) || !empty($extraFilters['school'])) {
+             $sql .= " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh";
+             $sql .= " LEFT JOIN dm_truong_thpt sc ON t.ma_truong_lop_12 = sc.ma_truong";
+        }
+
         if (!empty($status)) {
             $sql .= " LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd";
         }
@@ -253,6 +299,23 @@ class ThiSinhRepository {
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
+        }
+
+        if (!empty($extraFilters['phone'])) {
+            $sql .= " AND t.dien_thoai LIKE ?";
+            $params[] = "%" . $extraFilters['phone'] . "%";
+        }
+        if (!empty($extraFilters['dob'])) {
+            $sql .= " AND CAST(t.ngay_sinh AS TEXT) LIKE ?";
+            $params[] = "%" . $extraFilters['dob'] . "%";
+        }
+        if (!empty($extraFilters['province'])) {
+            $sql .= " AND p.ten_tinh LIKE ?";
+            $params[] = "%" . $extraFilters['province'] . "%";
+        }
+        if (!empty($extraFilters['school'])) {
+            $sql .= " AND sc.ten_truong LIKE ?";
+            $params[] = "%" . $extraFilters['school'] . "%";
         }
 
         if (!empty($status)) {

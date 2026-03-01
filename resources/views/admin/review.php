@@ -13,17 +13,41 @@
         <div class="flex items-center gap-4">
             <h2 class="text-3xl font-black text-slate-800 font-heading uppercase tracking-tight">DUYỆT HỒ SƠ THÍ SINH</h2>
             <?php
-            $statusLabel = $user['trang_thai'] ?? 'Chờ duyệt';
+            // Map English statuses from legacy data to Vietnamese
+            $statusMap = [
+                'submitted'  => 'Đã nộp',
+                'draft'      => 'Nháp',
+                'approved'   => 'Đã duyệt',
+                'rejected'   => 'Từ chối',
+                'pending'    => 'Chờ duyệt',
+                'verifying'  => 'Đang xác minh',
+                'verified'   => 'Đã xác minh',
+                'scoring'    => 'Đang tính điểm',
+                'qualified'  => 'Đủ điều kiện',
+                'admitted'   => 'Trúng tuyển',
+            ];
+            $rawStatus = $user['trang_thai'] ?? 'Chờ duyệt';
+            $statusLabel = $statusMap[strtolower($rawStatus)] ?? $rawStatus;
             $statusStyles = match($statusLabel) {
                 'Đã duyệt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 'Từ chối'    => 'bg-rose-50 text-rose-700 border-rose-200',
                 'Yêu cầu bổ sung' => 'bg-blue-50 text-blue-700 border-blue-200',
+                'Đã nộp'     => 'bg-sky-50 text-sky-700 border-sky-200',
+                'Đang xác minh' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'Đã xác minh'   => 'bg-violet-50 text-violet-700 border-violet-200',
+                'Đang tính điểm' => 'bg-purple-50 text-purple-700 border-purple-200',
+                'Đủ điều kiện'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                'Trúng tuyển'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 default      => 'bg-amber-50 text-amber-700 border-amber-200',
             };
             $statusIcon = match($statusLabel) {
-                'Đã duyệt'  => 'fa-check-circle',
+                'Đã duyệt', 'Trúng tuyển' => 'fa-check-circle',
                 'Từ chối'    => 'fa-times-circle',
                 'Yêu cầu bổ sung' => 'fa-edit',
+                'Đã nộp'     => 'fa-paper-plane',
+                'Đang xác minh', 'Đang tính điểm' => 'fa-spinner fa-spin',
+                'Đã xác minh', 'Đủ điều kiện' => 'fa-clipboard-check',
+                'Nháp'       => 'fa-file-alt',
                 default      => 'fa-clock',
             };
             ?>

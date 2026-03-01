@@ -407,9 +407,22 @@ if (isset($stepStatus)) {
                 </div>
 
                 <div class="mt-8 pt-8 border-t border-gray-100 text-center">
-                    <a href="<?= url('/profile/step' . $nextStep) ?>" class="inline-flex items-center px-8 py-4 bg-hvu-red text-white font-black rounded-xl shadow-xl hover:bg-red-700 transition transform hover:-translate-y-1">
-                        TIẾP TỤC ĐẾN BƯỚC <?= $nextStep ?> <i class="fas fa-arrow-right ml-3"></i>
-                    </a>
+                    <?php if ($nextStep > $totalSteps): ?>
+                        <div class="inline-flex flex-col items-center gap-3">
+                            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+                            </div>
+                            <p class="text-green-700 font-bold text-lg">Bạn đã hoàn thành tất cả các bước!</p>
+                            <p class="text-gray-500 text-sm">Hồ sơ của bạn đã sẵn sàng để xét tuyển.</p>
+                            <a href="<?= url('/profile/step1') ?>" class="inline-flex items-center px-8 py-4 bg-[#0066FF] text-white font-black rounded-xl shadow-xl hover:bg-blue-700 transition transform hover:-translate-y-1">
+                                <i class="fas fa-eye mr-3"></i> XEM LẠI HỒ SƠ
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <a href="<?= url('/profile/step' . $nextStep) ?>" class="inline-flex items-center px-8 py-4 bg-hvu-red text-white font-black rounded-xl shadow-xl hover:bg-red-700 transition transform hover:-translate-y-1">
+                            TIẾP TỤC ĐẾN BƯỚC <?= $nextStep ?> <i class="fas fa-arrow-right ml-3"></i>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
          </div>

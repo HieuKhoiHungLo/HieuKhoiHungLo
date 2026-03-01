@@ -39,7 +39,17 @@
     <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group">
         <div class="relative z-10">
             <p class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-2">Tổng hồ sơ</p>
-            <p class="text-4xl font-black"><?= $stats['total'] ?></p>
+            <p class="text-4xl font-black" id="statTotal"><?= $stats['total'] ?></p>
+            <div class="mt-3 space-y-1 text-sm">
+                <div class="flex items-center gap-2 text-indigo-100">
+                    <i class="fas fa-calendar-day text-xs"></i>
+                    <span>Hôm nay: <strong id="recentToday" class="text-white">0</strong></span>
+                </div>
+                <div class="flex items-center gap-2 text-indigo-100">
+                    <i class="fas fa-calendar-week text-xs"></i>
+                    <span>Tuần này: <strong id="recentWeek" class="text-white">0</strong></span>
+                </div>
+            </div>
         </div>
         <i class="fas fa-users absolute -bottom-4 -right-4 text-9xl text-blue-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
     </div>
@@ -50,7 +60,7 @@
             <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i class="fas fa-check"></i></span>
         </div>
         <p class="text-3xl font-black text-slate-800"><?= $stats['approved'] ?></p>
-         <div class="mt-2 text-xs font-medium text-emerald-600">
+         <div class="mt-2 text-xs font-medium text-emerald-600" id="approvalRate">
             <?= $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100, 1) : 0 ?>% tỷ lệ duyệt
         </div>
     </div>
@@ -75,33 +85,9 @@
     </div>
 </div>
 
-<!-- Recent Registrations & Latest Candidates -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    <!-- Left: Today & Week Cards -->
-    <div class="lg:col-span-1 space-y-6">
-        <div class="bg-gradient-to-r from-sky-500 to-sky-600 p-6 rounded-2xl shadow-lg shadow-sky-200 text-white relative overflow-hidden group">
-            <div class="relative z-10">
-                <p class="text-sky-100 text-xs font-bold uppercase tracking-wider mb-2">Đăng ký hôm nay</p>
-                <div class="flex items-baseline">
-                    <p class="text-4xl font-black" id="recentToday">0</p>
-                    <span class="ml-2 text-sm text-sky-200 font-medium">hồ sơ</span>
-                </div>
-            </div>
-            <i class="fas fa-calendar-day absolute -bottom-4 -right-4 text-8xl text-sky-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
-        </div>
-        <div class="bg-gradient-to-r from-teal-500 to-teal-600 p-6 rounded-2xl shadow-lg shadow-teal-200 text-white relative overflow-hidden group">
-            <div class="relative z-10">
-                <p class="text-teal-100 text-xs font-bold uppercase tracking-wider mb-2">Đăng ký tuần này</p>
-                <div class="flex items-baseline">
-                    <p class="text-4xl font-black" id="recentWeek">0</p>
-                    <span class="ml-2 text-sm text-teal-200 font-medium">hồ sơ</span>
-                </div>
-            </div>
-            <i class="fas fa-calendar-week absolute -bottom-4 -right-4 text-8xl text-teal-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
-        </div>
-    </div>
-    <!-- Right: Latest 5 Candidates Table -->
-    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+<!-- Latest Candidates -->
+<div class="mb-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">5 Hồ sơ mới đăng ký gần nhất</h3>
             <a href="<?= url('/admin/applications') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Xem tất cả &rarr;</a>
@@ -130,6 +116,38 @@
         <h3 class="font-bold text-slate-800 mb-4">Hồ sơ theo ngành</h3>
         <div class="relative h-96">
             <canvas id="majorChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="mb-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">Thống kê nguyện vọng theo ngành</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider" rowspan="2">Mã ngành</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider" rowspan="2">Tên ngành</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-center" rowspan="2">Chỉ tiêu 2026</th>
+                        <th class="py-2 px-4 font-bold uppercase tracking-wider text-center border-b border-slate-200" colspan="4">Thống kê nguyện vọng</th>
+                    </tr>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-2 px-4 font-bold text-center border-l">Tổng</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">NV1</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">NV2</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">Còn lại</th>
+                    </tr>
+                </thead>
+                <tbody id="detailedMajorStatsBody">
+                    <tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
+                </tbody>
+                <tfoot id="detailedMajorStatsFoot" class="bg-slate-50 font-normal text-slate-800 border-t-2 border-slate-200">
+                    <!-- Total row will be injected here -->
+                </tfoot>
+            </table>
         </div>
     </div>
 </div>
@@ -189,11 +207,35 @@
     </div>
 </div>
 
+<div class="grid grid-cols-1 gap-8 mb-8">
     <!-- Chart: Top High Schools (Full Width) -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <h3 class="font-bold text-slate-800 mb-4">Top Trường THPT</h3>
         <div class="relative h-96">
             <canvas id="schoolChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="mb-8">
+    <!-- Table: Thống kê người duyệt -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">Thống kê người duyệt hồ sơ</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Họ tên cán bộ</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Tên đăng nhập</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Số lượng hồ sơ đã duyệt</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewerTableBody">
+                    <tr><td colspan="3" class="py-6 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -265,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUI(data) {
         // Update Overview Numbers
         const overview = data.overview;
-        const totalEl = document.querySelector('.text-4xl.font-black');
+        const totalEl = document.getElementById('statTotal');
         if(totalEl) totalEl.textContent = overview.total;
         
         const StatCards = document.querySelectorAll('.bg-white.p-6.rounded-2xl');
@@ -276,6 +318,14 @@ document.addEventListener('DOMContentLoaded', function() {
             StatCards[1].querySelector('.text-3xl').textContent = overview.pending;
             // Rejected
             StatCards[2].querySelector('.text-3xl').textContent = overview.rejected;
+        }
+        
+        // Update approval rate
+        const rateEl = document.getElementById('approvalRate');
+        if(rateEl && overview.total > 0) {
+            rateEl.textContent = (overview.approved / overview.total * 100).toFixed(1) + '% tỷ lệ duyệt';
+        } else if(rateEl) {
+            rateEl.textContent = '0% tỷ lệ duyệt';
         }
 
         // Update Recent Stats
@@ -322,6 +372,64 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Update Detailed Major Stats Table
+        const detailedBody = document.getElementById('detailedMajorStatsBody');
+        const detailedFoot = document.getElementById('detailedMajorStatsFoot');
+        
+        if (detailedBody && detailedFoot && data.detailed_major_stats) {
+            detailedBody.innerHTML = '';
+            
+            let totalTargets = 0;
+            let totalAll = 0;
+            let totalNV1 = 0;
+            let totalNV2 = 0;
+            let totalOthers = 0;
+
+            if (data.detailed_major_stats.length > 0) {
+                data.detailed_major_stats.forEach(major => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    
+                    const target = parseInt(major.chi_tieu) || 0;
+                    const tong = parseInt(major.tong_nv) || 0;
+                    const nv1 = parseInt(major.nv1) || 0;
+                    const nv2 = parseInt(major.nv2) || 0;
+                    const conLai = parseInt(major.nv_con_lai) || 0;
+
+                    totalTargets += target;
+                    totalAll += tong;
+                    totalNV1 += nv1;
+                    totalNV2 += nv2;
+                    totalOthers += conLai;
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 text-slate-800">${major.ma_nganh}</td>
+                        <td class="py-3 px-4 text-slate-800">${major.ten_nganh}</td>
+                        <td class="py-3 px-4 text-center text-slate-800">${target > 0 ? target : '-'}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${tong}</td>
+                        <td class="py-3 px-4 text-center text-red-600 border-l border-slate-100">${nv1}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${nv2}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${conLai}</td>
+                    `;
+                    detailedBody.appendChild(tr);
+                });
+
+                // Render Footer
+                detailedFoot.innerHTML = `
+                    <tr>
+                        <td class="py-3 px-4 text-right" colspan="2">TỔNG CỘNG</td>
+                        <td class="py-3 px-4 text-center text-slate-800">${totalTargets > 0 ? totalTargets : '-'}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalAll}</td>
+                        <td class="py-3 px-4 text-center text-red-600 border-l border-slate-200">${totalNV1}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalNV2}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalOthers}</td>
+                    </tr>
+                `;
+            } else {
+                detailedBody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Chưa có dữ liệu nguyện vọng.</td></tr>';
+                detailedFoot.innerHTML = '';
+            }
+        }
 
         // Update Charts
         updateChart('dailyRegistrationChart', 'daily', data.daily, 'date', 'count', 'Số lượng hồ sơ');

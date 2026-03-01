@@ -30,6 +30,10 @@ class NguyenVongRepository {
         return $this->model->getMajorStats($limit, $startDate, $endDate, $sessionId);
     }
 
+    public function getDetailedMajorStats($startDate = null, $endDate = null, $sessionId = null) {
+        return $this->model->getDetailedMajorStats($startDate, $endDate, $sessionId);
+    }
+
     public function bulkUpdateStatus($cccds, $status) {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
