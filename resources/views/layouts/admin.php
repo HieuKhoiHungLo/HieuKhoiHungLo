@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . filemtime(__DIR__ . '/../../../public/assets/css/tailwind.min.css')) ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <!-- Design System -->
@@ -91,64 +92,85 @@
     <!-- Sidebar -->
     <aside class="admin-sidebar fixed left-0 top-0 h-full text-white flex flex-col z-50 shadow-2xl"
            :class="{ 'collapsed': sidebarCollapsed }">
-        <!-- Brand -->
-        <div class="h-20 flex items-center px-6 border-b border-white/10 bg-black/10">
-            <div class="flex items-center justify-center">
-                <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-10 w-auto object-contain">
+        <!-- Brand (matched to header h-16 = 64px) -->
+        <div class="h-16 flex items-center px-5 border-b border-white/10 bg-black/10 flex-shrink-0">
+            <div class="flex items-center justify-center flex-shrink-0">
+                <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-9 w-auto object-contain">
             </div>
-            <div class="ml-4 sidebar-text">
-                <h1 class="font-black text-[10px] tracking-wider text-white font-heading uppercase leading-tight">QUẢN TRỊ HỆ THỐNG</h1>
-                <p class="text-[14px] text-sky-200 uppercase tracking-widest font-bold">TUYỂN SINH</p>
+            <div class="ml-3 sidebar-text min-w-0">
+                <h1 class="font-black text-[9px] tracking-wider text-white/70 font-heading uppercase leading-none">QUẢN TRỊ HỆ THỐNG</h1>
+                <p class="text-[13px] text-sky-200 uppercase tracking-widest font-bold leading-tight mt-0.5">TUYỂN SINH</p>
             </div>
         </div>
 
-        <!-- Navigation -->
-        <nav class="flex-grow py-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+        <!-- Navigation: Grouped Collapsible Menu -->
+        <nav class="flex-grow py-3 px-3 overflow-y-auto custom-scrollbar" style="scrollbar-width:thin;">
             <?php
             $currentUri = $_SERVER['REQUEST_URI'];
-            $menu = [
-                ['section' => 'TỔNG QUAN'],
-                ['url' => '/admin/dashboard', 'icon' => 'fa-th-list', 'label' => 'Danh sách Hồ sơ',    'perm' => 'dashboard'],
-                ['url' => '/admin/stats',     'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê',    'perm' => 'stats'],
-                
-                ['section' => 'QUẢN LÝ TUYỂN SINH'],
-                ['url' => '/admin/review-management',  'icon' => 'fa-user-check', 'label' => 'Xét duyệt Hồ sơ',    'perm' => 'candidate.view'],
-                ['url' => '/admin/notifications',       'icon' => 'fa-bell',          'label' => 'Gửi Thông báo',      'perm' => 'candidate.view'],
-                ['url' => '/admin/admission/virtual-filter','icon' => 'fa-filter',     'label' => 'Xét tuyển Lọc ảo',   'perm' => 'settings.edit'],
-                ['url' => '/admin/admission/results',   'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển','perm' => 'candidate.view'],
-                ['url' => '/admin/reports',             'icon' => 'fa-file-export',   'label' => 'Xuất dữ liệu',       'perm' => 'report.export'],
-                ['url' => '/admin/aptitude-scores',     'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',    'perm' => 'aptitude.view'],
 
-                ['section' => 'CẤU HÌNH TUYỂN SINH'],
-                ['url' => '/admin/master-data/sessions',   'icon' => 'fa-calendar-alt', 'label' => 'Đợt tuyển sinh',     'perm' => 'settings.edit'],
-                ['url' => '/admin/admission/benchmarks',   'icon' => 'fa-sliders-h',    'label' => 'Thiết lập Điểm chuẩn','perm' => 'settings.edit'],
-                ['url' => '#', 'icon' => 'fa-gavel', 'label' => 'Điều kiện & Quy tắc', 'perm' => 'settings.edit', 'submenu' => [
-                     ['url' => '/admin/rules',                'label' => 'Điều kiện Xét tuyển'],
-                     ['url' => '/admin/master-data/zones',    'label' => 'Cấu hình Vùng (Sư phạm)'],
-                     ['url' => '/admin/settings/scoring',     'label' => 'Cấu hình Điểm'],
-                ]],
-
-                ['section' => 'DỮ LIỆU ĐÀO TẠO'],
-                ['url' => '/admin/master-data/majors',       'icon' => 'fa-graduation-cap', 'label' => 'Ngành đào tạo',      'perm' => 'major.view'],
-                ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group',    'label' => 'Tổ hợp xét tuyển',  'perm' => 'major.view'],
-                ['url' => '/admin/master-data/subjects',     'icon' => 'fa-book',           'label' => 'Môn học',            'perm' => 'major.view'],
-
-                ['section' => 'NỘI DUNG & TRƯỜNG'],
-                ['url' => '/admin/posts',                'icon' => 'fa-newspaper', 'label' => 'Tin tức & Bài viết', 'perm' => 'posts.view'],
-                ['url' => '/admin/master-data/schools',  'icon' => 'fa-school',    'label' => 'Trường THPT',        'perm' => 'major.view'],
-                
-                ['section' => 'HỆ THỐNG'],
-                ['url' => '#', 'icon' => 'fa-users-cog', 'label' => 'Tài khoản & Phân quyền', 'perm' => 'role.view', 'submenu' => [
-                     ['url' => '/admin/accounts', 'label' => 'Tài khoản Admin'],
-                     ['url' => '/admin/roles',    'label' => 'Quản lý Vai trò'],
-                ]],
-                ['url' => '#', 'icon' => 'fa-cogs', 'label' => 'Cấu hình Hệ thống', 'perm' => 'settings.edit', 'submenu' => [
-                     ['url' => '/admin/master-data/settings',    'label' => 'Cấu hình Chung'],
-                     ['url' => '/admin/settings/email',          'label' => 'Cấu hình Email'],
-                     ['url' => '/admin/settings/email-templates','label' => 'Mẫu Email'],
-                ]],
-                ['url' => '/admin/import', 'icon' => 'fa-cloud-upload-alt', 'label' => 'Nhập dữ liệu GD&ĐT', 'perm' => 'settings.edit'],
-                ['url' => '/admin/audit', 'icon' => 'fa-history', 'label' => 'Nhật ký Hoạt động', 'perm' => 'audit.view'],
+            // Menu structure: groups with collapsible children
+            $menuGroups = [
+                [
+                    'group' => 'TỔNG QUAN',
+                    'icon'  => 'fa-chart-line',
+                    'items' => [
+                        ['url' => '/admin/dashboard', 'icon' => 'fa-th-list',    'label' => 'Danh sách Hồ sơ',  'perm' => 'dashboard'],
+                        ['url' => '/admin/stats',     'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê', 'perm' => 'stats'],
+                    ]
+                ],
+                [
+                    'group' => 'QUẢN LÝ TUYỂN SINH',
+                    'icon'  => 'fa-clipboard-check',
+                    'items' => [
+                        ['url' => '/admin/review-management',       'icon' => 'fa-user-check',    'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
+                        ['url' => '/admin/admission/virtual-filter','icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
+                        ['url' => '/admin/admission/results',       'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
+                        ['url' => '/admin/reports',                 'icon' => 'fa-file-export',   'label' => 'Xuất dữ liệu',         'perm' => 'report.export'],
+                        ['url' => '/admin/aptitude-scores',         'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
+                    ]
+                ],
+                [
+                    'group' => 'TIN TỨC & THÔNG BÁO',
+                    'icon'  => 'fa-bullhorn',
+                    'items' => [
+                        ['url' => '/admin/notifications',           'icon' => 'fa-bell',          'label' => 'Gửi Thông báo',        'perm' => 'candidate.view'],
+                        ['url' => '/admin/posts',                   'icon' => 'fa-newspaper',     'label' => 'Tin tức & Bài viết',   'perm' => 'posts.view'],
+                    ]
+                ],
+                [
+                    'group' => 'CẤU HÌNH TUYỂN SINH',
+                    'icon'  => 'fa-sliders-h',
+                    'items' => [
+                        ['url' => '/admin/master-data/sessions',    'icon' => 'fa-calendar-alt',  'label' => 'Đợt tuyển sinh',       'perm' => 'settings.edit'],
+                        ['url' => '/admin/admission/benchmarks',    'icon' => 'fa-sliders-h',     'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
+                        ['url' => '/admin/rules',                   'icon' => 'fa-gavel',         'label' => 'Điều kiện Xét tuyển',  'perm' => 'settings.edit'],
+                        ['url' => '/admin/master-data/zones',       'icon' => 'fa-map-marker-alt','label' => 'Cấu hình Vùng',        'perm' => 'settings.edit'],
+                        ['url' => '/admin/settings/scoring',        'icon' => 'fa-calculator',    'label' => 'Cấu hình Điểm',        'perm' => 'settings.edit'],
+                    ]
+                ],
+                [
+                    'group' => 'QUẢN LÝ DANH MỤC',
+                    'icon'  => 'fa-folder-open',
+                    'items' => [
+                        ['url' => '/admin/master-data/majors',       'icon' => 'fa-graduation-cap','label' => 'Ngành đào tạo',       'perm' => 'major.view'],
+                        ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group',   'label' => 'Tổ hợp xét tuyển',   'perm' => 'major.view'],
+                        ['url' => '/admin/master-data/subjects',     'icon' => 'fa-book',          'label' => 'Môn học',             'perm' => 'major.view'],
+                        ['url' => '/admin/master-data/schools',      'icon' => 'fa-school',        'label' => 'Trường THPT',         'perm' => 'major.view'],
+                    ]
+                ],
+                [
+                    'group' => 'HỆ THỐNG',
+                    'icon'  => 'fa-cogs',
+                    'items' => [
+                        ['url' => '/admin/accounts',                    'icon' => 'fa-user-shield',      'label' => 'Tài khoản Admin',      'perm' => 'role.view'],
+                        ['url' => '/admin/roles',                       'icon' => 'fa-users-cog',        'label' => 'Quản lý Vai trò',      'perm' => 'role.view'],
+                        ['url' => '/admin/master-data/settings',        'icon' => 'fa-cog',              'label' => 'Cấu hình Chung',       'perm' => 'settings.edit'],
+                        ['url' => '/admin/settings/email',              'icon' => 'fa-envelope',         'label' => 'Cấu hình Email',       'perm' => 'settings.edit'],
+                        ['url' => '/admin/settings/email-templates',    'icon' => 'fa-file-alt',         'label' => 'Mẫu Email',            'perm' => 'settings.edit'],
+                        ['url' => '/admin/import',                      'icon' => 'fa-cloud-upload-alt', 'label' => 'Nhập dữ liệu GD&ĐT',  'perm' => 'settings.edit'],
+                        ['url' => '/admin/audit',                       'icon' => 'fa-history',          'label' => 'Nhật ký Hoạt động',    'perm' => 'audit.view'],
+                    ]
+                ],
             ];
 
             // Load current user once for sidebar permission checks
@@ -156,71 +178,64 @@
             if ($_sidebarUser === null && !empty($_SESSION['admin_id'])) {
                 $_sidebarUser = (new \App\Models\QuanTriVien())->find($_SESSION['admin_id']);
             }
-
-            // Closure: can this user see the given permission key?
             $canSee = function(string $perm) use ($_sidebarUser): bool {
                 if (!$_sidebarUser) return false;
                 return \App\Models\QuanTriVien::hasPermission($_sidebarUser, $perm);
             };
 
-            // Render menu — only print a section header when at least one visible item follows
-            $pendingSection = null;
-            foreach ($menu as $item):
-                if (isset($item['section'])):
-                    $pendingSection = $item['section'];
-                    continue;
-                endif;
+            foreach ($menuGroups as $gi => $group):
+                // Filter items by permission
+                $visibleItems = array_filter($group['items'], function($item) use ($canSee) {
+                    $perm = $item['perm'] ?? null;
+                    return $perm === null || $canSee($perm);
+                });
+                if (empty($visibleItems)) continue;
 
-                // Permission gate
-                $perm = $item['perm'] ?? null;
-                if ($perm !== null && !$canSee($perm)) continue;
-
-                // Now we have a visible item — flush the pending section header
-                if ($pendingSection !== null): ?>
-                    <div class="px-4 mt-6 mb-2 sidebar-section">
-                        <p class="text-[10px] font-black text-sky-400 uppercase tracking-widest"><?= $pendingSection ?></p>
-                    </div>
-                <?php $pendingSection = null; endif;
-
-                $isActive = strpos($currentUri, $item['url']) !== false && $item['url'] !== '#';
-                if ($item['url'] === '/admin/dashboard' && $currentUri === '/TS/admin/dashboard') $isActive = true;
+                // Check if any item in this group is active
+                $groupActive = false;
+                foreach ($visibleItems as $item) {
+                    if (strpos($currentUri, $item['url']) !== false) { $groupActive = true; break; }
+                }
             ?>
-                <?php if (isset($item['submenu'])): ?>
-                    <div x-data="{ open: false }" class="mb-1">
-                        <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 text-sky-100 hover:bg-white/5 hover:text-white group">
-                            <div class="flex items-center">
-                                <span class="w-6 text-center"><i class="fas <?= $item['icon'] ?> text-sky-400 group-hover:text-white transition-colors"></i></span>
-                                <span class="ml-3 font-semibold sidebar-text"><?= $item['label'] ?></span>
-                            </div>
-                            <i class="fas fa-chevron-right text-[10px] transition-transform duration-200 text-sky-400 sidebar-text" :class="{'rotate-90': open}"></i>
-                        </button>
-                        <div x-show="open" x-cloak class="pl-11 pr-2 py-1 space-y-1 mt-1 sidebar-text">
-                            <?php foreach ($item['submenu'] as $sub):
-                                $isSubActive = strpos($currentUri, $sub['url']) !== false;
-                            ?>
-                                <a href="<?= url($sub['url']) ?>" class="block px-3 py-2 rounded-lg text-xs font-semibold transition-colors <?= $isSubActive ? 'bg-sky-500 text-white shadow-md' : 'text-sky-300 hover:text-white hover:bg-white/5' ?>">
-                                    <?= $sub['label'] ?>
-                                </a>
-                            <?php endforeach; ?>
+                <div x-data="{ open: <?= $groupActive ? 'true' : 'false' ?> }" class="mb-1">
+                    <!-- Group Header -->
+                    <button @click="open = !open" 
+                            class="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 group
+                                   <?= $groupActive ? 'bg-white/10 text-white' : 'text-sky-300 hover:bg-white/5 hover:text-white' ?>">
+                        <div class="flex items-center">
+                            <span class="w-5 text-center"><i class="fas <?= $group['icon'] ?> text-xs <?= $groupActive ? 'text-sky-300' : 'text-sky-400/70 group-hover:text-sky-300' ?> transition-colors"></i></span>
+                            <span class="ml-3 sidebar-text"><?= $group['group'] ?></span>
                         </div>
+                        <i class="fas fa-chevron-down text-[8px] transition-transform duration-200 sidebar-text <?= $groupActive ? 'text-sky-300' : 'text-sky-400/50' ?>" :class="{'rotate-180': open}"></i>
+                    </button>
+                    
+                    <!-- Group Items -->
+                    <div x-show="open" x-collapse x-cloak class="mt-0.5 space-y-0.5 sidebar-text">
+                        <?php foreach ($visibleItems as $item):
+                            $isActive = strpos($currentUri, $item['url']) !== false;
+                        ?>
+                            <a href="<?= url($item['url']) ?>" 
+                               class="flex items-center pl-10 pr-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-150
+                                      <?= $isActive 
+                                          ? 'bg-sky-500 text-white shadow-md shadow-sky-900/40' 
+                                          : 'text-sky-100/80 hover:bg-white/5 hover:text-white' ?>">
+                                <span class="w-5 text-center mr-2"><i class="fas <?= $item['icon'] ?> text-[11px] <?= $isActive ? 'text-white' : 'text-sky-400/60' ?>"></i></span>
+                                <?= $item['label'] ?>
+                            </a>
+                        <?php endforeach; ?>
                     </div>
-                <?php else: ?>
-                    <a href="<?= url($item['url']) ?>" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group mb-1 <?= $isActive ? 'bg-sky-500 text-white shadow-lg shadow-sky-900/50' : 'text-sky-100 hover:bg-white/5 hover:text-white' ?>">
-                        <span class="w-6 text-center"><i class="fas <?= $item['icon'] ?> transition-colors <?= $isActive ? 'text-white' : 'text-sky-400 group-hover:text-white' ?>"></i></span>
-                        <span class="ml-3 font-semibold sidebar-text"><?= $item['label'] ?></span>
-                    </a>
-                <?php endif; ?>
+                </div>
             <?php endforeach; ?>
         </nav>
 
         <!-- Bottom Actions -->
-        <div class="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+        <div class="p-3 border-t border-white/10 bg-black/20 flex-shrink-0">
             <button @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebarCollapsed', sidebarCollapsed)" 
                     class="w-full mb-2 py-2 text-xs font-bold text-sky-300 hover:text-white rounded-lg transition flex items-center justify-center">
                 <i class="fas" :class="sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
                 <span class="ml-2 sidebar-text">Thu gọn</span>
             </button>
-            <a href="<?= url('/admin/logout') ?>" class="flex items-center justify-center w-full px-4 py-3 text-xs font-bold text-blue-200 bg-blue-900/20 hover:bg-blue-600 hover:text-white rounded-xl transition-all duration-300 border border-blue-900/30 group">
+            <a href="<?= url('/admin/logout') ?>" class="flex items-center justify-center w-full px-4 py-2.5 text-xs font-bold text-blue-200 bg-blue-900/20 hover:bg-blue-600 hover:text-white rounded-xl transition-all duration-300 border border-blue-900/30 group">
                 <i class="fas fa-sign-out-alt mr-2 group-hover:-translate-x-1 transition-transform"></i> 
                 <span class="sidebar-text">ĐĂNG XUẤT</span>
             </a>
