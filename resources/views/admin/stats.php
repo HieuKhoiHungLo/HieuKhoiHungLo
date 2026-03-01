@@ -198,26 +198,7 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 gap-8 mb-8">
-    <!-- Reviewer Stats Table -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h3 class="font-bold text-slate-800 mb-4 tracking-tight uppercase text-sm">Thống kê duyệt hồ sơ theo cán bộ</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead>
-                    <tr class="text-slate-400 border-b border-slate-100">
-                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Cán bộ</th>
-                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Tên đăng nhập</th>
-                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Số hồ sơ đã duyệt</th>
-                    </tr>
-                </thead>
-                <tbody id="reviewerTableBody">
-                    <!-- Dynamic Content -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
