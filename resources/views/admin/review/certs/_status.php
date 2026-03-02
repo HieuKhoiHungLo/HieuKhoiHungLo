@@ -1,6 +1,7 @@
     <!-- Review Status Section (Extracted from Form) -->
     <?php
-    $currentStatus = $user['trang_thai'] ?? '';
+    $currentStatus = $user['trang_thai_chung_chi'] ?? '';
+    // Default to approved for new or pending
     $checkApproved = ($currentStatus === 'Đã duyệt' || empty($currentStatus) || $currentStatus === 'Chờ duyệt') ? 'checked' : '';
     $checkRejected = ($currentStatus === 'Từ chối') ? 'checked' : '';
     ?>

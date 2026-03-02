@@ -316,6 +316,9 @@ class AdminController extends Controller {
         $certificates = $bundle['certificates'];
         $diemThi = $bundle['diemThi'];
         
+        // Fetch majors with combinations for the wishes tab display
+        $majors = $this->masterDataRepo->getMajorsWithCombinations();
+        
         // Province list (file-cached — no DB hit after first call)  
         $provinces = $this->masterDataRepo->getProvinces();
 
@@ -335,6 +338,7 @@ class AdminController extends Controller {
             'academicRecords' => $academicRecords,
             'academicRows' => $academicRecords,
             'choices' => $choices,
+            'majors' => $majors,
             'currentUser' => $this->currentUser,
             'hasEditRequest' => $hasEditRequest,
             'diemThi' => $diemThi,
