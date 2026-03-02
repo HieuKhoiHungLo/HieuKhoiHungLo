@@ -114,8 +114,8 @@
                     'group' => 'TỔNG QUAN',
                     'icon'  => 'fa-chart-line',
                     'items' => [
-                        ['url' => '/admin/stats',     'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê', 'perm' => 'stats'],
-                        ['url' => '/admin/dashboard', 'icon' => 'fa-th-list',    'label' => 'Danh sách Hồ sơ',  'perm' => 'dashboard'],
+                        ['url' => '/admin/dashboard',  'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê', 'perm' => 'stats'],
+                        ['url' => '/admin/candidates', 'icon' => 'fa-th-list',    'label' => 'Danh sách Hồ sơ',  'perm' => 'dashboard'],
                     ]
                 ],
                 [

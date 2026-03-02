@@ -131,6 +131,7 @@ class AuthController extends Controller {
                 // Set session with secure flags
                 $_SESSION['admin_id'] = $admin['id'];
                 $_SESSION['admin_name'] = $admin['ho_ten'];
+                $_SESSION['admin_avatar'] = $admin['avatar'] ?? null;
                 $_SESSION['admin_role'] = $admin['vai_tro'];
                 $_SESSION['admin_role_id'] = $admin['role_id'] ?? 1;
                 $_SESSION['login_time'] = time();

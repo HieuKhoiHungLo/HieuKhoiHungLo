@@ -85,7 +85,9 @@ $router->group(['middleware' => 'rate_limit:30,1'], function($router) {
 
 // Nhóm các route bảo mật bằng AuthMiddleware
 $router->group(['middleware' => 'auth'], function($router) {
+    $router->get('/admin', function() { header('Location: ' . url('/admin/dashboard')); exit; });
     $router->get('/admin/dashboard', 'AdminController@dashboard');
+    $router->get('/admin/candidates', 'AdminController@candidates');
     $router->get('/admin/review-management', 'AdminController@reviewList');
     $router->get('/admin/review', 'AdminController@review');
     $router->post('/admin/update-status', 'AdminController@updateStatus');

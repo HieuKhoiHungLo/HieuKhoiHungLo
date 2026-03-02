@@ -1,181 +1,576 @@
 <?php ob_start(); ?>
 
-<?php include __DIR__ . '/partials/_stats.php'; ?>
-
-<!-- Main Content Area with AlpineJS context -->
-<div x-data="{ 
-    showCols: JSON.parse(localStorage.getItem('admin_cols')) || { 
-        cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
-        gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false
-    },
-    toggleCol(col) {
-        this.showCols[col] = !this.showCols[col];
-        localStorage.setItem('admin_cols', JSON.stringify(this.showCols));
-    },
-    colLabel(col) {
-        const labels = { 
-            cccd: 'Số CCCD',
-            phone: 'Điện thoại',
-            email: 'Email',
-            province: 'Hộ khẩu', 
-            school: 'Trường THPT', 
-            nv1: 'NV1',
-            gender: 'Giới tính',
-            dob: 'Ngày sinh',
-            ethnicity: 'Dân tộc',
-            area: 'Khu vực ƯT',
-            object: 'Đối tượng ƯT',
-            grad_year: 'Năm tốt nghiệp'
-        };
-        return labels[col] || col;
-    }
-}">
-
-    <?php include __DIR__ . '/partials/_filters.php'; ?>
-
-    <?php include __DIR__ . '/partials/_candidates_table.php'; ?>
+<div class="mb-8">
+    <h2 class="text-2xl font-black text-slate-800 font-heading uppercase tracking-tight">Thống kê & Báo cáo</h2>
+    <p class="text-sm text-slate-500 font-medium">Tổng quan dữ liệu tuyển sinh</p>
 </div>
 
-<?php include __DIR__ . '/partials/_modals.php'; ?>
+<!-- Filters -->
+<!-- Filters -->
+<div class="mb-6 flex flex-wrap gap-3 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+    <select id="filterYear" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer">
+        <?php foreach ($years as $y): ?>
+            <option value="<?= $y ?>" <?= ($selectedYear ?? '') == $y ? 'selected' : '' ?>>
+                Năm <?= $y ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
 
-<script>
-    // Bulk Action Logic
-    const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.item-checkbox');
-    const bulkActions = document.getElementById('bulk-actions');
-    const selectedCount = document.getElementById('selected-count');
-    const bulkActionSelect = document.getElementById('bulk-action-select');
-    const bulkStatusOpt = document.getElementById('bulk-status-opt');
-    const bulkForm = document.getElementById('bulk-form');
-
-    function updateBulkUI() {
-        const checked = document.querySelectorAll('.item-checkbox:checked');
-        selectedCount.innerText = checked.length;
-        if (checked.length > 0) {
-            bulkActions.classList.remove('hidden');
-        } else {
-            bulkActions.classList.add('hidden');
-        }
-    }
-
-    function toggleBulkOptions() {
-        if (!bulkStatusOpt) return;
-        bulkStatusOpt.classList.add('hidden');
-        const action = bulkActionSelect.value;
-        
-        if (action === 'update_status') {
-            bulkStatusOpt.classList.remove('hidden');
-        } else if (action === 'transfer') {
-            openTransferModal();
-        } else if (action === 'send_email') {
-            openEmailModal();
-        }
-    }
+    <select id="filterSession" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer">
+        <option value="">-- Tất cả đợt --</option>
+        <?php foreach ($sessions as $s): ?>
+            <option value="<?= $s['id'] ?>" data-year="<?= $s['nam_tuyen_sinh'] ?>" <?= ($currentSessionId ?? '') == $s['id'] ? 'selected' : '' ?>>
+                <?= htmlspecialchars(!empty($s['ma_dot']) ? $s['ma_dot'] : $s['ten_dot']) ?> - <?= $s['nam_tuyen_sinh'] ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
     
-    // Checkbox Listeners
-    if (selectAll) {
-        selectAll.addEventListener('change', function() {
-            document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = this.checked);
-            updateBulkUI();
-        });
-    }
+    <input type="date" id="filterStart" value="<?= $startDate ?>" class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    <input type="date" id="filterEnd" value="<?= $endDate ?>" class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    
+    <button id="btnFilter" class="px-4 py-2.5 bg-[#0066FF] text-white font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
+        <i class="fas fa-filter mr-2"></i>Lọc
+        <i class="fas fa-spinner fa-spin hidden ml-2" id="loadingSpinner"></i>
+    </button>
+</div>
 
-    document.querySelectorAll('.item-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBulkUI);
+<!-- Overview Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group">
+        <div class="relative z-10">
+            <p class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-2">Tổng hồ sơ</p>
+            <p class="text-4xl font-black" id="statTotal"><?= $stats['total'] ?></p>
+            <div class="mt-3 space-y-1 text-sm">
+                <div class="flex items-center gap-2 text-indigo-100">
+                    <i class="fas fa-calendar-day text-xs"></i>
+                    <span>Hôm nay: <strong id="recentToday" class="text-white">0</strong></span>
+                </div>
+                <div class="flex items-center gap-2 text-indigo-100">
+                    <i class="fas fa-calendar-week text-xs"></i>
+                    <span>Tuần này: <strong id="recentWeek" class="text-white">0</strong></span>
+                </div>
+            </div>
+        </div>
+        <i class="fas fa-users absolute -bottom-4 -right-4 text-9xl text-blue-400 opacity-20 group-hover:opacity-30 transition transform group-hover:scale-110"></i>
+    </div>
+    
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Đã duyệt</p>
+            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i class="fas fa-check"></i></span>
+        </div>
+        <p class="text-3xl font-black text-slate-800"><?= $stats['approved'] ?></p>
+         <div class="mt-2 text-xs font-medium text-emerald-600" id="approvalRate">
+            <?= $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100, 1) : 0 ?>% tỷ lệ duyệt
+        </div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Chờ duyệt</p>
+            <span class="p-2 bg-amber-50 text-amber-600 rounded-lg"><i class="fas fa-clock"></i></span>
+        </div>
+        <p class="text-3xl font-black text-slate-800"><?= $stats['pending'] ?></p>
+         <div class="mt-2 text-xs font-medium text-amber-600">
+             Cần xử lý gấp
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Từ chối</p>
+            <span class="p-2 bg-rose-50 text-rose-600 rounded-lg"><i class="fas fa-times"></i></span>
+        </div>
+        <p class="text-3xl font-black text-slate-800"><?= $stats['rejected'] ?></p>
+    </div>
+</div>
+
+<!-- Latest Candidates -->
+<div class="mb-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">5 Hồ sơ mới đăng ký gần nhất</h3>
+            <a href="<?= url('/admin/applications') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition">Xem tất cả &rarr;</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Thí sinh</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">CCCD</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Thời gian</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="latestCandidatesBody">
+                    <!-- Dynamic Content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-8 mb-8">
+    <!-- Chart: Admissions by Major (Full Width) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Hồ sơ theo ngành</h3>
+        <div class="relative h-96">
+            <canvas id="majorChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="mb-8">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">Thống kê nguyện vọng theo ngành</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider" rowspan="2">Mã ngành</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider" rowspan="2">Tên ngành</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-center" rowspan="2">Chỉ tiêu 2026</th>
+                        <th class="py-2 px-4 font-bold uppercase tracking-wider text-center border-b border-slate-200" colspan="4">Thống kê nguyện vọng</th>
+                    </tr>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-2 px-4 font-bold text-center border-l">Tổng</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">NV1</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">NV2</th>
+                        <th class="py-2 px-4 font-bold text-center border-l">Còn lại</th>
+                    </tr>
+                </thead>
+                <tbody id="detailedMajorStatsBody">
+                    <tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
+                </tbody>
+                <tfoot id="detailedMajorStatsFoot" class="bg-slate-50 font-normal text-slate-800 border-t-2 border-slate-200">
+                    <!-- Total row will be injected here -->
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Chart: Daily Registrations (50%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Hồ sơ theo ngày</h3>
+        <div class="relative h-96">
+             <canvas id="dailyRegistrationChart"></canvas>
+             <div id="loadingSpinner" class="absolute inset-0 flex items-center justify-center bg-white/70 hidden z-10 rounded-xl backdrop-blur-sm transition-all duration-300">
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-circle-notch fa-spin text-[#0066FF] text-4xl mb-3"></i>
+                    <span class="text-slate-600 font-medium text-sm">Đang tải dữ liệu...</span>
+                </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Chart: Top Province (50%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Top Tỉnh/Thành phố</h3>
+        <div class="relative h-96">
+            <canvas id="provinceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+    <!-- Status (25%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Trạng thái hồ sơ</h3>
+        <div class="relative h-64">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+    <!-- Gender (25%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Giới tính</h3>
+        <div class="relative h-64">
+            <canvas id="genderChart"></canvas>
+        </div>
+    </div>
+    <!-- Area (25%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Khu vực</h3>
+        <div class="relative h-64">
+            <canvas id="areaChart"></canvas>
+        </div>
+    </div>
+    <!-- Object (25%) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Đối tượng ưu tiên</h3>
+        <div class="relative h-64">
+            <canvas id="objectChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-8 mb-8">
+    <!-- Chart: Top High Schools (Full Width) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4">Top Trường THPT</h3>
+        <div class="relative h-96">
+            <canvas id="schoolChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="mb-8">
+    <!-- Table: Thống kê người duyệt -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-sm">Thống kê người duyệt hồ sơ</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="text-slate-500 border-b-2 border-slate-200 bg-slate-50/50">
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Họ tên cán bộ</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider">Tên đăng nhập</th>
+                        <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Số lượng hồ sơ đã duyệt</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewerTableBody">
+                    <tr><td colspan="3" class="py-6 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let charts = {};
+
+    // Initial Load
+    fetchStats();
+
+    // Event Listeners
+    document.getElementById('btnFilter').addEventListener('click', fetchStats);
+    
+    document.getElementById('filterYear').addEventListener('change', function() {
+        const year = this.value;
+        const sessionSelect = document.getElementById('filterSession');
+        
+        // Filter sessions by year
+        Array.from(sessionSelect.options).forEach(opt => {
+            if (opt.value === "") return;
+            const optYear = opt.getAttribute('data-year');
+            opt.style.display = (optYear == year) ? 'block' : 'none';
+        });
+        
+        // Reset session if hidden
+        const selectedOpt = sessionSelect.selectedOptions[0];
+        if (selectedOpt && selectedOpt.value !== "" && selectedOpt.style.display === 'none') {
+            sessionSelect.value = "";
+        }
     });
 
-    // Modal Functions
-    function closeModal(id) {
-        document.getElementById(id).classList.add('hidden');
-        bulkActionSelect.value = ''; // Reset select
-    }
+    function fetchStats() {
+        const year = document.getElementById('filterYear').value;
+        const session = document.getElementById('filterSession').value;
+        const start = document.getElementById('filterStart').value;
+        const end = document.getElementById('filterEnd').value;
+        const spinner = document.getElementById('loadingSpinner');
 
-    function openTransferModal() {
-        const checked = document.querySelectorAll('.item-checkbox:checked');
-        const count = checked.length;
-        document.getElementById('transfer-count').innerText = count;
+        // Show spinner
+        if(spinner) spinner.classList.remove('hidden');
 
-        const currentSessionIds = new Set();
-        checked.forEach(cb => {
-            const sid = cb.getAttribute('data-session-id');
-            if(sid) currentSessionIds.add(sid);
+        const params = new URLSearchParams({
+            year: year,
+            session_id: session,
+            start: start,
+            end: end
         });
 
-        const select = document.getElementById('modal-target-session');
-        if (!select) return;
+        fetch(`<?= url('/admin/stats/api') ?>?${params.toString()}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                updateUI(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+            })
+            .finally(() => {
+                if(spinner) spinner.classList.add('hidden');
+            });
+    }
+
+    function updateUI(data) {
+        // Update Overview Numbers
+        const overview = data.overview;
+        const totalEl = document.getElementById('statTotal');
+        if(totalEl) totalEl.textContent = overview.total;
         
-        const options = select.options;
-        const shouldFilter = currentSessionIds.size === 1;
-        const filterId = shouldFilter ? currentSessionIds.values().next().value : null;
-
-        for (let i = 0; i < options.length; i++) {
-            const opt = options[i];
-            opt.style.display = '';
-            opt.disabled = false;
-
-            if (shouldFilter && opt.value && opt.value == filterId) {
-                opt.style.display = 'none';
-                opt.disabled = true;
-            } 
+        const StatCards = document.querySelectorAll('.bg-white.p-6.rounded-2xl');
+        if(StatCards.length >= 3) {
+            // Approved
+            StatCards[0].querySelector('.text-3xl').textContent = overview.approved;
+            // Pending
+            StatCards[1].querySelector('.text-3xl').textContent = overview.pending;
+            // Rejected
+            StatCards[2].querySelector('.text-3xl').textContent = overview.rejected;
         }
         
-        if (select.value && select.options[select.selectedIndex].disabled) {
-             select.value = "";
+        // Update approval rate
+        const rateEl = document.getElementById('approvalRate');
+        if(rateEl && overview.total > 0) {
+            rateEl.textContent = (overview.approved / overview.total * 100).toFixed(1) + '% tỷ lệ duyệt';
+        } else if(rateEl) {
+            rateEl.textContent = '0% tỷ lệ duyệt';
         }
 
-        document.getElementById('transfer-modal').classList.remove('hidden');
-    }
+        // Update Recent Stats
+        const todayEl = document.getElementById('recentToday');
+        if (todayEl && data.recent) todayEl.textContent = data.recent.today;
+        
+        const weekEl = document.getElementById('recentWeek');
+        if (weekEl && data.recent) weekEl.textContent = data.recent.this_week;
 
-    function confirmTransfer() {
-        const targetSessionId = document.getElementById('modal-target-session').value;
-        if (!targetSessionId) return;
+        // Update Latest Candidates Table
+        const latestBody = document.getElementById('latestCandidatesBody');
+        if (latestBody && data.latest) {
+            latestBody.innerHTML = '';
+            if (data.latest.length > 0) {
+                data.latest.forEach(cand => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    
+                    // Format date to DD/MM/YYYY HH:mm
+                    const d = new Date(cand.created_at);
+                    const formattedDate = (d.getDate() < 10 ? '0' : '') + d.getDate() + '/' + 
+                                          ((d.getMonth() + 1) < 10 ? '0' : '') + (d.getMonth() + 1) + '/' + 
+                                          d.getFullYear() + ' ' + 
+                                          (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + 
+                                          (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+                    
+                    let statusHtml = '';
+                    switch(cand.trang_thai) {
+                        case 'Đã duyệt': statusHtml = '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold">Đã duyệt</span>'; break;
+                        case 'Từ chối': statusHtml = '<span class="px-2.5 py-1 bg-rose-100 text-rose-700 rounded-lg text-xs font-bold">Từ chối</span>'; break;
+                        default: statusHtml = '<span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">Chờ duyệt</span>'; break;
+                    }
 
-        let input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'target_session_id';
-        input.value = targetSessionId;
-        bulkForm.appendChild(input);
-
-        let actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'forced_action';
-        actionInput.value = 'transfer';
-        bulkForm.appendChild(actionInput);
-
-        Loading.show();
-        bulkForm.submit();
-    }
-
-    function openEmailModal() {
-        const count = document.querySelectorAll('.item-checkbox:checked').length;
-        document.getElementById('email-count').innerText = count;
-        document.getElementById('email-modal').classList.remove('hidden');
-    }
-
-    function confirmSendEmail() {
-        const subject = document.getElementById('modal-email-subject').value;
-        const content = document.getElementById('modal-email-content').value;
-
-        if (!subject || !content) {
-            showToast('Vui lòng nhập tiêu đề và nội dung', 'warning');
-            return;
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-bold text-slate-700">${cand.ho_ten}</td>
+                        <td class="py-3 px-4 text-slate-500 font-mono text-xs">${cand.so_cccd}</td>
+                        <td class="py-3 px-4 text-slate-500 text-xs">${formattedDate}</td>
+                        <td class="py-3 px-4 text-right">${statusHtml}</td>
+                    `;
+                    latestBody.appendChild(tr);
+                });
+            } else {
+                latestBody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-400 font-medium">Chưa có hồ sơ mới.</td></tr>';
+            }
         }
 
-        let inputSub = document.createElement('input');
-        inputSub.type = 'hidden';
-        inputSub.name = 'email_subject';
-        inputSub.value = subject;
-        bulkForm.appendChild(inputSub);
+        // Update Detailed Major Stats Table
+        const detailedBody = document.getElementById('detailedMajorStatsBody');
+        const detailedFoot = document.getElementById('detailedMajorStatsFoot');
+        
+        if (detailedBody && detailedFoot && data.detailed_major_stats) {
+            detailedBody.innerHTML = '';
+            
+            let totalTargets = 0;
+            let totalAll = 0;
+            let totalNV1 = 0;
+            let totalNV2 = 0;
+            let totalOthers = 0;
 
-        let inputContent = document.createElement('input');
-        inputContent.type = 'hidden';
-        inputContent.name = 'email_content';
-        inputContent.value = content;
-        bulkForm.appendChild(inputContent);
+            if (data.detailed_major_stats.length > 0) {
+                data.detailed_major_stats.forEach(major => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    
+                    const target = parseInt(major.chi_tieu) || 0;
+                    const tong = parseInt(major.tong_nv) || 0;
+                    const nv1 = parseInt(major.nv1) || 0;
+                    const nv2 = parseInt(major.nv2) || 0;
+                    const conLai = parseInt(major.nv_con_lai) || 0;
 
-        Loading.show();
-        bulkForm.submit();
+                    totalTargets += target;
+                    totalAll += tong;
+                    totalNV1 += nv1;
+                    totalNV2 += nv2;
+                    totalOthers += conLai;
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 text-slate-800">${major.ma_nganh}</td>
+                        <td class="py-3 px-4 text-slate-800">${major.ten_nganh}</td>
+                        <td class="py-3 px-4 text-center text-slate-800">${target > 0 ? target : '-'}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${tong}</td>
+                        <td class="py-3 px-4 text-center text-red-600 border-l border-slate-100">${nv1}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${nv2}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${conLai}</td>
+                    `;
+                    detailedBody.appendChild(tr);
+                });
+
+                // Render Footer
+                detailedFoot.innerHTML = `
+                    <tr>
+                        <td class="py-3 px-4 text-right" colspan="2">TỔNG CỘNG</td>
+                        <td class="py-3 px-4 text-center text-slate-800">${totalTargets > 0 ? totalTargets : '-'}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalAll}</td>
+                        <td class="py-3 px-4 text-center text-red-600 border-l border-slate-200">${totalNV1}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalNV2}</td>
+                        <td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${totalOthers}</td>
+                    </tr>
+                `;
+            } else {
+                detailedBody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Chưa có dữ liệu nguyện vọng.</td></tr>';
+                detailedFoot.innerHTML = '';
+            }
+        }
+
+        // Update Charts
+        updateChart('dailyRegistrationChart', 'daily', data.daily, 'date', 'count', 'Số lượng hồ sơ');
+        updatePieChart('statusChart', data.overview);
+        updateBarChart('majorChart', data.major, 'ten_nganh', 'count', 'Hồ sơ theo ngành');
+        updateBarChart('provinceChart', data.province, 'label', 'count', 'Hồ sơ theo tỉnh');
+        updateBarChart('schoolChart', data.school, 'label', 'count', 'Hồ sơ theo trường');
+        updatePieChartGeneric('genderChart', data.gender, 'Giới tính');
+        updatePieChartGeneric('areaChart', data.area, 'Khu vực');
+        updatePieChartGeneric('objectChart', data.object, 'Đối tượng');
+
+        // Update Reviewer Table
+        const tableBody = document.getElementById('reviewerTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            if (data.reviewers && data.reviewers.length > 0) {
+                data.reviewers.forEach(rev => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-bold text-slate-700">${rev.ho_ten}</td>
+                        <td class="py-3 px-4 text-slate-500">${rev.ten_dang_nhap}</td>
+                        <td class="py-3 px-4 font-black text-[#0066FF] text-right text-lg">${rev.review_count}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-slate-400 font-medium">Chưa có dữ liệu duyệt hồ sơ.</td></tr>';
+            }
+        }
     }
+
+    function updateChart(canvasId, type, data, labelKey, valueKey, label) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+
+        charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(item => item[labelKey]),
+                datasets: [{
+                    label: label,
+                    data: data.map(item => item[valueKey]),
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function updatePieChart(canvasId, overview) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (charts[canvasId]) charts[canvasId].destroy();
+
+        charts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đã duyệt', 'Chờ duyệt', 'Từ chối'],
+                datasets: [{
+                    data: [overview.approved, overview.pending, overview.rejected],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    function updateBarChart(canvasId, data, labelKey, valueKey, label) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (charts[canvasId]) charts[canvasId].destroy();
+
+        // Check if it's the major or school chart to apply specific vertical styling
+        const isMajorChart = canvasId === 'majorChart' || canvasId === 'schoolChart';
+
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar', // Default is vertical
+            data: {
+                labels: data.map(item => item[labelKey]),
+                datasets: [{
+                    label: label,
+                    data: data.map(item => item[valueKey]),
+                    backgroundColor: '#6366f1',
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                indexAxis: isMajorChart ? 'x' : 'y', // Major chart = vertical (x), others (like province) = horizontal (y)
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: false, // Show all labels
+                            maxRotation: 90,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function updatePieChartGeneric(canvasId, data, label) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (charts[canvasId]) charts[canvasId].destroy();
+
+        charts[canvasId] = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: data.map(item => item.label),
+                datasets: [{
+                    label: label,
+                    data: data.map(item => item.count),
+                     backgroundColor: [
+                        '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+                        '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#64748b'
+                    ]
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+});
 </script>
 
 <?php 

@@ -147,7 +147,7 @@ class AdminController extends Controller {
         }
     }
 
-    public function dashboard() {
+    public function candidates() {
         return $this->handleCandidateList('dashboard');
     }
 
@@ -161,7 +161,7 @@ class AdminController extends Controller {
         $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
         $editRequest = $_GET['edit_request'] ?? '';
         
-        // Load sessions (cached 30 min — rarely changes)
+        // Load sessions (cached 30 min)
         $admissionSessionModel = new \App\Models\AdmissionSession();
         $sessions = \App\Core\Cache::remember('all_sessions', 30, function() use ($admissionSessionModel) {
             return $admissionSessionModel->getAll();
@@ -180,7 +180,7 @@ class AdminController extends Controller {
 
         // Default to Active Session if no filters provided
         if ($year === null && $sessionId === null) {
-            $activeSession = $admissionSessionModel->getActiveSession(); // already cached
+            $activeSession = $admissionSessionModel->getActiveSession(); 
             if (!$activeSession) {
                 $activeSession = $admissionSessionModel->getLatestActiveSession();
             }
@@ -222,7 +222,6 @@ class AdminController extends Controller {
             'school' => $_GET['f_school'] ?? '',
         ];
 
-        // Single query: candidates + total count (via COUNT OVER window function)
         $candidates = $this->thiSinhRepo->getFiltered(
             $search, $status, $hocBaStatus, $limit, $offset, 
             $sessionId, 
@@ -234,26 +233,24 @@ class AdminController extends Controller {
             $extraFilters
         );
 
-        // Extract total from _total_count window function — no separate countFiltered query needed
         $total = !empty($candidates) ? (int)($candidates[0]['_total_count'] ?? 0) : 0;
         $totalPages = ceil($total / max($limit, 1));
         
-        // Clean _total_count from candidate rows
         foreach ($candidates as &$c) {
             unset($c['_total_count']);
         }
         unset($c);
 
-        // Stats query (1 round-trip)
         $stats = $this->thiSinhRepo->getStats($sessionId, $year); 
-
-        // Email templates (cached 60 min — rarely changes)
+        $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
+        $stats['today'] = $recent['today'] ?? 0;
+        $stats['this_week'] = $recent['this_week'] ?? 0;
         $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function() {
             $model = new \App\Models\EmailTemplate();
             return $model->getAll();
         });
 
-        $this->view('admin/dashboard', [
+        $this->view('admin/candidates', [
             'mode' => $mode,
             'candidates' => $candidates,
             'stats' => $stats,
@@ -404,21 +401,18 @@ class AdminController extends Controller {
         }
     }
 
-    public function stats() {
+    public function dashboard() {
         $this->checkPermission('stats');
         
-        // Load sessions first to get years (needed for filter dropdowns only)
         $sessionModel = new \App\Models\AdmissionSession();
         $sessions = \App\Core\Cache::remember('all_sessions', 30, fn() => $sessionModel->getAll());
         
-        // Extract years
         $years = array_unique(array_column($sessions, 'nam_tuyen_sinh'));
         rsort($years);
         
         $selectedYear = $_GET['year'] ?? null;
         $sessionId    = $_GET['session_id'] ?? null;
 
-        // Default to Active Session if no filters provided
         if ($selectedYear === null && $sessionId === null) {
             $activeSession = $sessionModel->getActiveSession();
             if (!$activeSession) {
@@ -438,7 +432,6 @@ class AdminController extends Controller {
             $selectedYear = !empty($years) ? reset($years) : date('Y');
         }
         
-        // Determine date range (passed to view as defaults for AJAX calls)
         if ($selectedYear && !isset($_GET['start']) && !isset($_GET['end'])) {
             $startDate = "$selectedYear-01-01";
             $endDate   = "$selectedYear-12-31";
@@ -448,8 +441,7 @@ class AdminController extends Controller {
             $endDate   = $_GET['end']   ?? "$y-12-31";
         }
 
-        // NOTE: No heavy stat queries here — all data is loaded via AJAX to /admin/stats/api
-        $this->view('admin/stats', [
+        $this->view('admin/dashboard', [
             'startDate'       => $startDate,
             'endDate'         => $endDate,
             'sessions'        => $sessions,
@@ -459,6 +451,11 @@ class AdminController extends Controller {
             'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'rejected' => 0],
             'user'            => $this->currentUser
         ]);
+    }
+
+    public function stats() {
+        // Mặc định bây giờ stats là dashboard
+        $this->redirect(url('/admin/dashboard'));
     }
 
     public function statsApi() {
