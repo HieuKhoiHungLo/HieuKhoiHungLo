@@ -594,7 +594,7 @@ if (isset($stepStatus)) {
                 <?php foreach(array_slice($posts ?? [], 0, 3) as $post): ?>
                 <a href="<?= url('/news/detail?slug=' . $post['slug']) ?>" class="group block">
                     <div class="relative overflow-hidden rounded-2xl mb-4 shadow-md">
-                        <img loading="lazy" src="<?= $post['thumbnail'] ?: url('/assets/img/Logo.png') ?>" class="w-full h-56 object-cover transform group-hover:scale-110 transition duration-700">
+                        <img loading="lazy" src="<?= $post['thumbnail'] ? (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) : url('/assets/img/Logo.png') ?>" class="w-full h-56 object-cover transform group-hover:scale-110 transition duration-700">
                         <div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold uppercase text-hvu-red">
                             <?= $post['category'] ?>
                         </div>
@@ -611,7 +611,7 @@ if (isset($stepStatus)) {
                     <?php foreach(array_slice($posts ?? [], 0, 3) as $i => $post): ?>
                     <a href="<?= url('/news/detail?slug=' . $post['slug']) ?>" class="snap-center flex-shrink-0 block w-full">
                         <div class="relative overflow-hidden rounded-2xl mb-3 shadow-md">
-                            <img loading="lazy" src="<?= $post['thumbnail'] ?: url('/assets/img/Logo.png') ?>" class="w-full h-44 object-cover">
+                            <img loading="lazy" src="<?= $post['thumbnail'] ? (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) : url('/assets/img/Logo.png') ?>" class="w-full h-44 object-cover">
                             <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase text-hvu-red">
                                 <?= $post['category'] ?>
                             </div>
