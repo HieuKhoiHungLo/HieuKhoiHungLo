@@ -57,24 +57,32 @@ class MajorController extends Controller {
                     'ma_nganh' => $_POST['ma_nganh'],
                     'ten_nganh' => $_POST['ten_nganh'],
                     'chi_tieu' => $_POST['chi_tieu'] ?: null,
+                    'nhom_nganh' => $_POST['nhom_nganh'] ?? 'Khac',
+                    'nguong_hoc_luc' => $_POST['nguong_hoc_luc'] ?: null,
+                    'nguong_diem_thpt' => $_POST['nguong_diem_thpt'] ?: null,
                     'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
                     'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
                     'ghi_chu' => $_POST['ghi_chu'],
                     'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
                 ]);
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
+                \App\Core\Cache::forget('master_majors_combinations');
 
             } elseif ($action === 'update') {
                 $this->masterData->update('dm_nganh', $_POST['old_ma'], [
                     'ma_nganh' => $_POST['ma_nganh'],
                     'ten_nganh' => $_POST['ten_nganh'],
                     'chi_tieu' => $_POST['chi_tieu'] ?: null,
+                    'nhom_nganh' => $_POST['nhom_nganh'] ?? 'Khac',
+                    'nguong_hoc_luc' => $_POST['nguong_hoc_luc'] ?: null,
+                    'nguong_diem_thpt' => $_POST['nguong_diem_thpt'] ?: null,
                     'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
                     'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
                     'ghi_chu' => $_POST['ghi_chu'],
                     'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
                 ], 'ma_nganh');
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
+                \App\Core\Cache::forget('master_majors_combinations');
             }
             $this->redirect(url('/admin/master-data/majors'));
         }
@@ -88,6 +96,7 @@ class MajorController extends Controller {
                 // Also delete relationships
                 $this->masterData->delete('dm_nganh_to_hop', $ma, 'ma_nganh');
                 $this->masterData->delete('dm_nganh', $ma, 'ma_nganh');
+                \App\Core\Cache::forget('master_majors_combinations');
                 $_SESSION['success'] = "Xóa ngành thành công";
             }
             $this->redirect(url('/admin/master-data/majors'));
@@ -107,6 +116,7 @@ class MajorController extends Controller {
                         // Delete relationships first
                         $this->masterData->deleteMany('dm_nganh_to_hop', $ids, 'ma_nganh');
                         $this->masterData->deleteMany('dm_nganh', $ids, 'ma_nganh');
+                        \App\Core\Cache::forget('master_majors_combinations');
                         $_SESSION['success'] = "Đã xóa " . count($ids) . " ngành";
                     }
                 } elseif ($action === 'import') {
@@ -204,6 +214,7 @@ class MajorController extends Controller {
                 $comboCodes = array_map('trim', explode(',', $khoi));
                 $this->masterData->saveMajorCombinations($ma, $comboCodes);
             }
+            \App\Core\Cache::forget('master_majors_combinations');
             
             $count++;
         }
