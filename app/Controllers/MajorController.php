@@ -69,8 +69,11 @@ class MajorController extends Controller {
                 \App\Core\Cache::forget('master_majors_combinations');
 
             } elseif ($action === 'update') {
-                $this->masterData->update('dm_nganh', $_POST['old_ma'], [
-                    'ma_nganh' => $_POST['ma_nganh'],
+                $oldMa = $_POST['old_ma'];
+                $newMa = $_POST['ma_nganh'];
+                
+                $this->masterData->update('dm_nganh', $oldMa, [
+                    'ma_nganh' => $newMa,
                     'ten_nganh' => $_POST['ten_nganh'],
                     'chi_tieu' => $_POST['chi_tieu'] ?: null,
                     'nhom_nganh' => $_POST['nhom_nganh'] ?? 'Khac',
@@ -81,7 +84,13 @@ class MajorController extends Controller {
                     'ghi_chu' => $_POST['ghi_chu'],
                     'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
                 ], 'ma_nganh');
-                $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
+                
+                // If ID changed, clear old relationships to avoid orphans
+                if ($oldMa !== $newMa) {
+                    $this->masterData->delete('dm_nganh_to_hop', $oldMa, 'ma_nganh');
+                }
+                
+                $this->masterData->saveMajorCombinations($newMa, $_POST['combinations'] ?? []);
                 \App\Core\Cache::forget('master_majors_combinations');
             }
             $this->redirect(url('/admin/master-data/majors'));

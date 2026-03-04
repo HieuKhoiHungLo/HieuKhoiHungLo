@@ -168,10 +168,11 @@ class MasterData extends Model {
     public function getMajorsWithCombinations() {
         return \App\Core\Cache::remember('master_majors_combinations', 1440, function() {
             // Postgres uses string_agg
-            $sql = "SELECT n.*, string_agg(nth.ma_to_hop, ', ') as combination_list 
+            $sql = "SELECT n.*, 
+                           (SELECT string_agg(ma_to_hop, ', ') 
+                            FROM dm_nganh_to_hop 
+                            WHERE ma_nganh = n.ma_nganh) as combination_list 
                     FROM dm_nganh n 
-                    LEFT JOIN dm_nganh_to_hop nth ON n.ma_nganh = nth.ma_nganh 
-                    GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.khoi_xet_tuyen, n.diem_nam_truoc, n.ghi_chu, n.khu_vuc_tuyen_sinh, n.id, n.nhom_nganh, n.nguong_hoc_luc, n.nguong_diem_thpt
                     ORDER BY n.ten_nganh";
             try {
                 $stmt = $this->db->prepare($sql);
