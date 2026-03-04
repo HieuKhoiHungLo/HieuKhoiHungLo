@@ -44,12 +44,19 @@ session_start();
 // Session timeout check (1 day = 1440 minutes)
 \App\Middleware\SecurityMiddleware::checkSessionTimeout(1440);
 
+// Load Env
+try {
+    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
+    $dotenv->load();
+} catch (\Exception $e) {
+    // Fail silently if .env not found
+}
+
 // --- REMEMBER ME AUTO-LOGIN LOGIC ---
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_ts'])) {
     $token = $_COOKIE['remember_ts'];
     // Connect to DB directly or load repo to verify token
     try {
-        require_once __DIR__ . '/../config/db.php';
         $db = \App\Core\Database::getInstance()->getConnection();
         $stmt = $db->prepare("SELECT id, ho_va_ten, so_cccd FROM thi_sinh WHERE remember_token = ? LIMIT 1");
         $stmt->execute([$token]);
@@ -70,14 +77,6 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_ts'])) {
     } catch (\Exception $e) {
         // Ignore DB error during early boot
     }
-}
-
-// Load Env
-try {
-    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
-    $dotenv->load();
-} catch (\Exception $e) {
-    // Fail silently if .env not found
 }
 
 require_once __DIR__ . '/../routes/web.php';
