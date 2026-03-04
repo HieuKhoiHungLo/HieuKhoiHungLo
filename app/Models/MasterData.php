@@ -173,7 +173,7 @@ class MasterData extends Model {
                             FROM dm_nganh_to_hop 
                             WHERE ma_nganh = n.ma_nganh) as combination_list 
                     FROM dm_nganh n 
-                    ORDER BY n.ten_nganh";
+                    ORDER BY n.ma_nganh ASC";
             try {
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute();
