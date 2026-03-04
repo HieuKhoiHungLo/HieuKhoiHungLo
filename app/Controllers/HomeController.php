@@ -93,14 +93,9 @@ class HomeController extends Controller {
             ];
         }
 
-        // 4. Get Major Info (Optimized with Session Cache)
-        if (!isset($_SESSION['cache_majors'])) {
-            try {
-                $stmt = $db->query("SELECT ma_nganh, ten_nganh, chi_tieu, khoi_xet_tuyen, diem_nam_truoc FROM dm_nganh ORDER BY ma_nganh ASC");
-                $_SESSION['cache_majors'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) { $_SESSION['cache_majors'] = []; }
-        }
-        $majors = $_SESSION['cache_majors'];
+        // 4. Get Major Info (Optimized with Model and Cache)
+        $masterData = new \App\Models\MasterData();
+        $majors = $masterData->getMajorsWithCombinations();
 
         // 5. Get Admission Conditions & Homepage Settings (Optimized with Session Cache)
         if (!isset($_SESSION['cache_home_settings'])) {

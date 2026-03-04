@@ -473,7 +473,7 @@ if (isset($stepStatus)) {
                                         <?= $major['chi_tieu'] ?: '--' ?>
                                     </td>
                                     <td class="px-4 py-2.5 text-center text-gray-600 font-medium align-middle uppercase">
-                                        <?= $major['khoi_xet_tuyen'] ?>
+                                        <?= $major['combination_list'] ?: $major['khoi_xet_tuyen'] ?>
                                     </td>
                                     <td class="px-5 py-2.5 text-center align-middle">
                                         <?php if($major['diem_nam_truoc'] > 0): ?>
@@ -521,7 +521,7 @@ if (isset($stepStatus)) {
                                     <div class="px-5 py-2.5 bg-gray-50/80 border-t border-gray-100 space-y-1">
                                         <p class="text-[12px] text-gray-600">
                                             <span class="text-gray-400 font-semibold">Tổ hợp xét:</span> 
-                                            <span class="font-bold text-gray-800 uppercase"><?= $major['khoi_xet_tuyen'] ?: '--' ?></span>
+                                            <span class="font-bold text-gray-800 uppercase"><?= $major['combination_list'] ?: ($major['khoi_xet_tuyen'] ?: '--') ?></span>
                                         </p>
                                         <p class="text-[12px] text-gray-600">
                                             <span class="text-gray-400 font-semibold">Điểm chuẩn 2025:</span> 
