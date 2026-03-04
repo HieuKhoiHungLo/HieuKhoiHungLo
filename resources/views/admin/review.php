@@ -118,16 +118,16 @@
                 <i class="fas fa-user mr-2 text-xs"></i> 1. Duyệt thông tin
             </button>
             <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
-                <i class="fas fa-graduation-cap mr-2 text-xs"></i> 2. Duyệt học lực
+                <i class="fas fa-graduation-cap mr-2 text-xs"></i> 2. Duyệt học lực. Xác nhận điểm số chính xác
             </button>
             <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
-                <i class="fas fa-certificate mr-2 text-xs"></i> 3. Chứng chỉ hợp lệ
+                <i class="fas fa-certificate mr-2 text-xs"></i> 3. Hợp lệ. Chứng chỉ được chấp nhận
             </button>
             <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
-                <i class="fas fa-poll-h mr-2 text-xs"></i> 4. Điểm thi khớp
+                <i class="fas fa-poll-h mr-2 text-xs"></i> 4. Hợp lệ. Điểm khớp với hệ thống
             </button>
             <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
-                <i class="fas fa-list-ol mr-2 text-xs"></i> 5. Nguyện vọng chuẩn
+                <i class="fas fa-list-ol mr-2 text-xs"></i> 5. Hợp lệ. Nguyện vọng chuẩn
             </button>
         </div>
     </div>
