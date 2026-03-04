@@ -46,8 +46,8 @@
 
         <!-- Priority Area (KV) -->
         <div x-show="activeGrade === 'KV'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100">
-            <?php if(!empty($user['minh_chung_kv'])): ?>
-                <?= render_evidence_item($user['minh_chung_kv'], 'Minh chứng Khu vực Ưu tiên', 'img_ev_kv') ?>
+            <?php if(!empty($user['file_minh_chung_kv'])): ?>
+                <?= render_evidence_item($user['file_minh_chung_kv'], 'Minh chứng Khu vực Ưu tiên', 'img_ev_kv') ?>
             <?php else: ?>
                 <div class="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
                     <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-slate-200 mb-4 shadow-sm">
@@ -60,8 +60,8 @@
 
         <!-- Priority Object (DT) -->
         <div x-show="activeGrade === 'DT'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100">
-            <?php if(!empty($user['minh_chung_dt'])): ?>
-                <?= render_evidence_item($user['minh_chung_dt'], 'Minh chứng Đối tượng Ưu tiên', 'img_ev_dt') ?>
+            <?php if(!empty($user['file_minh_chung_dt'])): ?>
+                <?= render_evidence_item($user['file_minh_chung_dt'], 'Minh chứng Đối tượng Ưu tiên', 'img_ev_dt') ?>
             <?php else: ?>
                 <div class="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
                     <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-slate-200 mb-4 shadow-sm">

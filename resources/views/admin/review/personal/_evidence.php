@@ -72,4 +72,22 @@
             <img id="preview_cccd_back" class="hidden mt-2 w-full rounded-lg border border-slate-200">
         </div>
     </div>
+
+    <!-- Minh chứng KV Ưu tiên -->
+    <div class="mt-4 pt-4 border-t border-slate-100 personal-edit-field hidden">
+        <label class="block text-[11px] font-black text-[#ff8800] uppercase tracking-widest mb-2">Minh chứng Khu vực</label>
+        <?php if (!empty($user['file_minh_chung_kv'])): ?>
+            <div class="text-[10px] text-slate-400 mb-2 truncate">Hiện có: <?= basename($user['file_minh_chung_kv']) ?></div>
+        <?php endif; ?>
+        <input type="file" name="kv_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all cursor-pointer">
+    </div>
+
+    <!-- Minh chứng ĐT Ưu tiên -->
+    <div class="mt-4 personal-edit-field hidden">
+        <label class="block text-[11px] font-black text-blue-600 uppercase tracking-widest mb-2">Minh chứng Đối tượng</label>
+        <?php if (!empty($user['file_minh_chung_dt'])): ?>
+            <div class="text-[10px] text-slate-400 mb-2 truncate">Hiện có: <?= basename($user['file_minh_chung_dt']) ?></div>
+        <?php endif; ?>
+        <input type="file" name="dt_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 transition-all cursor-pointer">
+    </div>
 </div>

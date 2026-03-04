@@ -8,123 +8,86 @@
             <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Chỉnh sửa Kết quả Học tập</h3>
         </div>
 
-        <!-- Priority & School Form -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉnh/TP Trường THPT</label>
-                <div class="relative">
-                    <select name="ma_tinh_lop_12" id="ma_tinh_lop_12_academic" 
-                            onchange="loadSchools(this.value, 'ma_truong_lop_12_academic')"
-                            class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[#0066FF]">
-                        <option value="">-- Chọn Tỉnh/TP --</option>
-                        <?php foreach($provinces as $p): ?>
-                            <option value="<?= $p['ma_tinh'] ?>" <?= ($user['ma_tinh_lop_12'] ?? '') == $p['ma_tinh'] ? 'selected' : '' ?>><?= $p['ten_tinh'] ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Trường THPT Lớp 12</label>
-                <div class="relative">
-                    <select name="ma_truong_lop_12" id="ma_truong_lop_12_academic" 
-                            data-selected="<?= $user['ma_truong_lop_12'] ?? '' ?>"
-                            class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[#0066FF]">
-                        <option value="">-- Chọn Trường --</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Năm Tốt Nghiệp</label>
-                <select name="nam_tot_nghiep" class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[#0066FF]">
-                    <option value="">-- Chọn Năm --</option>
-                    <?php 
-                    $currentYear = date('Y');
-                    for ($y = $currentYear; $y >= 1990; $y--): ?>
-                        <option value="<?= $y ?>" <?= ($user['nam_tot_nghiep'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
-                    <?php endfor; ?>
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Khu vực</label>
-                    <select name="khu_vuc_uu_tien" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[#0066FF]">
-                        <option value="KV1" <?= ($user['khu_vuc_uu_tien'] ?? '') == 'KV1' ? 'selected' : '' ?>>KV1</option>
-                        <option value="KV2-NT" <?= ($user['khu_vuc_uu_tien'] ?? '') == 'KV2-NT' ? 'selected' : '' ?>>KV2-NT</option>
-                        <option value="KV2" <?= ($user['khu_vuc_uu_tien'] ?? '') == 'KV2' ? 'selected' : '' ?>>KV2</option>
-                        <option value="KV3" <?= ($user['khu_vuc_uu_tien'] ?? '') == 'KV3' ? 'selected' : '' ?>>KV3</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Đối tượng</label>
-                    <select name="doi_tuong_uu_tien" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-[#0066FF]">
-                        <option value="00" <?= ($user['doi_tuong_uu_tien'] ?? '') == '00' ? 'selected' : '' ?>>00</option>
-                        <option value="01" <?= ($user['doi_tuong_uu_tien'] ?? '') == '01' ? 'selected' : '' ?>>01</option>
-                        <option value="02" <?= ($user['doi_tuong_uu_tien'] ?? '') == '02' ? 'selected' : '' ?>>02</option>
-                        <option value="03" <?= ($user['doi_tuong_uu_tien'] ?? '') == '03' ? 'selected' : '' ?>>03</option>
-                        <option value="04" <?= ($user['doi_tuong_uu_tien'] ?? '') == '04' ? 'selected' : '' ?>>04</option>
-                        <option value="05" <?= ($user['doi_tuong_uu_tien'] ?? '') == '05' ? 'selected' : '' ?>>05</option>
-                        <option value="06" <?= ($user['doi_tuong_uu_tien'] ?? '') == '06' ? 'selected' : '' ?>>06</option>
-                        <option value="07" <?= ($user['doi_tuong_uu_tien'] ?? '') == '07' ? 'selected' : '' ?>>07</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Detailed Scores Form (Dynamic Tabs) -->
+        <!-- Scores Form (Dynamic Tabs) -->
         <div x-data="{ editGrade: '10' }" class="space-y-6">
-            <div class="flex p-1 bg-slate-100 rounded-xl gap-1">
+            <div class="flex p-1.5 bg-slate-100 rounded-2xl gap-1">
                 <?php foreach([10, 11, 12] as $g): ?>
                     <button type="button" @click="editGrade = '<?= $g ?>'" 
                             :class="editGrade === '<?= $g ?>' ? 'bg-white text-[#0066FF] shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                            class="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all">
+                            class="flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all">
                         Lớp <?= $g ?>
                     </button>
                 <?php endforeach; ?>
             </div>
 
             <?php foreach([10, 11, 12] as $g): ?>
-            <div x-show="editGrade === '<?= $g ?>'" class="space-y-4 animate-in fade-in slide-in-from-left-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <div x-show="editGrade === '<?= $g ?>'" class="space-y-6 animate-in fade-in slide-in-from-left-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     <?php 
                     $gradeRow = $rowsByGrade[$g] ?? [];
                     foreach ($subjects as $code => $name): 
                     ?>
-                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-                        <span class="text-xs font-bold text-slate-600"><?= $name ?></span>
-                        <div class="flex gap-2">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_<?= $code ?>]" value="<?= $gradeRow["diem_{$code}"] ?? '' ?>" placeholder="Cả năm" class="w-20 px-2 py-1 text-center bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-400 outline-none">
-                        </div>
+                    <div class="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl hover:bg-white hover:border-blue-200 transition-all hover:shadow-sm">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-tight"><?= $name ?></span>
+                        <input type="number" step="0.1" name="scores[<?= $g ?>][diem_<?= $code ?>]" value="<?= $gradeRow["diem_{$code}"] ?? '' ?>" placeholder="-" class="w-16 px-1 py-1.5 text-center bg-white border border-slate-200 rounded-lg text-sm font-black text-slate-800 focus:ring-4 focus:ring-blue-50 focus:border-blue-400 outline-none transition-all">
                     </div>
                     <?php endforeach; ?>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">ĐTB Cả Năm</label>
-                        <div class="flex gap-2">
-                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb]" value="<?= $gradeRow['diem_tb'] ?? '' ?>" class="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs font-black text-blue-700 focus:bg-white outline-none" placeholder="Cả năm">
+                <!-- Summary Row -->
+                <div class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100/50">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-[11px] font-black text-blue-600 uppercase tracking-widest mb-2">ĐTB Cả Năm</label>
+                            <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb]" value="<?= $gradeRow['diem_tb'] ?? '' ?>" class="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl text-sm font-black text-[#0066FF] shadow-sm outline-none focus:ring-4 focus:ring-blue-100 transition-all" placeholder="Ví dụ: 8.54">
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Học lực Cả Năm</label>
-                        <div class="flex gap-2">
-                            <select name="scores[<?= $g ?>][hoc_luc]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- Chọn -</option>
-                                <?php foreach(['Gioi', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
+                        <div>
+                            <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Học lực</label>
+                            <select name="scores[<?= $g ?>][hoc_luc]" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-[#0066FF] transition-all">
+                                <option value="">-- Chọn --</option>
+                                <?php foreach(['Gioi', 'Kha', 'TrungBinh', 'Yeu'] as $v): ?>
                                     <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Hạnh kiểm Cả Năm</label>
-                        <div class="flex gap-2">
-                            <select name="scores[<?= $g ?>][hanh_kiem]" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none">
-                                <option value="">- Chọn -</option>
-                                <?php foreach(['Tot', 'Kha', 'Trung binh', 'Yeu'] as $v): ?>
+                        <div>
+                            <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Hạnh kiểm</label>
+                            <select name="scores[<?= $g ?>][hanh_kiem]" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-[#0066FF] transition-all">
+                                <option value="">-- Chọn --</option>
+                                <?php foreach(['Tot', 'Kha', 'TrungBinh', 'Yeu'] as $v): ?>
                                     <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evidence Uploads -->
+                <div class="pt-6 border-t border-slate-100">
+                    <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <i class="fas fa-camera text-blue-400"></i> Minh chứng học bạ lớp <?= $g ?>
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tải lên / Thay thế ảnh (Tối đa 2 file)</label>
+                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-[#0066FF] hover:file:bg-blue-100 transition-all cursor-pointer">
+                            <p class="text-[10px] text-slate-400 italic font-medium">* Bạn có thể chọn nhiều file cùng lúc.</p>
+                        </div>
+                        <div class="flex gap-3 items-end">
+                            <?php foreach ([1, 2] as $i): ?>
+                                <?php if (!empty($gradeRow["file_minh_chung_$i"])): ?>
+                                    <div class="relative group w-20 h-24 rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                                        <?php 
+                                            $path = $gradeRow["file_minh_chung_$i"];
+                                            $src = strpos($path, 'http') === 0 ? google_drive_thumbnail_url($path, 'w200') : asset($path);
+                                        ?>
+                                        <img src="<?= $src ?>" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <a href="<?= strpos($path, 'http') === 0 ? $path : asset($path) ?>" target="_blank" class="text-white text-xs"><i class="fas fa-external-link-alt"></i></a>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>

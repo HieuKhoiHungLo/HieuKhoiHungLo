@@ -74,7 +74,7 @@ class ThiSinhRepository {
             s.ten_truong as ten_truong_lop_12,
             dt.ten_dt as ten_doi_tuong_ut,
             kv.ten_kv as ten_khu_vuc_ut,
-            hs.trang_thai, hs.ghi_chu, hs.yeu_cau_chinh_sua,
+            hs.trang_thai, hs.ghi_chu, hs.yeu_cau_chinh_sua, hs.id as application_id,
             -- Academic records as JSON array
             COALESCE((SELECT json_agg(row_to_json(hb.*) ORDER BY hb.id) FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd), '[]'::json) as _academic_json,
             -- Nguyen vong as JSON array  

@@ -100,19 +100,6 @@
                 </thead>
                 <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
                     <?php 
-                    $subjects = [
-                        'toan' => 'Toán học', 
-                        'van' => 'Ngữ văn', 
-                        'ngoai_ngu' => 'Ngoại ngữ', 
-                        'ly' => 'Vật lý', 
-                        'hoa' => 'Hóa học', 
-                        'sinh' => 'Sinh học', 
-                        'su' => 'Lịch sử', 
-                        'dia' => 'Địa lý', 
-                        'gdcd' => 'GDCD', 
-                        'tin_hoc' => 'Tin học', 
-                        'cong_nghe' => 'Công nghệ'
-                    ];
                     foreach ($subjects as $code => $name): 
                         $fieldCode = $code; 
                     ?>
@@ -123,13 +110,13 @@
                         </td>
                         
                         <!-- Grade 10 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(10, "diem_{$fieldCode}") ?></td>
+                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(10, "diem_{$fieldCode}") ?></td>
                         
                         <!-- Grade 11 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700"><?= $getScore(11, "diem_{$fieldCode}") ?></td>
+                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(11, "diem_{$fieldCode}") ?></td>
                         
                         <!-- Grade 12 -->
-                        <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0"><?= $getScore(12, "diem_{$fieldCode}") ?></td>
+                        <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0 font-bold"><?= $getScore(12, "diem_{$fieldCode}") ?></td>
                     </tr>
                     <?php endforeach; ?>
                     

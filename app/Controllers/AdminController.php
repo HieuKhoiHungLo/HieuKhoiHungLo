@@ -321,9 +321,41 @@ class AdminController extends Controller {
         
         // Province list (file-cached — no DB hit after first call)  
         $provinces = $this->masterDataRepo->getProvinces();
+        $priorityAreas = $this->masterDataRepo->getPriorityAreas();
+        $priorityObjects = $this->masterDataRepo->getPriorityObjects();
 
-        // Navigation: prev/next pending candidates (1 query)
+        // Adjacent candidates
         $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd);
+
+        // Subject mapping (match student step 2)
+        $subjects = [
+            'toan' => 'Toán',
+            'van' => 'Ngữ văn',
+            'ngoai_ngu' => 'Ngoại ngữ',
+            'ly' => 'Vật lí',
+            'hoa' => 'Hóa học',
+            'sinh' => 'Sinh học',
+            'su' => 'Lịch sử',
+            'dia' => 'Địa lí',
+            'gdcd' => 'GDKT & PL',
+            'cong_nghe' => 'Công nghệ',
+            'tin_hoc' => 'Tin học'
+        ];
+
+        // Helper mapDisplay for grades/conduct
+        $mapDisplay = function($val) {
+            $map = [
+                'Gioi' => 'Giỏi', 'Kha' => 'Khá', 'Trung binh' => 'Trung bình', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu',
+                'Tot' => 'Tốt'
+            ];
+            return $map[$val] ?? $val;
+        };
+
+        // Prepare rowsByGrade
+        $rowsByGrade = [];
+        foreach($academicRecords as $r) {
+            $rowsByGrade[$r['lop']] = $r;
+        }
 
         // Already in getDetail JOINs — no extra queries
         $wardName = $user['ten_xa_tt'] ?? '';
@@ -334,6 +366,9 @@ class AdminController extends Controller {
             'user' => $user,
             'wardName' => $wardName,
             'schoolName' => $schoolName,
+            'subjects' => $subjects,
+            'mapDisplay' => $mapDisplay,
+            'rowsByGrade' => $rowsByGrade,
             'certificates' => $certificates,
             'academicRecords' => $academicRecords,
             'academicRows' => $academicRecords,
@@ -343,6 +378,8 @@ class AdminController extends Controller {
             'hasEditRequest' => $hasEditRequest,
             'diemThi' => $diemThi,
             'provinces' => $provinces,
+            'priorityAreas' => $priorityAreas,
+            'priorityObjects' => $priorityObjects,
             'prevCCCD' => $adjacent['prev'],
             'nextCCCD' => $adjacent['next'],
             'navPosition' => $adjacent['position'],

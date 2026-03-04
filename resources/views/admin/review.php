@@ -115,19 +115,19 @@
     <div class="bg-white rounded-t-2xl shadow-sm border-b border-slate-200">
         <div class="flex overflow-x-auto gap-1 p-2" id="reviewTabs">
             <button type="button" onclick="switchTab('personal')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
-                <i class="fas fa-user mr-2"></i> 1. Thông tin cá nhân
+                <i class="fas fa-user mr-2 text-xs"></i> 1. Duyệt thông tin
             </button>
             <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
-                <i class="fas fa-graduation-cap mr-2"></i> 2. Học bạ
+                <i class="fas fa-graduation-cap mr-2 text-xs"></i> 2. Duyệt học lực
             </button>
             <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
-                <i class="fas fa-certificate mr-2"></i> 3. Chứng chỉ
+                <i class="fas fa-certificate mr-2 text-xs"></i> 3. Chứng chỉ hợp lệ
             </button>
             <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
-                <i class="fas fa-poll-h mr-2"></i> 4. Điểm THPT
+                <i class="fas fa-poll-h mr-2 text-xs"></i> 4. Điểm thi khớp
             </button>
             <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
-                <i class="fas fa-list-ol mr-2"></i> 5. Nguyện vọng
+                <i class="fas fa-list-ol mr-2 text-xs"></i> 5. Nguyện vọng chuẩn
             </button>
         </div>
     </div>
@@ -226,6 +226,63 @@ document.addEventListener('alpine:init', () => {
             if (this.search === '') return this.wards;
             const lower = this.search.toLowerCase();
             return this.wards.filter(w => w.ten_xa.toLowerCase().includes(lower));
+        }
+    }));
+
+    Alpine.data('schoolSearch', (initialProvince, initialSchool) => ({
+        open: false,
+        search: '',
+        selectedCode: initialSchool,
+        provinceId: initialProvince,
+        schools: [],
+        isLoading: false,
+
+        async init() {
+            if (this.provinceId) {
+                await this.fetchSchools(this.provinceId);
+            }
+        },
+
+        async handleProvinceChange(newPid) {
+            this.provinceId = newPid;
+            this.selectedCode = '';
+            this.search = '';
+            await this.fetchSchools(newPid);
+        },
+
+        async fetchSchools(pid) {
+            if (!pid) { this.schools = []; return; }
+            this.isLoading = true;
+            try {
+                const res = await fetch(`<?= url('/api/public/schools') ?>?province_id=${pid}`);
+                this.schools = await res.json();
+                
+                if (this.selectedCode) {
+                    const found = this.schools.find(s => s.ma_truong == this.selectedCode);
+                    if (found) this.search = found.ten_truong;
+                }
+            } catch(e) { console.error(e); }
+            this.isLoading = false;
+        },
+
+        select(school) {
+            this.selectedCode = school.ma_truong;
+            this.search = school.ten_truong;
+            this.open = false;
+
+            // Dispatch event for auto-KV logic
+            window.dispatchEvent(new CustomEvent('school-selected', { 
+                detail: { 
+                    ma_truong: school.ma_truong,
+                    ma_kv: school.ma_kv 
+                } 
+            }));
+        },
+
+        get filteredSchools() {
+            if (this.search === '') return this.schools;
+            const lower = this.search.toLowerCase();
+            return this.schools.filter(s => s.ten_truong.toLowerCase().includes(lower) || s.ma_truong.toLowerCase().includes(lower));
         }
     }));
 });

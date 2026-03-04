@@ -540,88 +540,123 @@ class CandidateController extends Controller {
         try {
             switch ($section) {
                 case 'personal':
-                    // Personal Info (Updated fields only)
-                    // Use '' for text fields if empty, null for IDs if empty
-                    $data = [
-                        'ho_va_ten' => $_POST['ho_va_ten'],
-                        'ngay_sinh' => $_POST['ngay_sinh'],
-                        'gioi_tinh' => $_POST['gioi_tinh'],
-                        'dan_toc'   => $_POST['dan_toc'] ?? '', 
-                        'dien_thoai'=> $_POST['dien_thoai'],
-                        'email'     => $_POST['email'],
-                        'dia_chi_chi_tiet'   => $_POST['dia_chi_chi_tiet'],
-                        'ma_tinh_ho_khau'    => !empty($_POST['ma_tinh_ho_khau']) ? $_POST['ma_tinh_ho_khau'] : null,
-                        'ma_tinh_thuong_tru' => !empty($_POST['ma_tinh_thuong_tru']) ? $_POST['ma_tinh_thuong_tru'] : null,
-                        'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
-                    ];
-                    
-                    // Xử lý đổi Số CCCD nếu có
-                    if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
-                        $newCccd = trim($_POST['so_cccd']);
-                        // Kiểm tra trùng lặp CCCD
-                        $existing = $this->thiSinhRepo->findByCCCD($newCccd);
-                        if ($existing) {
-                            $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
-                            return;
-                        }
-                        $data['so_cccd'] = $newCccd;
+                // Personal Info (Updated fields only)
+                // Use '' for text fields if empty, null for IDs if empty
+                $data = [
+                    'ho_va_ten' => $_POST['ho_va_ten'],
+                    'ngay_sinh' => $_POST['ngay_sinh'],
+                    'gioi_tinh' => $_POST['gioi_tinh'],
+                    'dan_toc'   => $_POST['dan_toc'] ?? '', 
+                    'dien_thoai'=> $_POST['dien_thoai'],
+                    'email'     => $_POST['email'],
+                    'nam_tot_nghiep'    => $_POST['nam_tot_nghiep'] ?? null,
+                    'ma_tinh_lop_12'    => !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null,
+                    'ma_truong_lop_12'  => !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null,
+                    'khu_vuc_uu_tien'   => $_POST['kv_uu_tien'] ?? null,
+                    'is_custom_kv'      => (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1'),
+                    'doi_tuong_uu_tien' => $_POST['dt_uu_tien'] ?? null,
+                    'is_custom_dt'      => (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1'),
+                    'dia_chi_chi_tiet'   => $_POST['dia_chi_chi_tiet'] ?? '',
+                    'ma_tinh_ho_khau'    => !empty($_POST['ma_tinh_ho_khau']) ? $_POST['ma_tinh_ho_khau'] : null,
+                    'ma_tinh_thuong_tru' => !empty($_POST['ma_tinh_thuong_tru']) ? $_POST['ma_tinh_thuong_tru'] : null,
+                    'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
+                ];
+                
+                // Xử lý đổi Số CCCD nếu có
+                if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
+                    $newCccd = trim($_POST['so_cccd']);
+                    // Kiểm tra trùng lặp CCCD
+                    $existing = $this->thiSinhRepo->findByCCCD($newCccd);
+                    if ($existing) {
+                        $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
+                        return;
                     }
+                    $data['so_cccd'] = $newCccd;
+                }
+                
+                // Handle File Uploads — only if files are actually attached
+                $fileMap = [
+                    'avatar' => 'anh_dai_dien', 
+                    'cccd_front' => 'anh_cccd_truoc', 
+                    'cccd_back' => 'anh_cccd_sau',
+                    'kv_file' => 'file_minh_chung_kv',
+                    'dt_file' => 'file_minh_chung_dt'
+                ];
+                
+                $hasFiles = false;
+                foreach ($fileMap as $field => $dbCol) {
+                    if (!empty($_FILES[$field]['name'])) { $hasFiles = true; break; }
+                }
+
+                if ($hasFiles) {
+                    $pathInfo = $this->getUploadPathInfo($cccd);
+                    $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
+                    $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
                     
-                    // Handle File Uploads — only if files are actually attached
-                    $files = ['anh_dai_dien', 'anh_cccd_truoc', 'anh_cccd_sau'];
-                    $hasFiles = false;
-                    foreach ($files as $field) {
-                        if (!empty($_FILES[$field]['name'])) { $hasFiles = true; break; }
+                    if ($uploadDriver === 'google') {
+                        $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
+                        if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
+                        $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                        $driveService = new \App\Services\DriveService($uploader);
+                        $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
+                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
                     }
 
-                    if ($hasFiles) {
-                        $pathInfo = $this->getUploadPathInfo($cccd);
-                        $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
-                        $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                        
-                        if ($uploadDriver === 'google') {
-                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
-                            $driveService = new \App\Services\DriveService($uploader);
-                            $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                            if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
-                        }
-
-                        foreach ($files as $field) {
-                            if (!empty($_FILES[$field]['name'])) {
-                                $prefix = $cccd . '_' . $field . '_' . time();
-                                $fileName = $uploader->upload($_FILES[$field], $prefix);
-                                if ($fileName) {
-                                    $data[$field] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                                } else {
-                                    error_log("Upload error $field: " . json_encode($uploader->getErrors()));
-                                }
+                    foreach ($fileMap as $field => $dbCol) {
+                        if (!empty($_FILES[$field]['name'])) {
+                            // Map special field names to readable file prefixes
+                            $filePrefix = match($field) {
+                                'kv_file' => 'kv_evidence',
+                                'dt_file' => 'dt_evidence',
+                                'avatar'  => 'avatar',
+                                'cccd_front' => 'cccd_front',
+                                'cccd_back' => 'cccd_back',
+                                default   => $field
+                            };
+                            
+                            $prefix = $cccd . '_' . $filePrefix . '_' . time();
+                            $fileName = $uploader->upload($_FILES[$field], $prefix);
+                            if ($fileName) {
+                                $data[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                            } else {
+                                error_log("Upload error $field: " . json_encode($uploader->getErrors()));
                             }
                         }
                     }
+                }
                     
-                    // error_log("DEBUG_UPDATE_PERSONAL: " . print_r($data, true));
-                    $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
+                // Update Application Status & Note if provided
+                $applicationRepo = new \App\Repositories\ApplicationRepository();
+                $applicationId = $_POST['application_id'] ?? null;
+                if ($applicationId) {
+                    $appUpdate = [];
+                    if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
+                    if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
                     
-                    if ($res) {
-                         $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
-                    } else {
-                         $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
+                    if (!empty($appUpdate)) {
+                        $applicationRepo->update($applicationId, $appUpdate);
                     }
-                    return;
-                    break;
+                }
+                    
+                // error_log("DEBUG_UPDATE_PERSONAL: " . print_r($data, true));
+                $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
+                
+                if ($res) {
+                     $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
+                } else {
+                     $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
+                }
+                return;
+                break;
 
                 case 'academic':
                     $academicRepo = new \App\Repositories\AcademicRepository();
                     
-                    // Defer upload setup — only initialize when files exist
+                    // Setup Uploader (check if any transcript files exist)
                     $hasAcademicFiles = false;
                     foreach ([10, 11, 12] as $_g) {
-                        if (!empty($_FILES["hba_$_g"]['name'])) { $hasAcademicFiles = true; break; }
+                        if (!empty($_FILES["transcripts_$_g"]['name'][0])) { $hasAcademicFiles = true; break; }
                     }
-                    if (!$hasAcademicFiles && !empty($_FILES['minh_chung_kv']['name'])) $hasAcademicFiles = true;
-                    if (!$hasAcademicFiles && !empty($_FILES['minh_chung_dt']['name'])) $hasAcademicFiles = true;
 
                     $pathInfo = null; $uploadDriver = 'local'; $uploader = null;
                     if ($hasAcademicFiles) {
@@ -648,69 +683,77 @@ class CandidateController extends Controller {
                         if (isset($_POST['scores'][$g]) && is_array($_POST['scores'][$g])) {
                             $gradeInputs = $_POST['scores'][$g];
                             
-                            // Collect Scores for full year
+                            // Collect Scores
                             foreach ($subjects as $s) {
                                 if (isset($gradeInputs["diem_{$s}"])) {
                                     $record["diem_{$s}"] = $gradeInputs["diem_{$s}"] !== '' ? (double)$gradeInputs["diem_{$s}"] : null;
                                 }
                             }
                             
-                            // Collect Rank & Conduct
-                            if (isset($gradeInputs["hoc_luc"])) $record['hoc_luc']     = $gradeInputs["hoc_luc"] ?: null;
+                            // Collect Rank & Conduct & GPA
+                            if (isset($gradeInputs["hoc_luc"]))   $record['hoc_luc']     = $gradeInputs["hoc_luc"] ?: null;
                             if (isset($gradeInputs["hanh_kiem"])) $record['hanh_kiem']   = $gradeInputs["hanh_kiem"] ?: null;
+                            if (isset($gradeInputs["diem_tb"]))   $record['diem_tb']     = $gradeInputs["diem_tb"] !== '' ? (double)$gradeInputs["diem_tb"] : null;
                             
-                            // Collect GPA
-                            if (isset($gradeInputs["diem_tb"])) $record['diem_tb']     = $gradeInputs["diem_tb"] !== '' ? (double)$gradeInputs["diem_tb"] : null;
-                        }
-
-                        // File Upload (Hoc Ba)
-                        $fileKey = "hba_$g";
-                        if (!empty($_FILES[$fileKey]['name'])) {
-                             $fileName = $uploader->upload($_FILES[$fileKey], "{$cccd}_Lop{$g}");
-                             if ($fileName) {
-                                 $record['file_minh_chung_1'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                             }
-                        }
-                        
-                        if (!empty($record)) {
+                            // Handle file uploads (multiple files per grade possible)
+                            if (!empty($_FILES["transcripts_$g"]['name'][0])) {
+                                $uploadedFiles = [];
+                                foreach ($_FILES["transcripts_$g"]['name'] as $i => $name) {
+                                    if (!empty($name)) {
+                                        $fileToUpload = [
+                                            'name' => $_FILES["transcripts_$g"]['name'][$i],
+                                            'type' => $_FILES["transcripts_$g"]['type'][$i],
+                                            'tmp_name' => $_FILES["transcripts_$g"]['tmp_name'][$i],
+                                            'error' => $_FILES["transcripts_$g"]['error'][$i],
+                                            'size' => $_FILES["transcripts_$g"]['size'][$i]
+                                        ];
+                                        $prefix = $cccd . "_transcript_grade{$g}_" . time() . "_" . $i;
+                                        $fileName = $uploader->upload($fileToUpload, $prefix);
+                                        if ($fileName) {
+                                            $uploadedFiles[] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                                        }
+                                    }
+                                }
+                                if (!empty($uploadedFiles)) {
+                                    $record['file_hoc_ba'] = implode(',', $uploadedFiles);
+                                }
+                            } else {
+                                // Keep existing if no new ones
+                                if (isset($gradeInputs['existing_files'])) {
+                                    $record['file_hoc_ba'] = $gradeInputs['existing_files'];
+                                }
+                            }
+                            
+                            // SAVE the record for this grade
                              $academicRepo->createOrUpdate($cccd, $g, $record);
                         }
                     }
 
-                    // Global academic properties (Priority Area, Object, School)
-                    $profileData = [];
-                    if (isset($_POST['khu_vuc_uu_tien']))   $profileData['khu_vuc_uu_tien']   = $_POST['khu_vuc_uu_tien'];
-                    if (isset($_POST['doi_tuong_uu_tien'])) $profileData['doi_tuong_uu_tien'] = $_POST['doi_tuong_uu_tien'];
-                    if (isset($_POST['ma_tinh_lop_12']))    $profileData['ma_tinh_lop_12']    = $_POST['ma_tinh_lop_12'];
-                    if (isset($_POST['ma_truong_lop_12']))  $profileData['ma_truong_lop_12']  = $_POST['ma_truong_lop_12'];
-
-                    // Files for Priority
-                    if (!empty($_FILES['minh_chung_kv']['name'])) {
-                        $fileName = $uploader->upload($_FILES['minh_chung_kv'], "{$cccd}_kv");
-                        if ($fileName) $profileData['file_minh_chung_kv'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                    // Update Status & Note
+                    $applicationRepo = new \App\Repositories\ApplicationRepository();
+                    $applicationId = $_POST['application_id'] ?? null;
+                    if ($applicationId) {
+                        $appUpdate = [];
+                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
+                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
                     }
-                    if (!empty($_FILES['minh_chung_dt']['name'])) {
-                        $fileName = $uploader->upload($_FILES['minh_chung_dt'], "{$cccd}_dt");
-                        if ($fileName) $profileData['file_minh_chung_dt'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                    }
-
-                    if (!empty($profileData)) {
-                        $this->thiSinhRepo->updateFullProfile($cccd, $profileData);
-                    }
-                    break;
                     break;
                     
                 case 'thpt':
-                    $diemThiModel = new \App\Models\DiemThiTHPT();
-                    $scores = [];
+                    // THPT Scores Update
                     $fields = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn'];
+                    $scores = [];
                     
-                    // Scores: thpt_toan, thpt_van ...
+                    // Review.php uses thpt_ prefix for these inputs
                     foreach($fields as $f) {
-                        $key = "thpt_$f"; // Review.php uses prefix
-                        if (isset($_POST[$key]) && $_POST[$key] !== '') $scores[$f] = $_POST[$key];
+                        $key = "thpt_$f";
+                        if (isset($_POST[$key])) {
+                            $scores[$f] = $_POST[$key] !== '' ? (double)$_POST[$key] : null;
+                        }
                     }
-                    
+                    $scores['da_co_diem'] = ($_POST['has_scores'] ?? '0') === '1';
+
                     // Handle File Upload
                     if (!empty($_FILES['thpt_file_evidence']['name'])) {
                         $pathInfo = $this->getUploadPathInfo($cccd);
@@ -718,7 +761,6 @@ class CandidateController extends Controller {
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
                         
                         if ($uploadDriver === 'google') {
-                             // Google Config (same as above)
                             $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
                             if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
                             $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
@@ -727,28 +769,40 @@ class CandidateController extends Controller {
                             if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
                         }
                         
-                        $fileName = $uploader->upload($_FILES['thpt_file_evidence'], "{$cccd}_THPT");
+                        $fileName = $uploader->upload($_FILES['thpt_file_evidence'], "{$cccd}_THPT_" . time());
                         if ($fileName) {
                             $scores['file_chung_nhan'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
                         }
                     }
 
+                    // Update Status & Note
+                    $applicationRepo = new \App\Repositories\ApplicationRepository();
+                    $applicationId = $_POST['application_id'] ?? null;
+                    if ($applicationId) {
+                        $appUpdate = [];
+                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
+                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
+                    }
+
                     if (!empty($scores)) {
                         $scores['nam_thi'] = date('Y');
-                        $diemThiModel->save($cccd, $scores); 
+                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
+                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
                     }
+
+                    $this->thiSinhRepo->saveDiemThiTHPT($cccd, $scores);
                     break;
 
                 case 'certs':
-                    // Get existing certs to map IDs
-                    $existingCerts = $this->thiSinhRepo->getCertifications($cccd);
+                    $certsArr = $_POST['certs'] ?? [];
                     $certsData = [];
-                    
-                    // Setup Uploader
+
                     $pathInfo = $this->getUploadPathInfo($cccd);
                     $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                     $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                     if ($uploadDriver === 'google') {
+                    
+                    if ($uploadDriver === 'google') {
                         $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
                         if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
                         $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
@@ -756,50 +810,92 @@ class CandidateController extends Controller {
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                         if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
                     }
-                    
-                    foreach ($existingCerts as $cert) {
-                        $id = $cert['id'];
-                        $updated = false;
-                        $item = ['id' => $id, 'existing_file' => $cert['file_minh_chung_cc']];
-                        
-                        // Score Update
-                        if (isset($_POST["cert_score_$id"])) {
-                            $item['diem_chung_chi'] = $_POST["cert_score_$id"];
-                            // Also need required fields like loai_chung_chi to save? 
-                            // saveCertifications usually expects full rows or handles updates by ID?
-                            // ThiSinhRepository::saveCertifications implementation depends on Model.
-                            // Usually it deletes all and inserts new? If so, we are in trouble.
-                            // Let's assume we need to preserve other fields.
-                            $item['loai_chung_chi'] = $cert['loai_chung_chi'];
-                            $item['noi_cap'] = $cert['noi_cap'];
-                            $item['ngay_cap'] = $cert['ngay_cap'];
-                            $updated = true;
-                        } else {
-                            // Copy existing
-                             $item['diem_chung_chi'] = $cert['diem_chung_chi'];
-                             $item['loai_chung_chi'] = $cert['loai_chung_chi'];
-                             $item['noi_cap'] = $cert['noi_cap'];
-                             $item['ngay_cap'] = $cert['ngay_cap'];
+
+                    foreach ($certsArr as $index => $c) {
+                        if (empty($c['type'])) continue;
+
+                        $item = [
+                            'loai_chung_chi' => $c['type'],
+                            'diem_chung_chi' => $c['score'] ?? '',
+                            'file_minh_chung_cc' => $c['existing_file'] ?? ''
+                        ];
+
+                        // Handle new file upload for this cert row
+                        if (!empty($_FILES['cert_files']['name'][$index])) {
+                            $fileToUpload = [
+                                'name' => $_FILES['cert_files']['name'][$index],
+                                'type' => $_FILES['cert_files']['type'][$index],
+                                'tmp_name' => $_FILES['cert_files']['tmp_name'][$index],
+                                'error' => $_FILES['cert_files']['error'][$index],
+                                'size' => $_FILES['cert_files']['size'][$index]
+                            ];
+                            
+                            $prefix = $cccd . '_cert_' . time() . '_' . $index;
+                            $fileName = $uploader->upload($fileToUpload, $prefix);
+                            if ($fileName) {
+                                $item['file_minh_chung_cc'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                            }
                         }
-                        
-                        // File Update
-                        $fileKey = "cert_file_$id";
-                        if (!empty($_FILES[$fileKey]['name'])) {
-                             $fileName = $uploader->upload($_FILES[$fileKey], "{$cccd}_cert_{$id}_" . time());
-                             if ($fileName) {
-                                 $item['file_minh_chung_cc'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                                 $updated = true;
-                             }
-                        } else {
-                            $item['file_minh_chung_cc'] = $cert['file_minh_chung_cc'];
-                        }
-                        
+
                         $certsData[] = $item;
                     }
 
-                    if (!empty($certsData)) {
-                        // Assumption: saveCertifications can handle this array structure
-                        $this->thiSinhRepo->saveCertifications($cccd, $certsData);
+                    // Update Status & Note
+                    $applicationRepo = new \App\Repositories\ApplicationRepository();
+                    $applicationId = $_POST['application_id'] ?? null;
+                    if ($applicationId) {
+                        $appUpdate = [];
+                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
+                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
+                    }
+
+                    $this->thiSinhRepo->saveCertifications($cccd, $certsData);
+                    break;
+
+                case 'wishes':
+                    $applicationId = $_POST['application_id'] ?? null;
+                    $items = $_POST['choices'] ?? [];
+                    
+                    if (!$applicationId) {
+                        $sessionModel = new \App\Models\AdmissionSession();
+                        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
+                        if ($activeSession) {
+                            $appModel = new \App\Models\Application();
+                            $app = $appModel->findByCCCDAndSession($cccd, $activeSession['id']);
+                            if ($app) $applicationId = $app->id;
+                        }
+                    }
+
+                    if (!$applicationId) {
+                        $this->json(['success' => false, 'error' => 'Không tìm thấy hồ sơ để lưu nguyện vọng.']);
+                        return;
+                    }
+
+                    if (empty($items)) {
+                        $this->json(['success' => false, 'error' => 'Vui lòng thêm ít nhất 1 nguyện vọng.']);
+                        return;
+                    }
+
+                    $masterRepo = new \App\Repositories\MasterDataRepository();
+                    $majors = $masterRepo->getMajors();
+                    $majorMap = [];
+                    foreach ($majors as $m) $majorMap[$m['ma_nganh']] = $m;
+
+                    foreach ($items as &$item) {
+                        $maNganh = $item['nganh_id'] ?? null;
+                        if ($maNganh && isset($majorMap[$maNganh])) {
+                            $item['ma_nganh'] = $maNganh;
+                            $item['ten_nganh'] = $majorMap[$maNganh]['ten_nganh'];
+                            $item['to_hop_mon'] = $majorMap[$maNganh]['to_hop_xet_tuyen'] ?? '';
+                        }
+                    }
+                    unset($item);
+
+                    $nguyenVongRepo = new \App\Repositories\NguyenVongRepository();
+                    if (!$nguyenVongRepo->save($cccd, $applicationId, $items)) {
+                        $this->json(['success' => false, 'error' => 'Lỗi lưu nguyện vọng vào CSDL.']);
+                        return;
                     }
                     break;
             }
