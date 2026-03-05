@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
@@ -9,39 +10,40 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?= isset($title) ? $title : 'Tuyển sinh Đại học Hùng Vương' ?></title>
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="<?= url('/manifest.json') ?>">
     <link rel="icon" type="image/png" href="<?= url('/assets/img/icon-pwa.png') ?>">
     <link rel="apple-touch-icon" href="<?= url('/assets/img/icon-pwa.png') ?>">
-    
+
     <!-- Critical CSS (Local) -->
     <?php $tailwindPath = __DIR__ . '/../../../public/assets/css/tailwind.min.css'; ?>
     <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css' . (file_exists($tailwindPath) ? '?v=' . filemtime($tailwindPath) : '')) ?>">
-    
+
     <!-- HVU Components CSS (extracted from inline for browser caching) -->
     <?php $hvuCssPath = __DIR__ . '/../../../public/assets/css/hvu-components.css'; ?>
     <link rel="stylesheet" href="<?= url('/assets/css/hvu-components.css' . (file_exists($hvuCssPath) ? '?v=' . filemtime($hvuCssPath) : '')) ?>">
-    
+
     <!-- DNS Prefetch + Preconnect for external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    
+
     <!-- Google Fonts (non-render-blocking with media swap) -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    
+
     <!-- Font Awesome (preloaded for faster icon rendering) -->
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
-    
+
     <!-- Fallback for browsers with JS disabled -->
     <noscript>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     </noscript>
 </head>
+
 <body class="text-gray-800 min-h-screen flex flex-col relative" style="background: transparent;">
 
     <header class="bg-white shadow-md sticky top-0 z-50">
@@ -99,19 +101,24 @@
                                     .notif-tab {
                                         color: #65676B;
                                     }
+
                                     .notif-tab:hover {
                                         background-color: #F2F3F5;
                                     }
+
                                     .notif-tab.active {
                                         background-color: #E7F3FF;
                                         color: #1877F2;
                                     }
+
                                     #notification-list::-webkit-scrollbar {
                                         width: 6px;
                                     }
+
                                     #notification-list::-webkit-scrollbar-track {
                                         background: transparent;
                                     }
+
                                     #notification-list::-webkit-scrollbar-thumb {
                                         background: #d1d5db;
                                         border-radius: 10px;
@@ -127,7 +134,7 @@
 
                         <!-- User Avatar Menu (Desktop Only) -->
                         <div class="relative hidden md:block ml-2" id="user-menu-container">
-                            <?php 
+                            <?php
                             // Lấy thông tin người dùng hiện tại để lấy ảnh thẻ
                             $currentAvatar = '';
                             if (isset($_SESSION['user_id'])) {
@@ -136,30 +143,36 @@
                                     $__stmt = $__db->prepare("SELECT anh_dai_dien FROM thi_sinh WHERE id = ?");
                                     $__stmt->execute([$_SESSION['user_id']]);
                                     $currentAvatar = $__stmt->fetchColumn() ?: '';
-                                } catch (\Exception $e) { }
+                                } catch (\Exception $e) {
+                                }
                             }
-                            $avatarUrl = $currentAvatar ? url('/' . $currentAvatar) : 'https://ui-avatars.com/api/?name='.urlencode($_SESSION['user_name']).'&background=E5E7EB&color=374151&bold=true';
+                            // If avatar is a full URL (Google Drive), use directly; otherwise prepend base URL
+                            if ($currentAvatar) {
+                                $avatarUrl = (strpos($currentAvatar, 'http') === 0) ? $currentAvatar : url('/' . $currentAvatar);
+                            } else {
+                                $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($_SESSION['user_name'] ?? 'User') . '&background=E5E7EB&color=374151&bold=true';
+                            }
                             // Đối với Admin
                             if (isset($_SESSION['admin_id'])) {
-                                $avatarUrl = !empty($_SESSION['admin_avatar']) && file_exists($_SESSION['admin_avatar']) ? url('/' . $_SESSION['admin_avatar']) : 'https://ui-avatars.com/api/?name='.urlencode($_SESSION['admin_name'] ?? 'Admin').'&background=4f46e5&color=fff';
+                                $avatarUrl = !empty($_SESSION['admin_avatar']) && file_exists($_SESSION['admin_avatar']) ? url('/' . $_SESSION['admin_avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($_SESSION['admin_name'] ?? 'Admin') . '&background=4f46e5&color=fff';
                             }
                             ?>
                             <!-- Trigger Button -->
                             <button id="user-avatar-btn" class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-hvu-red/30 relative">
-                                <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-gray-200" onerror="this.src='<?= url('/assets/img/default-avatar.png') ?>'">
+                                <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-gray-200" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['user_name'] ?? $_SESSION['admin_name'] ?? 'User') ?>&background=E5E7EB&color=374151&bold=true'">
                                 <!-- Small arrow at bottom right -->
                                 <div class="absolute -bottom-1 -right-1 bg-gray-200 rounded-full w-4 h-4 flex items-center justify-center shadow-sm border-2 border-white">
                                     <i class="fas fa-chevron-down text-[8px] text-gray-700"></i>
                                 </div>
                             </button>
-                            
+
                             <!-- Dropdown Menu -->
                             <div id="user-menu-dropdown" class="hidden absolute right-0 mt-3 w-[350px] bg-white rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.15)] border border-gray-100 z-50 overflow-hidden p-3" style="font-family: 'Inter', sans-serif;">
                                 <!-- User Header Card -->
                                 <div class="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100 mb-2 p-1.5 relative">
                                     <div class="flex items-center space-x-3 p-2.5 rounded-lg hover:bg-gray-50 transition cursor-pointer" onclick="window.location.href='<?= url('/profile/step1') ?>'">
                                         <div class="w-10 h-10 rounded-full flex-shrink-0 border border-gray-200 overflow-hidden shadow-sm">
-                                            <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-full h-full object-cover" onerror="this.src='<?= url('/assets/img/default-avatar.png') ?>'">
+                                            <img src="<?= $avatarUrl ?>" alt="Avatar" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['user_name'] ?? $_SESSION['admin_name'] ?? 'User') ?>&background=E5E7EB&color=374151&bold=true'">
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <h3 class="font-bold text-gray-900 text-[16px] truncate leading-tight"><?= htmlspecialchars($_SESSION['user_name']) ?></h3>
@@ -172,7 +185,7 @@
                                         </a>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Menu Items -->
                                 <div class="space-y-1 mt-3">
                                     <a href="<?= url('/profile/step1') ?>" class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 transition duration-200 text-gray-900 font-medium text-[15px] group">
@@ -182,7 +195,7 @@
                                         <span class="flex-1">Thông tin cá nhân</span>
                                         <i class="fas fa-chevron-right text-gray-400 text-[13px]"></i>
                                     </a>
-                                    
+
                                     <a href="<?= url('/profile/change-password') ?>" class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 transition duration-200 text-gray-900 font-medium text-[15px] group">
                                         <div class="w-9 h-9 rounded-full bg-gray-200 group-hover:bg-gray-300 flex items-center justify-center mr-3 transition duration-200">
                                             <i class="fas fa-shield-alt text-[16px]"></i>
@@ -204,7 +217,9 @@
 
                     <!-- Mobile Menu Button -->
                     <button id="mobile-menu-btn" class="md:hidden text-gray-600 hover:text-hvu-red focus:outline-none ml-2">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -229,30 +244,30 @@
     </header>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Toggle Dropdown Menu Avatar
-        const userBtn = document.getElementById('user-avatar-btn');
-        const userDropdown = document.getElementById('user-menu-dropdown');
-        const notifDropdown = document.getElementById('notification-dropdown');
-        
-        if (userBtn && userDropdown) {
-            userBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                // Close notification if it's open
-                if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
-                    notifDropdown.classList.add('hidden');
-                }
-                userDropdown.classList.toggle('hidden');
-            });
-            
-            // Close dropdowns on outside click
-            document.addEventListener('click', function(e) {
-                if (!userDropdown.contains(e.target) && e.target !== userBtn) {
-                    userDropdown.classList.add('hidden');
-                }
-            });
-        }
-    });
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle Dropdown Menu Avatar
+            const userBtn = document.getElementById('user-avatar-btn');
+            const userDropdown = document.getElementById('user-menu-dropdown');
+            const notifDropdown = document.getElementById('notification-dropdown');
+
+            if (userBtn && userDropdown) {
+                userBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // Close notification if it's open
+                    if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+                        notifDropdown.classList.add('hidden');
+                    }
+                    userDropdown.classList.toggle('hidden');
+                });
+
+                // Close dropdowns on outside click
+                document.addEventListener('click', function(e) {
+                    if (!userDropdown.contains(e.target) && e.target !== userBtn) {
+                        userDropdown.classList.add('hidden');
+                    }
+                });
+            }
+        });
     </script>
 
     <main class="flex-grow container mx-auto px-4 py-6 md:py-8">
