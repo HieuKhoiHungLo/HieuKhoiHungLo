@@ -101,101 +101,107 @@ include __DIR__ . '/../layouts/header.php';
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <!-- Col 1: Score Inputs (2/3) -->
-                                <div class="md:col-span-2">
-                                    <?php
-                                    $subjectGroups = [
-                                        'Khối tự nhiên' => [
-                                            'toan' => 'Toán',
-                                            'ly' => 'Lí',
-                                            'hoa' => 'Hóa',
-                                            'sinh' => 'Sinh'
-                                        ],
-                                        'Khối xã hội' => [
-                                            'van' => 'Văn',
-                                            'su' => 'Sử',
-                                            'dia' => 'Địa',
-                                            'gdcd' => 'GDCD'
-                                        ],
-                                        'Ngoại ngữ & Khác' => [
-                                            'tieng_anh' => 'T.Anh',
-                                            'tieng_trung' => 'T.Trung',
-                                            'ktpl' => 'KT&PL',
-                                            'tin_hoc' => 'Tin học',
-                                            'cnnn' => 'CN N.Nghiệp'
-                                        ]
-                                    ];
-                                    ?>
-                                    <div class="space-y-5">
+                            <div class="md:col-span-2 overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                                <?php
+                                $subjectGroups = [
+                                    'Khối tự nhiên' => [
+                                        'toan' => 'Toán',
+                                        'ly' => 'Vật lí',
+                                        'hoa' => 'Hóa học',
+                                        'sinh' => 'Sinh học'
+                                    ],
+                                    'Khối xã hội' => [
+                                        'van' => 'Ngữ văn',
+                                        'su' => 'Lịch sử',
+                                        'dia' => 'Địa lí',
+                                        'gdcd' => 'GDCD'
+                                    ],
+                                    'Ngoại ngữ & Khác' => [
+                                        'tieng_anh' => 'Tiếng Anh',
+                                        'tieng_trung' => 'Tiếng Trung',
+                                        'ktpl' => 'KT&PL',
+                                        'tin_hoc' => 'Tin học',
+                                        'cnnn' => 'Công nghệ N.Nghiệp'
+                                    ]
+                                ];
+                                ?>
+                                <table class="w-full text-sm text-center border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
+                                            <th class="px-3 py-3 border whitespace-nowrap sticky left-0 bg-gray-100 z-20 shadow-sm" style="min-width: 150px;">Môn học</th>
+                                            <th class="px-3 py-3 border bg-red-50 text-hvu-red">Điểm thi THPT<br><span class="text-[10px] font-medium normal-case">(Năm 2026)</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 bg-white">
                                         <?php foreach ($subjectGroups as $groupName => $subjects): ?>
-                                            <div>
-                                                <p class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-3 pl-1"><?= $groupName ?></p>
-                                                <div class="grid grid-cols-<?= count($subjects) <= 4 ? '4' : '5' ?> gap-3">
-                                                    <?php foreach ($subjects as $key => $name): ?>
-                                                        <div class="space-y-1.5">
-                                                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block text-center whitespace-nowrap"><?= $name ?></label>
-                                                            <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
-                                                                value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
-                                                                class="hvu-input font-black text-lg text-center h-14" placeholder="0.0">
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
+                                            <tr class="bg-gray-50/80">
+                                                <td colspan="2" class="px-3 py-2 text-left font-bold text-gray-500 text-xs uppercase tracking-widest bg-gray-50/80"><?= $groupName ?></td>
+                                            </tr>
+                                            <?php foreach ($subjects as $key => $name): ?>
+                                                <tr class="hover:bg-gray-50 transition-colors">
+                                                    <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
+                                                    <td class="p-1.5 border text-center">
+                                                        <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
+                                                            value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
+                                                            class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="-">
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
                                         <?php endforeach; ?>
-                                    </div>
-                                </div>
+                                    </tbody>
+                                </table>
+                            </div>
 
-                                <!-- Col 2: Certificate Upload (1/3) -->
-                                <div class="flex flex-col">
-                                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-3 text-center">
-                                        <i class="fas fa-file-certificate mr-1"></i> Giấy chứng nhận kết quả thi
-                                    </label>
-                                    <?php
-                                    $hasCertFile = !empty($scores['file_chung_nhan']);
-                                    if ($hasCertFile) {
-                                        $certFileUrl = $scores['file_chung_nhan'];
-                                        $certFileIsExt = strpos($certFileUrl, 'http') === 0;
-                                        $certFileFullUrl = $certFileIsExt ? $certFileUrl : url($certFileUrl);
-                                        $certFileThumbUrl = $certFileIsExt ? google_drive_thumbnail_url($certFileUrl, 'w400') : $certFileFullUrl;
-                                    }
-                                    ?>
-                                    <div class="group relative flex-1 min-h-[200px] border-2 border-dashed border-red-200 rounded-2xl overflow-hidden bg-red-50/30 transition-all hover:border-hvu-red/50">
-                                        <?php if ($hasCertFile): ?>
-                                            <img id="preview_cert" loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.15]" ondblclick="if(this.src && !this.src.startsWith('data:')) window.open('<?= $certFileFullUrl ?>', '_blank')" title="Click đúp để xem kích thước thật" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-red-50 text-red-300\'><i class=\'fas fa-image text-4xl\'></i></div>'">
-                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                                                <div class="flex flex-col gap-2 items-center scale-75 group-hover:scale-100 transition-transform duration-300">
-                                                    <span class="text-white text-sm font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg"><i class="fas fa-search-plus mr-1"></i> Thay đổi file</span>
-                                                </div>
+                            <!-- Col 2: Certificate Upload (1/3) -->
+                            <div class="flex flex-col">
+                                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-3 text-center">
+                                    <i class="fas fa-file-certificate mr-1"></i> Giấy chứng nhận kết quả thi
+                                </label>
+                                <?php
+                                $hasCertFile = !empty($scores['file_chung_nhan']);
+                                if ($hasCertFile) {
+                                    $certFileUrl = $scores['file_chung_nhan'];
+                                    $certFileIsExt = strpos($certFileUrl, 'http') === 0;
+                                    $certFileFullUrl = $certFileIsExt ? $certFileUrl : url($certFileUrl);
+                                    $certFileThumbUrl = $certFileIsExt ? google_drive_thumbnail_url($certFileUrl, 'w400') : $certFileFullUrl;
+                                }
+                                ?>
+                                <div class="group relative flex-1 min-h-[200px] border-2 border-dashed border-red-200 rounded-2xl overflow-hidden bg-red-50/30 transition-all hover:border-hvu-red/50">
+                                    <?php if ($hasCertFile): ?>
+                                        <img id="preview_cert" alt="Giấy chứng nhận" loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.15]" ondblclick="if(this.src && !this.src.startsWith('data:')) window.open('<?= $certFileFullUrl ?>', '_blank')" title="Click đúp để xem kích thước thật" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-red-50 text-red-300\'><i class=\'fas fa-image text-4xl\'></i></div>'">
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+                                            <div class="flex flex-col gap-2 items-center scale-75 group-hover:scale-100 transition-transform duration-300">
+                                                <span class="text-white text-sm font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg"><i class="fas fa-search-plus mr-1"></i> Thay đổi file</span>
                                             </div>
-                                        <?php else: ?>
-                                            <div class="flex flex-col items-center justify-center h-full text-red-300 py-8">
-                                                <i class="fas fa-cloud-upload-alt text-4xl mb-3"></i>
-                                                <span class="text-xs font-black uppercase tracking-widest">Tải lên giấy chứng nhận</span>
-                                                <span class="text-[10px] mt-2 font-semibold">Ảnh chụp rõ nét (JPG, PNG)</span>
-                                            </div>
-                                        <?php endif; ?>
-                                        <input type="file" name="file_chung_nhan" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview_cert')">
-                                    </div>
-                                    <p class="text-[10px] text-gray-400 mt-2 italic text-center"><?= $hasCertFile ? '✓ Đã có ảnh. Chọn file mới để thay thế.' : 'Nếu có giấy chứng nhận kết quả' ?></p>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-center justify-center h-full text-red-300 py-8">
+                                            <i class="fas fa-cloud-upload-alt text-4xl mb-3"></i>
+                                            <span class="text-xs font-black uppercase tracking-widest">Tải lên giấy chứng nhận</span>
+                                            <span class="text-[10px] mt-2 font-semibold">Ảnh chụp rõ nét (JPG, PNG)</span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <input type="file" name="file_chung_nhan" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview_cert')">
                                 </div>
+                                <p class="text-[10px] text-gray-400 mt-2 italic text-center"><?= $hasCertFile ? '✓ Đã có ảnh. Chọn file mới để thay thế.' : 'Nếu có giấy chứng nhận kết quả' ?></p>
                             </div>
                         </div>
-
-                        <!-- Actions -->
-                        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 border-t border-gray-100 pt-10">
-                            <a href="<?= url('/profile/step3') ?>" class="text-gray-600 hover:text-gray-900 font-bold flex items-center transition-colors">
-                                <i class="fas fa-arrow-left mr-2"></i> Quay lại
-                            </a>
-                            <button type="submit" class="w-full md:w-auto px-12 py-4 bg-hvu-red border-b-4 border-red-800 text-white font-black text-lg rounded-2xl shadow-xl hover:bg-red-700 hover:border-red-900 active:border-b-0 active:translate-y-1 transition-all">
-                                Lưu thông tin và tiếp tục <i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                        </div>
                     </div>
-                </fieldset>
-            </form>
+
+                    <!-- Actions -->
+                    <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 border-t border-gray-100 pt-10">
+                        <a href="<?= url('/profile/step3') ?>" class="text-gray-600 hover:text-gray-900 font-bold flex items-center transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                        </a>
+                        <button type="submit" class="w-full md:w-auto px-12 py-4 bg-hvu-red border-b-4 border-red-800 text-white font-black text-lg rounded-2xl shadow-xl hover:bg-red-700 hover:border-red-900 active:border-b-0 active:translate-y-1 transition-all">
+                            Lưu thông tin và tiếp tục <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
         </div>
+        </fieldset>
+        </form>
     </div>
+</div>
 </div>
 
 <script>
