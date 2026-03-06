@@ -16,26 +16,30 @@
 
         <!-- Wizard Navigation -->
         <div class="bg-gray-100 px-6 py-4 border-b flex justify-between items-center text-xs md:text-sm font-semibold">
-           <div class="text-green-600 flex flex-col items-center">
-               <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>
-               <span>Hồ sơ</span>
-           </div>
-           <div class="text-gray-300 mx-2 flex-1 border-t-2 border-green-200"></div>
-           <div class="text-green-600 flex flex-col items-center">
-                <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>
-               <span>Học bạ</span>
-           </div>
+            <div class="text-green-600 flex flex-col items-center">
+                <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg></span>
+                <span>Hồ sơ</span>
+            </div>
             <div class="text-gray-300 mx-2 flex-1 border-t-2 border-green-200"></div>
-           <div class="text-hvu-red flex flex-col items-center">
-               <span class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-1 border-2 border-hvu-red">3</span>
-               <span>Chứng chỉ QT</span>
-           </div>
-           <div class="text-gray-300 mx-2 flex-1 border-t-2 border-gray-200"></div>
-           <div class="text-gray-400 flex flex-col items-center">
-               <span class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-1">4</span>
-               <span>Nguyện vọng</span>
-           </div>
-       </div>
+            <div class="text-green-600 flex flex-col items-center">
+                <span class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg></span>
+                <span>Học bạ</span>
+            </div>
+            <div class="text-gray-300 mx-2 flex-1 border-t-2 border-green-200"></div>
+            <div class="text-hvu-red flex flex-col items-center">
+                <span class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mb-1 border-2 border-hvu-red">3</span>
+                <span>Chứng chỉ ngoại ngữ quốc tế</span>
+            </div>
+            <div class="text-gray-300 mx-2 flex-1 border-t-2 border-gray-200"></div>
+            <div class="text-gray-400 flex flex-col items-center">
+                <span class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mb-1">4</span>
+                <span>Nguyện vọng</span>
+            </div>
+        </div>
 
         <div class="p-8">
             <?php if (isset($error)): ?>
@@ -50,7 +54,7 @@
 
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
                     <p class="text-blue-800 text-sm font-medium leading-relaxed">
-                        <i class="fas fa-info-circle mr-2"></i> Thí sinh có chứng chỉ quốc tế sẽ được ưu tiên cộng điểm hoặc xét tuyển thẳng theo quy định của Nhà trường. 
+                        <i class="fas fa-info-circle mr-2"></i> Thí sinh có chứng chỉ quốc tế sẽ được ưu tiên cộng điểm hoặc xét tuyển thẳng theo quy định của Nhà trường.
                         <strong>Nếu không có, vui lòng chọn "Không có chứng chỉ quốc tế" để tiếp tục.</strong>
                     </p>
                 </div>
@@ -139,23 +143,23 @@
 </div>
 
 <script>
-function toggleCertFields(show) {
-    const fields = document.getElementById('cert_fields');
-    if (show) {
-        fields.classList.remove('hidden');
-    } else {
-        fields.classList.add('hidden');
+    function toggleCertFields(show) {
+        const fields = document.getElementById('cert_fields');
+        if (show) {
+            fields.classList.remove('hidden');
+        } else {
+            fields.classList.add('hidden');
+        }
     }
-}
 
-function updateFileStatus(input) {
-    const status = document.getElementById('file_status');
-    if (input.files && input.files[0]) {
-        status.textContent = 'Đã chọn: ' + input.files[0].name;
-        status.classList.remove('text-gray-500');
-        status.classList.add('text-hvu-red');
+    function updateFileStatus(input) {
+        const status = document.getElementById('file_status');
+        if (input.files && input.files[0]) {
+            status.textContent = 'Đã chọn: ' + input.files[0].name;
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-hvu-red');
+        }
     }
-}
 </script>
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
