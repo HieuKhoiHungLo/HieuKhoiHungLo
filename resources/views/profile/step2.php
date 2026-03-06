@@ -267,7 +267,7 @@ $getVal = function ($grade, $field) use ($records) {
                                         <?php endif; ?>
 
                                         <!-- Upload Button -->
-                                        <div id="preview_<?= $g ?>_desktop" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem] mb-3"></div>
+                                        <div id="preview_<?= $g ?>_desktop" class="w-full empty:hidden mb-3"></div>
                                         <label class="group cursor-pointer block">
                                             <div class="flex items-center justify-center py-2.5 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                                                 <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
@@ -399,7 +399,7 @@ $getVal = function ($grade, $field) use ($records) {
                                         </div>
                                     <?php endif; ?>
 
-                                    <div id="preview_<?= $g ?>_mobile" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem] mb-3"></div>
+                                    <div id="preview_<?= $g ?>_mobile" class="w-full empty:hidden mb-3"></div>
                                     <label class="group cursor-pointer block">
                                         <div class="flex items-center justify-center py-2.5 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                                             <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
@@ -441,13 +441,16 @@ $getVal = function ($grade, $field) use ($records) {
             if (placeholder) placeholder.style.display = 'flex';
         }
 
-        if (input.files) {
+        if (input.files && input.files.length > 0) {
+            // Setup grid dynamic class like the existing image preview
+            previewContainer.className = 'grid gap-2 w-full empty:hidden mb-3 ' + (input.files.length >= 2 ? 'grid-cols-2' : 'grid-cols-1');
+
             Array.from(input.files).forEach(file => {
                 if (file.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const imgContainer = document.createElement('div');
-                        imgContainer.className = 'relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border border-gray-200 shadow-sm aspect-[4/3]';
+                        imgContainer.className = 'group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3]';
 
                         const img = document.createElement('img');
                         img.src = e.target.result;
