@@ -88,7 +88,7 @@ class AdminPostController extends Controller
                     'content' => $_POST['content'] ?? '',
                     'category' => $_POST['category'] ?? 'Tin tức',
                     'status' => $_POST['status'] ?? 'Draft',
-                    'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                    'is_featured' => isset($_POST['is_featured']), // PostgreSQL requires strict boolean
                     'thumbnail' => $thumbnailPath,
                     'updated_at' => date('Y-m-d H:i:s')
                 ];
