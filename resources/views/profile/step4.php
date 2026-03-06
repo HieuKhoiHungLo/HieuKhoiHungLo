@@ -103,26 +103,20 @@ include __DIR__ . '/../layouts/header.php';
 
                             <div class="md:col-span-2 overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
                                 <?php
-                                $subjectGroups = [
-                                    'Khối tự nhiên' => [
-                                        'toan' => 'Toán',
-                                        'ly' => 'Vật lí',
-                                        'hoa' => 'Hóa học',
-                                        'sinh' => 'Sinh học'
-                                    ],
-                                    'Khối xã hội' => [
-                                        'van' => 'Ngữ văn',
-                                        'su' => 'Lịch sử',
-                                        'dia' => 'Địa lí',
-                                        'gdcd' => 'GDCD'
-                                    ],
-                                    'Ngoại ngữ & Khác' => [
-                                        'tieng_anh' => 'Tiếng Anh',
-                                        'tieng_trung' => 'Tiếng Trung',
-                                        'ktpl' => 'KT&PL',
-                                        'tin_hoc' => 'Tin học',
-                                        'cnnn' => 'Công nghệ N.Nghiệp'
-                                    ]
+                                $subjects = [
+                                    'toan' => 'Toán',
+                                    'van' => 'Ngữ văn',
+                                    'tieng_anh' => 'Tiếng Anh',
+                                    'tieng_trung' => 'Tiếng Trung',
+                                    'ly' => 'Vật lí',
+                                    'hoa' => 'Hóa học',
+                                    'sinh' => 'Sinh học',
+                                    'su' => 'Lịch sử',
+                                    'dia' => 'Địa lí',
+                                    'gdcd' => 'GDCD',
+                                    'ktpl' => 'Giáo dục kinh tế và pháp luật',
+                                    'tin_hoc' => 'Tin học',
+                                    'cnnn' => 'Công nghệ (nông nghiệp)'
                                 ];
                                 ?>
                                 <table class="w-full text-sm text-center border-collapse">
@@ -133,20 +127,15 @@ include __DIR__ . '/../layouts/header.php';
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 bg-white">
-                                        <?php foreach ($subjectGroups as $groupName => $subjects): ?>
-                                            <tr class="bg-gray-50/80">
-                                                <td colspan="2" class="px-3 py-2 text-left font-bold text-gray-500 text-xs uppercase tracking-widest bg-gray-50/80"><?= $groupName ?></td>
+                                        <?php foreach ($subjects as $key => $name): ?>
+                                            <tr class="hover:bg-gray-50 transition-colors">
+                                                <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
+                                                <td class="p-1.5 border text-center">
+                                                    <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
+                                                        value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
+                                                        class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="0.00">
+                                                </td>
                                             </tr>
-                                            <?php foreach ($subjects as $key => $name): ?>
-                                                <tr class="hover:bg-gray-50 transition-colors">
-                                                    <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
-                                                    <td class="p-1.5 border text-center">
-                                                        <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
-                                                            value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
-                                                            class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="-">
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
@@ -166,24 +155,32 @@ include __DIR__ . '/../layouts/header.php';
                                     $certFileThumbUrl = $certFileIsExt ? google_drive_thumbnail_url($certFileUrl, 'w400') : $certFileFullUrl;
                                 }
                                 ?>
-                                <div class="group relative flex-1 min-h-[200px] border-2 border-dashed border-red-200 rounded-2xl overflow-hidden bg-red-50/30 transition-all hover:border-hvu-red/50">
-                                    <?php if ($hasCertFile): ?>
-                                        <img id="preview_cert" alt="Giấy chứng nhận" loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.15]" ondblclick="if(this.src && !this.src.startsWith('data:')) window.open('<?= $certFileFullUrl ?>', '_blank')" title="Click đúp để xem kích thước thật" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-red-50 text-red-300\'><i class=\'fas fa-image text-4xl\'></i></div>'">
-                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                                            <div class="flex flex-col gap-2 items-center scale-75 group-hover:scale-100 transition-transform duration-300">
-                                                <span class="text-white text-sm font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg"><i class="fas fa-search-plus mr-1"></i> Thay đổi file</span>
-                                            </div>
+                                <?php if ($hasCertFile): ?>
+                                    <div class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3] mb-3">
+                                        <a href="<?= $certFileFullUrl ?>" target="_blank" class="block w-full h-full">
+                                            <img loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.15]" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-gray-100 text-gray-400\'><i class=\'fas fa-image text-2xl\'></i></div>'">
+                                        </a>
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                            <span class="text-white text-xs font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300"><i class="fas fa-search-plus mr-1"></i> Xem lớn</span>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="flex flex-col items-center justify-center h-full text-red-300 py-8">
-                                            <i class="fas fa-cloud-upload-alt text-4xl mb-3"></i>
-                                            <span class="text-xs font-black uppercase tracking-widest">Tải lên giấy chứng nhận</span>
-                                            <span class="text-[10px] mt-2 font-semibold">Ảnh chụp rõ nét (JPG, PNG)</span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <input type="file" name="file_chung_nhan" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" onchange="previewImage(this, 'preview_cert')">
-                                </div>
-                                <p class="text-[10px] text-gray-400 mt-2 italic text-center"><?= $hasCertFile ? '✓ Đã có ảnh. Chọn file mới để thay thế.' : 'Nếu có giấy chứng nhận kết quả' ?></p>
+                                    </div>
+                                <?php else: ?>
+                                    <div id="no_image_cert" class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
+                                        <i class="fas fa-image text-4xl mb-3"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-widest text-center mt-2 px-4">Chưa có<br>Giấy chứng nhận</span>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div id="preview_cert" class="w-full empty:hidden mb-3"></div>
+
+                                <label class="group cursor-pointer block">
+                                    <div class="flex items-center justify-center py-3 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
+                                        <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors text-lg"></i>
+                                        <span class="font-bold text-gray-500 group-hover:text-hvu-red transition-colors file-label"><?= $hasCertFile ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
+                                    </div>
+                                    <input type="file" name="file_chung_nhan" accept="image/*" class="hidden" onchange="previewCert(this, 'preview_cert', 'no_image_cert')">
+                                </label>
+                                <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tải ảnh chụp rõ nét Giấy chứng nhận kết quả thi (nếu có)</p>
                             </div>
                         </div>
                     </div>
@@ -220,16 +217,43 @@ include __DIR__ . '/../layouts/header.php';
         });
     });
 
-    function previewImage(input, previewId) {
-        const preview = document.getElementById(previewId);
+    function previewCert(input, previewId, placeholderId) {
+        const previewContainer = document.getElementById(previewId);
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        const placeholder = document.getElementById(placeholderId);
+        if (input.files && input.files.length > 0) {
+            if (placeholder) placeholder.style.display = 'none';
+        } else {
+            if (placeholder) placeholder.style.display = 'flex';
+        }
+
+        const label = input.closest('label').querySelector('.file-label');
+
         if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.classList.remove('hidden');
-                if (preview.nextElementSibling) preview.nextElementSibling.classList.add('hidden');
+            label.textContent = 'Đã chọn ảnh';
+            label.classList.remove('text-gray-500');
+            label.classList.add('text-hvu-red');
+
+            if (input.files[0].type.startsWith('image/') && previewContainer) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3]';
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'w-full h-full object-cover transition-transform duration-300 hover:scale-[1.15]';
+
+                    imgContainer.appendChild(img);
+                    previewContainer.appendChild(imgContainer);
+                }
+                reader.readAsDataURL(input.files[0]);
             }
-            reader.readAsDataURL(input.files[0]);
+        } else {
+            label.textContent = 'Tải ảnh lên';
+            label.classList.remove('text-hvu-red');
+            label.classList.add('text-gray-500');
         }
     }
 </script>
