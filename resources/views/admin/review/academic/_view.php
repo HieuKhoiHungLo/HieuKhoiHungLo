@@ -67,10 +67,19 @@
 
     <!-- Scores Table (Student Interface Style) -->
     <div class="bg-white rounded-[1.5rem] border border-blue-100 overflow-hidden shadow-sm">
-        <div class="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center text-xs shadow-sm"><i class="fas fa-table"></i></span>
+        <div class="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center text-xs shadow-sm"><i class="fas fa-table"></i></span>
+                <div>
+                    <span class="block text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Chi tiết điểm học tập</span>
+                </div>
+            </div>
             <div>
-                <span class="block text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Chi tiết điểm học tập</span>
+                <?php if (isset($user['da_du_6_ky']) && $user['da_du_6_ky']): ?>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-100"><i class="fas fa-check-circle"></i> Đã có đủ học bạ 3 năm</span>
+                <?php else: ?>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-100"><i class="fas fa-exclamation-triangle"></i> Chưa có điểm Lớp 12</span>
+                <?php endif; ?>
             </div>
         </div>
 

@@ -24,8 +24,10 @@
             <div x-show="activeGrade === '<?= $g ?>'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" class="space-y-4">
                 <div class="flex flex-col gap-4">
                     <?php
-                    $img1 = $rowsByGrade[$g]['file_minh_chung_1'] ?? '';
-                    $img2 = $rowsByGrade[$g]['file_minh_chung_2'] ?? '';
+                    $rawFiles = $rowsByGrade[$g]['file_hoc_ba'] ?? '';
+                    $fileList = !empty($rawFiles) ? explode(',', $rawFiles) : [];
+                    $img1 = $fileList[0] ?? '';
+                    $img2 = $fileList[1] ?? '';
                     ?>
                     <?php if (!empty($img1) || !empty($img2)): ?>
                         <?= render_evidence_item($img1, 'Ảnh minh chứng 1', "img_ev_{$g}_1") ?>
