@@ -365,9 +365,9 @@ if (isset($stepStatus)) {
                         <?php $s = 1;
                         $sDone = $isDone($s);
                         $sActive = ($nextStep == $s); ?>
-                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
-                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= $sDone ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
-                                <?= $sDone ? '<i class="fas fa-check"></i>' : $s ?>
+                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : (($sDone && $s < $nextStep) ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
+                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= ($sDone && $s < $nextStep) ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
+                                <?= ($sDone && $s < $nextStep) ? '<i class="fas fa-check"></i>' : $s ?>
                             </div>
                             <h3 class="font-bold text-gray-900">Thông tin cá nhân</h3>
                             <a href="<?= url('/profile/step1') ?>" class="text-[10px] uppercase font-black tracking-widest mt-2 inline-block <?= $sActive ? 'text-hvu-red' : 'text-gray-400' ?>">
@@ -379,9 +379,9 @@ if (isset($stepStatus)) {
                         <?php $s = 2;
                         $sDone = $isDone($s);
                         $sActive = ($nextStep == $s); ?>
-                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
-                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= $sDone ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
-                                <?= $sDone ? '<i class="fas fa-check"></i>' : $s ?>
+                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : (($sDone && $s < $nextStep) ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
+                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= ($sDone && $s < $nextStep) ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
+                                <?= ($sDone && $s < $nextStep) ? '<i class="fas fa-check"></i>' : $s ?>
                             </div>
                             <h3 class="font-bold text-gray-900">Học bạ THPT</h3>
                             <a href="<?= url('/profile/step2') ?>" class="text-[10px] uppercase font-black tracking-widest mt-2 inline-block <?= $sActive ? 'text-hvu-red' : 'text-gray-400' ?>">
@@ -395,9 +395,9 @@ if (isset($stepStatus)) {
                         $sDone = $isDone($s);
                         $sActive = ($nextStep == $s);
                         ?>
-                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
-                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= $sDone ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
-                                <?= $sDone ? '<i class="fas fa-check"></i>' : $s ?>
+                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : (($sDone && $s < $nextStep) ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
+                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= ($sDone && $s < $nextStep) ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
+                                <?= ($sDone && $s < $nextStep) ? '<i class="fas fa-check"></i>' : $s ?>
                             </div>
                             <h3 class="font-bold text-gray-900">Chứng chỉ ngoại ngữ quốc tế</h3>
                             <a href="<?= url('/profile/step3') ?>" class="text-[10px] uppercase font-black tracking-widest mt-2 inline-block <?= $sActive ? 'text-hvu-red' : 'text-gray-400' ?>">
@@ -410,9 +410,9 @@ if (isset($stepStatus)) {
                             <?php $s = 4;
                             $sDone = $isDone($s);
                             $sActive = ($nextStep == $s); ?>
-                            <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
-                                <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= $sDone ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
-                                    <?= $sDone ? '<i class="fas fa-check"></i>' : $s ?>
+                            <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : (($sDone && $s < $nextStep) ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
+                                <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= ($sDone && $s < $nextStep) ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
+                                    <?= ($sDone && $s < $nextStep) ? '<i class="fas fa-check"></i>' : $s ?>
                                 </div>
                                 <h3 class="font-bold text-gray-900">Điểm thi 2026</h3>
                                 <a href="<?= url('/profile/step4') ?>" class="text-[10px] uppercase font-black tracking-widest mt-2 inline-block <?= $sActive ? 'text-hvu-red' : 'text-gray-400' ?>">
@@ -425,9 +425,9 @@ if (isset($stepStatus)) {
                         <?php $s = $totalSteps;
                         $sDone = $isDone($s);
                         $sActive = ($nextStep == $s); ?>
-                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : ($sDone ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
-                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= $sDone ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
-                                <?= $sDone ? '<i class="fas fa-check"></i>' : $s ?>
+                        <div class="group relative bg-white p-4 rounded-2xl border-2 <?= $sActive ? 'border-hvu-red shadow-lg shadow-red-100' : (($sDone && $s < $nextStep) ? 'border-green-500' : 'border-gray-100') ?> transition hover:-translate-y-1 text-center md:text-left">
+                            <div class="w-10 h-10 mx-auto md:mx-0 rounded-full flex items-center justify-center font-bold text-sm mb-3 <?= ($sDone && $s < $nextStep) ? 'bg-green-500 text-white' : ($sActive ? 'bg-hvu-red text-white' : 'bg-gray-100 text-gray-400') ?>">
+                                <?= ($sDone && $s < $nextStep) ? '<i class="fas fa-check"></i>' : $s ?>
                             </div>
                             <h3 class="font-bold text-gray-900">Nguyện vọng</h3>
                             <a href="<?= url('/profile/step' . $s) ?>" class="text-[10px] uppercase font-black tracking-widest mt-2 inline-block <?= $sActive ? 'text-hvu-red' : 'text-gray-400' ?>">
