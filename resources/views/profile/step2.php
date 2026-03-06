@@ -145,7 +145,7 @@ $getVal = function ($grade, $field) use ($records) {
                                             <td class="p-1.5 border text-center">
                                                 <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm w-20"
                                                     name="records[<?= $g ?>][<?= $key ?>]"
-                                                    value="<?= $getVal($g, $key) ?>" placeholder="-">
+                                                    value="<?= $getVal($g, $key) ?>" placeholder="0.0">
                                             </td>
                                         <?php endforeach; ?>
                                     </tr>
@@ -153,7 +153,7 @@ $getVal = function ($grade, $field) use ($records) {
 
                                 <!-- ĐTB cả năm -->
                                 <tr class="bg-blue-50/50 border-t-2 border-blue-100 font-bold">
-                                    <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB cả năm</td>
+                                    <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB cả năm <br><span class="text-[10px] font-normal italic text-blue-600">(nếu có)</span></td>
                                     <?php foreach ([10, 11, 12] as $g): ?>
                                         <td class="p-1.5 border text-center">
                                             <input type="number" step="0.01" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700 w-20"
@@ -244,12 +244,13 @@ $getVal = function ($grade, $field) use ($records) {
                                         <?php endif; ?>
 
                                         <!-- Upload Button -->
+                                        <div id="preview_<?= $g ?>_desktop" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem] mb-3"></div>
                                         <label class="group cursor-pointer block">
                                             <div class="flex items-center justify-center py-2.5 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                                                 <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
                                                 <span class="text-xs font-bold text-gray-500 group-hover:text-hvu-red transition-colors"><?= $hasImages ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
                                             </div>
-                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="updateUploadLabel(this)" />
+                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_desktop'); updateUploadLabel(this)" />
                                         </label>
                                         <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tối đa 2 ảnh/năm (HK1, HK2)</p>
                                     </div>
@@ -282,7 +283,7 @@ $getVal = function ($grade, $field) use ($records) {
                                     <thead>
                                         <tr class="<?= $tabColors[$g]['bg'] ?> <?= $tabColors[$g]['text'] ?> font-bold text-xs uppercase">
                                             <th class="px-3 py-2.5 text-left" style="width:55%">Môn học</th>
-                                            <th class="px-2 py-2.5 border-l border-white/50" style="width:45%">ĐTB cả năm</th>
+                                            <th class="px-2 py-2.5 border-l border-white/50" style="width:45%">ĐTB cả năm (nếu có)</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 bg-white">
@@ -292,14 +293,14 @@ $getVal = function ($grade, $field) use ($records) {
                                                 <td class="p-1.5 text-center">
                                                     <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
                                                         class="w-full text-center text-sm font-semibold rounded-lg border border-gray-200 py-2 focus:border-hvu-red focus:ring-1 focus:ring-hvu-red/30 outline-none transition"
-                                                        name="records[<?= $g ?>][<?= $key ?>]" value="<?= $getVal($g, $key) ?>" placeholder="-">
+                                                        name="records[<?= $g ?>][<?= $key ?>]" value="<?= $getVal($g, $key) ?>" placeholder="0.0">
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
 
                                         <!-- Điểm TB cả năm -->
                                         <tr class="bg-blue-50/60 border-t-2 border-blue-200">
-                                            <td class="px-3 py-2.5 font-bold text-blue-800 text-left text-[13px]">Điểm TB cả năm</td>
+                                            <td class="px-3 py-2.5 font-bold text-blue-800 text-left text-[13px]">Điểm TB cả năm <br><span class="text-[10px] font-normal italic text-blue-600">(nếu có)</span></td>
                                             <td class="p-1.5 text-center">
                                                 <input type="number" step="0.01" min="0" max="10" inputmode="decimal"
                                                     class="w-full text-center text-sm font-bold text-blue-700 rounded-lg border border-blue-200 py-2 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-300 outline-none transition"
@@ -370,12 +371,13 @@ $getVal = function ($grade, $field) use ($records) {
                                         </div>
                                     <?php endif; ?>
 
+                                    <div id="preview_<?= $g ?>_mobile" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem] mb-3"></div>
                                     <label class="group cursor-pointer block">
                                         <div class="flex items-center justify-center py-2.5 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                                             <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
                                             <span class="text-xs font-bold text-gray-500 group-hover:text-hvu-red transition-colors"><?= $mHasImages ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
                                         </div>
-                                        <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="updateUploadLabel(this)" />
+                                        <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_mobile'); updateUploadLabel(this)" />
                                     </label>
                                 </div>
                                 <!-- /Mobile File Uploads -->
@@ -399,6 +401,32 @@ $getVal = function ($grade, $field) use ($records) {
 </div>
 
 <script>
+    // Preview selected images immediately
+    function previewMultipleImages(input, previewId) {
+        const previewContainer = document.getElementById(previewId);
+        previewContainer.innerHTML = '';
+
+        if (input.files) {
+            Array.from(input.files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border border-gray-200 shadow-sm aspect-[4/3]';
+
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-full object-cover transition-transform duration-300 hover:scale-[1.15]';
+
+                        imgContainer.appendChild(img);
+                        previewContainer.appendChild(imgContainer);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    }
+
     // Update upload button label when files are selected
     function updateUploadLabel(input) {
         const label = input.closest('label').querySelector('span');
