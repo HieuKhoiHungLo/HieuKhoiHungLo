@@ -43,11 +43,18 @@ class ProfileController extends Controller
         $_SESSION['user_cached_cccd'] = $_SESSION['cccd'];
     }
 
-    /**
-     * Helper to get application status for locking logic
-     */
     private function getApplicationStatus()
     {
+        // Simple 30-second TTL cache for application status to reduce DB load
+        // Because status is unlikely to change exactly while user is filling forms step by step
+        $cacheKey = 'app_status_' . $_SESSION['cccd'];
+        $cacheTimeKey = $cacheKey . '_time';
+        $ttl = 30; // 30 seconds
+
+        if (isset($_SESSION[$cacheKey]) && isset($_SESSION[$cacheTimeKey]) && (time() - $_SESSION[$cacheTimeKey]) < $ttl) {
+            return $_SESSION[$cacheKey];
+        }
+
         $applicationModel = new \App\Models\Application();
         // Determine active session or latest
         $sessionModel = new \App\Models\AdmissionSession();
@@ -66,11 +73,16 @@ class ProfileController extends Controller
             }
         }
 
-        return [
+        $result = [
             'status' => $status,
             'isLocked' => $isLocked,
             'editRequestPending' => $editRequestPending
         ];
+
+        $_SESSION[$cacheKey] = $result;
+        $_SESSION[$cacheTimeKey] = time();
+
+        return $result;
     }
 
     private function getUploadPathInfo($cccd)

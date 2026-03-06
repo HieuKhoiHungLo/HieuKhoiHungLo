@@ -35,7 +35,9 @@
                             $__stmt->execute(['footer_support_links']);
                             $__json = $__stmt->fetchColumn();
                             $_SESSION['cache_footer_links'] = $__json ? json_decode($__json, true) : [];
-                        } catch (\Exception $e) { $_SESSION['cache_footer_links'] = []; }
+                        } catch (\Exception $e) {
+                            $_SESSION['cache_footer_links'] = [];
+                        }
                     }
                     $footerLinks = $_SESSION['cache_footer_links'];
                     if (empty($footerLinks)) {
@@ -47,7 +49,7 @@
                     ?>
                     <ul class="space-y-3 text-sm text-gray-400">
                         <?php foreach ($footerLinks as $fl): ?>
-                        <li><a href="<?= htmlspecialchars($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?? 'fas fa-check-circle') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['label']) ?></a></li>
+                            <li><a href="<?= htmlspecialchars($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?? 'fas fa-check-circle') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['label']) ?></a></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
@@ -115,9 +117,9 @@
             const list = document.getElementById('notification-list');
             const markAllBtn = document.getElementById('mark-all-read');
             const baseUrl = '<?= \App\Core\App::getBaseUrl() ?>';
-            
+
             if (!bell) return;
-            
+
             // Fetch unread count
             function fetchUnreadCount() {
                 fetch(baseUrl + '/api/notifications/unread-count')
@@ -131,14 +133,14 @@
                         }
                     });
             }
-            
+
             let currentFilter = 'all';
 
             // Fetch notifications
             window.fetchNotifications = function(filter = 'all') {
                 currentFilter = filter;
                 list.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...</div>';
-                
+
                 fetch(baseUrl + '/api/notifications?filter=' + filter)
                     .then(r => {
                         if (!r.ok) throw new Error('HTTP error ' + r.status);
@@ -151,14 +153,14 @@
                             list.innerHTML = `<div class="p-6 text-center text-gray-400 text-sm"><i class="fas fa-bell-slash text-2xl mb-2"></i><p>${msg}</p></div>`;
                             return;
                         }
-                        
+
                         const typeColors = {
                             'info': 'bg-blue-100 text-blue-600',
                             'warning': 'bg-yellow-100 text-yellow-600',
                             'success': 'bg-green-100 text-green-600',
                             'important': 'bg-red-100 text-red-600'
                         };
-                        
+
                         list.innerHTML = data.notifications.map(n => `
                             <div class="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition ${n.is_read ? 'opacity-60' : ''}" 
                                  onclick="window.markNotificationRead(${n.id}, this)">
@@ -188,11 +190,11 @@
                 document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
                 const targetTab = document.getElementById('tab-' + filter);
                 if (targetTab) targetTab.classList.add('active');
-                
+
                 // Fetch filtered data
                 window.fetchNotifications(filter);
             }
-            
+
             // Mark as read
             window.markNotificationRead = function(id, el) {
                 fetch(baseUrl + '/api/notifications/mark-read', {
@@ -208,21 +210,21 @@
                     fetchUnreadCount();
                 });
             };
-            
+
             // Mark all read
             markAllBtn?.addEventListener('click', () => {
                 fetch(baseUrl + '/api/notifications/mark-all-read', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    }
-                })
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                        }
+                    })
                     .then(() => {
                         window.fetchNotifications();
                         fetchUnreadCount();
                     });
             });
-            
+
             // Toggle dropdown
             bell.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -231,121 +233,316 @@
                     window.fetchNotifications(currentFilter);
                 }
             });
-            
+
             // Close on outside click
             document.addEventListener('click', (e) => {
                 if (!dropdown.contains(e.target) && e.target !== bell) {
                     dropdown.classList.add('hidden');
                 }
             });
-            
+
             // Initial fetch
             fetchUnreadCount();
             setInterval(fetchUnreadCount, 60000); // Refresh every minute
         })();
     </script>
 
-<?php if (isset($_SESSION['user_id']) || isset($_SESSION['admin_id'])): ?>
-<!-- Session Idle Timeout Warning -->
-<div id="idleWarningModal" class="fixed inset-0 z-[9999] hidden">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center relative animate-bounce-in">
-            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-hourglass-half text-yellow-500 text-2xl animate-pulse"></i>
+    <?php if (isset($_SESSION['user_id']) || isset($_SESSION['admin_id'])): ?>
+        <!-- Session Idle Timeout Warning -->
+        <div id="idleWarningModal" class="fixed inset-0 z-[9999] hidden">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center relative animate-bounce-in">
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-hourglass-half text-yellow-500 text-2xl animate-pulse"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Phiên sắp hết hạn</h3>
+                    <p class="text-sm text-gray-500 mb-1">Bạn không có thao tác trong thời gian dài.</p>
+                    <p class="text-sm text-gray-500 mb-4">Hệ thống sẽ tự động đăng xuất sau:</p>
+                    <div class="text-4xl font-black text-hvu-red mb-5" id="idleCountdown">60</div>
+                    <button onclick="resetIdleTimer()" class="w-full py-3 bg-hvu-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg">
+                        <i class="fas fa-mouse-pointer mr-2"></i> Tiếp tục phiên làm việc
+                    </button>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">Phiên sắp hết hạn</h3>
-            <p class="text-sm text-gray-500 mb-1">Bạn không có thao tác trong thời gian dài.</p>
-            <p class="text-sm text-gray-500 mb-4">Hệ thống sẽ tự động đăng xuất sau:</p>
-            <div class="text-4xl font-black text-hvu-red mb-5" id="idleCountdown">60</div>
-            <button onclick="resetIdleTimer()" class="w-full py-3 bg-hvu-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg">
-                <i class="fas fa-mouse-pointer mr-2"></i> Tiếp tục phiên làm việc
-            </button>
+        </div>
+
+        <style>
+            @keyframes bounce-in {
+                0% {
+                    transform: scale(0.8);
+                    opacity: 0;
+                }
+
+                50% {
+                    transform: scale(1.05);
+                }
+
+                100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .animate-bounce-in {
+                animation: bounce-in 0.3s ease-out;
+            }
+        </style>
+
+        <script>
+            (function() {
+                const SESSION_TIMEOUT = 10 * 60; // 10 minutes (matches server)
+                const WARNING_BEFORE = 2 * 60; // Show warning 2 minutes before expiry
+                const COUNTDOWN_SECS = 60; // 60-second final countdown
+
+                const isAdmin = <?= isset($_SESSION['admin_id']) ? 'true' : 'false' ?>;
+                const logoutUrl = isAdmin ?
+                    '<?= url("/admin/login?timeout=1") ?>' :
+                    '<?= url("/?timeout=1") ?>';
+
+                let idleSeconds = 0;
+                let countdownInterval = null;
+                let countdownRemaining = COUNTDOWN_SECS;
+                const modal = document.getElementById('idleWarningModal');
+                const countdownEl = document.getElementById('idleCountdown');
+
+                // Track activity
+                const activityEvents = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+                activityEvents.forEach(evt => {
+                    document.addEventListener(evt, () => {
+                        if (!modal.classList.contains('hidden')) return; // Don't reset during countdown
+                        idleSeconds = 0;
+                    }, {
+                        passive: true
+                    });
+                });
+
+                // Main idle checker (runs every second)
+                setInterval(() => {
+                    idleSeconds++;
+                    const warningAt = SESSION_TIMEOUT - WARNING_BEFORE;
+
+                    if (idleSeconds >= warningAt && modal.classList.contains('hidden')) {
+                        showWarning();
+                    }
+                }, 1000);
+
+                function showWarning() {
+                    countdownRemaining = COUNTDOWN_SECS;
+                    modal.classList.remove('hidden');
+                    updateCountdownDisplay();
+
+                    countdownInterval = setInterval(() => {
+                        countdownRemaining--;
+                        updateCountdownDisplay();
+
+                        if (countdownRemaining <= 0) {
+                            clearInterval(countdownInterval);
+                            window.location.href = logoutUrl;
+                        }
+                    }, 1000);
+                }
+
+                function updateCountdownDisplay() {
+                    if (countdownEl) {
+                        countdownEl.textContent = countdownRemaining;
+                        countdownEl.style.color = countdownRemaining <= 10 ? '#ef4444' : '';
+                    }
+                }
+
+                // Exposed globally for button onclick
+                window.resetIdleTimer = function() {
+                    idleSeconds = 0;
+                    countdownRemaining = COUNTDOWN_SECS;
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    modal.classList.add('hidden');
+
+                    // Ping server to refresh last_activity
+                    fetch(window.location.href, {
+                        method: 'HEAD',
+                        cache: 'no-store'
+                    }).catch(() => {});
+                };
+            })();
+        </script>
+    <?php endif; ?>
+
+    <!-- Global Form Submit Loading Overlay -->
+    <div id="globalSubmitOverlay" class="fixed inset-0 z-[99999] hidden flex-col items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300 opacity-0">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-11/12 text-center transform scale-95 transition-transform duration-300">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-hvu-red rounded-full border-t-transparent animate-spin"></div>
+                <i class="fas fa-cloud-upload-alt absolute inset-0 flex items-center justify-center text-hvu-red text-xl animate-pulse"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Đang xử lý dữ liệu...</h3>
+            <p class="text-sm text-gray-500 mb-2" id="overlayMessage">Hệ thống đang nén và tải tệp lên máy chủ. Vui lòng không đóng trình duyệt!</p>
+            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden hidden" id="overlayProgressContainer">
+                <div class="bg-hvu-red h-1.5 rounded-full transition-all duration-300 w-0" id="overlayProgressBar"></div>
+            </div>
         </div>
     </div>
-</div>
 
-<style>
-@keyframes bounce-in {
-    0% { transform: scale(0.8); opacity: 0; }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); opacity: 1; }
-}
-.animate-bounce-in { animation: bounce-in 0.3s ease-out; }
-</style>
+    <script>
+        /**
+         * Frontend Image Compression & Form Submission Optimizer
+         * Applied globally to all forms except login/search
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            const COMPRESS_MAX_WIDTH = 1600;
+            const COMPRESS_MAX_HEIGHT = 1600;
+            const COMPRESS_QUALITY = 0.75; // 75% quality JPEG
+            const MAX_FILE_SIZE_BYTES = 500 * 1024; // If file is smaller than 500KB, don't compress
 
-<script>
-(function() {
-    const SESSION_TIMEOUT = 10 * 60;    // 10 minutes (matches server)
-    const WARNING_BEFORE  = 2 * 60;     // Show warning 2 minutes before expiry
-    const COUNTDOWN_SECS  = 60;         // 60-second final countdown
+            // Find all main application forms (Step 1-5 usually have post method and multipart)
+            const forms = document.querySelectorAll('form[method="POST"]');
 
-    const isAdmin = <?= isset($_SESSION['admin_id']) ? 'true' : 'false' ?>;
-    const logoutUrl = isAdmin
-        ? '<?= url("/admin/login?timeout=1") ?>'
-        : '<?= url("/?timeout=1") ?>';
+            forms.forEach(form => {
+                // Skip obvious non-data forms like logout
+                if (form.action.includes('logout') || form.id === 'searchForm') return;
 
-    let idleSeconds = 0;
-    let countdownInterval = null;
-    let countdownRemaining = COUNTDOWN_SECS;
-    const modal = document.getElementById('idleWarningModal');
-    const countdownEl = document.getElementById('idleCountdown');
+                form.addEventListener('submit', async function(e) {
+                    // Check if form is valid first (HTML5 validation)
+                    if (!this.checkValidity()) return;
 
-    // Track activity
-    const activityEvents = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
-    activityEvents.forEach(evt => {
-        document.addEventListener(evt, () => {
-            if (!modal.classList.contains('hidden')) return; // Don't reset during countdown
-            idleSeconds = 0;
-        }, { passive: true });
-    });
+                    // Show custom overlay if the submit button hasn't been blocked yet
+                    const overlay = document.getElementById('globalSubmitOverlay');
+                    if (overlay.classList.contains('hidden')) {
+                        e.preventDefault(); // Pause submission to process images
 
-    // Main idle checker (runs every second)
-    setInterval(() => {
-        idleSeconds++;
-        const warningAt = SESSION_TIMEOUT - WARNING_BEFORE;
+                        // Show Overlay UX
+                        overlay.classList.remove('hidden');
+                        setTimeout(() => {
+                            overlay.classList.remove('opacity-0');
+                            overlay.querySelector('.bg-white').classList.remove('scale-95');
+                        }, 10);
 
-        if (idleSeconds >= warningAt && modal.classList.contains('hidden')) {
-            showWarning();
-        }
-    }, 1000);
+                        document.getElementById('overlayMessage').textContent = 'Đang tự động nén ảnh để tăng tốc tải lên...';
 
-    function showWarning() {
-        countdownRemaining = COUNTDOWN_SECS;
-        modal.classList.remove('hidden');
-        updateCountdownDisplay();
+                        const fileInputs = form.querySelectorAll('input[type="file"][accept*="image"]');
+                        let hasFilesToProcess = false;
 
-        countdownInterval = setInterval(() => {
-            countdownRemaining--;
-            updateCountdownDisplay();
+                        // First pass check if there are any files
+                        for (let input of fileInputs) {
+                            if (input.files && input.files.length > 0) {
+                                hasFilesToProcess = true;
+                                break;
+                            }
+                        }
 
-            if (countdownRemaining <= 0) {
-                clearInterval(countdownInterval);
-                window.location.href = logoutUrl;
+                        if (hasFilesToProcess) {
+                            try {
+                                const dataTransferMap = new Map(); // Store processed files per input
+
+                                for (let input of fileInputs) {
+                                    if (!input.files || input.files.length === 0) continue;
+
+                                    const dt = new DataTransfer();
+
+                                    for (let i = 0; i < input.files.length; i++) {
+                                        const file = input.files[i];
+
+                                        // Only compress large images
+                                        if (file.type.startsWith('image/') && file.size > MAX_FILE_SIZE_BYTES) {
+                                            try {
+                                                const compressedBlob = await compressImage(file, COMPRESS_MAX_WIDTH, COMPRESS_MAX_HEIGHT, COMPRESS_QUALITY);
+                                                // Some older browsers don't support File constructor well, but modern ones do
+                                                const compressedFile = new File([compressedBlob], file.name, {
+                                                    type: file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+                                                    lastModified: Date.now()
+                                                });
+                                                dt.items.add(compressedFile);
+                                                console.log(`[Optimizer] Compressed ${file.name}: ${(file.size/1024).toFixed(1)}KB -> ${(compressedFile.size/1024).toFixed(1)}KB`);
+                                            } catch (err) {
+                                                console.error('[Optimizer] Compression failed for', file.name, err);
+                                                dt.items.add(file); // Fallback to original
+                                            }
+                                        } else {
+                                            dt.items.add(file); // Already small enough, keep original
+                                        }
+                                    }
+                                    dataTransferMap.set(input, dt.files);
+                                }
+
+                                // Apply processed files back to inputs
+                                for (let [input, files] of dataTransferMap.entries()) {
+                                    input.files = files;
+                                }
+                            } catch (err) {
+                                console.error('[Optimizer] Global processing error:', err);
+                            }
+                        }
+
+                        // Update UX and submit
+                        document.getElementById('overlayMessage').textContent = 'Đang lưu hồ sơ và kết nối mây...';
+
+                        // Submit form natively bypassing this event listener
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                });
+            });
+
+            // Core Compression Logic via Canvas
+            function compressImage(file, maxWidth, maxHeight, quality) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = function(event) {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = function() {
+                            let width = img.width;
+                            let height = img.height;
+
+                            // Calculate new dimensions while keeping aspect ratio
+                            if (width > height) {
+                                if (width > maxWidth) {
+                                    height = Math.round((height * maxWidth) / width);
+                                    width = maxWidth;
+                                }
+                            } else {
+                                if (height > maxHeight) {
+                                    width = Math.round((width * maxHeight) / height);
+                                    height = maxHeight;
+                                }
+                            }
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            const ctx = canvas.getContext('2d');
+                            // Draw white background for transparent PNGs converting to JPEG
+                            if (file.type !== 'image/png') {
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(0, 0, width, height);
+                            }
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Force JPEG for better compression unless it's explicitly PNG
+                            const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                            const outputQuality = file.type === 'image/png' ? undefined : quality;
+
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    resolve(blob);
+                                } else {
+                                    reject(new Error("Canvas toBlob failed"));
+                                }
+                            }, mimeType, outputQuality);
+                        };
+                        img.onerror = function() {
+                            reject(new Error("Image loaded error"));
+                        };
+                    };
+                    reader.onerror = function() {
+                        reject(new Error("File read error"));
+                    };
+                });
             }
-        }, 1000);
-    }
+        });
+    </script>
 
-    function updateCountdownDisplay() {
-        if (countdownEl) {
-            countdownEl.textContent = countdownRemaining;
-            countdownEl.style.color = countdownRemaining <= 10 ? '#ef4444' : '';
-        }
-    }
+    </body>
 
-    // Exposed globally for button onclick
-    window.resetIdleTimer = function() {
-        idleSeconds = 0;
-        countdownRemaining = COUNTDOWN_SECS;
-        if (countdownInterval) clearInterval(countdownInterval);
-        modal.classList.add('hidden');
-
-        // Ping server to refresh last_activity
-        fetch(window.location.href, { method: 'HEAD', cache: 'no-store' }).catch(() => {});
-    };
-})();
-</script>
-<?php endif; ?>
-
-</body>
-</html>
+    </html>
