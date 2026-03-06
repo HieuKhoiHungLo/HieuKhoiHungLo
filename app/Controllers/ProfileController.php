@@ -345,6 +345,10 @@ class ProfileController extends Controller
             }
 
             if ($academicModel->saveBatch($_SESSION['cccd'], $items)) {
+                $daDu6Ky = isset($_POST['da_du_6_ky']) && $_POST['da_du_6_ky'] == '1';
+                $this->thiSinhRepo->updateHocBaStatus($_SESSION['cccd'], $daDu6Ky);
+                $this->invalidateUserCache();
+
                 $this->redirect(url('/profile/step3'));
             } else {
                 $this->view('profile/step2', [

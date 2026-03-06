@@ -1,25 +1,30 @@
 <?php
+
 namespace App\Repositories;
 
 use App\Models\ThiSinh;
 use App\Core\Database;
 use PDO;
 
-class ThiSinhRepository {
+class ThiSinhRepository
+{
     protected $db;
     protected $model;
     protected $table = 'thi_sinh';
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
         $this->model = new ThiSinh();
     }
 
-    public function findByCCCD($cccd) {
+    public function findByCCCD($cccd)
+    {
         return $this->model->findByCCCD($cccd);
     }
 
-    public function findManyByCCCD(array $cccds) {
+    public function findManyByCCCD(array $cccds)
+    {
         if (empty($cccds)) return [];
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
         $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd IN ($placeholders)");
@@ -27,7 +32,8 @@ class ThiSinhRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getEmailsByIds(array $ids) {
+    public function getEmailsByIds(array $ids)
+    {
         if (empty($ids)) return [];
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $stmt = $this->db->prepare("SELECT so_cccd, ho_va_ten, email FROM {$this->table} WHERE so_cccd IN ($placeholders)");
@@ -35,7 +41,8 @@ class ThiSinhRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getDetail($cccd) {
+    public function getDetail($cccd)
+    {
         $sql = "SELECT t.*, 
                 p1.ten_tinh as ten_tinh_hk,
                 p2.ten_tinh as ten_tinh_tt,
@@ -54,7 +61,7 @@ class ThiSinhRepository {
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
                 WHERE t.so_cccd = ?
                 ORDER BY hs.created_at DESC LIMIT 1";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$cccd]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -64,7 +71,8 @@ class ThiSinhRepository {
      * Load ALL review data in a single DB round-trip using PostgreSQL JSON aggregation.
      * Returns: ['user' => [...], 'academic' => [...], 'choices' => [...], 'certificates' => [...], 'diemThi' => [...]]
      */
-    public function getReviewBundle($cccd) {
+    public function getReviewBundle($cccd)
+    {
         $sql = "SELECT 
             -- Main candidate data
             t.*, 
@@ -93,11 +101,11 @@ class ThiSinhRepository {
             LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
             WHERE t.so_cccd = ?
             ORDER BY hs.created_at DESC LIMIT 1";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$cccd]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$row) return null;
 
         // Extract embedded JSON and remove from main user array
@@ -105,7 +113,7 @@ class ThiSinhRepository {
         $choicesJson = $row['_choices_json'] ?? '[]';
         $certsJson = $row['_certs_json'] ?? '[]';
         $diemThiJson = $row['_diemthi_json'] ?? null;
-        
+
         unset($row['_academic_json'], $row['_choices_json'], $row['_certs_json'], $row['_diemthi_json']);
 
         return [
@@ -117,33 +125,51 @@ class ThiSinhRepository {
         ];
     }
 
-    public function findByEmail($email) {
+    public function findByEmail($email)
+    {
         return $this->model->findByEmail($email);
     }
 
-    public function create(array $data) {
+    public function create(array $data)
+    {
         return $this->model->create($data);
     }
 
-    public function updateFullProfile($cccd, array $data) {
+    public function updateFullProfile($cccd, array $data)
+    {
         return $this->model->updateFullProfile($cccd, $data);
     }
 
-    public function delete($cccd) {
+    public function updateHocBaStatus($cccd, $status)
+    {
+        return $this->model->updateHocBaStatus($cccd, $status);
+    }
+
+    public function updateCertStatus($cccd, $hasCert)
+    {
+        $stmt = $this->db->prepare("UPDATE {$this->table} SET co_chung_chi_qt = ? WHERE so_cccd = ?");
+        return $stmt->execute([$hasCert ? '1' : '0', $cccd]);
+    }
+
+    public function delete($cccd)
+    {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET deleted_at = NOW() WHERE so_cccd = ?");
         return $stmt->execute([$cccd]);
     }
 
-    public function restore($cccd) {
+    public function restore($cccd)
+    {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET deleted_at = NULL WHERE so_cccd = ?");
         return $stmt->execute([$cccd]);
     }
 
-    public function forceDelete($cccd) {
+    public function forceDelete($cccd)
+    {
         return $this->model->delete($cccd);
     }
 
-    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'created_at', $dir = 'desc', $trashed = false, $extraFilters = []) {
+    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'created_at', $dir = 'desc', $trashed = false, $extraFilters = [])
+    {
         // Single query with all JOINs + COUNT OVER() — eliminates 7 separate queries
         $sql = "SELECT DISTINCT t.*,
                 p.ten_tinh as province_name,
@@ -155,11 +181,11 @@ class ThiSinhRepository {
                 hs.ghi_chu,
                 COUNT(*) OVER() as _total_count
                 FROM {$this->table} t";
-        
+
         $sql .= " LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd";
         $sql .= " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh";
         $sql .= " LEFT JOIN dm_truong_thpt sc ON t.ma_truong_lop_12 = sc.ma_truong";
-        
+
         if ($year) {
             $sql .= " LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id";
         }
@@ -170,24 +196,84 @@ class ThiSinhRepository {
 
         $sql .= " WHERE 1=1";
         if ($trashed) {
-             $sql .= " AND t.deleted_at IS NOT NULL";
+            $sql .= " AND t.deleted_at IS NOT NULL";
         } else {
-             $sql .= " AND t.deleted_at IS NULL";
+            $sql .= " AND t.deleted_at IS NULL";
         }
         $params = [];
 
         if (!empty($search)) {
             // Function to generate nested replace for unaccenting in PostgreSQL
             $replacements = [
-                'à'=>'a','á'=>'a','ả'=>'a','ã'=>'a','ạ'=>'a','ă'=>'a','ằ'=>'a','ắ'=>'a','ẳ'=>'a','ẵ'=>'a','ặ'=>'a','â'=>'a','ầ'=>'a','ấ'=>'a','ẩ'=>'a','ẫ'=>'a','ậ'=>'a',
-                'è'=>'e','é'=>'e','ẻ'=>'e','ẽ'=>'e','ẹ'=>'e','ê'=>'e','ề'=>'e','ế'=>'e','ể'=>'e','ễ'=>'e','ệ'=>'e',
-                'ì'=>'i','í'=>'i','ỉ'=>'i','ĩ'=>'i','ị'=>'i',
-                'ò'=>'o','ó'=>'o','ỏ'=>'o','õ'=>'o','ọ'=>'o','ô'=>'o','ồ'=>'o','ố'=>'o','ổ'=>'o','ỗ'=>'o','ộ'=>'o','ơ'=>'o','ờ'=>'o','ớ'=>'o','ở'=>'o','ỡ'=>'o','ợ'=>'o',
-                'ù'=>'u','ú'=>'u','ủ'=>'u','ũ'=>'u','ụ'=>'u','ư'=>'u','ừ'=>'u','ứ'=>'u','ử'=>'u','ữ'=>'u','ự'=>'u',
-                'ỳ'=>'y','ý'=>'y','ỷ'=>'y','ỹ'=>'y','ỵ'=>'y',
-                'đ'=>'d'
+                'à' => 'a',
+                'á' => 'a',
+                'ả' => 'a',
+                'ã' => 'a',
+                'ạ' => 'a',
+                'ă' => 'a',
+                'ằ' => 'a',
+                'ắ' => 'a',
+                'ẳ' => 'a',
+                'ẵ' => 'a',
+                'ặ' => 'a',
+                'â' => 'a',
+                'ầ' => 'a',
+                'ấ' => 'a',
+                'ẩ' => 'a',
+                'ẫ' => 'a',
+                'ậ' => 'a',
+                'è' => 'e',
+                'é' => 'e',
+                'ẻ' => 'e',
+                'ẽ' => 'e',
+                'ẹ' => 'e',
+                'ê' => 'e',
+                'ề' => 'e',
+                'ế' => 'e',
+                'ể' => 'e',
+                'ễ' => 'e',
+                'ệ' => 'e',
+                'ì' => 'i',
+                'í' => 'i',
+                'ỉ' => 'i',
+                'ĩ' => 'i',
+                'ị' => 'i',
+                'ò' => 'o',
+                'ó' => 'o',
+                'ỏ' => 'o',
+                'õ' => 'o',
+                'ọ' => 'o',
+                'ô' => 'o',
+                'ồ' => 'o',
+                'ố' => 'o',
+                'ổ' => 'o',
+                'ỗ' => 'o',
+                'ộ' => 'o',
+                'ơ' => 'o',
+                'ờ' => 'o',
+                'ớ' => 'o',
+                'ở' => 'o',
+                'ỡ' => 'o',
+                'ợ' => 'o',
+                'ù' => 'u',
+                'ú' => 'u',
+                'ủ' => 'u',
+                'ũ' => 'u',
+                'ụ' => 'u',
+                'ư' => 'u',
+                'ừ' => 'u',
+                'ứ' => 'u',
+                'ử' => 'u',
+                'ữ' => 'u',
+                'ự' => 'u',
+                'ỳ' => 'y',
+                'ý' => 'y',
+                'ỷ' => 'y',
+                'ỹ' => 'y',
+                'ỵ' => 'y',
+                'đ' => 'd'
             ];
-            
+
             $unaccentedColumn = "lower(t.ho_va_ten)";
             foreach ($replacements as $accented => $unaccented) {
                 $unaccentedColumn = "replace($unaccentedColumn, '$accented', '$unaccented')";
@@ -195,10 +281,10 @@ class ThiSinhRepository {
 
             // Normal search logic for exact match/accents and unaccented search
             $sql .= " AND ({$unaccentedColumn} ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ? OR t.ho_va_ten ILIKE ?)";
-            
+
             // Unaccent the search term in PHP for the first placeholder
             $searchUnaccented = str_replace(array_keys($replacements), array_values($replacements), mb_strtolower($search, 'UTF-8'));
-            
+
             $params[] = "%$searchUnaccented%";
             $params[] = "%$search%";
             $params[] = "%$search%";
@@ -232,14 +318,14 @@ class ThiSinhRepository {
             $sql .= " AND t.da_du_6_ky = ?";
             $params[] = ($hocBaStatus == '1' ? 1 : 0);
         }
-        
+
         if ($sessionId) {
             $sql .= " AND hs.dot_tuyen_sinh_id = ?";
             $params[] = $sessionId;
         } elseif ($year) {
-             $sql .= " AND (dt.dm_nam_tuyen_sinh_nam = ? OR dt.nam_tuyen_sinh = ?)"; 
-             $params[] = $year;
-             $params[] = $year;
+            $sql .= " AND (dt.dm_nam_tuyen_sinh_nam = ? OR dt.nam_tuyen_sinh = ?)";
+            $params[] = $year;
+            $params[] = $year;
         }
 
         if ($onlyEditRequests) {
@@ -248,8 +334,8 @@ class ThiSinhRepository {
 
         // Sorting
         $allowedSorts = [
-            'created_at' => 't.ngay_tao', 
-            'name' => 't.ho_va_ten', 
+            'created_at' => 't.ngay_tao',
+            'name' => 't.ho_va_ten',
             'cccd' => 't.so_cccd',
             'province' => 'p.ten_tinh',
             'school' => 'sc.ten_truong',
@@ -257,7 +343,7 @@ class ThiSinhRepository {
         ];
         $sortField = $allowedSorts[$sort] ?? 't.ngay_tao';
         $sortDir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
-        
+
         $sql .= " ORDER BY $sortField $sortDir LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
@@ -267,19 +353,20 @@ class ThiSinhRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $trashed = false, $extraFilters = []) {
+    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $trashed = false, $extraFilters = [])
+    {
         $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t";
-        
+
         // Always join ho_so_xet_tuyen
         $sql .= " LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd";
-        
+
         if ($year) {
             $sql .= " LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id";
         }
-        
+
         if (!empty($status) || !empty($extraFilters['province']) || !empty($extraFilters['school'])) {
-             $sql .= " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh";
-             $sql .= " LEFT JOIN dm_truong_thpt sc ON t.ma_truong_lop_12 = sc.ma_truong";
+            $sql .= " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh";
+            $sql .= " LEFT JOIN dm_truong_thpt sc ON t.ma_truong_lop_12 = sc.ma_truong";
         }
 
         if (!empty($status)) {
@@ -288,9 +375,9 @@ class ThiSinhRepository {
 
         $sql .= " WHERE 1=1";
         if ($trashed) {
-             $sql .= " AND t.deleted_at IS NOT NULL";
+            $sql .= " AND t.deleted_at IS NOT NULL";
         } else {
-             $sql .= " AND t.deleted_at IS NULL";
+            $sql .= " AND t.deleted_at IS NULL";
         }
         $params = [];
 
@@ -332,9 +419,9 @@ class ThiSinhRepository {
             $sql .= " AND hs.dot_tuyen_sinh_id = ?";
             $params[] = $sessionId;
         } elseif ($year) {
-             $sql .= " AND (dt.dm_nam_tuyen_sinh_nam = ? OR dt.nam_tuyen_sinh = ?)";
-             $params[] = $year;
-             $params[] = $year;
+            $sql .= " AND (dt.dm_nam_tuyen_sinh_nam = ? OR dt.nam_tuyen_sinh = ?)";
+            $params[] = $year;
+            $params[] = $year;
         }
 
         if ($onlyEditRequests) {
@@ -347,10 +434,11 @@ class ThiSinhRepository {
     }
 
     // Bulk Actions
-    public function bulkUpdateStatus($cccds, $status) {
+    public function bulkUpdateStatus($cccds, $status)
+    {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-        
+
         // Update nguyen_vong status
         $sql = "UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
         $params = array_merge([$status], $cccds);
@@ -361,29 +449,30 @@ class ThiSinhRepository {
         $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
         $stmt2 = $this->db->prepare($sql2);
         $stmt2->execute($params);
-        
+
         return true;
     }
 
-    public function bulkTransferSession($cccds, $sessionId) {
+    public function bulkTransferSession($cccds, $sessionId)
+    {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-        
+
         try {
             $this->db->beginTransaction();
-            
+
             // 1. Xóa hồ sơ trùng ở đợt đích (nếu thí sinh đã có hồ sơ ở đó)
             $sqlDelete = "DELETE FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ?";
             $paramsDelete = array_merge($cccds, [$sessionId]);
             $stmtDelete = $this->db->prepare($sqlDelete);
             $stmtDelete->execute($paramsDelete);
-            
+
             // 2. Chuyển hồ sơ hiện tại sang đợt mới
             $sqlUpdate = "UPDATE ho_so_xet_tuyen SET dot_tuyen_sinh_id = ? WHERE so_cccd IN ($placeholders)";
             $paramsUpdate = array_merge([$sessionId], $cccds);
             $stmtUpdate = $this->db->prepare($sqlUpdate);
             $stmtUpdate->execute($paramsUpdate);
-            
+
             $this->db->commit();
             return true;
         } catch (\Exception $e) {
@@ -393,42 +482,45 @@ class ThiSinhRepository {
         }
     }
 
-    public function bulkDelete($cccds) {
+    public function bulkDelete($cccds)
+    {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-        
+
         $sql = "UPDATE thi_sinh SET deleted_at = NOW() WHERE so_cccd IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($cccds);
     }
 
-    public function bulkRestore($cccds) {
+    public function bulkRestore($cccds)
+    {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-        
+
         $sql = "UPDATE thi_sinh SET deleted_at = NULL WHERE so_cccd IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($cccds);
     }
 
-    public function bulkForceDelete($cccds) {
+    public function bulkForceDelete($cccds)
+    {
         if (empty($cccds)) return false;
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-        
+
         try {
             $this->db->beginTransaction();
-            
+
             // Delete related records first if no cascade (or just in case)
             $tables = ['chung_chi_thi_sinh', 'nguyen_vong', 'ho_so_xet_tuyen', 'diem_thi_thpt', 'ket_qua_hoc_tap'];
             foreach ($tables as $tb) {
-                 // Check if table exists/relation exists. Assuming standard schema.
-                 // Actually basic tables are safe.
-                 $this->db->exec("DELETE FROM $tb WHERE so_cccd IN ($placeholders)");
+                // Check if table exists/relation exists. Assuming standard schema.
+                // Actually basic tables are safe.
+                $this->db->exec("DELETE FROM $tb WHERE so_cccd IN ($placeholders)");
             }
 
             $stmt4 = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN ($placeholders)");
             $stmt4->execute($cccds);
-            
+
             $this->db->commit();
             return true;
         } catch (\Exception $e) {
@@ -437,27 +529,31 @@ class ThiSinhRepository {
         }
     }
 
-    public function hasEditRequest($cccd) {
+    public function hasEditRequest($cccd)
+    {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE so_cccd = ? AND yeu_cau_chinh_sua = TRUE");
         $stmt->execute([$cccd]);
         return $stmt->fetchColumn() > 0;
     }
 
-    public function approveEditRequest($cccd) {
+    public function approveEditRequest($cccd)
+    {
         $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = FALSE, trang_thai = 'Chờ duyệt' WHERE so_cccd = ? AND yeu_cau_chinh_sua = TRUE");
         return $stmt->execute([$cccd]);
     }
 
-    public function requestEditPermission($applicationId) {
+    public function requestEditPermission($applicationId)
+    {
         $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = TRUE, updated_at = NOW() WHERE id = ?");
         return $stmt->execute([$applicationId]);
     }
 
-    public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null) {
+    public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null)
+    {
         // Also update ho_so_xet_tuyen
         $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, yeu_cau_chinh_sua = FALSE";
         $params = [$status];
-        
+
         if ($note !== null) {
             $sql .= ", ghi_chu = ?";
             $params[] = $note;
@@ -467,10 +563,10 @@ class ThiSinhRepository {
             $sql .= ", nguoi_duyet_id = ?";
             $params[] = $reviewerId;
         }
-        
+
         $sql .= ", updated_at = NOW() WHERE so_cccd = ?";
         $params[] = $cccd;
-        
+
         $stmt2 = $this->db->prepare($sql);
         $stmt2->execute($params);
 
@@ -478,7 +574,8 @@ class ThiSinhRepository {
         return $stmt->execute([$status, $cccd]);
     }
 
-    public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null) {
+    public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null)
+    {
         // Get current candidate metadata for sequence
         $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at FROM ho_so_xet_tuyen WHERE so_cccd = ?");
         $stmt->execute([$currentCCCD]);
@@ -507,7 +604,7 @@ class ThiSinhRepository {
                 AND hs.trang_thai = 'Chờ duyệt'
                 AND hs.created_at > ?
                 ORDER BY hs.created_at ASC LIMIT 1";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sid, $current['created_at']]);
         $next = $stmt->fetchColumn();
@@ -521,7 +618,8 @@ class ThiSinhRepository {
         return $stmt->fetchColumn();
     }
 
-    public function getAdjacentCandidates($currentCCCD) {
+    public function getAdjacentCandidates($currentCCCD)
+    {
         // Get the current candidate's session
         $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ?");
         $stmt->execute([$currentCCCD]);
@@ -539,7 +637,7 @@ class ThiSinhRepository {
         $allCCCDs = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $currentIndex = array_search($currentCCCD, $allCCCDs);
-        
+
         if ($currentIndex === false) {
             return [
                 'prev' => null,
@@ -560,7 +658,8 @@ class ThiSinhRepository {
     /**
      * Get statistics on how many applications each admin has reviewed.
      */
-    public function getReviewerStats($sessionId = null, $year = null) {
+    public function getReviewerStats($sessionId = null, $year = null)
+    {
         $sql = "SELECT qtv.ho_ten, qtv.ten_dang_nhap, COUNT(hs.id) as review_count
                 FROM quan_tri_vien qtv
                 JOIN ho_so_xet_tuyen hs ON qtv.id = hs.nguoi_duyet_id
@@ -585,48 +684,53 @@ class ThiSinhRepository {
     }
 
 
-    public function getStats($sessionId = null, $year = null) {
+    public function getStats($sessionId = null, $year = null)
+    {
         return $this->model->getStats($sessionId, $year);
     }
 
 
-    public function getCertifications($cccd) {
+    public function getCertifications($cccd)
+    {
         return $this->model->getCertifications($cccd);
     }
 
-    public function saveCertifications($cccd, $certs) {
+    public function saveCertifications($cccd, $certs)
+    {
         return $this->model->saveCertifications($cccd, $certs);
     }
 
-    public function updateDocuments($cccd, $documents) {
+    public function updateDocuments($cccd, $documents)
+    {
         return $this->model->updateDocuments($cccd, $documents);
     }
 
-    public function updateStatusAndNotes($cccd, $status, $notes = null) {
+    public function updateStatusAndNotes($cccd, $status, $notes = null)
+    {
         $data = ['trang_thai' => $status];
         if ($notes !== null) {
             $data['ghi_chu'] = $notes; // Assuming 'ghi_chu' column exists
         }
-        
+
         // Use normalized update if possible, or direct SQL
         $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = :status";
         $params = ['status' => $status, 'cccd' => $cccd];
-        
+
         if ($notes !== null) {
             $sql .= ", ghi_chu = :notes";
             $params['notes'] = $notes;
         }
-        
+
         $sql .= " WHERE so_cccd = :cccd";
-        
+
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            
+
             // Sync status to nguyen_vong
             $stmt2 = $this->db->prepare("UPDATE nguyen_vong SET trang_thai = :status WHERE so_cccd = :cccd");
             $stmt2->execute(['status' => $status, 'cccd' => $cccd]);
-            
+
             return true;
         } catch (\Exception $e) {
             error_log("Update status/notes failed: " . $e->getMessage());
@@ -634,48 +738,58 @@ class ThiSinhRepository {
         }
     }
 
-    public function updatePasswordByEmail($email, $hashedPassword) {
+    public function updatePasswordByEmail($email, $hashedPassword)
+    {
         return $this->model->updatePasswordByEmail($email, $hashedPassword);
     }
 
-    public function verifyEmailAndCCCD($email, $cccd) {
+    public function verifyEmailAndCCCD($email, $cccd)
+    {
         return $this->model->verifyEmailAndCCCD($email, $cccd);
     }
 
-    public function updatePasswordByCCCD($cccd, $hashedPassword) {
+    public function updatePasswordByCCCD($cccd, $hashedPassword)
+    {
         return $this->model->updatePasswordByCCCD($cccd, $hashedPassword);
     }
-    public function getProvinceStats($limit = 10, $startDate, $endDate, $sessionId = null) {
+    public function getProvinceStats($limit = 10, $startDate, $endDate, $sessionId = null)
+    {
         return $this->model->getProvinceStats($limit, $startDate, $endDate, $sessionId);
     }
 
-    public function getSchoolStats($limit = 10, $startDate, $endDate, $sessionId = null) {
+    public function getSchoolStats($limit = 10, $startDate, $endDate, $sessionId = null)
+    {
         return $this->model->getSchoolStats($limit, $startDate, $endDate, $sessionId);
     }
 
-    public function getGenderStats($startDate, $endDate, $sessionId = null) {
+    public function getGenderStats($startDate, $endDate, $sessionId = null)
+    {
         return $this->model->getGenderStats($startDate, $endDate, $sessionId);
     }
 
-    public function getAreaStats($startDate, $endDate, $sessionId = null) {
+    public function getAreaStats($startDate, $endDate, $sessionId = null)
+    {
         return $this->model->getAreaStats($startDate, $endDate, $sessionId);
     }
 
-    public function getObjectStats($startDate, $endDate, $sessionId = null) {
+    public function getObjectStats($startDate, $endDate, $sessionId = null)
+    {
         return $this->model->getObjectStats($startDate, $endDate, $sessionId);
     }
 
     /**
      * Consolidated query: gender + area + object in ONE round-trip
      */
-    public function getCombinedDemographicStats($startDate, $endDate, $sessionId = null): array {
+    public function getCombinedDemographicStats($startDate, $endDate, $sessionId = null): array
+    {
         return $this->model->getCombinedDemographicStats($startDate, $endDate, $sessionId);
     }
 
-    public function saveImportedCandidate($data) {
+    public function saveImportedCandidate($data)
+    {
         // 1. Check if exists
         $existing = $this->findByCCCD($data['so_cccd']);
-        
+
         if ($existing) {
             // Update
             // We only update fields provided in $data
@@ -689,7 +803,8 @@ class ThiSinhRepository {
     /**
      * Tìm thí sinh qua remember_token
      */
-    public function findByRememberToken($token) {
+    public function findByRememberToken($token)
+    {
         $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE remember_token = ?");
         $stmt->execute([$token]);
         return $stmt->fetch();
@@ -698,16 +813,19 @@ class ThiSinhRepository {
     /**
      * Cập nhật remember_token cho thí sinh
      */
-    public function updateRememberToken($id, $token) {
+    public function updateRememberToken($id, $token)
+    {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET remember_token = ? WHERE id = ?");
         return $stmt->execute([$token, $id]);
     }
 
-    public function getRecentRegistrationStats($sessionId = null) {
+    public function getRecentRegistrationStats($sessionId = null)
+    {
         return $this->model->getRecentRegistrationStats($sessionId);
     }
 
-    public function getLatestCandidates($limit = 5, $sessionId = null) {
+    public function getLatestCandidates($limit = 5, $sessionId = null)
+    {
         return $this->model->getLatestCandidates($limit, $sessionId);
     }
 }

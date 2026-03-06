@@ -116,6 +116,29 @@ $getVal = function ($grade, $field) use ($records) {
 
                 <fieldset <?= (!empty($isLocked)) ? 'disabled' : '' ?> class="group/locked contents">
 
+                    <div class="bg-white border text-center p-5 rounded-lg mb-6 shadow-sm border-gray-200">
+                        <h3 class="text-[15px] font-bold text-gray-800 mb-4 uppercase tracking-wide">Bạn đã có Điểm trung bình cả năm Lớp 12 chưa?</h3>
+                        <div class="flex flex-col sm:flex-row justify-center gap-4">
+                            <label class="group relative flex items-center p-4 bg-white border-2 border-transparent hover:border-hvu-red/20 rounded-xl cursor-pointer transition-all has-[:checked]:border-hvu-red has-[:checked]:bg-red-50/30">
+                                <input type="radio" name="da_du_6_ky" value="1" <?= ($user['da_du_6_ky'] ?? false) ? 'checked' : '' ?> class="w-5 h-5 text-hvu-red border-gray-300 focus:ring-hvu-red">
+                                <div class="ml-3 text-left">
+                                    <span class="block text-sm font-bold text-gray-800 group-hover:text-hvu-red transition-colors">Đã có đủ cả 3 năm</span>
+                                    <span class="block text-[11px] text-gray-500 mt-1 leading-snug">Đã hoàn thành chương trình lớp 12</span>
+                                </div>
+                                <div class="absolute inset-0 border-2 border-gray-200 rounded-xl pointer-events-none group-has-[:checked]:border-hvu-red transition-all"></div>
+                            </label>
+
+                            <label class="group relative flex items-center p-4 bg-white border-2 border-transparent hover:border-gray-300 rounded-xl cursor-pointer transition-all has-[:checked]:border-gray-500 has-[:checked]:bg-gray-50">
+                                <input type="radio" name="da_du_6_ky" value="0" <?= !($user['da_du_6_ky'] ?? false) ? 'checked' : '' ?> class="w-5 h-5 text-gray-500 border-gray-300 focus:ring-gray-500">
+                                <div class="ml-3 text-left">
+                                    <span class="block text-sm font-bold text-gray-800 group-hover:text-gray-900 transition-colors">Chưa có điểm Lớp 12</span>
+                                    <span class="block text-[11px] text-gray-500 mt-1 leading-snug">Chỉ có điểm lớp 10, 11 và điểm HK1 Lớp 12</span>
+                                </div>
+                                <div class="absolute inset-0 border-2 border-gray-200 rounded-xl pointer-events-none group-has-[:checked]:border-gray-400 transition-all"></div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex items-start">
                         <svg class="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -237,7 +260,7 @@ $getVal = function ($grade, $field) use ($records) {
                                             <p class="text-[10px] text-green-600 mb-2 font-medium"><i class="fas fa-check-circle mr-1"></i> Đã có <?= $imgCount ?> ảnh. Chọn file mới để thay thế:</p>
                                         <?php else: ?>
                                             <!-- No Images Placeholder -->
-                                            <div class="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
+                                            <div id="no_image_<?= $g ?>_desktop" class="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
                                                 <i class="fas fa-image text-3xl mb-2"></i>
                                                 <span class="text-xs font-medium">Chưa có ảnh</span>
                                             </div>
@@ -250,7 +273,7 @@ $getVal = function ($grade, $field) use ($records) {
                                                 <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
                                                 <span class="text-xs font-bold text-gray-500 group-hover:text-hvu-red transition-colors"><?= $hasImages ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
                                             </div>
-                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_desktop'); updateUploadLabel(this)" />
+                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_desktop', 'no_image_<?= $g ?>_desktop'); updateUploadLabel(this)" />
                                         </label>
                                         <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tối đa 2 ảnh/năm (HK1, HK2)</p>
                                     </div>
@@ -369,6 +392,11 @@ $getVal = function ($grade, $field) use ($records) {
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
+                                    <?php else: ?>
+                                        <div id="no_image_<?= $g ?>_mobile" class="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
+                                            <i class="fas fa-image text-3xl mb-2"></i>
+                                            <span class="text-xs font-medium">Chưa có ảnh</span>
+                                        </div>
                                     <?php endif; ?>
 
                                     <div id="preview_<?= $g ?>_mobile" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem] mb-3"></div>
@@ -377,7 +405,7 @@ $getVal = function ($grade, $field) use ($records) {
                                             <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors"></i>
                                             <span class="text-xs font-bold text-gray-500 group-hover:text-hvu-red transition-colors"><?= $mHasImages ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
                                         </div>
-                                        <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_mobile'); updateUploadLabel(this)" />
+                                        <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_mobile', 'no_image_<?= $g ?>_mobile'); updateUploadLabel(this)" />
                                     </label>
                                 </div>
                                 <!-- /Mobile File Uploads -->
@@ -402,9 +430,16 @@ $getVal = function ($grade, $field) use ($records) {
 
 <script>
     // Preview selected images immediately
-    function previewMultipleImages(input, previewId) {
+    function previewMultipleImages(input, previewId, placeholderId) {
         const previewContainer = document.getElementById(previewId);
         previewContainer.innerHTML = '';
+
+        const placeholder = document.getElementById(placeholderId);
+        if (input.files && input.files.length > 0) {
+            if (placeholder) placeholder.style.display = 'none';
+        } else {
+            if (placeholder) placeholder.style.display = 'flex';
+        }
 
         if (input.files) {
             Array.from(input.files).forEach(file => {
