@@ -43,63 +43,71 @@ class AdminPostController extends Controller
     public function save()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // CSRF Check
-            if (!$this->verifyCsrf($_POST['csrf_token'] ?? '')) {
-                die('CSRF token validation failed');
-            }
+            try {
+                // CSRF Check
+                if (!$this->verifyCsrf($_POST['csrf_token'] ?? '')) {
+                    die('CSRF token validation failed');
+                }
 
-            // Handle Thumbnail Upload
-            $thumbnailPath = $_POST['thumbnail'] ?? '';
+                // Handle Thumbnail Upload
+                $thumbnailPath = $_POST['thumbnail'] ?? '';
 
-            if (isset($_FILES['thumbnail_file']) && $_FILES['thumbnail_file']['error'] == 0) {
-                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-                $filename = $_FILES['thumbnail_file']['name'];
-                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                if (isset($_FILES['thumbnail_file']) && $_FILES['thumbnail_file']['error'] == 0) {
+                    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                    $filename = $_FILES['thumbnail_file']['name'];
+                    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-                if (in_array($ext, $allowed) && $_FILES['thumbnail_file']['size'] <= 5 * 1024 * 1024) { // 5MB
-                    $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
-                    // Nếu có base path (VD: /TS), thêm vào document root
-                    $basePath = parse_url(url('/'), PHP_URL_PATH);
-                    $basePath = rtrim($basePath, '/');
-                    $uploadRelative = 'uploads/posts/';
-                    $uploadDir = $publicPath . $basePath . '/' . $uploadRelative;
+                    if (in_array($ext, $allowed) && $_FILES['thumbnail_file']['size'] <= 5 * 1024 * 1024) { // 5MB
+                        $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+                        // Nếu có base path (VD: /TS), thêm vào document root
+                        $basePath = parse_url(url('/'), PHP_URL_PATH);
+                        $basePath = rtrim($basePath, '/');
+                        $uploadRelative = 'uploads/posts/';
+                        $uploadDir = $publicPath . $basePath . '/' . $uploadRelative;
 
-                    if (!file_exists($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
+                        if (!file_exists($uploadDir)) {
+                            mkdir($uploadDir, 0777, true);
+                        }
 
-                    $newFilename = 'post_' . time() . '_' . uniqid() . '.' . $ext;
-                    $destPath = $uploadDir . $newFilename;
+                        $newFilename = 'post_' . time() . '_' . uniqid() . '.' . $ext;
+                        $destPath = $uploadDir . $newFilename;
 
-                    if (move_uploaded_file($_FILES['thumbnail_file']['tmp_name'], $destPath)) {
-                        $thumbnailPath = $uploadRelative . $newFilename;
+                        if (move_uploaded_file($_FILES['thumbnail_file']['tmp_name'], $destPath)) {
+                            $thumbnailPath = $uploadRelative . $newFilename;
+                        }
                     }
                 }
+
+                $id = $_POST['id'] ?? '';
+                $title = $_POST['title'] ?? '';
+                $slug = ($_POST['slug'] ?? '') ?: $this->slugify($title);
+                $data = [
+                    'title' => $title,
+                    'slug' => $slug,
+                    'summary' => $_POST['summary'] ?? '',
+                    'content' => $_POST['content'] ?? '',
+                    'category' => $_POST['category'] ?? 'Tin tức',
+                    'status' => $_POST['status'] ?? 'Draft',
+                    'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
+                    'thumbnail' => $thumbnailPath,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if ($id) {
+                    $this->postModel->update($id, $data);
+                } else {
+                    $data['created_at'] = date('Y-m-d H:i:s');
+                    $this->postModel->create($data);
+                }
+
+                $this->redirect(url('/admin/posts'));
+            } catch (\Throwable $e) {
+                $logDir = __DIR__ . '/../../storage/logs';
+                if (!is_dir($logDir)) mkdir($logDir, 0777, true);
+                $logMsg = '[' . date('Y-m-d H:i:s') . '] POST SAVE ERROR: ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n---\n";
+                file_put_contents($logDir . '/post_save_error.log', $logMsg, FILE_APPEND);
+                die('Error: ' . $e->getMessage());
             }
-
-            $id = $_POST['id'] ?? '';
-            $title = $_POST['title'];
-            $slug = $_POST['slug'] ?: $this->slugify($title);
-            $data = [
-                'title' => $title,
-                'slug' => $slug,
-                'summary' => $_POST['summary'],
-                'content' => $_POST['content'],
-                'category' => $_POST['category'],
-                'status' => $_POST['status'],
-                'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
-                'thumbnail' => $thumbnailPath,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            if ($id) {
-                $this->postModel->update($id, $data);
-            } else {
-                $data['created_at'] = date('Y-m-d H:i:s');
-                $this->postModel->create($data);
-            }
-
-            $this->redirect(url('/admin/posts'));
         }
     }
 
