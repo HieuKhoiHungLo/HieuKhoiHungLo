@@ -153,17 +153,18 @@
                                                         </div>
                                                     </div>
                                                 <?php else: ?>
-                                                    <div class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-2">
+                                                    <div id="no_image_<?= $index ?>" class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-2">
                                                         <i class="fas fa-image text-3xl mb-2"></i>
                                                         <span class="text-xs font-medium">Chưa có ảnh</span>
                                                     </div>
                                                 <?php endif; ?>
+                                                <div id="preview_<?= $index ?>" class="w-full empty:hidden mb-2"></div>
                                                 <label class="group cursor-pointer block">
                                                     <div class="flex items-center justify-center py-2 px-3 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                                                         <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors text-sm"></i>
                                                         <span class="text-[11px] font-bold text-gray-500 group-hover:text-hvu-red transition-colors"><?= !empty($cert['file_minh_chung_cc']) ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
                                                     </div>
-                                                    <input type="file" name="cert_files[<?= $index ?>]" accept="image/*" class="hidden" onchange="previewCert(this)">
+                                                    <input type="file" name="cert_files[<?= $index ?>]" accept="image/*" class="hidden" onchange="previewCert(this, 'preview_<?= $index ?>', 'no_image_<?= $index ?>')">
                                                 </label>
                                             </div>
                                         </div>
@@ -226,16 +227,17 @@
             <!-- Col 2: Evidence Image (1/3) -->
             <div class="flex flex-col">
                 <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Minh chứng (Ảnh)</label>
-                <div class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-2">
+                <div id="no_image_INDEX" class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-2">
                     <i class="fas fa-image text-3xl mb-2"></i>
                     <span class="text-xs font-medium">Chưa có ảnh</span>
                 </div>
+                <div id="preview_INDEX" class="w-full empty:hidden mb-2"></div>
                 <label class="group cursor-pointer block">
                     <div class="flex items-center justify-center py-2 px-3 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
                         <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors text-sm"></i>
                         <span class="text-[11px] font-bold text-gray-500 group-hover:text-hvu-red transition-colors">Tải ảnh lên</span>
                     </div>
-                    <input type="file" name="cert_files[INDEX]" accept="image/*" class="hidden" onchange="previewCert(this)" required>
+                    <input type="file" name="cert_files[INDEX]" accept="image/*" class="hidden" onchange="previewCert(this, 'preview_INDEX', 'no_image_INDEX')" required>
                 </label>
             </div>
         </div>
@@ -297,12 +299,43 @@
         }, 200);
     }
 
-    function previewCert(input) {
-        const label = input.closest('label').querySelector('.file-label');
+    function previewCert(input, previewId, placeholderId) {
+        const previewContainer = document.getElementById(previewId);
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        const placeholder = document.getElementById(placeholderId);
+        if (input.files && input.files.length > 0) {
+            if (placeholder) placeholder.style.display = 'none';
+        } else {
+            if (placeholder) placeholder.style.display = 'flex';
+        }
+
+        const label = input.closest('label').querySelector('span');
+
         if (input.files && input.files[0]) {
             label.textContent = 'Đã chọn: ' + input.files[0].name;
             label.classList.remove('text-gray-400');
             label.classList.add('text-hvu-red');
+
+            if (input.files[0].type.startsWith('image/') && previewContainer) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3]';
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'w-full h-full object-cover transition-transform duration-300 hover:scale-[1.15]';
+
+                    imgContainer.appendChild(img);
+                    previewContainer.appendChild(imgContainer);
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        } else {
+            label.textContent = 'Tải ảnh lên';
+            label.classList.remove('text-hvu-red');
+            label.classList.add('text-gray-500');
         }
     }
 </script>
