@@ -356,6 +356,24 @@ class AdminController extends Controller
             'ngoai_ngu' => 'Ngoại ngữ'
         ];
 
+        // Process certificates to add converted score
+        if (!empty($certificates)) {
+            $scoreConvModel = new \App\Models\ScoreConversion();
+            foreach ($certificates as &$cert) {
+                $type = $cert['loai_chung_chi'] ?? '';
+                $score = (float)($cert['diem_chung_chi'] ?? 0);
+                $cert['diem_quy_doi'] = 0;
+
+                // Ensure type matches DB exactly (trim spaces)
+                $type = trim($type);
+
+                if (!empty($type) && $score > 0) {
+                    $cert['diem_quy_doi'] = $scoreConvModel->getConvertedScore($type, $score);
+                }
+            }
+            unset($cert);
+        }
+
         // Helper mapDisplay for grades/conduct
         $mapDisplay = function ($val) {
             $map = [

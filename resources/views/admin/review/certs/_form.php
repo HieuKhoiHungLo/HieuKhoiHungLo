@@ -5,7 +5,7 @@
 <div id="form_certs" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
     <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
-        
+
         <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
@@ -73,11 +73,11 @@
             <?php endif; ?>
         </div>
 
-        <?php if(empty($certificates)): ?>
-        <div id="no_certs_msg" class="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-6">
-             <i class="fas fa-certificate text-slate-200 text-4xl mb-3"></i>
-             <p class="text-slate-400 font-bold text-sm">Chưa có chứng chỉ nào được tải lên.</p>
-        </div>
+        <?php if (empty($certificates)): ?>
+            <div id="no_certs_msg" class="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-6">
+                <i class="fas fa-certificate text-slate-200 text-4xl mb-3"></i>
+                <p class="text-slate-400 font-bold text-sm">Chưa có chứng chỉ nào được tải lên.</p>
+            </div>
         <?php endif; ?>
 
         <div class="flex justify-end gap-3 pt-6 border-t border-slate-100 mt-6">
@@ -132,41 +132,41 @@
 </template>
 
 <script>
-let adminCertCount = <?= !empty($certificates) ? count($certificates) : 0 ?>;
+    let adminCertCount = <?= !empty($certificates) ? count($certificates) : 0 ?>;
 
-function addAdminCertRow() {
-    const list = document.getElementById('admin_cert_list');
-    const msg = document.getElementById('no_certs_msg');
-    if (msg) msg.classList.add('hidden');
-    
-    const template = document.getElementById('admin_cert_template').innerHTML;
-    const newRow = template.replace(/INDEX/g, adminCertCount);
-    
-    const div = document.createElement('div');
-    div.innerHTML = newRow;
-    list.appendChild(div.firstElementChild);
-    
-    adminCertCount++;
-}
+    function addAdminCertRow() {
+        const list = document.getElementById('admin_cert_list');
+        const msg = document.getElementById('no_certs_msg');
+        if (msg) msg.classList.add('hidden');
 
-function removeAdminCert(btn) {
-    const item = btn.closest('.cert-item');
-    item.classList.add('opacity-0', 'scale-95');
-    setTimeout(() => {
-        item.remove();
-        if (document.querySelectorAll('#admin_cert_list .cert-item').length === 0) {
-             const msg = document.getElementById('no_certs_msg');
-             if (msg) msg.classList.remove('hidden');
-        }
-    }, 200);
-}
+        const template = document.getElementById('admin_cert_template').innerHTML;
+        const newRow = template.replace(/INDEX/g, adminCertCount);
 
-function previewAdminCert(input) {
-    const label = input.closest('label').querySelector('.admin-cert-file-label');
-    if (input.files && input.files[0]) {
-        label.textContent = 'Đã chọn: ' + input.files[0].name;
-        label.classList.remove('text-slate-300');
-        label.classList.add('text-blue-600');
+        const div = document.createElement('div');
+        div.innerHTML = newRow;
+        list.appendChild(div.firstElementChild);
+
+        adminCertCount++;
     }
-}
+
+    function removeAdminCert(btn) {
+        const item = btn.closest('.cert-item');
+        item.classList.add('opacity-0', 'scale-95');
+        setTimeout(() => {
+            item.remove();
+            if (document.querySelectorAll('#admin_cert_list .cert-item').length === 0) {
+                const msg = document.getElementById('no_certs_msg');
+                if (msg) msg.classList.remove('hidden');
+            }
+        }, 200);
+    }
+
+    function previewAdminCert(input) {
+        const label = input.closest('label').querySelector('.admin-cert-file-label');
+        if (input.files && input.files[0]) {
+            label.textContent = 'Đã chọn: ' + input.files[0].name;
+            label.classList.remove('text-slate-300');
+            label.classList.add('text-blue-600');
+        }
+    }
 </script>
