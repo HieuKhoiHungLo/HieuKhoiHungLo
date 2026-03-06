@@ -125,10 +125,10 @@
                     <th class="px-2 py-2"></th>
                     <th class="px-2 py-2">
                         <select onchange="window.location.href=this.value" class="w-full text-[10px] border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400">
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['status' => ''])) ?>">(All)</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt'])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt'])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối'])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
+                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => ''])) ?>">(All)</option>
+                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt'])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
+                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt'])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
+                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối'])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
                         </select>
                     </th>
                     <th class="px-3 py-2 relative flex items-center gap-1 min-w-[200px]">
@@ -140,7 +140,7 @@
                         </div>
                     </th>
                     <?php
-                    $filterUrl = url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard');
+                    $filterUrl = url($mode === 'review' ? '/admin/review-management' : '/admin/candidates');
                     ?>
                     <th x-show="showCols.phone" class="px-2 py-2">
                         <input type="text" id="filter-phone" data-filter-key="f_phone" placeholder="Tìm SĐT..."
@@ -296,19 +296,19 @@
             </div>
             <div class="flex gap-2">
                 <?php if ($page > 1): ?>
-                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Trước</a>
+                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Trước</a>
                 <?php endif; ?>
 
                 <div class="hidden md:flex gap-1">
                     <?php for ($i = max(1, $page - 2); $i <= min($totalPages, $page + 2); $i++): ?>
-                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-10 h-10 flex items-center justify-center border rounded-lg font-bold transition shadow-sm <?= $i == $page ? 'bg-[#0066FF] border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                        <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-10 h-10 flex items-center justify-center border rounded-lg font-bold transition shadow-sm <?= $i == $page ? 'bg-[#0066FF] border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
                 </div>
 
                 <?php if ($page < $totalPages): ?>
-                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/dashboard') . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Sau</a>
+                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition shadow-sm">Sau</a>
                 <?php endif; ?>
             </div>
         </div>

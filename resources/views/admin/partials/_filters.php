@@ -35,7 +35,7 @@
         </div>
     <?php endif; ?>
 
-    <form action="<?= $mode === 'review' ? url('/admin/review-management') : url('/admin/dashboard') ?>" method="GET" class="flex flex-wrap gap-3">
+    <form action="<?= $mode === 'review' ? url('/admin/review-management') : url('/admin/candidates') ?>" method="GET" class="flex flex-wrap gap-3">
         <!-- Persist Sort Params -->
         <input type="hidden" name="sort" value="<?= $filters['sort'] ?>">
         <input type="hidden" name="dir" value="<?= $filters['dir'] ?>">
