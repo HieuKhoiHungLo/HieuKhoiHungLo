@@ -280,6 +280,37 @@ class ProfileController extends Controller
         $records = $academicModel->getByCCCDIndexed($_SESSION['cccd']);
         $subjects = $masterData->getSubjects('Mon_hoc_ba');
 
+        // Custom sort subjects
+        $subjectOrder = [
+            'Ngữ văn' => 1,
+            'Toán' => 2,
+            'Lịch sử' => 3,
+            'Địa lí' => 4,
+            'Địa lý' => 4,
+            'Giáo dục kinh tế và pháp luật' => 5,
+            'GDKT & PL' => 5,
+            'GD KT&PL' => 5,
+            'Vật lí' => 6,
+            'Vật lý' => 6,
+            'Hóa học' => 7,
+            'Sinh học' => 8,
+            'Công nghệ' => 9,
+            'Tin học' => 10,
+            'Ngoại ngữ' => 11,
+            'Tiếng Anh' => 11
+        ];
+
+        usort($subjects, function ($a, $b) use ($subjectOrder) {
+            $nameA = trim($a['ten_mon'] ?? '');
+            $nameB = trim($b['ten_mon'] ?? '');
+            $orderA = $subjectOrder[$nameA] ?? 99;
+            $orderB = $subjectOrder[$nameB] ?? 99;
+            if ($orderA === $orderB) {
+                return strcmp($nameA, $nameB);
+            }
+            return $orderA <=> $orderB;
+        });
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($isLocked) {
                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
