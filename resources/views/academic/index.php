@@ -130,38 +130,38 @@ $getVal = function ($grade, $sem, $field) use ($records) {
                                     <!-- Lớp 10 -->
                                     <td class="p-1 border text-center">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[10][hk1][<?= $key ?>]" value="<?= $getVal(10, 'hk1', $key) ?>" placeholder="-">
+                                            name="grades[10][hk1][<?= $key ?>]" value="<?= $getVal(10, 'hk1', $key) ?>" placeholder="0.0">
                                     </td>
                                     <td class="p-1 border text-center">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[10][hk2][<?= $key ?>]" value="<?= $getVal(10, 'hk2', $key) ?>" placeholder="-">
+                                            name="grades[10][hk2][<?= $key ?>]" value="<?= $getVal(10, 'hk2', $key) ?>" placeholder="0.0">
                                     </td>
 
                                     <!-- Lớp 11 -->
                                     <td class="p-1 border text-center bg-gray-50/30">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[11][hk1][<?= $key ?>]" value="<?= $getVal(11, 'hk1', $key) ?>" placeholder="-">
+                                            name="grades[11][hk1][<?= $key ?>]" value="<?= $getVal(11, 'hk1', $key) ?>" placeholder="0.0">
                                     </td>
                                     <td class="p-1 border text-center bg-gray-50/30">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[11][hk2][<?= $key ?>]" value="<?= $getVal(11, 'hk2', $key) ?>" placeholder="-">
+                                            name="grades[11][hk2][<?= $key ?>]" value="<?= $getVal(11, 'hk2', $key) ?>" placeholder="0.0">
                                     </td>
 
                                     <!-- Lớp 12 -->
                                     <td class="p-1 border text-center">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[12][hk1][<?= $key ?>]" value="<?= $getVal(12, 'hk1', $key) ?>" placeholder="-">
+                                            name="grades[12][hk1][<?= $key ?>]" value="<?= $getVal(12, 'hk1', $key) ?>" placeholder="0.0">
                                     </td>
                                     <td class="p-1 border text-center">
                                         <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm"
-                                            name="grades[12][hk2][<?= $key ?>]" value="<?= $getVal(12, 'hk2', $key) ?>" placeholder="-">
+                                            name="grades[12][hk2][<?= $key ?>]" value="<?= $getVal(12, 'hk2', $key) ?>" placeholder="0.0">
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
 
                             <!-- Summary Row: Điểm Trung Bình -->
                             <tr class="bg-blue-50/50 border-t-2 border-blue-100 font-bold">
-                                <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB</td>
+                                <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB cả năm <br><span class="text-[10px] font-normal italic text-blue-600">(nếu có)</span></td>
                                 <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700" name="grades[10][hk1][tb]" value="<?= $getVal(10, 'hk1', 'tb') ?>"></td>
                                 <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700" name="grades[10][hk2][tb]" value="<?= $getVal(10, 'hk2', 'tb') ?>"></td>
                                 <td class="p-1 border text-center"><input type="number" step="0.1" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700" name="grades[11][hk1][tb]" value="<?= $getVal(11, 'hk1', 'tb') ?>"></td>
@@ -209,8 +209,9 @@ $getVal = function ($grade, $sem, $field) use ($records) {
                                 <td class="px-3 py-4 text-gray-700 text-left border-r sticky left-0 bg-gray-50 z-10 font-bold italic">Ảnh chụp Học bạ</td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
                                     <td colspan="2" class="p-3 border text-center">
-                                        <div class="flex flex-col items-center space-y-2">
-                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-hvu-red/10 file:text-hvu-red hover:file:bg-hvu-red/20">
+                                        <div class="flex flex-col items-center space-y-2 w-full">
+                                            <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" onchange="previewMultipleImages(this, 'preview_<?= $g ?>')" class="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-hvu-red/10 file:text-hvu-red hover:file:bg-hvu-red/20 w-full">
+                                            <div id="preview_<?= $g ?>" class="flex gap-2 flex-wrap justify-center p-1 w-full empty:hidden rounded-lg bg-white border border-dashed border-gray-200 min-h-[4rem]"></div>
                                             <div class="flex space-x-1">
                                                 <?php if (!empty($data[$g]['file_minh_chung_1'])): ?>
                                                     <a href="<?= url($data[$g]['file_minh_chung_1']) ?>" target="_blank" class="text-[10px] text-blue-600 font-bold underline">Ảnh 1</a>
@@ -263,5 +264,32 @@ $getVal = function ($grade, $sem, $field) use ($records) {
 </div>
 
 
+
+<script>
+    function previewMultipleImages(input, previewId) {
+        const previewContainer = document.getElementById(previewId);
+        previewContainer.innerHTML = '';
+
+        if (input.files) {
+            Array.from(input.files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative w-16 h-16 md:w-20 md:h-20 rounded-md overflow-hidden border border-gray-200 shadow-sm';
+
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-full object-cover';
+
+                        imgContainer.appendChild(img);
+                        previewContainer.appendChild(imgContainer);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    }
+</script>
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
