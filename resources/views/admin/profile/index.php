@@ -29,10 +29,10 @@
                         <i class="fas fa-user-edit mr-2"></i> Thông tin Cơ bản
                     </h3>
                 </div>
-                
+
                 <form action="<?= url('/admin/profile/update') ?>" method="POST" enctype="multipart/form-data" class="p-6">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                    
+
                     <div class="flex items-start space-x-6">
                         <!-- Avatar Preview & Upload -->
                         <div class="flex-shrink-0 text-center">
@@ -44,7 +44,7 @@
                                         <?= mb_substr($user['ho_ten'], 0, 1) ?>
                                     </div>
                                 <?php endif; ?>
-                                
+
                                 <label for="avatar_upload" class="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                     <i class="fas fa-camera"></i>
                                 </label>
@@ -58,13 +58,13 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Tên đăng nhập</label>
                                 <input type="text" value="<?= htmlspecialchars($user['ten_dang_nhap']) ?>" disabled
-                                       class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 font-mono text-sm">
+                                    class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 font-mono text-sm">
                             </div>
-                            
+
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Họ và Tên</label>
                                 <input type="text" name="fullname" value="<?= htmlspecialchars($user['ho_ten']) ?>" required
-                                       class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium dark:text-white">
+                                    class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm font-medium dark:text-white">
                             </div>
                         </div>
                     </div>
@@ -84,26 +84,26 @@
                         <i class="fas fa-key mr-2 text-[#0066FF]"></i> Đổi Mật Khẩu
                     </h3>
                 </div>
-                
+
                 <form action="<?= url('/admin/profile/change-password') ?>" method="POST" class="p-6 space-y-4">
                     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
-                    
+
                     <div>
                         <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mật khẩu hiện tại</label>
                         <input type="password" name="current_password" required
-                               class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
+                            class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
                     </div>
-                    
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mật khẩu mới</label>
                             <input type="password" name="new_password" required minlength="6"
-                                   class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
+                                class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Xác nhận mật khẩu mới</label>
                             <input type="password" name="confirm_password" required minlength="6"
-                                   class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
+                                class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm dark:text-white">
                         </div>
                     </div>
 
@@ -125,7 +125,7 @@
                         <i class="fas fa-shield-alt mr-2"></i> Bảo mật 2 lớp
                     </h3>
                 </div>
-                
+
                 <div class="p-6 text-center">
                     <?php if ($user['two_factor_enabled']): ?>
                         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-4">
@@ -133,7 +133,7 @@
                         </div>
                         <h4 class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-2">Đang BẬT</h4>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Tài khoản của bạn được bảo vệ bằng xác thực 2 bước.</p>
-                        
+
                         <a href="<?= url('/admin/2fa/setup') ?>" class="block w-full py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm">
                             <i class="fas fa-cog mr-2"></i> Quản lý 2FA
                         </a>
@@ -143,36 +143,36 @@
                         </div>
                         <h4 class="text-lg font-bold text-gray-500 dark:text-gray-400 mb-2">Đang TẮT</h4>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Bật tính năng này để tăng cường bảo mật cho tài khoản.</p>
-                        
+
                         <a href="<?= url('/admin/2fa/setup') ?>" class="block w-full py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition text-sm">
                             <i class="fas fa-shield-alt mr-2"></i> Thiết lập 2FA
                         </a>
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <!-- Quick Roles -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
-                 <h3 class="text-xs font-bold text-gray-400 uppercase mb-3">Vai trò & Quyền hạn</h3>
-                 <div class="flex flex-wrap gap-2">
-                     <span class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-lg border border-purple-200 dark:border-purple-800">
-                         <?= htmlspecialchars($user['vai_tro'] ?? 'Admin') ?>
-                     </span>
-                     <?php 
-                     $perms = json_decode($user['permissions'] ?? '[]', true);
-                     foreach($perms as $p): 
-                     ?>
-                     <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-600">
-                         <?= htmlspecialchars($p) ?>
-                     </span>
-                     <?php endforeach; ?>
-                 </div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase mb-3">Vai trò & Quyền hạn</h3>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <?= htmlspecialchars($user['vai_tro'] ?? 'Admin') ?>
+                    </span>
+                    <?php
+                    $perms = json_decode($user['permissions'] ?? '[]', true);
+                    foreach ($perms as $p):
+                    ?>
+                        <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-600">
+                            <?= htmlspecialchars($p) ?>
+                        </span>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<?php 
+<?php
 $content = ob_get_clean();
-require_once __DIR__ . '/../../layouts/admin.php'; 
+require_once __DIR__ . '/../../layouts/admin.php';
 ?>

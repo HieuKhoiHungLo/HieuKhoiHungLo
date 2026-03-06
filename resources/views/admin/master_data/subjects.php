@@ -39,7 +39,7 @@
         <form action="<?= url('/admin/master-data/subjects') ?>" method="POST" id="bulk-delete-form">
             <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
             <input type="hidden" name="action" value="bulk_delete">
-            
+
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center hidden" id="bulk-actions">
                 <span class="text-sm font-bold text-slate-600">Đã chọn <span id="selected-count">0</span> mục</span>
                 <button type="submit" onclick="return confirm('Bạn có chắc muốn xóa các mục đã chọn?')" class="text-red-600 hover:text-red-800 font-bold text-xs uppercase bg-red-50 hover:bg-red-100 py-2 px-4 rounded-lg transition">
@@ -70,7 +70,7 @@
                             <td class="px-6 py-3 font-medium text-slate-700 text-sm"><?= htmlspecialchars($sub['ten_mon']) ?></td>
                             <td class="px-6 py-3">
                                 <?php if ($sub['loai_mon'] === 'nang_khieu'): ?>
-                                    <span class="text-sm text-purple-700 font-medium">Năng khiếu</span>
+                                    <span class="text-sm text-emerald-700 font-medium">Năng khiếu</span>
                                 <?php else: ?>
                                     <span class="text-sm text-slate-600">Văn hóa</span>
                                 <?php endif; ?>
@@ -89,58 +89,58 @@
 
         <!-- Pagination UI -->
         <?php if ($totalPages > 1): ?>
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div class="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                Hiển thị <span class="text-slate-800"><?= count($subjects) ?></span> / <span class="text-slate-800"><?= $totalRecords ?></span> môn học
-            </div>
-            
-            <nav class="flex items-center space-x-1">
-                <!-- Previous Page -->
-                <?php if ($currentPage > 1): ?>
-                    <a href="?page=<?= $currentPage - 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
-                        <i class="fas fa-chevron-left text-xs"></i>
-                    </a>
-                <?php else: ?>
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
-                        <i class="fas fa-chevron-left text-xs"></i>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Page Numbers -->
-                <div class="flex items-center bg-white border border-slate-200 rounded-xl px-1 shadow-sm">
-                    <?php 
-                    $start = max(1, $currentPage - 2);
-                    $end = min($totalPages, $currentPage + 2);
-                    
-                    if ($start > 1): ?>
-                        <a href="?page=1" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]">1</a>
-                        <?php if ($start > 2): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
-                    <?php endif;
-
-                    for ($i = $start; $i <= $end; $i++): ?>
-                        <a href="?page=<?= $i ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition <?= $i === $currentPage ? 'bg-[#0066FF] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 hover:text-[#0066FF]' ?>">
-                            <?= $i ?>
-                        </a>
-                    <?php endfor;
-
-                    if ($end < $totalPages): ?>
-                        <?php if ($end < $totalPages - 1): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
-                        <a href="?page=<?= $totalPages ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]"><?= $totalPages ?></a>
-                    <?php endif; ?>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    Hiển thị <span class="text-slate-800"><?= count($subjects) ?></span> / <span class="text-slate-800"><?= $totalRecords ?></span> môn học
                 </div>
 
-                <!-- Next Page -->
-                <?php if ($currentPage < $totalPages): ?>
-                    <a href="?page=<?= $currentPage + 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
-                        <i class="fas fa-chevron-right text-xs"></i>
-                    </a>
-                <?php else: ?>
-                    <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
-                        <i class="fas fa-chevron-right text-xs"></i>
+                <nav class="flex items-center space-x-1">
+                    <!-- Previous Page -->
+                    <?php if ($currentPage > 1): ?>
+                        <a href="?page=<?= $currentPage - 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </a>
+                    <?php else: ?>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Page Numbers -->
+                    <div class="flex items-center bg-white border border-slate-200 rounded-xl px-1 shadow-sm">
+                        <?php
+                        $start = max(1, $currentPage - 2);
+                        $end = min($totalPages, $currentPage + 2);
+
+                        if ($start > 1): ?>
+                            <a href="?page=1" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]">1</a>
+                            <?php if ($start > 2): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
+                        <?php endif;
+
+                        for ($i = $start; $i <= $end; $i++): ?>
+                            <a href="?page=<?= $i ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition <?= $i === $currentPage ? 'bg-[#0066FF] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 hover:text-[#0066FF]' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor;
+
+                        if ($end < $totalPages): ?>
+                            <?php if ($end < $totalPages - 1): ?><span class="text-slate-300 text-xs px-1">...</span><?php endif; ?>
+                            <a href="?page=<?= $totalPages ?>" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:text-[#0066FF]"><?= $totalPages ?></a>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
-            </nav>
-        </div>
+
+                    <!-- Next Page -->
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="?page=<?= $currentPage + 1 ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-[#0066FF] hover:text-[#0066FF] transition shadow-sm">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </a>
+                    <?php else: ?>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-300 cursor-not-allowed">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </div>
+                    <?php endif; ?>
+                </nav>
+            </div>
         <?php endif; ?>
     </div>
 </div>
@@ -160,7 +160,7 @@
             <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
             <input type="hidden" name="action" id="form-action" value="create">
             <input type="hidden" name="id" id="subject-id">
-            
+
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Mã môn (Ví dụ: TOAN, NK_HAT)</label>
@@ -200,7 +200,7 @@
         <form action="<?= url('/admin/master-data/subjects') ?>" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
             <input type="hidden" name="action" value="import">
-            
+
             <div class="space-y-4">
                 <p class="text-sm text-gray-600 mb-4">Vui lòng tải lên file CSV (UTF-8) theo mẫu.</p>
                 <div class="text-center">
@@ -208,7 +208,7 @@
                         <i class="fas fa-download mr-1"></i> Tải file mẫu
                     </a>
                 </div>
-                
+
                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer relative">
                     <input type="file" name="file" required accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                     <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
@@ -237,10 +237,12 @@
         document.getElementById('loai_mon').value = 'van_hoa';
         document.getElementById('cot_diem').value = '';
     }
+
     function closeModal() {
         document.getElementById('modal').classList.add('hidden');
         document.getElementById('modal').classList.remove('flex');
     }
+
     function editSubject(s) {
         openModal();
         document.getElementById('modal-title').innerText = 'Cập nhật Môn học';
@@ -257,6 +259,7 @@
         document.getElementById('import-modal').classList.remove('hidden');
         document.getElementById('import-modal').classList.add('flex');
     }
+
     function closeImportModal() {
         document.getElementById('import-modal').classList.add('hidden');
         document.getElementById('import-modal').classList.remove('flex');
@@ -296,7 +299,7 @@
     }
 </script>
 
-<?php 
+<?php
 $content = ob_get_clean();
-require_once __DIR__ . '/../../layouts/admin.php'; 
+require_once __DIR__ . '/../../layouts/admin.php';
 ?>

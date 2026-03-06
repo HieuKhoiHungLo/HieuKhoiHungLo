@@ -1,9 +1,11 @@
 <?php
+
 namespace App\Services;
 
 use App\Core\Database;
 
-class WorkflowService {
+class WorkflowService
+{
     protected $db;
 
     // Application statuses in order
@@ -27,27 +29,30 @@ class WorkflowService {
         self::STATUS_REJECTED
     ];
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
     }
 
     /**
      * Get all statuses with their order
      */
-    public function getStatuses() {
+    public function getStatuses()
+    {
         return self::STATUSES;
     }
 
     /**
      * Get status color for UI
      */
-    public function getStatusColor($status) {
-        return match($status) {
+    public function getStatusColor($status)
+    {
+        return match ($status) {
             self::STATUS_DRAFT => 'gray',
             self::STATUS_SUBMITTED => 'blue',
             self::STATUS_VERIFYING => 'yellow',
             self::STATUS_VERIFIED => 'indigo',
-            self::STATUS_SCORING => 'purple',
+            self::STATUS_SCORING => 'emerald',
             self::STATUS_QUALIFIED => 'cyan',
             self::STATUS_ADMITTED => 'green',
             self::STATUS_REJECTED => 'red',
@@ -58,7 +63,8 @@ class WorkflowService {
     /**
      * Transition application to next status
      */
-    public function transition($soCccd, $newStatus, $adminId = null) {
+    public function transition($soCccd, $newStatus, $adminId = null)
+    {
         if (!in_array($newStatus, self::STATUSES)) {
             return false;
         }
@@ -77,7 +83,8 @@ class WorkflowService {
     /**
      * Batch transition for multiple applications
      */
-    public function batchTransition($soCccdList, $newStatus, $adminId = null) {
+    public function batchTransition($soCccdList, $newStatus, $adminId = null)
+    {
         $count = 0;
         foreach ($soCccdList as $soCccd) {
             if ($this->transition($soCccd, $newStatus, $adminId)) {
@@ -90,9 +97,10 @@ class WorkflowService {
     /**
      * Get allowed next statuses from current status
      */
-    public function getAllowedTransitions($currentStatus) {
+    public function getAllowedTransitions($currentStatus)
+    {
         $allowed = [];
-        
+
         switch ($currentStatus) {
             case self::STATUS_DRAFT:
                 $allowed = [self::STATUS_SUBMITTED];
@@ -113,14 +121,15 @@ class WorkflowService {
                 $allowed = [self::STATUS_ADMITTED, self::STATUS_REJECTED];
                 break;
         }
-        
+
         return $allowed;
     }
 
     /**
      * Get statistics by status
      */
-    public function getStatusStats() {
+    public function getStatusStats()
+    {
         $stmt = $this->db->query("SELECT trang_thai, COUNT(*) as count FROM ho_so_xet_tuyen GROUP BY trang_thai");
         return $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
     }
@@ -128,7 +137,8 @@ class WorkflowService {
     /**
      * Log status transition
      */
-    protected function logTransition($soCccd, $newStatus, $adminId) {
+    protected function logTransition($soCccd, $newStatus, $adminId)
+    {
         $sql = "INSERT INTO audit_logs (admin_id, action, entity_type, entity_id, new_value, ip_address) VALUES (?, 'TRANSITION', 'ho_so', ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$adminId, $soCccd, json_encode(['status' => $newStatus]), $_SERVER['REMOTE_ADDR'] ?? '']);

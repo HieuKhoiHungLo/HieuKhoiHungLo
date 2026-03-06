@@ -17,7 +17,7 @@ html, body {
     border-radius: 1.5rem;
 }
 
-/* Premium Input Style */
+/* Premium Input Style <label> aria-label */
 .hvu-input {
     background: rgba(249, 250, 251, 0.8) !important;
     border: 1.5px solid #e5e7eb !important;

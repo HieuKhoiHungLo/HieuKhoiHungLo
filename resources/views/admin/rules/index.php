@@ -37,7 +37,7 @@
                             <?php if ($rule['ten_nganh']): ?>
                                 <span class="font-bold">Ngành:</span> <?= htmlspecialchars($rule['ten_nganh']) ?>
                             <?php else: ?>
-                                <span class="font-bold text-purple-600">Áp dụng toàn bộ</span>
+                                <span class="font-bold text-emerald-600">Áp dụng toàn bộ</span>
                             <?php endif; ?>
                         </p>
                         <p class="text-sm text-gray-600 mt-2"><i class="fas fa-comment-alt text-gray-400 mr-1"></i> <?= htmlspecialchars($rule['message']) ?></p>
@@ -67,12 +67,12 @@
         <form action="<?= url('/admin/rules/save') ?>" method="POST" class="space-y-4">
             <?= csrf_field() ?>
             <input type="hidden" name="id" id="rule_id">
-            
+
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Tên quy tắc</label>
                 <input type="text" name="name" id="name" required class="w-full px-4 py-2 border rounded-lg">
             </div>
-            
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">Loại</label>
@@ -91,23 +91,23 @@
                     </select>
                 </div>
             </div>
-            
+
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Điều kiện (JSON)</label>
                 <textarea name="condition" id="condition" rows="4" required class="w-full px-4 py-2 border rounded-lg font-mono text-sm" placeholder='{"field": "diem_tong", "op": ">=", "value": 15}'></textarea>
                 <p class="text-xs text-gray-400 mt-1">Ví dụ: {"field": "diem_tong", "op": ">=", "value": 15}</p>
             </div>
-            
+
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Thông báo lỗi</label>
                 <input type="text" name="message" id="message" class="w-full px-4 py-2 border rounded-lg">
             </div>
-            
+
             <div class="flex items-center">
                 <input type="checkbox" name="is_active" id="is_active" checked class="mr-2">
                 <label for="is_active" class="text-sm text-gray-700">Kích hoạt</label>
             </div>
-            
+
             <button type="submit" class="w-full py-3 bg-[#0066FF] text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition">
                 <i class="fas fa-save mr-2"></i> Lưu Quy tắc
             </button>
@@ -116,39 +116,39 @@
 </div>
 
 <script>
-function openModal() {
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex');
-    document.getElementById('modal-title').textContent = 'Thêm Quy tắc';
-    document.getElementById('rule_id').value = '';
-    document.getElementById('name').value = '';
-    document.getElementById('rule_type').value = 'minimum';
-    document.getElementById('ma_nganh').value = '';
-    document.getElementById('condition').value = '';
-    document.getElementById('message').value = '';
-    document.getElementById('is_active').checked = true;
-}
+    function openModal() {
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+        document.getElementById('modal-title').textContent = 'Thêm Quy tắc';
+        document.getElementById('rule_id').value = '';
+        document.getElementById('name').value = '';
+        document.getElementById('rule_type').value = 'minimum';
+        document.getElementById('ma_nganh').value = '';
+        document.getElementById('condition').value = '';
+        document.getElementById('message').value = '';
+        document.getElementById('is_active').checked = true;
+    }
 
-function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-}
+    function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+        document.getElementById('modal').classList.remove('flex');
+    }
 
-function editRule(rule) {
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal').classList.add('flex');
-    document.getElementById('modal-title').textContent = 'Sửa Quy tắc';
-    document.getElementById('rule_id').value = rule.id;
-    document.getElementById('name').value = rule.name;
-    document.getElementById('rule_type').value = rule.rule_type;
-    document.getElementById('ma_nganh').value = rule.ma_nganh || '';
-    document.getElementById('condition').value = rule.condition;
-    document.getElementById('message').value = rule.message;
-    document.getElementById('is_active').checked = rule.is_active;
-}
+    function editRule(rule) {
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('modal').classList.add('flex');
+        document.getElementById('modal-title').textContent = 'Sửa Quy tắc';
+        document.getElementById('rule_id').value = rule.id;
+        document.getElementById('name').value = rule.name;
+        document.getElementById('rule_type').value = rule.rule_type;
+        document.getElementById('ma_nganh').value = rule.ma_nganh || '';
+        document.getElementById('condition').value = rule.condition;
+        document.getElementById('message').value = rule.message;
+        document.getElementById('is_active').checked = rule.is_active;
+    }
 </script>
 
-<?php 
+<?php
 $content = ob_get_clean();
-require_once __DIR__ . '/../../layouts/admin.php'; 
+require_once __DIR__ . '/../../layouts/admin.php';
 ?>

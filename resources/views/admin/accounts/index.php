@@ -5,7 +5,7 @@
         <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight font-heading">Quản lý Tài khoản</h2>
         <p class="text-sm text-slate-500 font-medium">Danh sách quản trị viên hệ thống</p>
     </div>
-    <a href="<?= url('/admin/accounts/create') ?>" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition transform hover:-translate-y-0.5 flex items-center">
+    <a href="<?= url('/admin/accounts/create') ?>" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition transform hover:-translate-y-0.5 flex items-center">
         <i class="fas fa-plus mr-2 text-sm"></i> Thêm mới
     </a>
 </div>
@@ -42,7 +42,7 @@
                                 <?php 
                                     $perms = json_decode($acc['permissions'] ?? '[]', true);
                                     if (in_array('all', $perms)) {
-                                        echo '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-violet-100 text-violet-700 border border-violet-200">Super Admin</span>';
+                                        echo '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-cyan-100 text-cyan-700 border border-cyan-200">Super Admin</span>';
                                     } else {
                                         foreach($perms as $p) {
                                             echo '<span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">'.$p.'</span>';
