@@ -53,29 +53,50 @@ try {
 }
 
 // --- REMEMBER ME AUTO-LOGIN LOGIC ---
-if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_ts'])) {
-    $token = $_COOKIE['remember_ts'];
-    // Connect to DB directly or load repo to verify token
-    try {
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT id, ho_va_ten, so_cccd FROM thi_sinh WHERE remember_token = ? LIMIT 1");
-        $stmt->execute([$token]);
-        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
+    // Check Candidate
+    if (isset($_COOKIE['remember_ts'])) {
+        $token = $_COOKIE['remember_ts'];
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT id, ho_va_ten, so_cccd FROM thi_sinh WHERE remember_token = ? LIMIT 1");
+            $stmt->execute([$token]);
+            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        if ($user) {
-            // Token hợp lệ, phục hồi Session
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['ho_va_ten'];
-            $_SESSION['cccd'] = $user['so_cccd'];
-            $_SESSION['login_time'] = time();
-            $_SESSION['last_activity'] = time();
-        } else {
-            // Token lỗi thời hoặc tài khoản bị đổi pass, huỷ Cookie
-            setcookie('remember_ts', '', ['expires' => time() - 3600, 'path' => '/']);
-        }
-    } catch (\Exception $e) {
-        // Ignore DB error during early boot
+            if ($user) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_name'] = $user['ho_va_ten'];
+                $_SESSION['cccd'] = $user['so_cccd'];
+                $_SESSION['login_time'] = time();
+                $_SESSION['last_activity'] = time();
+            } else {
+                setcookie('remember_ts', '', ['expires' => time() - 3600, 'path' => '/']);
+            }
+        } catch (\Exception $e) {}
+    }
+    // Check Admin
+    elseif (isset($_COOKIE['remember_admin'])) {
+        $token = $_COOKIE['remember_admin'];
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT id, ho_ten, ten_dang_nhap, vai_tro, avatar, role_id FROM quan_tri_vien WHERE remember_token = ? LIMIT 1");
+            $stmt->execute([$token]);
+            $admin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($admin) {
+                session_regenerate_id(true);
+                $_SESSION['admin_id'] = $admin['id'];
+                $_SESSION['admin_name'] = $admin['ho_ten'];
+                $_SESSION['admin_avatar'] = $admin['avatar'] ?? null;
+                $_SESSION['admin_role'] = $admin['vai_tro'];
+                $_SESSION['admin_role_id'] = $admin['role_id'] ?? 1;
+                $_SESSION['login_time'] = time();
+                $_SESSION['last_activity'] = time();
+            } else {
+                setcookie('remember_admin', '', ['expires' => time() - 3600, 'path' => '/']);
+            }
+        } catch (\Exception $e) {}
     }
 }
 

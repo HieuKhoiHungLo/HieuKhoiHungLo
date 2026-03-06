@@ -148,6 +148,22 @@
                 </div>
             </div>
 
+            <div class="flex items-center justify-between mt-4">
+                <label class="flex items-center cursor-pointer group">
+                    <div class="relative">
+                        <input type="checkbox" name="remember" class="sr-only">
+                        <div class="w-10 h-6 bg-gray-200 rounded-full shadow-inner transition-colors group-peer-checked:bg-[#ce1b22]"></div>
+                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow transition-transform"></div>
+                    </div>
+                    <span class="ml-3 text-sm text-gray-600 font-medium select-none">Ghi nhớ đăng nhập</span>
+                </label>
+            </div>
+
+            <style>
+                input:checked ~ .dot { transform: translateX(100%); }
+                input:checked + div { background-color: #ce1b22; }
+            </style>
+
             <button type="submit" class="w-full hvu-btn-primary py-3.5 flex items-center justify-center group mt-6">
                 <span class="mr-2">Đăng nhập hệ thống</span>
                 <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>

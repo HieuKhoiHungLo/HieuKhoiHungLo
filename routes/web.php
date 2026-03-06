@@ -12,7 +12,7 @@ $router = new App\Core\Router();
 $router->get('/', 'HomeController@index');
 $router->get('/news/detail', 'NewsController@detail');
 
-$router->group(['middleware' => 'rate_limit:30,1'], function($router) {
+$router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
     $router->get('/login', 'AuthController@login');
     $router->post('/login', 'AuthController@login');
 
@@ -77,36 +77,38 @@ $router->get('/application/choices', 'ApplicationController@step5');
 $router->get('/application/index', 'ApplicationController@index');
 
 // Tuyến đường Admin
-// Tuyến đường Admin
-$router->group(['middleware' => 'rate_limit:30,1'], function($router) {
+$router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
     $router->get('/admin/login', 'AuthController@adminLogin');
     $router->post('/admin/login', 'AuthController@adminLogin');
 });
 
 // Nhóm các route bảo mật bằng AuthMiddleware
-$router->group(['middleware' => 'auth'], function($router) {
-    $router->get('/admin', function() { header('Location: ' . url('/admin/dashboard')); exit; });
-    $router->get('/admin/dashboard', 'AdminController@dashboard');
+$router->group(['middleware' => 'auth'], function ($router) {
+    $router->get('/admin', function () {
+        header('Location: ' . url('/admin/dashboard'));
+        exit;
+    });
+    $router->get('/admin/dashboard', 'AdminController@candidates');
     $router->get('/admin/candidates', 'AdminController@candidates');
     $router->get('/admin/review-management', 'AdminController@reviewList');
     $router->get('/admin/review', 'AdminController@review');
     $router->post('/admin/update-status', 'AdminController@updateStatus');
     $router->post('/admin/review/submit', 'AdminController@submitReview');
-    $router->get('/admin/stats', 'AdminController@stats');
+    $router->get('/admin/stats', 'AdminController@dashboard');
     $router->get('/admin/stats/api', 'AdminController@statsApi');
     $router->post('/admin/applications/approve-edit-request', 'AdminController@approveEditRequest');
-    
+
     // Admin Notifications
     $router->get('/admin/notifications', 'AdminNotificationController@index');
     $router->get('/admin/notifications/create', 'AdminNotificationController@create');
     $router->post('/admin/notifications/store', 'AdminNotificationController@store');
     $router->get('/admin/notifications/delete', 'AdminNotificationController@delete');
     $router->get('/admin/notifications/api', 'AdminNotificationController@api');
-    
+
     // Footer Links Management
     $router->get('/admin/footer-links', 'FooterLinksController@index');
     $router->post('/admin/footer-links/save', 'FooterLinksController@save');
-    
+
     // Candidate Management
     $router->get('/admin/candidates/edit', 'CandidateController@edit');
     $router->post('/admin/candidates/edit', 'CandidateController@edit');
@@ -117,7 +119,7 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/candidates/trash', 'CandidateController@trash');
     $router->post('/admin/candidates/restore', 'CandidateController@restore');
     $router->post('/admin/candidates/force-delete', 'CandidateController@forceDelete');
-    
+
     // Admin Accounts (RBAC)
     $router->get('/admin/accounts', 'AdminAccountController@index');
     $router->get('/admin/accounts/create', 'AdminAccountController@create');
@@ -199,7 +201,7 @@ $router->group(['middleware' => 'auth'], function($router) {
     $router->get('/admin/settings/email', 'EmailConfigController@index');
     $router->post('/admin/settings/email/save', 'EmailConfigController@save');
     $router->post('/admin/settings/email/test', 'EmailConfigController@test');
-    
+
     $router->get('/admin/settings/email-templates', 'EmailTemplateController@index');
     $router->get('/admin/settings/email-templates/edit', 'EmailTemplateController@edit');
     $router->post('/admin/settings/email-templates/save', 'EmailTemplateController@save');
@@ -214,6 +216,7 @@ $router->group(['middleware' => 'auth'], function($router) {
     // Roles & Reports
     $router->get('/admin/roles', 'RoleController@index');
     $router->get('/admin/roles/edit', 'RoleController@edit');
+    $router->post('/admin/roles/edit', 'RoleController@update');
     $router->post('/admin/roles/update', 'RoleController@update');
 
     $router->get('/admin/reports', 'ReportController@index');
@@ -243,5 +246,3 @@ $router->group(['middleware' => 'auth'], function($router) {
 
     $router->get('/admin/logout', 'AuthController@adminLogout');
 });
-
-

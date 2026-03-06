@@ -83,136 +83,14 @@
                 <div class="relative">
                     <i class="fas fa-calendar-check absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     <select name="nam_tot_nghiep" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
-                        <?php 
+                        <?php
                         $currentYear = date('Y');
-                        for($y = $currentYear; $y >= $currentYear - 10; $y--): ?>
+                        for ($y = $currentYear; $y >= $currentYear - 10; $y--): ?>
                             <option value="<?= $y ?>" <?= ($user['nam_tot_nghiep'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
                         <?php endfor; ?>
                     </select>
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
                 </div>
-            </div>
-        </div>
-
-        <!-- Divider -->
-        <div class="h-px bg-slate-100 my-6"></div>
-
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
-                <i class="fas fa-school"></i>
-            </div>
-            <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Thông tin Trường THPT Lớp 12</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Tỉnh/TP Trường Lớp 12 -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉnh/TP Trường THPT</label>
-                <div class="relative">
-                    <i class="fas fa-map-marker-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <select name="ma_tinh_lop_12" 
-                            onchange="window.dispatchEvent(new CustomEvent('province-school-change', {detail: this.value}))"
-                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
-                        <option value="">-- Chọn Tỉnh/TP --</option>
-                        <?php foreach($provinces as $p): ?>
-                            <option value="<?= $p['ma_tinh'] ?>" <?= ($user['ma_tinh_lop_12'] ?? '') == $p['ma_tinh'] ? 'selected' : '' ?>><?= $p['ten_tinh'] ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-                </div>
-            </div>
-
-            <!-- Trường THPT (Searchable) -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Trường THPT</label>
-                <div x-data="schoolSearch('<?= $user['ma_tinh_lop_12'] ?? '' ?>', '<?= $user['ma_truong_lop_12'] ?? '' ?>')" 
-                        @province-school-change.window="handleProvinceChange($event.detail)"
-                        class="relative">
-                    
-                    <input type="hidden" name="ma_truong_lop_12" :value="selectedCode">
-                    <i class="fas fa-university absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="text" 
-                            x-model="search"
-                            @focus="open = true; search = ''"
-                            @click.away="open = false"
-                            placeholder="-- Nhập tên trường để tìm --"
-                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-
-                    <!-- Dropdown -->
-                    <div x-show="open" class="absolute z-50 w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                        <template x-for="school in filteredSchools" :key="school.ma_truong">
-                            <div @click="select(school)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 border-b border-slate-50 last:border-0 transition-colors">
-                                <div class="flex flex-col">
-                                    <span x-text="school.ten_truong" class="font-bold"></span>
-                                    <span x-text="'Mã: ' + school.ma_truong" class="text-[10px] text-slate-400"></span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Divider -->
-        <div class="h-px bg-slate-100 my-6"></div>
-
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#ff8800] shadow-sm">
-                <i class="fas fa-star"></i>
-            </div>
-            <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Khu vực & Đối tượng Ưu tiên</h3>
-        </div>
-
-        <div x-data="{ 
-            kv: '<?= $user['khu_vuc_uu_tien'] ?? '' ?>', 
-            isCustomKv: <?= ($user['is_custom_kv'] ?? 0) ? 'true' : 'false' ?>,
-            dt: '<?= $user['doi_tuong_uu_tien'] ?? '' ?>',
-            isCustomDt: <?= ($user['is_custom_dt'] ?? 0) ? 'true' : 'false' ?>
-        }" 
-        @school-selected.window="if(!isCustomKv) kv = $event.detail.ma_kv"
-        class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- Khu vực ưu tiên -->
-            <div class="p-4 bg-orange-50/30 rounded-2xl border border-orange-100">
-                <div class="flex justify-between items-center mb-3">
-                    <label class="block text-[11px] font-bold text-orange-600 uppercase tracking-wider">Khu vực ưu tiên</label>
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" name="is_custom_kv" value="1" x-model="isCustomKv" class="w-4 h-4 rounded border-orange-200 text-orange-500 focus:ring-orange-200">
-                        <span class="text-[10px] font-bold text-slate-400 group-hover:text-orange-500 transition-colors uppercase">Tùy chỉnh thủ công</span>
-                    </label>
-                </div>
-                <div class="relative">
-                    <select name="kv_uu_tien" x-model="kv" :disabled="!isCustomKv" class="w-full pl-4 pr-10 py-3 bg-white border border-orange-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-orange-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
-                        <option value="">-- Chọn Khu vực --</option>
-                        <?php foreach($priorityAreas as $ma_kv => $diem): ?>
-                            <option value="<?= $ma_kv ?>"><?= $ma_kv ?> (+<?= $diem ?> điểm)</option>
-                        <?php endforeach; ?>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-orange-300 text-xs pointer-events-none"></i>
-                </div>
-                <input type="hidden" name="kv_uu_tien" :value="kv" x-show="!isCustomKv">
-            </div>
-
-            <!-- Đối tượng ưu tiên -->
-            <div class="p-4 bg-blue-50/30 rounded-2xl border border-blue-100">
-                <div class="flex justify-between items-center mb-3">
-                    <label class="block text-[11px] font-bold text-blue-600 uppercase tracking-wider">Đối tượng ưu tiên</label>
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" name="is_custom_dt" value="1" x-model="isCustomDt" class="w-4 h-4 rounded border-blue-200 text-blue-500 focus:ring-blue-200">
-                        <span class="text-[10px] font-bold text-slate-400 group-hover:text-blue-500 transition-colors uppercase">Tự chọn ĐT ưu tiên</span>
-                    </label>
-                </div>
-                <div class="relative">
-                    <select name="dt_uu_tien" x-model="dt" :disabled="!isCustomDt" class="w-full pl-4 pr-10 py-3 bg-white border border-blue-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
-                        <option value="">-- Không thuộc đối tượng ưu tiên --</option>
-                        <?php foreach($priorityObjects as $r): ?>
-                            <option value="<?= trim($r['ma_dt']) ?>"><?= trim($r['ma_dt']) ?> - <?= $r['ten_dt'] ?? '' ?> (+<?= $r['diem_uu_tien'] ?> điểm)</option>
-                        <?php endforeach; ?>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-blue-300 text-xs pointer-events-none"></i>
-                </div>
-                <input type="hidden" name="dt_uu_tien" :value="dt" x-show="!isCustomDt">
             </div>
         </div>
 
@@ -285,7 +163,7 @@
                     <i class="fas fa-home absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     <select name="ma_tinh_ho_khau" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
                         <option value="">-- Chọn Tỉnh/TP --</option>
-                        <?php foreach($provinces as $p): ?>
+                        <?php foreach ($provinces as $p): ?>
                             <option value="<?= $p['ma_tinh'] ?>" <?= ($user['ma_tinh_ho_khau'] ?? '') == $p['ma_tinh'] ? 'selected' : '' ?>>
                                 <?= $p['ten_tinh'] ?>
                             </option>
@@ -300,11 +178,11 @@
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉnh/TP Liên lạc</label>
                 <div class="relative">
                     <i class="fas fa-map absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <select name="ma_tinh_thuong_tru" 
-                            onchange="window.dispatchEvent(new CustomEvent('province-change', {detail: this.value}))"
-                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
+                    <select name="ma_tinh_thuong_tru"
+                        onchange="window.dispatchEvent(new CustomEvent('province-change', {detail: this.value}))"
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
                         <option value="">-- Chọn Tỉnh/TP --</option>
-                        <?php foreach($provinces as $p): ?>
+                        <?php foreach ($provinces as $p): ?>
                             <option value="<?= $p['ma_tinh'] ?>" <?= ($user['ma_tinh_thuong_tru'] ?? '') == $p['ma_tinh'] ? 'selected' : '' ?>><?= $p['ten_tinh'] ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -315,24 +193,24 @@
             <!-- Phường/Xã (Searchable) -->
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Phường/Xã</label>
-                <div x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')" 
-                        @province-change.window="handleProvinceChange($event.detail)"
-                        class="relative">
-                    
+                <div x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')"
+                    @province-change.window="handleProvinceChange($event.detail)"
+                    class="relative">
+
                     <input type="hidden" name="ma_xa_thuong_tru" :value="selectedCode">
                     <i class="fas fa-building absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="text" 
-                            x-model="search"
-                            @focus="open = true; search = ''"
-                            @click.away="open = false"
-                            placeholder="-- Nhập để tìm kiếm --"
-                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                    <input type="text"
+                        x-model="search"
+                        @focus="open = true; search = ''"
+                        @click.away="open = false"
+                        placeholder="-- Nhập để tìm kiếm --"
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
 
                     <!-- Dropdown -->
-                    <div x-show="open" 
-                            x-transition.opacity.duration.200ms
-                            class="absolute z-50 w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                    <div x-show="open"
+                        x-transition.opacity.duration.200ms
+                        class="absolute z-50 w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
                         <template x-for="ward in filteredWards" :key="ward.ma_xa">
                             <div @click="select(ward)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 border-b border-slate-50 last:border-0 transition-colors">
                                 <span x-text="ward.ten_xa"></span>

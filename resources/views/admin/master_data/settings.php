@@ -23,7 +23,7 @@
     <div class="max-w-4xl">
         <form action="<?= url('/admin/master-data/settings/save') ?>" method="POST">
             <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
-            
+
             <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
                 <div class="p-8 border-b border-slate-50 bg-slate-50/50">
                     <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center">
@@ -31,10 +31,10 @@
                         Tham số quy trình nộp hồ sơ
                     </h3>
                 </div>
-                
+
                 <div class="p-8 space-y-8">
                     <!-- Step 4 Toggle -->
-                    <?php 
+                    <?php
                     $enableTHPT = '0';
                     foreach ($settings as $s) {
                         if ($s['key'] === 'enable_thpt_step') {
@@ -56,31 +56,32 @@
                         <div class="relative inline-block w-14 h-8 transition duration-200 ease-in">
                             <input type="hidden" name="settings[enable_thpt_step]" value="0">
                             <input type="checkbox" name="settings[enable_thpt_step]" id="enable_thpt" value="1" <?= $enableTHPT == '1' ? 'checked' : '' ?>
-                                   class="absolute block w-8 h-8 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all right-6 checked:right-0 checked:border-[#0066FF] outline-none shadow-sm shadow-black/10">
+                                class="absolute block w-8 h-8 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all right-6 checked:right-0 checked:border-[#0066FF] outline-none shadow-sm shadow-black/10">
                             <label for="enable_thpt" class="block overflow-hidden h-8 rounded-full bg-slate-200 cursor-pointer transition-colors"></label>
                         </div>
                     </div>
 
-                    <!-- Admission Conditions -->
-                    <?php 
-                    $conditions = '';
+                    <!-- Home Announcement -->
+                    <?php
+                    $announcement = '';
                     foreach ($settings as $s) {
-                        if ($s['key'] === 'admission_conditions') {
-                            $conditions = $s['value'];
+                        if ($s['key'] === 'home_announcement') {
+                            $announcement = $s['value'];
                             break;
                         }
                     }
                     ?>
                     <div class="space-y-4">
                         <label class="block">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Điều kiện dự tuyển (Hiển thị trang chủ)</span>
-                            <textarea name="settings[admission_conditions]" rows="4" 
-                                      class="mt-2 block w-full rounded-[2rem] bg-slate-50 border border-slate-200 px-8 py-5 text-sm font-medium focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10 outline-none transition shadow-inner"
-                                      placeholder="Nhập các điều kiện dự tuyển..."><?= htmlspecialchars($conditions) ?></textarea>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Dòng chữ thông báo chạy (Trang chủ)</span>
+                            <textarea name="settings[home_announcement]" rows="4"
+                                class="mt-2 block w-full rounded-[2rem] bg-slate-50 border border-slate-200 px-8 py-5 text-sm font-medium focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10 outline-none transition shadow-inner"
+                                placeholder="Hãy nhập nội dung thông báo sẽ hiển thị chạy trên trang chủ..."><?= htmlspecialchars($announcement) ?></textarea>
+                            <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">Dòng chữ này sẽ hiển thị dưới dạng thanh chạy (marquee) ngay bên dưới menu chính của trang chủ.</p>
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="px-8 py-10 bg-slate-50 border-t border-slate-100 flex justify-end">
                     <button type="submit" class="px-12 py-5 bg-[#0066FF] text-white font-black rounded-2xl shadow-2xl shadow-blue-200 hover:bg-blue-700 transition transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-xs">
                         <i class="fas fa-save mr-2"></i> Lưu cấu hình
@@ -93,7 +94,7 @@
 
 <style>
     /* Styling Switch toggle check */
-    #enable_thpt:checked + label {
+    #enable_thpt:checked+label {
         background-color: #0066FF;
     }
 </style>

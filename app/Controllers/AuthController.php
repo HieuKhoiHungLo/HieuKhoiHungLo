@@ -137,6 +137,21 @@ class AuthController extends Controller {
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
                 
+                // --- REMEMBER ME LOGIC ---
+                if (isset($_POST['remember']) && $_POST['remember'] === 'on') {
+                    $token = bin2hex(random_bytes(32)); 
+                    $this->adminRepo->updateRememberToken($admin['id'], $token);
+                    // Set cookie for 30 days
+                    setcookie('remember_admin', $token, [
+                        'expires' => time() + (30 * 24 * 60 * 60),
+                        'path' => '/',
+                        'domain' => '',
+                        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                        'httponly' => true,
+                        'samesite' => 'Lax'
+                    ]);
+                }
+
                 // Log successful login
                 $this->auditService->logLogin($username, true);
                 $this->auditService->log('LOGIN', 'admin', $admin['id']);
@@ -242,6 +257,18 @@ class AuthController extends Controller {
 
     public function adminLogout(): void {
         $this->auditService->log('LOGOUT', 'admin', $_SESSION['admin_id'] ?? null);
+        
+        // --- REMEMBER ME LOGIC (Clear) ---
+        if (isset($_SESSION['admin_id'])) {
+            $this->adminRepo->updateRememberToken($_SESSION['admin_id'], null);
+        }
+        if (isset($_COOKIE['remember_admin'])) {
+            setcookie('remember_admin', '', [
+                'expires' => time() - 3600,
+                'path' => '/'
+            ]);
+        }
+
         session_destroy();
         $this->redirect(url('/admin/login'));
     }

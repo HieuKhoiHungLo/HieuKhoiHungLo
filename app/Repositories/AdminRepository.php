@@ -18,5 +18,7 @@ class AdminRepository {
         return $this->model->find($id);
     }
 
-    // Add other methods as needed wrappers
+    public function updateRememberToken(int $id, ?string $token) {
+        return $this->model->update($id, ['remember_token' => $token]);
+    }
 }

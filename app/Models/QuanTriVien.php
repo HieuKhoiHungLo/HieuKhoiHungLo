@@ -60,6 +60,10 @@ class QuanTriVien extends Model {
             $fields[] = "role_id = ?";
             $params[] = $data['role_id'];
         }
+        if (isset($data['remember_token'])) {
+            $fields[] = "remember_token = ?";
+            $params[] = $data['remember_token'];
+        }
 
         if (empty($fields)) return true;
 

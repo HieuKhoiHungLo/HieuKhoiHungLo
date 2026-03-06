@@ -1,22 +1,25 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Repositories\ThiSinhRepository;
 use App\Core\FileUploader;
 
-class ProfileController extends Controller {
+class ProfileController extends Controller
+{
 
     protected $thiSinhRepo;
     protected $user;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (!isset($_SESSION['user_id'])) {
             $this->redirect(url('/login'));
         }
-        
+
         $this->thiSinhRepo = new ThiSinhRepository(); // Use Repository
-        
+
         // Cache user in session (optimization)
         if (!isset($_SESSION['user_cached']) || $_SESSION['user_cached_cccd'] !== $_SESSION['cccd']) {
             $this->user = $this->thiSinhRepo->findByCCCD($_SESSION['cccd']);
@@ -30,7 +33,8 @@ class ProfileController extends Controller {
     /**
      * Invalidate user cache (call after profile updates)
      */
-    private function invalidateUserCache() {
+    private function invalidateUserCache()
+    {
         unset($_SESSION['user_cached']);
         unset($_SESSION['user_cached_cccd']);
         // Reload user data
@@ -42,16 +46,17 @@ class ProfileController extends Controller {
     /**
      * Helper to get application status for locking logic
      */
-    private function getApplicationStatus() {
+    private function getApplicationStatus()
+    {
         $applicationModel = new \App\Models\Application();
         // Determine active session or latest
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
-        
+
         $status = '';
         $isLocked = false;
         $editRequestPending = false;
-        
+
         if ($activeSession) {
             $app = $applicationModel->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
             if ($app) {
@@ -60,7 +65,7 @@ class ProfileController extends Controller {
                 $editRequestPending = !empty($app->yeu_cau_chinh_sua);
             }
         }
-        
+
         return [
             'status' => $status,
             'isLocked' => $isLocked,
@@ -68,7 +73,8 @@ class ProfileController extends Controller {
         ];
     }
 
-    private function getUploadPathInfo($cccd) {
+    private function getUploadPathInfo($cccd)
+    {
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
 
@@ -94,11 +100,13 @@ class ProfileController extends Controller {
         ];
     }
 
-    public function index() {
+    public function index()
+    {
         $this->redirect(url('/profile/step1'));
     }
 
-    public function step1() {
+    public function step1()
+    {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
 
@@ -108,15 +116,15 @@ class ProfileController extends Controller {
         $priorityObjects = $masterData->getPriorityObjects();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             // Block POST if locked
-             if ($isLocked) {
-                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
-                 return;
-             }
-             
-             // Validation logic
-             $validator = new \App\Core\Validator($_POST);
-             $rules = [
+            // Block POST if locked
+            if ($isLocked) {
+                $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
+
+            // Validation logic
+            $validator = new \App\Core\Validator($_POST);
+            $rules = [
                 'fullname' => 'required|min:3',
                 'dob' => 'required',
                 'gender' => 'required',
@@ -128,22 +136,22 @@ class ProfileController extends Controller {
                 'ma_tinh_thuong_tru' => 'required',
                 'ma_xa_thuong_tru' => 'required',
                 'address' => 'required'
-             ];
+            ];
 
-             if (!$validator->validate($rules)) {
-                 $this->view('profile/step1', [
-                    'user' => $this->user, 
+            if (!$validator->validate($rules)) {
+                $this->view('profile/step1', [
+                    'user' => $this->user,
                     'provinces' => $provinces,
                     'priorityAreas' => $priorityAreas,
                     'priorityObjects' => $priorityObjects,
-                    'error' => $validator->getFirstError(), 
+                    'error' => $validator->getFirstError(),
                     'old' => $_POST,
                     'isLocked' => $isLocked,
                     'editRequestPending' => $appStatus['editRequestPending'],
                     'applicationStatus' => $appStatus['status']
                 ]);
-                 return;
-             }
+                return;
+            }
 
             // 1. Prepare Data for updateFullProfile
             $data = [
@@ -165,11 +173,11 @@ class ProfileController extends Controller {
                 'is_custom_kv' => isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1',
                 'is_custom_dt' => isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1'
             ];
-            
+
             if (isset($_FILES) && !empty($_FILES)) {
                 $pathInfo = $this->getUploadPathInfo($_SESSION['cccd']);
                 $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
-                
+
                 $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
 
                 if ($uploadDriver === 'google') {
@@ -181,15 +189,17 @@ class ProfileController extends Controller {
                     // Resolve folder in Drive
                     $driveService = new \App\Services\DriveService($uploader);
                     $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                    if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                    if ($targetFolderId) {
+                        $uploader->setTargetFolderId($targetFolderId);
+                    }
                 }
 
                 $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
                 $uploader->setMaxSize(2 * 1024 * 1024);
 
                 $files = [
-                    'avatar' => 'anh_dai_dien', 
-                    'cccd_front' => 'anh_cccd_truoc', 
+                    'avatar' => 'anh_dai_dien',
+                    'cccd_front' => 'anh_cccd_truoc',
                     'cccd_back' => 'anh_cccd_sau',
                     'kv_file' => 'file_minh_chung_kv',
                     'dt_file' => 'file_minh_chung_dt'
@@ -207,7 +217,7 @@ class ProfileController extends Controller {
                             $_SESSION['upload_error'] = "Lỗi tải lên $field: " . implode(', ', $uploader->getErrors());
                         }
                     } elseif (isset($_FILES[$field]) && $_FILES[$field]['error'] !== UPLOAD_ERR_NO_FILE) {
-                         error_log("Upload error code for '$field': " . $_FILES[$field]['error']);
+                        error_log("Upload error code for '$field': " . $_FILES[$field]['error']);
                     }
                 }
 
@@ -216,27 +226,27 @@ class ProfileController extends Controller {
 
             if ($this->thiSinhRepo->updateFullProfile($_SESSION['cccd'], $data)) {
                 if (isset($_SESSION['upload_error'])) {
-                     $errorMsg = $_SESSION['upload_error'];
-                     unset($_SESSION['upload_error']);
-                     $this->view('profile/step1', [
-                        'user' => $this->user, 
+                    $errorMsg = $_SESSION['upload_error'];
+                    unset($_SESSION['upload_error']);
+                    $this->view('profile/step1', [
+                        'user' => $this->user,
                         'provinces' => $provinces,
                         'priorityAreas' => $priorityAreas,
                         'priorityObjects' => $priorityObjects,
-                        'error' => $errorMsg, 
+                        'error' => $errorMsg,
                         'isLocked' => $isLocked,
                         'editRequestPending' => $appStatus['editRequestPending'],
                         'applicationStatus' => $appStatus['status']
-                     ]);
-                     return;
+                    ]);
+                    return;
                 }
                 $this->invalidateUserCache();
                 $this->redirect(url('/profile/step2'));
             } else {
-                 $errorMsg = $_SESSION['upload_error'] ?? 'Lỗi lưu thông tin.';
-                 unset($_SESSION['upload_error']);
-                 $this->view('profile/step1', [
-                    'user' => $this->user, 
+                $errorMsg = $_SESSION['upload_error'] ?? 'Lỗi lưu thông tin.';
+                unset($_SESSION['upload_error']);
+                $this->view('profile/step1', [
+                    'user' => $this->user,
                     'provinces' => $provinces,
                     'priorityAreas' => $priorityAreas,
                     'priorityObjects' => $priorityObjects,
@@ -248,7 +258,7 @@ class ProfileController extends Controller {
             }
         } else {
             $this->view('profile/step1', [
-                'user' => $this->user, 
+                'user' => $this->user,
                 'provinces' => $provinces,
                 'priorityAreas' => $priorityAreas,
                 'priorityObjects' => $priorityObjects,
@@ -259,29 +269,87 @@ class ProfileController extends Controller {
         }
     }
 
-    public function step2() {
+    public function step2()
+    {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
 
         $academicModel = new \App\Models\AcademicRecord();
         $masterData = new \App\Models\MasterData();
-        
+
         $records = $academicModel->getByCCCDIndexed($_SESSION['cccd']);
-        $subjects = $masterData->getSubjects('Mon_hoc_ba'); 
+        $subjects = $masterData->getSubjects('Mon_hoc_ba');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             if ($isLocked) {
-                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
-                 return;
-             }
-             
+            if ($isLocked) {
+                $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
+
             $items = $_POST['records'] ?? [];
+
+            // Handle File Uploads (Transcripts)
+            $hasFiles = false;
+            foreach ([10, 11, 12] as $g) {
+                if (isset($_FILES["transcripts_$g"]) && !empty($_FILES["transcripts_$g"]['name'][0])) {
+                    $hasFiles = true;
+                    break;
+                }
+            }
+
+            if ($hasFiles) {
+                $pathInfo = $this->getUploadPathInfo($_SESSION['cccd']);
+                $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
+                $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
+
+                if ($uploadDriver === 'google') {
+                    $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                    $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                    $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                    $driveService = new \App\Services\DriveService($uploader);
+                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
+                    if ($targetFolderId) {
+                        $uploader->setTargetFolderId($targetFolderId);
+                    }
+                }
+
+                $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
+                $uploader->setMaxSize(5 * 1024 * 1024); // 5MB
+
+                foreach ([10, 11, 12] as $g) {
+                    if (isset($_FILES["transcripts_$g"]) && !empty($_FILES["transcripts_$g"]['name'][0])) {
+                        $uploadedPaths = [];
+                        foreach ($_FILES["transcripts_$g"]['name'] as $i => $name) {
+                            if (empty($name)) continue;
+
+                            $file = [
+                                'name' => $_FILES["transcripts_$g"]['name'][$i],
+                                'type' => $_FILES["transcripts_$g"]['type'][$i],
+                                'tmp_name' => $_FILES["transcripts_$g"]['tmp_name'][$i],
+                                'error' => $_FILES["transcripts_$g"]['error'][$i],
+                                'size' => $_FILES["transcripts_$g"]['size'][$i]
+                            ];
+
+                            $prefix = $_SESSION['cccd'] . "_transcript_grade{$g}_" . time() . "_" . $i;
+                            $result = $uploader->upload($file, $prefix);
+                            if ($result) {
+                                $uploadedPaths[] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $result : $result;
+                            }
+                        }
+
+                        if (!empty($uploadedPaths)) {
+                            $items[$g]['file_hoc_ba'] = implode(',', $uploadedPaths);
+                        }
+                    }
+                }
+            }
+
             if ($academicModel->saveBatch($_SESSION['cccd'], $items)) {
                 $this->redirect(url('/profile/step3'));
             } else {
-                 $this->view('profile/step2', [
-                    'user' => $this->user, 
-                    'records' => $records, 
+                $this->view('profile/step2', [
+                    'user' => $this->user,
+                    'records' => $records,
                     'subjects' => $subjects,
                     'error' => 'Lỗi lưu học bạ.',
                     'isLocked' => $isLocked,
@@ -291,8 +359,8 @@ class ProfileController extends Controller {
             }
         } else {
             $this->view('profile/step2', [
-                'user' => $this->user, 
-                'records' => $records, 
+                'user' => $this->user,
+                'records' => $records,
                 'subjects' => $subjects,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $appStatus['editRequestPending'],
@@ -301,44 +369,47 @@ class ProfileController extends Controller {
         }
     }
 
-    public function step3() {
+    public function step3()
+    {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
 
         $certs = $this->thiSinhRepo->getCertifications($_SESSION['cccd']);
-        
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             if ($isLocked) {
-                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
-                 return;
-             }
+            if ($isLocked) {
+                $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
 
-             $hasCert = isset($_POST['has_cert']) && $_POST['has_cert'] == '1';
-             // updateCertStatus also needs to be in Repo
-             $this->thiSinhRepo->updateCertStatus($_SESSION['cccd'], $hasCert);
+            $hasCert = isset($_POST['has_cert']) && $_POST['has_cert'] == '1';
+            // updateCertStatus also needs to be in Repo
+            $this->thiSinhRepo->updateCertStatus($_SESSION['cccd'], $hasCert);
 
-             if ($hasCert) {
-                 $data = $_POST['certs'] ?? [];
-                 
-                 // Handle Files for Certs
-                 if (isset($_FILES['cert_files']) && !empty($_FILES['cert_files']['name'])) {
+            if ($hasCert) {
+                $data = $_POST['certs'] ?? [];
+
+                // Handle Files for Certs
+                if (isset($_FILES['cert_files']) && !empty($_FILES['cert_files']['name'])) {
                     $pathInfo = $this->getUploadPathInfo($_SESSION['cccd']);
                     $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                     $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
-                    
+
                     // Google Config (Reuse if needed, brevity here)
                     if ($uploadDriver === 'google') {
                         $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
                         $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
                         $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
-                         // Resolve folder
+                        // Resolve folder
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                        if ($targetFolderId) {
+                            $uploader->setTargetFolderId($targetFolderId);
+                        }
                     }
 
                     $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
-                    
+
                     foreach ($data as $index => &$certItem) {
                         // Check if file uploaded for this index
                         if (isset($_FILES['cert_files']['error'][$index]) && $_FILES['cert_files']['error'][$index] === UPLOAD_ERR_OK) {
@@ -349,7 +420,7 @@ class ProfileController extends Controller {
                                 'error' => $_FILES['cert_files']['error'][$index],
                                 'size' => $_FILES['cert_files']['size'][$index]
                             ];
-                            
+
                             $fileName = $_SESSION['cccd'] . '_cert_' . $index . '_' . time();
                             $result = $uploader->upload($file, $fileName);
                             if ($result) {
@@ -360,21 +431,21 @@ class ProfileController extends Controller {
                             $certItem['file_minh_chung_cc'] = $certItem['existing_file'] ?? null;
                         }
                     }
-                 } else {
-                     // No new files, keep existing
-                     foreach ($data as &$certItem) {
-                         $certItem['file_minh_chung_cc'] = $certItem['existing_file'] ?? null;
-                     }
-                 }
+                } else {
+                    // No new files, keep existing
+                    foreach ($data as &$certItem) {
+                        $certItem['file_minh_chung_cc'] = $certItem['existing_file'] ?? null;
+                    }
+                }
 
-                 $this->thiSinhRepo->saveCertifications($_SESSION['cccd'], $data);
-             }
-             
-             $this->invalidateUserCache();
-             $this->redirect(url('/profile/step4'));
+                $this->thiSinhRepo->saveCertifications($_SESSION['cccd'], $data);
+            }
+
+            $this->invalidateUserCache();
+            $this->redirect(url('/profile/step4'));
         } else {
             $this->view('profile/step3', [
-                'user' => $this->user, 
+                'user' => $this->user,
                 'certs' => $certs,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $appStatus['editRequestPending'],
@@ -383,7 +454,8 @@ class ProfileController extends Controller {
         }
     }
 
-    public function step4() {
+    public function step4()
+    {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
 
@@ -400,9 +472,9 @@ class ProfileController extends Controller {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($isLocked) {
-                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
-                 return;
-             }
+                $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
 
             $data = [
                 'da_co_diem' => (int)((isset($_POST['has_scores']) && $_POST['has_scores'] == '1') ? 1 : 0),
@@ -414,36 +486,37 @@ class ProfileController extends Controller {
                 foreach ($subjects as $s) {
                     $data[$s] = !empty($_POST[$s]) ? (float)$_POST[$s] : null;
                 }
-                
+
                 // Handle File Upload
                 if (isset($_FILES['file_chung_nhan']) && $_FILES['file_chung_nhan']['error'] === UPLOAD_ERR_OK) {
-                   $pathInfo = $this->getUploadPathInfo($_SESSION['cccd']);
-                   $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
-                   $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
-                   
-                   if ($uploadDriver === 'google') {
-                       $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
-                       $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
-                       $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                    $pathInfo = $this->getUploadPathInfo($_SESSION['cccd']);
+                    $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
+                    $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
+
+                    if ($uploadDriver === 'google') {
+                        $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                        $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                        $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         // Resolve folder
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
-                   }
+                        if ($targetFolderId) {
+                            $uploader->setTargetFolderId($targetFolderId);
+                        }
+                    }
 
-                   $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
-                   $uploader->setMaxSize(2 * 1024 * 1024);
+                    $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
+                    $uploader->setMaxSize(2 * 1024 * 1024);
 
-                   $fileName = $_SESSION['cccd'] . '_diem_thi_thpt';
-                   $result = $uploader->upload($_FILES['file_chung_nhan'], $fileName);
-                   if ($result) {
-                       $data['file_chung_nhan'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $result : $result;
-                   }
+                    $fileName = $_SESSION['cccd'] . '_diem_thi_thpt';
+                    $result = $uploader->upload($_FILES['file_chung_nhan'], $fileName);
+                    if ($result) {
+                        $data['file_chung_nhan'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $result : $result;
+                    }
                 } else if (isset($scores['file_chung_nhan'])) {
                     // Keep old file if not uploading new one
                     $data['file_chung_nhan'] = $scores['file_chung_nhan'];
                 }
-
             } else {
                 // Reset scores if they choose "No scores yet"
                 $subjects = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn'];
@@ -452,11 +525,11 @@ class ProfileController extends Controller {
             }
 
             if ($thptModel->save($_SESSION['cccd'], $data)) {
-                 $this->redirect(url('/profile/step5'));
+                $this->redirect(url('/profile/step5'));
             } else {
-                 $this->view('profile/step4', [
-                    'user' => $this->user, 
-                    'scores' => $scores, 
+                $this->view('profile/step4', [
+                    'user' => $this->user,
+                    'scores' => $scores,
                     'subjects' => $subjects, // Add missing subjects var logic 
                     'error' => 'Lỗi lưu thông tin.',
                     'isLocked' => $isLocked,
@@ -466,7 +539,7 @@ class ProfileController extends Controller {
             }
         } else {
             $this->view('profile/step4', [
-                'user' => $this->user, 
+                'user' => $this->user,
                 'scores' => $scores,
                 'subjects' => $subjects, // Add missing subjects var logic
                 'isLocked' => $isLocked,
@@ -476,7 +549,8 @@ class ProfileController extends Controller {
         }
     }
 
-    public function changePassword() {
+    public function changePassword()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $currentPassword = $_POST['current_password'] ?? '';
             $newPassword = $_POST['new_password'] ?? '';

@@ -35,7 +35,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- KV -->
         <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md">
             <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
@@ -73,17 +73,17 @@
                 <span class="block text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Chi tiết điểm học tập</span>
             </div>
         </div>
-        
-        <?php 
+
+        <?php
         // Prepare Data
         $rowsByGrade = [];
         if (isset($academicRows) && is_array($academicRows)) {
-            foreach($academicRows as $r) {
+            foreach ($academicRows as $r) {
                 $rowsByGrade[$r['lop']] = $r;
             }
         }
         // Helper to safely get value
-        $getScore = function($grade, $field) use ($rowsByGrade) {
+        $getScore = function ($grade, $field) use ($rowsByGrade) {
             return $rowsByGrade[$grade][$field] ?? '-';
         };
         ?>
@@ -99,40 +99,45 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
-                    <?php 
-                    foreach ($subjects as $code => $name): 
-                        $fieldCode = $code; 
+                    <?php
+                    foreach ($subjects as $code => $name):
+                        $fieldCode = $code;
                     ?>
-                    <tr class="hover:bg-blue-50/30 transition-colors group">
-                        <td class="px-5 py-3 font-medium text-slate-700 border-r sticky left-0 bg-white group-hover:bg-blue-50/30 z-0 border-slate-100 flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-400"></span>
-                            <?= $name ?>
-                        </td>
-                        
-                        <!-- Grade 10 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(10, "diem_{$fieldCode}") ?></td>
-                        
-                        <!-- Grade 11 -->
-                        <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(11, "diem_{$fieldCode}") ?></td>
-                        
-                        <!-- Grade 12 -->
-                        <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0 font-bold"><?= $getScore(12, "diem_{$fieldCode}") ?></td>
-                    </tr>
+                        <tr class="hover:bg-blue-50/30 transition-colors group">
+                            <td class="px-5 py-3 font-medium text-slate-700 border-r sticky left-0 bg-white group-hover:bg-blue-50/30 z-0 border-slate-100 flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-400"></span>
+                                <?= $name ?>
+                            </td>
+
+                            <!-- Grade 10 -->
+                            <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(10, "diem_{$fieldCode}_cn") ?></td>
+
+                            <!-- Grade 11 -->
+                            <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(11, "diem_{$fieldCode}_cn") ?></td>
+
+                            <!-- Grade 12 -->
+                            <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0 font-bold"><?= $getScore(12, "diem_{$fieldCode}_cn") ?></td>
+                        </tr>
                     <?php endforeach; ?>
-                    
+
                     <!-- Avg Row -->
                     <tr class="bg-slate-50 font-medium text-xs text-slate-700 border-t-2 border-slate-200">
                         <td class="px-5 py-4 border-r sticky left-0 bg-slate-50 z-0 border-slate-200 uppercase tracking-widest">Điểm TB chung</td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(10, 'diem_tb') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(11, 'diem_tb') ?></td>
-                        <td class="px-2 py-4 text-center"><?= $getScore(12, 'diem_tb') ?></td>
+                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(10, 'diem_tb_ca_nam') ?></td>
+                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(11, 'diem_tb_ca_nam') ?></td>
+                        <td class="px-2 py-4 text-center"><?= $getScore(12, 'diem_tb_ca_nam') ?></td>
                     </tr>
-                    
-                    <?php 
-                    $mapDisplay = function($val) {
+
+                    <?php
+                    $mapDisplay = function ($val) {
                         $map = [
-                            'Gioi' => 'Giỏi', 'Kha' => 'Khá', 'Trung binh' => 'Trung bình', 'TB' => 'Trung bình', 'Yeu' => 'Yếu',
-                            'Tot' => 'Tốt'
+                            'Gioi' => 'Giỏi',
+                            'Kha' => 'Khá',
+                            'Trung binh' => 'Trung bình',
+                            'TB' => 'Trung bình',
+                            'Yeu' => 'Yếu',
+                            'Tot' => 'Tốt',
+                            'TrungBinh' => 'Trung bình'
                         ];
                         return $map[$val] ?? $val;
                     };
@@ -140,16 +145,16 @@
                     <!-- Rank Row -->
                     <tr class="bg-white font-medium text-xs uppercase border-t border-slate-100 text-slate-700">
                         <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-white border-slate-100 tracking-tighter">Kết quả Học Lực</td>
-                        <?php foreach([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hoc_luc')) ?></td>
+                        <?php foreach ([10, 11, 12] as $g): ?>
+                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g == 12 ? ' border-r-0' : '' ?>"><?= $mapDisplay($getScore($g, 'hoc_luc_ca_nam')) ?></td>
                         <?php endforeach; ?>
                     </tr>
-                    
+
                     <!-- Conduct Row -->
                     <tr class="bg-slate-50 font-medium text-xs uppercase border-t border-slate-200 text-slate-700">
                         <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-slate-50 border-slate-200">Hạnh Kiểm</td>
-                        <?php foreach([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g==12?' border-r-0':'' ?>"><?= $mapDisplay($getScore($g, 'hanh_kiem')) ?></td>
+                        <?php foreach ([10, 11, 12] as $g): ?>
+                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g == 12 ? ' border-r-0' : '' ?>"><?= $mapDisplay($getScore($g, 'hanh_kiem_ca_nam')) ?></td>
                         <?php endforeach; ?>
                     </tr>
 

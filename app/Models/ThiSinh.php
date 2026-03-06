@@ -183,11 +183,11 @@ class ThiSinh extends Model {
 
         // Base Query
         $sql = "SELECT 
-                    COUNT(DISTINCT t.so_cccd) as total,
-                    COUNT(DISTINCT CASE WHEN nv.trang_thai = 'Chờ duyệt' THEN t.so_cccd END) as pending,
-                    COUNT(DISTINCT CASE WHEN nv.trang_thai = 'Đã duyệt' THEN t.so_cccd END) as approved,
-                    COUNT(DISTINCT CASE WHEN nv.trang_thai = 'Từ chối' THEN t.so_cccd END) as rejected,
-                    COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE THEN t.so_cccd END) as edit_requests
+            COUNT(DISTINCT t.so_cccd) as total,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Chờ duyệt' THEN t.so_cccd END) as pending,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Đã duyệt' THEN t.so_cccd END) as approved,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Từ chối' THEN t.so_cccd END) as rejected,
+            COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE THEN t.so_cccd END) as edit_requests
                 FROM {$this->table} t
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
                 LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd

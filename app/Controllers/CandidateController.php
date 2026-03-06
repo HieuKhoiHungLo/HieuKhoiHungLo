@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Core\Controller;
@@ -9,7 +10,8 @@ use App\Services\AuditService;
 use App\Repositories\ThiSinhRepository;
 use App\Repositories\NguyenVongRepository;
 
-class CandidateController extends Controller {
+class CandidateController extends Controller
+{
 
     protected $thiSinhRepo;
     protected $nguyenVongRepo;
@@ -17,17 +19,19 @@ class CandidateController extends Controller {
     protected $auditService;
     protected $currentUser;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->thiSinhRepo = new ThiSinhRepository();
         $this->nguyenVongRepo = new NguyenVongRepository();
         $this->masterData = new MasterData();
         $this->auditService = new AuditService();
-        
+
         $adminModel = new \App\Models\QuanTriVien();
         $this->currentUser = $adminModel->find($_SESSION['admin_id'] ?? 0);
     }
 
-    protected function checkPermission($permission) {
+    protected function checkPermission($permission)
+    {
         if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, $permission)) {
             http_response_code(403);
             die(json_encode(['error' => 'Không có quyền truy cập']));
@@ -37,12 +41,13 @@ class CandidateController extends Controller {
     /**
      * Handle bulk actions from dashboard
      */
-    public function bulkAction() {
-        
+    public function bulkAction()
+    {
+
         // Prioritize forced_action (from JS fix)
         $action = $_POST['forced_action'] ?? $_POST['action'] ?? '';
         $ids = $_POST['ids'] ?? [];
-        
+
         if (empty($ids)) {
             $this->redirect(url('/admin/dashboard?error=no_selection'));
             return;
@@ -101,10 +106,11 @@ class CandidateController extends Controller {
     /**
      * Bulk update status
      */
-    protected function bulkUpdateStatus($ids, $status) {
+    protected function bulkUpdateStatus($ids, $status)
+    {
         // Use Repositories - ThiSinhRepository handles the bulk update logic for both nguyen_vong and ho_so_xet_tuyen
         $this->thiSinhRepo->bulkUpdateStatus($ids, $status);
-        
+
         // Note: Logic in AdminController::updateStatus also updated ho_so_xet_tuyen status. 
         // CandidateController previously only updated nguyen_vong status in bulkUpdateStatus (line 92 original).
         // Check original: only nguyen_vong update.
@@ -124,7 +130,8 @@ class CandidateController extends Controller {
     /**
      * Bulk transfer to another session
      */
-    protected function bulkTransferSession($ids, $sessionId) {
+    protected function bulkTransferSession($ids, $sessionId)
+    {
         // Use Repositories
         $this->thiSinhRepo->bulkTransferSession($ids, $sessionId);
         // Original code also updated nguyen_vong status to 'Chờ duyệt'.
@@ -141,7 +148,8 @@ class CandidateController extends Controller {
     /**
      * Bulk delete (soft delete)
      */
-    protected function bulkDelete($ids) {
+    protected function bulkDelete($ids)
+    {
         // Use Repository
         $this->thiSinhRepo->bulkDelete($ids);
 
@@ -154,7 +162,8 @@ class CandidateController extends Controller {
     /**
      * Bulk restore
      */
-    protected function bulkRestore($ids) {
+    protected function bulkRestore($ids)
+    {
         $this->thiSinhRepo->bulkRestore($ids);
         $this->auditService->log('BULK_RESTORE', 'candidates', null, null, [
             'count' => count($ids),
@@ -165,7 +174,8 @@ class CandidateController extends Controller {
     /**
      * Bulk force delete
      */
-    protected function bulkForceDelete($ids) {
+    protected function bulkForceDelete($ids)
+    {
         $this->thiSinhRepo->bulkForceDelete($ids);
         $this->auditService->log('BULK_FORCE_DELETE', 'candidates', null, null, [
             'count' => count($ids),
@@ -176,7 +186,8 @@ class CandidateController extends Controller {
     /**
      * Bulk send email
      */
-    protected function bulkSendEmail($ids, $templateId) {
+    protected function bulkSendEmail($ids, $templateId)
+    {
         // Get template. EmailTemplatesRepository? Or just DB for now as non-critical?
         // Let's use DB for template as it is not in ThiSinh scope.
         $db = \App\Core\Database::getInstance()->getConnection();
@@ -194,10 +205,10 @@ class CandidateController extends Controller {
 
         foreach ($candidates as $c) {
             if (empty($c['email'])) continue;
-            
+
             $subject = str_replace('{ho_ten}', $c['ho_va_ten'], $template['subject']);
             $body = str_replace(['{ho_ten}', '{so_cccd}'], [$c['ho_va_ten'], $c['so_cccd']], $template['body']);
-            
+
             if ($mailer->send($c['email'], $subject, $body)) {
                 $sent++;
             }
@@ -213,12 +224,13 @@ class CandidateController extends Controller {
     /**
      * Delete single candidate
      */
-    public function delete() {
+    public function delete()
+    {
         $this->checkPermission('candidates.delete');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? $_GET['cccd'] ?? '';
-        
+
         if (empty($cccd)) {
             $this->redirect(url('/admin/dashboard?error=missing_cccd'));
             return;
@@ -232,7 +244,8 @@ class CandidateController extends Controller {
     /**
      * Transfer single candidate to another session
      */
-    public function transfer() {
+    public function transfer()
+    {
         $this->checkPermission('candidates.edit');
         $this->validateCsrf();
 
@@ -249,9 +262,10 @@ class CandidateController extends Controller {
         $this->redirect(url('/admin/review?cccd=' . $cccd . '&success=transferred'));
     }
 
-    public function trash() {
+    public function trash()
+    {
         $this->checkPermission('candidates.view');
-        
+
         $page = $_GET['page'] ?? 1;
         $limit = 20;
         $offset = ($page - 1) * $limit;
@@ -259,27 +273,27 @@ class CandidateController extends Controller {
 
         // Get Trashed only
         $candidates = $this->thiSinhRepo->getFiltered(
-            $search, 
+            $search,
             '', // status
             '', // hocBaStatus
-            $limit, 
-            $offset, 
+            $limit,
+            $offset,
             null, // sessionId
             false, // onlyEditRequests
             null, // year
-            'created_at', 
+            'created_at',
             'desc',
             true // trashed = true
         );
 
         $total = $this->thiSinhRepo->countFiltered(
             $search,
-             '', 
-             '', 
-             null, 
-             false, 
-             null,
-             true // trashed = true
+            '',
+            '',
+            null,
+            false,
+            null,
+            true // trashed = true
         );
 
         $totalPages = ceil($total / $limit);
@@ -294,7 +308,8 @@ class CandidateController extends Controller {
         ]);
     }
 
-    public function restore() {
+    public function restore()
+    {
         $this->checkPermission('candidates.delete');
         $this->validateCsrf();
 
@@ -303,11 +318,12 @@ class CandidateController extends Controller {
             $this->thiSinhRepo->restore($cccd);
             $this->redirect(url('/admin/candidates/trash?success=restored'));
         } else {
-             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
+            $this->redirect(url('/admin/candidates/trash?error=missing_data'));
         }
     }
 
-    public function forceDelete() {
+    public function forceDelete()
+    {
         $this->checkPermission('candidates.delete');
         $this->validateCsrf();
 
@@ -316,13 +332,14 @@ class CandidateController extends Controller {
             $this->thiSinhRepo->forceDelete($cccd);
             $this->redirect(url('/admin/candidates/trash?success=deleted_forever'));
         } else {
-             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
+            $this->redirect(url('/admin/candidates/trash?error=missing_data'));
         }
     }
 
-    public function edit() {
+    public function edit()
+    {
         $this->checkPermission('candidates.edit');
-        
+
         $cccd = $_GET['cccd'] ?? $_POST['cccd'] ?? '';
         if (!$cccd) {
             $this->redirect(url('/admin/dashboard'));
@@ -347,7 +364,7 @@ class CandidateController extends Controller {
                 'dia_chi_chi_tiet' => $_POST['dia_chi_chi_tiet'] ?? '',
                 'ma_truong_lop_12' => $_POST['ma_truong_lop_12'] ?? '',
             ];
-            
+
             $this->thiSinhRepo->updateFullProfile($cccd, $data);
 
             // 1.1 Handle Avatar Upload
@@ -363,11 +380,13 @@ class CandidateController extends Controller {
                         $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                        if ($targetFolderId) {
+                            $uploader->setTargetFolderId($targetFolderId);
+                        }
                     }
                     $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
                 }
-                
+
                 // Upload Avatar
                 $fileName = $cccd . '_avatar_' . time();
                 $result = $uploader->upload([
@@ -390,9 +409,9 @@ class CandidateController extends Controller {
 
             if ($hasCert) {
                 $certsData = $_POST['certs'] ?? [];
-                
+
                 // Handle Files for Certs
-                if (isset($_FILES['cert_files']) && is_array($_FILES['cert_files']['name'])) { 
+                if (isset($_FILES['cert_files']) && is_array($_FILES['cert_files']['name'])) {
                     // Re-use uploader config if already set, or init new
                     if (!isset($uploader)) {
                         $pathInfo = $this->getUploadPathInfo($cccd);
@@ -404,7 +423,9 @@ class CandidateController extends Controller {
                             $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                            if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
                         }
                         $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
                     }
@@ -418,7 +439,7 @@ class CandidateController extends Controller {
                                 'error' => $_FILES['cert_files']['error'][$index],
                                 'size' => $_FILES['cert_files']['size'][$index]
                             ];
-                            
+
                             $fileName = $cccd . '_cert_' . $index . '_' . time();
                             $result = $uploader->upload($file, $fileName);
                             if ($result) {
@@ -429,9 +450,9 @@ class CandidateController extends Controller {
                         }
                     }
                 } else {
-                        foreach ($certsData as &$certItem) {
-                            $certItem['file_minh_chung_cc'] = $certItem['existing_file'] ?? null;
-                        }
+                    foreach ($certsData as &$certItem) {
+                        $certItem['file_minh_chung_cc'] = $certItem['existing_file'] ?? null;
+                    }
                 }
 
                 $this->thiSinhRepo->saveCertifications($cccd, $certsData);
@@ -440,20 +461,20 @@ class CandidateController extends Controller {
             // 3. Update Academic Records
             $academicRepo = new \App\Repositories\AcademicRepository();
             $grades = [10, 11, 12];
-            $subjects = ['toan','van','ngoai_ngu','ly','hoa','sinh','su','dia','gdcd','cong_nghe','tin_hoc'];
+            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'cong_nghe', 'tin_hoc'];
             foreach ($grades as $g) {
                 $record = [];
                 foreach ($subjects as $s) {
                     $val = $_POST["grade_{$g}_{$s}_hk1"] ?? null;
-                    if($val !== null) $record["diem_{$s}_hk1"] = $val;
+                    if ($val !== null) $record["diem_{$s}_hk1"] = $val;
                     $val2 = $_POST["grade_{$g}_{$s}_hk2"] ?? null;
-                    if($val2 !== null) $record["diem_{$s}_hk2"] = $val2;
+                    if ($val2 !== null) $record["diem_{$s}_hk2"] = $val2;
                 }
-                
+
                 // Fields: diem_tb, hoc_luc, hanh_kiem
                 $fields = ['diem_tb', 'hoc_luc', 'hanh_kiem'];
-                foreach(['hk1', 'hk2'] as $hk) {
-                    foreach($fields as $f) {
+                foreach (['hk1', 'hk2'] as $hk) {
+                    foreach ($fields as $f) {
                         $postKey = "grade_{$g}_{$f}_{$hk}";
                         if (isset($_POST[$postKey])) {
                             $record["{$f}_{$hk}"] = $_POST[$postKey];
@@ -470,18 +491,18 @@ class CandidateController extends Controller {
             $diemThiModel = new \App\Models\DiemThiTHPT();
             $scores = [];
             $fieldsTHPT = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd'];
-            foreach($fieldsTHPT as $f) {
+            foreach ($fieldsTHPT as $f) {
                 if (isset($_POST[$f]) && $_POST[$f] !== '') $scores[$f] = $_POST[$f];
             }
             // Foreign languages
-             $langs = ['tieng_anh', 'tieng_nga', 'tieng_phap', 'tieng_trung', 'tieng_duc', 'tieng_nhat', 'tieng_han'];
-            foreach($langs as $l) {
-                 if (isset($_POST[$l]) && $_POST[$l] !== '') $scores[$l] = $_POST[$l];
+            $langs = ['tieng_anh', 'tieng_nga', 'tieng_phap', 'tieng_trung', 'tieng_duc', 'tieng_nhat', 'tieng_han'];
+            foreach ($langs as $l) {
+                if (isset($_POST[$l]) && $_POST[$l] !== '') $scores[$l] = $_POST[$l];
             }
 
             if (!empty($scores)) {
                 $scores['nam_thi'] = date('Y');
-                $diemThiModel->save($cccd, $scores); 
+                $diemThiModel->save($cccd, $scores);
             }
 
             // Redirect back with success message and active tab
@@ -499,10 +520,10 @@ class CandidateController extends Controller {
         // Fetch additional data
         $certs = $this->thiSinhRepo->getCertifications($cccd);
         $certificate = !empty($certs) ? $certs[0] : [];
-        
+
         $academicRepo = new \App\Repositories\AcademicRepository();
         $academicRecords = $academicRepo->getByCCCD($cccd); // Returns array of records (rows)
-        
+
         $diemThiModel = new \App\Models\DiemThiTHPT();
         $diemThi = $diemThiModel->getByCCCD($cccd);
 
@@ -523,15 +544,16 @@ class CandidateController extends Controller {
         ]);
     }
 
-    public function update() {
+    public function update()
+    {
         $this->checkPermission('candidates.edit');
         // $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
         $section = $_POST['section'] ?? '';
-        
+
         // error_log("DEBUG_UPDATE: CCCD=$cccd, Section=$section");
-        
+
         if (!$cccd || !$section) {
             $this->json(['success' => false, 'error' => 'Thiếu dữ liệu CCCD hoặc Section. Debug: ' . print_r($_POST, true)]);
             return;
@@ -540,161 +562,173 @@ class CandidateController extends Controller {
         try {
             switch ($section) {
                 case 'personal':
-                // Personal Info (Updated fields only)
-                // Use '' for text fields if empty, null for IDs if empty
-                $data = [
-                    'ho_va_ten' => $_POST['ho_va_ten'],
-                    'ngay_sinh' => $_POST['ngay_sinh'],
-                    'gioi_tinh' => $_POST['gioi_tinh'],
-                    'dan_toc'   => $_POST['dan_toc'] ?? '', 
-                    'dien_thoai'=> $_POST['dien_thoai'],
-                    'email'     => $_POST['email'],
-                    'nam_tot_nghiep'    => $_POST['nam_tot_nghiep'] ?? null,
-                    'ma_tinh_lop_12'    => !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null,
-                    'ma_truong_lop_12'  => !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null,
-                    'khu_vuc_uu_tien'   => $_POST['kv_uu_tien'] ?? null,
-                    'is_custom_kv'      => (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1'),
-                    'doi_tuong_uu_tien' => $_POST['dt_uu_tien'] ?? null,
-                    'is_custom_dt'      => (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1'),
-                    'dia_chi_chi_tiet'   => $_POST['dia_chi_chi_tiet'] ?? '',
-                    'ma_tinh_ho_khau'    => !empty($_POST['ma_tinh_ho_khau']) ? $_POST['ma_tinh_ho_khau'] : null,
-                    'ma_tinh_thuong_tru' => !empty($_POST['ma_tinh_thuong_tru']) ? $_POST['ma_tinh_thuong_tru'] : null,
-                    'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
-                ];
-                
-                // Xử lý đổi Số CCCD nếu có
-                if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
-                    $newCccd = trim($_POST['so_cccd']);
-                    // Kiểm tra trùng lặp CCCD
-                    $existing = $this->thiSinhRepo->findByCCCD($newCccd);
-                    if ($existing) {
-                        $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
-                        return;
-                    }
-                    $data['so_cccd'] = $newCccd;
-                }
-                
-                // Handle File Uploads — only if files are actually attached
-                $fileMap = [
-                    'avatar' => 'anh_dai_dien', 
-                    'cccd_front' => 'anh_cccd_truoc', 
-                    'cccd_back' => 'anh_cccd_sau',
-                    'kv_file' => 'file_minh_chung_kv',
-                    'dt_file' => 'file_minh_chung_dt'
-                ];
-                
-                $hasFiles = false;
-                foreach ($fileMap as $field => $dbCol) {
-                    if (!empty($_FILES[$field]['name'])) { $hasFiles = true; break; }
-                }
+                    // Personal Info (Updated fields only)
+                    // Use '' for text fields if empty, null for IDs if empty
+                    $data = [
+                        'ho_va_ten' => $_POST['ho_va_ten'],
+                        'ngay_sinh' => $_POST['ngay_sinh'],
+                        'gioi_tinh' => $_POST['gioi_tinh'],
+                        'dan_toc'   => $_POST['dan_toc'] ?? '',
+                        'dien_thoai' => $_POST['dien_thoai'],
+                        'email'     => $_POST['email'],
+                        'nam_tot_nghiep'    => $_POST['nam_tot_nghiep'] ?? null,
+                        'ma_tinh_lop_12'    => !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null,
+                        'ma_truong_lop_12'  => !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null,
+                        'khu_vuc_uu_tien'   => $_POST['kv_uu_tien'] ?? null,
+                        'is_custom_kv'      => (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1'),
+                        'doi_tuong_uu_tien' => $_POST['dt_uu_tien'] ?? null,
+                        'is_custom_dt'      => (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1'),
+                        'dia_chi_chi_tiet'   => $_POST['dia_chi_chi_tiet'] ?? '',
+                        'ma_tinh_ho_khau'    => !empty($_POST['ma_tinh_ho_khau']) ? $_POST['ma_tinh_ho_khau'] : null,
+                        'ma_tinh_thuong_tru' => !empty($_POST['ma_tinh_thuong_tru']) ? $_POST['ma_tinh_thuong_tru'] : null,
+                        'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
+                    ];
 
-                if ($hasFiles) {
-                    $pathInfo = $this->getUploadPathInfo($cccd);
-                    $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
-                    $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                    
-                    if ($uploadDriver === 'google') {
-                        $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                        if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                        $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
-                        $driveService = new \App\Services\DriveService($uploader);
-                        $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                    // Xử lý đổi Số CCCD nếu có
+                    if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
+                        $newCccd = trim($_POST['so_cccd']);
+                        // Kiểm tra trùng lặp CCCD
+                        $existing = $this->thiSinhRepo->findByCCCD($newCccd);
+                        if ($existing) {
+                            $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
+                            return;
+                        }
+                        $data['so_cccd'] = $newCccd;
                     }
 
+                    // Handle File Uploads — only if files are actually attached
+                    $fileMap = [
+                        'avatar' => 'anh_dai_dien',
+                        'cccd_front' => 'anh_cccd_truoc',
+                        'cccd_back' => 'anh_cccd_sau',
+                        'kv_file' => 'file_minh_chung_kv',
+                        'dt_file' => 'file_minh_chung_dt'
+                    ];
+
+                    $hasFiles = false;
                     foreach ($fileMap as $field => $dbCol) {
                         if (!empty($_FILES[$field]['name'])) {
-                            // Map special field names to readable file prefixes
-                            $filePrefix = match($field) {
-                                'kv_file' => 'kv_evidence',
-                                'dt_file' => 'dt_evidence',
-                                'avatar'  => 'avatar',
-                                'cccd_front' => 'cccd_front',
-                                'cccd_back' => 'cccd_back',
-                                default   => $field
-                            };
-                            
-                            $prefix = $cccd . '_' . $filePrefix . '_' . time();
-                            $fileName = $uploader->upload($_FILES[$field], $prefix);
-                            if ($fileName) {
-                                $data[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                            } else {
-                                error_log("Upload error $field: " . json_encode($uploader->getErrors()));
-                            }
+                            $hasFiles = true;
+                            break;
                         }
                     }
-                }
-                    
-                // Update Application Status & Note if provided
-                $applicationRepo = new \App\Repositories\ApplicationRepository();
-                $applicationId = $_POST['application_id'] ?? null;
-                if ($applicationId) {
-                    $appUpdate = [];
-                    if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
-                    if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-                    
-                    if (!empty($appUpdate)) {
-                        $applicationRepo->update($applicationId, $appUpdate);
-                    }
-                }
-                    
-                // error_log("DEBUG_UPDATE_PERSONAL: " . print_r($data, true));
-                $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
-                
-                if ($res) {
-                     $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
-                } else {
-                     $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
-                }
-                return;
-                break;
 
-                case 'academic':
-                    $academicRepo = new \App\Repositories\AcademicRepository();
-                    
-                    // Setup Uploader (check if any transcript files exist)
-                    $hasAcademicFiles = false;
-                    foreach ([10, 11, 12] as $_g) {
-                        if (!empty($_FILES["transcripts_$_g"]['name'][0])) { $hasAcademicFiles = true; break; }
-                    }
-
-                    $pathInfo = null; $uploadDriver = 'local'; $uploader = null;
-                    if ($hasAcademicFiles) {
+                    if ($hasFiles) {
                         $pathInfo = $this->getUploadPathInfo($cccd);
                         $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                        
+
                         if ($uploadDriver === 'google') {
                             $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
                             if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
                             $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                            if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
+                        }
+
+                        foreach ($fileMap as $field => $dbCol) {
+                            if (!empty($_FILES[$field]['name'])) {
+                                // Map special field names to readable file prefixes
+                                $filePrefix = match ($field) {
+                                    'kv_file' => 'kv_evidence',
+                                    'dt_file' => 'dt_evidence',
+                                    'avatar'  => 'avatar',
+                                    'cccd_front' => 'cccd_front',
+                                    'cccd_back' => 'cccd_back',
+                                    default   => $field
+                                };
+
+                                $prefix = $cccd . '_' . $filePrefix . '_' . time();
+                                $fileName = $uploader->upload($_FILES[$field], $prefix);
+                                if ($fileName) {
+                                    $data[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                                } else {
+                                    error_log("Upload error $field: " . json_encode($uploader->getErrors()));
+                                }
+                            }
+                        }
+                    }
+
+                    // Update Application Status & Note if provided
+                    $applicationRepo = new \App\Repositories\ApplicationRepository();
+                    $applicationId = $_POST['application_id'] ?? null;
+                    if ($applicationId) {
+                        $appUpdate = [];
+                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
+
+                        if (!empty($appUpdate)) {
+                            $applicationRepo->update($applicationId, $appUpdate);
+                        }
+                    }
+
+                    // error_log("DEBUG_UPDATE_PERSONAL: " . print_r($data, true));
+                    $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
+
+                    if ($res) {
+                        $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
+                    } else {
+                        $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
+                    }
+                    return;
+                    break;
+
+                case 'academic':
+                    $academicRepo = new \App\Repositories\AcademicRepository();
+
+                    // Setup Uploader (check if any transcript files exist)
+                    $hasAcademicFiles = false;
+                    foreach ([10, 11, 12] as $_g) {
+                        if (!empty($_FILES["transcripts_$_g"]['name'][0])) {
+                            $hasAcademicFiles = true;
+                            break;
+                        }
+                    }
+
+                    $pathInfo = null;
+                    $uploadDriver = 'local';
+                    $uploader = null;
+                    if ($hasAcademicFiles) {
+                        $pathInfo = $this->getUploadPathInfo($cccd);
+                        $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
+                        $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
+
+                        if ($uploadDriver === 'google') {
+                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
+                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
+                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                            $driveService = new \App\Services\DriveService($uploader);
+                            $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
                         }
                     }
 
                     $grades = [10, 11, 12];
-                    $subjects = ['toan','van','ngoai_ngu','ly','hoa','sinh','su','dia','gdcd','tin_hoc','cong_nghe'];
+                    $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tin_hoc', 'cong_nghe'];
 
                     foreach ($grades as $g) {
                         $record = [];
-                        
+
                         if (isset($_POST['scores'][$g]) && is_array($_POST['scores'][$g])) {
                             $gradeInputs = $_POST['scores'][$g];
-                            
-                            // Collect Scores
+
+                            // Collect Scores (column names use _cn suffix)
                             foreach ($subjects as $s) {
-                                if (isset($gradeInputs["diem_{$s}"])) {
-                                    $record["diem_{$s}"] = $gradeInputs["diem_{$s}"] !== '' ? (double)$gradeInputs["diem_{$s}"] : null;
+                                if (isset($gradeInputs["diem_{$s}_cn"])) {
+                                    $record["diem_{$s}_cn"] = $gradeInputs["diem_{$s}_cn"] !== '' ? (float)$gradeInputs["diem_{$s}_cn"] : null;
                                 }
                             }
-                            
-                            // Collect Rank & Conduct & GPA
-                            if (isset($gradeInputs["hoc_luc"]))   $record['hoc_luc']     = $gradeInputs["hoc_luc"] ?: null;
-                            if (isset($gradeInputs["hanh_kiem"])) $record['hanh_kiem']   = $gradeInputs["hanh_kiem"] ?: null;
-                            if (isset($gradeInputs["diem_tb"]))   $record['diem_tb']     = $gradeInputs["diem_tb"] !== '' ? (double)$gradeInputs["diem_tb"] : null;
-                            
+
+                            // Collect Rank & Conduct & GPA (column names use _ca_nam suffix)
+                            if (isset($gradeInputs["hoc_luc_ca_nam"]))   $record['hoc_luc_ca_nam']   = $gradeInputs["hoc_luc_ca_nam"] ?: null;
+                            if (isset($gradeInputs["hanh_kiem_ca_nam"])) $record['hanh_kiem_ca_nam'] = $gradeInputs["hanh_kiem_ca_nam"] ?: null;
+                            if (isset($gradeInputs["diem_tb_ca_nam"]))   $record['diem_tb_ca_nam']   = $gradeInputs["diem_tb_ca_nam"] !== '' ? (float)$gradeInputs["diem_tb_ca_nam"] : null;
+
                             // Handle file uploads (multiple files per grade possible)
                             if (!empty($_FILES["transcripts_$g"]['name'][0])) {
                                 $uploadedFiles = [];
@@ -723,10 +757,51 @@ class CandidateController extends Controller {
                                     $record['file_hoc_ba'] = $gradeInputs['existing_files'];
                                 }
                             }
-                            
+
                             // SAVE the record for this grade
-                             $academicRepo->createOrUpdate($cccd, $g, $record);
+                            $academicRepo->createOrUpdate($cccd, $g, $record);
                         }
+                    }
+
+                    // Save School & Priority fields (now submitted from academic form)
+                    $personalData = [];
+                    if (isset($_POST['ma_tinh_lop_12']))    $personalData['ma_tinh_lop_12']    = !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null;
+                    if (isset($_POST['ma_truong_lop_12']))   $personalData['ma_truong_lop_12']  = !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null;
+                    if (isset($_POST['nam_tot_nghiep']))     $personalData['nam_tot_nghiep']    = $_POST['nam_tot_nghiep'] ?? null;
+                    if (isset($_POST['kv_uu_tien']))         $personalData['khu_vuc_uu_tien']   = $_POST['kv_uu_tien'] ?? null;
+                    $personalData['is_custom_kv'] = (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1');
+                    if (isset($_POST['dt_uu_tien']))         $personalData['doi_tuong_uu_tien'] = $_POST['dt_uu_tien'] ?? null;
+                    $personalData['is_custom_dt'] = (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1');
+
+                    // Handle KV/DT evidence file uploads
+                    $evidenceFileMap = ['kv_file' => 'file_minh_chung_kv', 'dt_file' => 'file_minh_chung_dt'];
+                    foreach ($evidenceFileMap as $field => $dbCol) {
+                        if (!empty($_FILES[$field]['name'])) {
+                            if (!isset($uploader)) {
+                                $pathInfo = $this->getUploadPathInfo($cccd);
+                                $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
+                                $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
+                                if ($uploadDriver === 'google') {
+                                    $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
+                                    if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
+                                    $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                                    $driveService = new \App\Services\DriveService($uploader);
+                                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
+                                    if ($targetFolderId) {
+                                        $uploader->setTargetFolderId($targetFolderId);
+                                    }
+                                }
+                            }
+                            $prefix = $cccd . '_' . ($field === 'kv_file' ? 'kv_evidence' : 'dt_evidence') . '_' . time();
+                            $fileName = $uploader->upload($_FILES[$field], $prefix);
+                            if ($fileName) {
+                                $personalData[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
+                            }
+                        }
+                    }
+
+                    if (!empty($personalData)) {
+                        $this->thiSinhRepo->update($cccd, $personalData);
                     }
 
                     // Update Status & Note
@@ -739,17 +814,17 @@ class CandidateController extends Controller {
                         if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
                     }
                     break;
-                    
+
                 case 'thpt':
                     // THPT Scores Update
                     $fields = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn'];
                     $scores = [];
-                    
+
                     // Review.php uses thpt_ prefix for these inputs
-                    foreach($fields as $f) {
+                    foreach ($fields as $f) {
                         $key = "thpt_$f";
                         if (isset($_POST[$key])) {
-                            $scores[$f] = $_POST[$key] !== '' ? (double)$_POST[$key] : null;
+                            $scores[$f] = $_POST[$key] !== '' ? (float)$_POST[$key] : null;
                         }
                     }
                     $scores['da_co_diem'] = ($_POST['has_scores'] ?? '0') === '1';
@@ -759,16 +834,18 @@ class CandidateController extends Controller {
                         $pathInfo = $this->getUploadPathInfo($cccd);
                         $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                        
+
                         if ($uploadDriver === 'google') {
                             $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
                             if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
                             $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                            if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
                         }
-                        
+
                         $fileName = $uploader->upload($_FILES['thpt_file_evidence'], "{$cccd}_THPT_" . time());
                         if ($fileName) {
                             $scores['file_chung_nhan'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
@@ -801,14 +878,16 @@ class CandidateController extends Controller {
                     $pathInfo = $this->getUploadPathInfo($cccd);
                     $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                     $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                    
+
                     if ($uploadDriver === 'google') {
                         $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
                         if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
                         $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                        if ($targetFolderId) { $uploader->setTargetFolderId($targetFolderId); }
+                        if ($targetFolderId) {
+                            $uploader->setTargetFolderId($targetFolderId);
+                        }
                     }
 
                     foreach ($certsArr as $index => $c) {
@@ -829,7 +908,7 @@ class CandidateController extends Controller {
                                 'error' => $_FILES['cert_files']['error'][$index],
                                 'size' => $_FILES['cert_files']['size'][$index]
                             ];
-                            
+
                             $prefix = $cccd . '_cert_' . time() . '_' . $index;
                             $fileName = $uploader->upload($fileToUpload, $prefix);
                             if ($fileName) {
@@ -856,7 +935,7 @@ class CandidateController extends Controller {
                 case 'wishes':
                     $applicationId = $_POST['application_id'] ?? null;
                     $items = $_POST['choices'] ?? [];
-                    
+
                     if (!$applicationId) {
                         $sessionModel = new \App\Models\AdmissionSession();
                         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
@@ -899,10 +978,9 @@ class CandidateController extends Controller {
                     }
                     break;
             }
-            
+
             $this->auditService->log('UPDATE_CANDIDATE', 'candidates', $cccd, null, ['section' => $section]);
             $this->json(['success' => true]);
-
         } catch (\Exception $e) {
             $this->auditService->log('UPDATE_ERROR', 'candidates', $cccd, null, ['error' => $e->getMessage()]);
             $this->json(['error' => $e->getMessage()], 500);
@@ -910,7 +988,8 @@ class CandidateController extends Controller {
     }
 
 
-    private function getUploadPathInfo($cccd) {
+    private function getUploadPathInfo($cccd)
+    {
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
 

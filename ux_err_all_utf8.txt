@@ -1,0 +1,25 @@
+﻿
+[UX AUDIT] 3 files checked
+--------------------------------------------------
+[!] ISSUES (3):
+  - [Cognitive Load] hvu-components.css: Form inputs without labels. Use <label> for accessibility and clarity.
+  - [Color] tailwind.min.css: PURPLE DETECTED ('#7C3AED'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.
+  - [Motion] tailwind.min.css: Scroll-driven animation without throttling. Add requestAnimationFrame for 60fps.
+[*] WARNINGS (37):
+  - [Trust] hvu-components.css: Form without security indicators. Add 'SSL Secure' or lock icon.
+  - [Typography] hvu-components.css: Fixed font sizes without clamp(). Consider fluid typography: clamp(MIN, PREFERRED, MAX)
+  - [Performance] hvu-components.css: Animating expensive properties (padding, width). Use transform/opacity where possible.
+  - [Accessibility] hvu-components.css: Animations found without prefers-reduced-motion check
+  - [Visual] hvu-components.css: Many visual effects (11). Ensure effects serve purpose, not decoration.
+  - [Color] hvu-components.css: 7 distinct colors. Consider 60-30-10 rule: dominant (60%), secondary (30%), accent (10%).
+  - [Fitts' Law] tailwind.min.css: Small targets (< 44px)
+  - [Cognitive Load] tailwind.min.css: High visual noise detected. Many colors and borders increase cognitive load.
+  - [Typography] tailwind.min.css: Heading has line-height 2 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 2.25 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 2.5 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 1.75 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 1.75 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 5 (>1.3). Headings should be tighter (1.1-1.3).
+  - [Typography] tailwind.min.css: Heading has line-height 6 (>1.3). Headings should be tighter (1.1-1.3).
+[+] PASSED CHECKS: 1
+STATUS: FAIL
