@@ -42,13 +42,13 @@ class MasterDataRepository
 
     public function getMajorsWithCombinations()
     {
-        return Cache::remember('majors_with_combinations', 60, function () {
+        return Cache::remember('majors_with_combinations_v2', 60, function () {
             $majors = [];
             try {
                 // Need DB connection inside closure or via $this
                 $db = Database::getInstance()->getConnection();
 
-                $stmt = $db->query("SELECT * FROM dm_nganh ORDER BY ten_nganh ASC");
+                $stmt = $db->query("SELECT * FROM dm_nganh ORDER BY ma_nganh ASC");
                 $rawMajors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $comboMap = [];
