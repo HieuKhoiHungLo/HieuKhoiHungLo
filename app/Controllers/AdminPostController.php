@@ -1,29 +1,35 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\Post;
 
-class AdminPostController extends Controller {
+class AdminPostController extends Controller
+{
     protected $postModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (!isset($_SESSION['admin_id'])) {
             $this->redirect(url('/admin/login'));
         }
         $this->postModel = new Post();
     }
 
-    public function index() {
+    public function index()
+    {
         $posts = $this->postModel->getAllAdmin();
         $this->view('admin/posts/index', ['posts' => $posts]);
     }
 
-    public function create() {
+    public function create()
+    {
         $this->view('admin/posts/form', ['post' => null]);
     }
 
-    public function edit() {
+    public function edit()
+    {
         $id = $_GET['id'] ?? '';
         $post = $this->postModel->find($id);
 
@@ -34,7 +40,8 @@ class AdminPostController extends Controller {
         $this->view('admin/posts/form', ['post' => $post]);
     }
 
-    public function save() {
+    public function save()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // CSRF Check
             if (!$this->verifyCsrf($_POST['csrf_token'] ?? '')) {
@@ -42,15 +49,21 @@ class AdminPostController extends Controller {
             }
 
             // Handle Thumbnail Upload
-            $thumbnailPath = $_POST['thumbnail']; // Default to URL input
+            $thumbnailPath = $_POST['thumbnail'] ?? '';
 
             if (isset($_FILES['thumbnail_file']) && $_FILES['thumbnail_file']['error'] == 0) {
                 $allowed = ['jpg', 'jpeg', 'png', 'webp'];
                 $filename = $_FILES['thumbnail_file']['name'];
                 $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                
+
                 if (in_array($ext, $allowed) && $_FILES['thumbnail_file']['size'] <= 5 * 1024 * 1024) { // 5MB
-                    $uploadDir = 'uploads/posts/';
+                    $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+                    // Nếu có base path (VD: /TS), thêm vào document root
+                    $basePath = parse_url(url('/'), PHP_URL_PATH);
+                    $basePath = rtrim($basePath, '/');
+                    $uploadRelative = 'uploads/posts/';
+                    $uploadDir = $publicPath . $basePath . '/' . $uploadRelative;
+
                     if (!file_exists($uploadDir)) {
                         mkdir($uploadDir, 0777, true);
                     }
@@ -59,7 +72,7 @@ class AdminPostController extends Controller {
                     $destPath = $uploadDir . $newFilename;
 
                     if (move_uploaded_file($_FILES['thumbnail_file']['tmp_name'], $destPath)) {
-                        $thumbnailPath = $destPath;
+                        $thumbnailPath = $uploadRelative . $newFilename;
                     }
                 }
             }
@@ -82,6 +95,7 @@ class AdminPostController extends Controller {
             if ($id) {
                 $this->postModel->update($id, $data);
             } else {
+                $data['created_at'] = date('Y-m-d H:i:s');
                 $this->postModel->create($data);
             }
 
@@ -89,7 +103,8 @@ class AdminPostController extends Controller {
         }
     }
 
-    public function delete() {
+    public function delete()
+    {
         $id = $_GET['id'] ?? '';
         if ($id) {
             $this->postModel->delete($id);
@@ -97,7 +112,8 @@ class AdminPostController extends Controller {
         $this->redirect(url('/admin/posts'));
     }
 
-    private function slugify($text) {
+    private function slugify($text)
+    {
         $text = preg_replace('~[^\pL\d]+~u', '-', $text);
         $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
         $text = preg_replace('~[^-\w]+~', '', $text);
