@@ -101,104 +101,105 @@ include __DIR__ . '/../layouts/header.php';
                                 </div>
                             </div>
 
-                            <div class="md:col-span-2 overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
-                                <?php
-                                $subjects = [
-                                    'toan' => 'Toán',
-                                    'van' => 'Ngữ văn',
-                                    'tieng_anh' => 'Tiếng Anh',
-                                    'tieng_trung' => 'Tiếng Trung',
-                                    'ly' => 'Vật lí',
-                                    'hoa' => 'Hóa học',
-                                    'sinh' => 'Sinh học',
-                                    'su' => 'Lịch sử',
-                                    'dia' => 'Địa lí',
-                                    'gdcd' => 'GDCD',
-                                    'ktpl' => 'Giáo dục kinh tế và pháp luật',
-                                    'tin_hoc' => 'Tin học',
-                                    'cnnn' => 'Công nghệ (nông nghiệp)'
-                                ];
-                                ?>
-                                <table class="w-full text-sm text-center border-collapse">
-                                    <thead>
-                                        <tr class="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
-                                            <th class="px-3 py-3 border whitespace-nowrap sticky left-0 bg-gray-100 z-20 shadow-sm" style="min-width: 150px;">Môn học</th>
-                                            <th class="px-3 py-3 border bg-red-50 text-hvu-red">Điểm thi THPT<br><span class="text-[10px] font-medium normal-case">(Năm 2026)</span></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 bg-white">
-                                        <?php foreach ($subjects as $key => $name): ?>
-                                            <tr class="hover:bg-gray-50 transition-colors">
-                                                <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
-                                                <td class="p-1.5 border text-center">
-                                                    <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
-                                                        value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
-                                                        class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="0.00">
-                                                </td>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div class="lg:col-span-2 overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                                    <?php
+                                    $subjects = [
+                                        'toan' => 'Toán',
+                                        'van' => 'Ngữ văn',
+                                        'tieng_anh' => 'Tiếng Anh',
+                                        'tieng_trung' => 'Tiếng Trung',
+                                        'ly' => 'Vật lí',
+                                        'hoa' => 'Hóa học',
+                                        'sinh' => 'Sinh học',
+                                        'su' => 'Lịch sử',
+                                        'dia' => 'Địa lí',
+                                        'gdcd' => 'GDCD',
+                                        'ktpl' => 'Giáo dục kinh tế và pháp luật',
+                                        'tin_hoc' => 'Tin học',
+                                        'cnnn' => 'Công nghệ (nông nghiệp)'
+                                    ];
+                                    ?>
+                                    <table class="w-full text-sm text-center border-collapse">
+                                        <thead>
+                                            <tr class="bg-gray-100 text-gray-700 uppercase font-bold text-xs">
+                                                <th class="px-3 py-3 border whitespace-nowrap sticky left-0 bg-gray-100 z-20 shadow-sm" style="min-width: 150px;">Môn học</th>
+                                                <th class="px-3 py-3 border bg-red-50 text-hvu-red">Điểm thi THPT<br><span class="text-[10px] font-medium normal-case">(Năm 2026)</span></th>
                                             </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200 bg-white">
+                                            <?php foreach ($subjects as $key => $name): ?>
+                                                <tr class="hover:bg-gray-50 transition-colors">
+                                                    <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
+                                                    <td class="p-1.5 border text-center">
+                                                        <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
+                                                            value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
+                                                            class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="0.00">
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                            <!-- Col 2: Certificate Upload (1/3) -->
-                            <div class="flex flex-col">
-                                <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-3 text-center">
-                                    <i class="fas fa-file-certificate mr-1"></i> Giấy chứng nhận kết quả thi
-                                </label>
-                                <?php
-                                $hasCertFile = !empty($scores['file_chung_nhan']);
-                                if ($hasCertFile) {
-                                    $certFileUrl = $scores['file_chung_nhan'];
-                                    $certFileIsExt = strpos($certFileUrl, 'http') === 0;
-                                    $certFileFullUrl = $certFileIsExt ? $certFileUrl : url($certFileUrl);
-                                    $certFileThumbUrl = $certFileIsExt ? google_drive_thumbnail_url($certFileUrl, 'w400') : $certFileFullUrl;
-                                }
-                                ?>
-                                <?php if ($hasCertFile): ?>
-                                    <div class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3] mb-3">
-                                        <a href="<?= $certFileFullUrl ?>" target="_blank" class="block w-full h-full">
-                                            <img loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.15]" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-gray-100 text-gray-400\'><i class=\'fas fa-image text-2xl\'></i></div>'">
-                                        </a>
-                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                            <span class="text-white text-xs font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300"><i class="fas fa-search-plus mr-1"></i> Xem lớn</span>
+                                <!-- Col 2: Certificate Upload (1/3) -->
+                                <div class="flex flex-col">
+                                    <label class="block text-xs font-black text-gray-500 uppercase tracking-widest mb-3 text-center">
+                                        <i class="fas fa-file-certificate mr-1"></i> Giấy chứng nhận kết quả thi
+                                    </label>
+                                    <?php
+                                    $hasCertFile = !empty($scores['file_chung_nhan']);
+                                    if ($hasCertFile) {
+                                        $certFileUrl = $scores['file_chung_nhan'];
+                                        $certFileIsExt = strpos($certFileUrl, 'http') === 0;
+                                        $certFileFullUrl = $certFileIsExt ? $certFileUrl : url($certFileUrl);
+                                        $certFileThumbUrl = $certFileIsExt ? google_drive_thumbnail_url($certFileUrl, 'w400') : $certFileFullUrl;
+                                    }
+                                    ?>
+                                    <?php if ($hasCertFile): ?>
+                                        <div class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow aspect-[4/3] mb-3">
+                                            <a href="<?= $certFileFullUrl ?>" target="_blank" class="block w-full h-full">
+                                                <img loading="lazy" src="<?= $certFileThumbUrl ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.15]" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-gray-100 text-gray-400\'><i class=\'fas fa-image text-2xl\'></i></div>'">
+                                            </a>
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                <span class="text-white text-xs font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300"><i class="fas fa-search-plus mr-1"></i> Xem lớn</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                <?php else: ?>
-                                    <div id="no_image_cert" class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
-                                        <i class="fas fa-image text-4xl mb-3"></i>
-                                        <span class="text-[11px] font-bold uppercase tracking-widest text-center mt-2 px-4">Chưa có<br>Giấy chứng nhận</span>
-                                    </div>
-                                <?php endif; ?>
+                                    <?php else: ?>
+                                        <div id="no_image_cert" class="aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-white flex flex-col items-center justify-center text-gray-300 mb-3">
+                                            <i class="fas fa-image text-4xl mb-3"></i>
+                                            <span class="text-[11px] font-bold uppercase tracking-widest text-center mt-2 px-4">Chưa có<br>Giấy chứng nhận</span>
+                                        </div>
+                                    <?php endif; ?>
 
-                                <div id="preview_cert" class="w-full empty:hidden mb-3"></div>
+                                    <div id="preview_cert" class="w-full empty:hidden mb-3"></div>
 
-                                <label class="group cursor-pointer block">
-                                    <div class="flex items-center justify-center py-3 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
-                                        <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors text-lg"></i>
-                                        <span class="font-bold text-gray-500 group-hover:text-hvu-red transition-colors file-label"><?= $hasCertFile ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
-                                    </div>
-                                    <input type="file" name="file_chung_nhan" accept="image/*" class="hidden" onchange="previewCert(this, 'preview_cert', 'no_image_cert')">
-                                </label>
-                                <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tải ảnh chụp rõ nét Giấy chứng nhận kết quả thi (nếu có)</p>
+                                    <label class="group cursor-pointer block">
+                                        <div class="flex items-center justify-center py-3 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white hover:border-hvu-red/40 hover:bg-red-50/30 transition-all">
+                                            <i class="fas fa-cloud-upload-alt text-gray-400 group-hover:text-hvu-red mr-2 transition-colors text-lg"></i>
+                                            <span class="font-bold text-gray-500 group-hover:text-hvu-red transition-colors file-label"><?= $hasCertFile ? 'Thay đổi ảnh' : 'Tải ảnh lên' ?></span>
+                                        </div>
+                                        <input type="file" name="file_chung_nhan" accept="image/*" class="hidden" onchange="previewCert(this, 'preview_cert', 'no_image_cert')">
+                                    </label>
+                                    <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tải ảnh chụp rõ nét Giấy chứng nhận kết quả thi (nếu có)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Actions -->
-                    <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 border-t border-gray-100 pt-10">
-                        <a href="<?= url('/profile/step3') ?>" class="text-gray-600 hover:text-gray-900 font-bold flex items-center transition-colors">
-                            <i class="fas fa-arrow-left mr-2"></i> Quay lại
-                        </a>
-                        <button type="submit" class="w-full md:w-auto px-12 py-4 bg-hvu-red border-b-4 border-red-800 text-white font-black text-lg rounded-2xl shadow-xl hover:bg-red-700 hover:border-red-900 active:border-b-0 active:translate-y-1 transition-all">
-                            Lưu thông tin và tiếp tục <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
+                        <!-- Actions -->
+                        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 border-t border-gray-100 pt-10">
+                            <a href="<?= url('/profile/step3') ?>" class="text-gray-600 hover:text-gray-900 font-bold flex items-center transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i> Quay lại
+                            </a>
+                            <button type="submit" class="w-full md:w-auto px-12 py-4 bg-hvu-red border-b-4 border-red-800 text-white font-black text-lg rounded-2xl shadow-xl hover:bg-red-700 hover:border-red-900 active:border-b-0 active:translate-y-1 transition-all">
+                                Lưu thông tin và tiếp tục <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
                     </div>
+                </fieldset>
+            </form>
         </div>
-        </fieldset>
-        </form>
     </div>
-</div>
 </div>
 
 <script>
