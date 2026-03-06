@@ -88,13 +88,13 @@ $router->group(['middleware' => 'auth'], function ($router) {
         header('Location: ' . url('/admin/dashboard'));
         exit;
     });
-    $router->get('/admin/dashboard', 'AdminController@candidates');
+    $router->get('/admin/dashboard', 'AdminController@dashboard');
     $router->get('/admin/candidates', 'AdminController@candidates');
     $router->get('/admin/review-management', 'AdminController@reviewList');
     $router->get('/admin/review', 'AdminController@review');
     $router->post('/admin/update-status', 'AdminController@updateStatus');
     $router->post('/admin/review/submit', 'AdminController@submitReview');
-    $router->get('/admin/stats', 'AdminController@dashboard');
+    $router->get('/admin/stats', 'AdminController@stats');
     $router->get('/admin/stats/api', 'AdminController@statsApi');
     $router->post('/admin/applications/approve-edit-request', 'AdminController@approveEditRequest');
 
