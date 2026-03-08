@@ -83,24 +83,25 @@
                     $src = strpos($path, 'http') === 0 ? google_drive_thumbnail_url($path, 'w400') : asset($path);
                     $link = strpos($path, 'http') === 0 ? $path : asset($path);
                     ?>
-                    <div class="relative w-full">
+                    <div class="relative w-full overflow-hidden rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50 group/img">
                         <img id="<?= $imgId ?>" loading="lazy" src="<?= $src ?>"
                             ondblclick="window.open('<?= $link ?>', '_blank')"
-                            class="w-full h-auto object-contain cursor-pointer transition-transform duration-300 group-hover:scale-[1.3] group-hover:z-50 relative block rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50"
+                            class="w-full h-auto object-contain cursor-pointer transition-transform duration-300 group-hover/img:scale-[1.3] relative block"
                             style="min-height: 150px; max-height: 500px;"
                             title="Double click to view full size">
 
-                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-[60] flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition duration-300 rounded-xl">
-                            <div class="w-12 h-12 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover/img:opacity-100 bg-white/30 transition duration-300">
+                            <div class="w-12 h-12 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover/img:scale-100 transition-transform duration-300">
                                 <i class="fas fa-external-link-alt text-lg"></i>
                             </div>
                         </a>
-                        <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
-                            class="absolute top-3 right-3 z-[70] w-10 h-10 bg-white/90 hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
-                            title="Xoay ảnh 90 độ">
-                            <i class="fas fa-redo-alt"></i>
-                        </button>
                     </div>
+
+                    <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
+                        class="absolute top-3 right-3 z-50 w-10 h-10 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-xl border border-slate-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
+                        title="Xoay ảnh 90 độ">
+                        <i class="fas fa-redo-alt"></i>
+                    </button>
                 <?php else: ?>
                     <div class="flex flex-col items-center justify-center aspect-[3/4] text-slate-300 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                         <i class="fas fa-image text-4xl mb-2"></i>
