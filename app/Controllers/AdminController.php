@@ -15,7 +15,12 @@ use App\Repositories\NguyenVongRepository;
 class AdminController extends Controller
 {
 
-    // ... (existing properties)
+    protected $currentUser;
+    protected ThiSinhRepository $thiSinhRepo;
+    protected NguyenVongRepository $nguyenVongRepo;
+    protected \App\Repositories\MasterDataRepository $masterDataRepo;
+    protected \App\Repositories\AcademicRepository $academicRepo;
+    protected \App\Repositories\ApplicationRepository $applicationRepo;
     protected \App\Services\MailerService $mailerService;
     protected \App\Services\EmailTemplateService $emailTemplateService;
     protected \App\Services\AuditService $auditService;

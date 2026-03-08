@@ -168,6 +168,12 @@ class ThiSinhRepository
         return $this->model->delete($cccd);
     }
 
+    public function findAll()
+    {
+        $stmt = $this->db->query("SELECT * FROM {$this->table} WHERE deleted_at IS NULL");
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'created_at', $dir = 'desc', $trashed = false, $extraFilters = [])
     {
         // Single query with all JOINs + COUNT OVER() — eliminates 7 separate queries

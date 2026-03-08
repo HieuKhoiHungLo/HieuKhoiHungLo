@@ -1,8 +1,8 @@
 ﻿<!-- TAB 3: CERTIFICATES -->
 <div id="tab_certs" class="tab-content hidden transition-all duration-300">
     <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <!-- Left: List (8/12) -->
-        <div class="md:col-span-8 space-y-6">
+        <!-- Left: List (6/12) -->
+        <div class="md:col-span-6 space-y-6 min-w-0">
             <div class="flex justify-between items-center mb-2">
                 <div>
                     <h3 class="font-black text-slate-800 text-xl uppercase tracking-tight flex items-center">
@@ -22,8 +22,8 @@
             <?php include __DIR__ . '/certs/_status.php'; ?>
         </div>
 
-        <!-- Right Column (4/12): Evidence Preview -->
-        <div class="md:col-span-4 w-full">
+        <!-- Right Column (6/12): Evidence Preview -->
+        <div class="md:col-span-6 w-full min-w-0">
             <?php include __DIR__ . '/certs/_evidence.php'; ?>
         </div>
     </div>
