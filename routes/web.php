@@ -96,6 +96,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/review/submit', 'AdminController@submitReview');
     $router->get('/admin/stats', 'AdminController@stats');
     $router->get('/admin/stats/api', 'AdminController@statsApi');
+    $router->post('/admin/media/rotate', 'AdminController@rotateImage');
     $router->post('/admin/applications/approve-edit-request', 'AdminController@approveEditRequest');
 
     // Admin Notifications

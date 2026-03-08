@@ -95,6 +95,11 @@
                                 <i class="fas fa-external-link-alt text-lg"></i>
                             </div>
                         </a>
+                        <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
+                            class="absolute top-3 right-3 z-20 w-10 h-10 bg-white/90 hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
+                            title="Xoay ảnh 90 độ">
+                            <i class="fas fa-redo-alt"></i>
+                        </button>
                     </div>
                 <?php else: ?>
                     <div class="flex flex-col items-center justify-center aspect-[3/4] text-slate-300 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -669,6 +674,45 @@
                 btn.classList.add('border-slate-100');
             }
         });
+    }
+
+    async function rotateEvidenceImage(path, imgId, btn) {
+        if (!path) return;
+
+        try {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('path', path);
+
+            const res = await fetch('<?= url("/admin/media/rotate") ?>', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                // Force reload image by appending timestamp
+                const img = document.getElementById(imgId);
+                if (img) {
+                    const currentSrc = img.src;
+                    const url = new URL(currentSrc);
+                    url.searchParams.set('t', new Date().getTime());
+                    img.src = url.toString();
+                }
+                showToast('Đã xoay ảnh thành công', 'success');
+            } else {
+                showToast(data.error || 'Lỗi khi xoay ảnh', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Lỗi kết nối khi xoay ảnh', 'error');
+        } finally {
+            btn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+            btn.disabled = false;
+        }
     }
 </script>
 

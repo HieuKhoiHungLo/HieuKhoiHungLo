@@ -294,6 +294,90 @@ class AdminController extends Controller
     }
 
 
+
+    public function rotateImage()
+    {
+        $this->checkPermission('settings.edit'); // Ideally candidate.edit but letting settings editors/admins do it
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'error' => 'Invalid method']);
+            return;
+        }
+
+        $filePath = $_POST['path'] ?? '';
+        if (empty($filePath)) {
+            echo json_encode(['success' => false, 'error' => 'Thiếu đường dẫn ảnh']);
+            return;
+        }
+
+        // Clean path and prevent directory traversal
+        $filePath = ltrim(parse_url($filePath, PHP_URL_PATH), '/');
+        $filePath = str_replace('../', '', $filePath);
+
+        // Map public URI to local file path
+        // Assume URL might start with /TS/ or similar depending on setup
+        // Strip base path if exists
+        $basePath = '/TS/';
+        if (strpos('/' . $filePath, $basePath) === 0) {
+            $filePath = substr('/' . $filePath, strlen($basePath));
+        }
+
+        $absolutePath = realpath(__DIR__ . '/../../public/' . $filePath);
+
+        if (!$absolutePath || !file_exists($absolutePath) || !is_file($absolutePath)) {
+            echo json_encode(['success' => false, 'error' => 'Không tìm thấy file ảnh gốc: ' . $filePath]);
+            return;
+        }
+
+        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+
+        if (!in_array($extension, $allowedExtensions)) {
+            echo json_encode(['success' => false, 'error' => 'Chỉ hỗ trợ xoay ảnh JPG/PNG']);
+            return;
+        }
+
+        $degrees = -90; // Rotate 90 degrees clockwise
+        $sourceImage = null;
+
+        if ($extension === 'png') {
+            $sourceImage = @imagecreatefrompng($absolutePath);
+        } else {
+            $sourceImage = @imagecreatefromjpeg($absolutePath);
+        }
+
+        if (!$sourceImage) {
+            echo json_encode(['success' => false, 'error' => 'Không thể đọc file ảnh (cấp quyền hoặc ảnh lỗi)']);
+            return;
+        }
+
+        $rotatedImage = imagerotate($sourceImage, $degrees, 0);
+
+        if (!$rotatedImage) {
+            echo json_encode(['success' => false, 'error' => 'Gặp lỗi trong quá trình xoay ảnh']);
+            imagedestroy($sourceImage);
+            return;
+        }
+
+        $success = false;
+        if ($extension === 'png') {
+            imagesavealpha($rotatedImage, true);
+            $success = imagepng($rotatedImage, $absolutePath);
+        } else {
+            $success = imagejpeg($rotatedImage, $absolutePath, 90);
+        }
+
+        imagedestroy($sourceImage);
+        imagedestroy($rotatedImage);
+
+        if ($success) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Lỗi phân quyền khi ghi đè file ảnh']);
+        }
+    }
+
     public function approveEditRequest()
     {
         $this->checkPermission('review');
