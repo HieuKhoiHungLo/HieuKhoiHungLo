@@ -614,8 +614,8 @@
             fetchAdminNotifications();
         }
 
-        // Auto-process email queue in background (non-blocking)
-        fetch('<?= url("/cron/process_email_queue.php?key=hvu_cron_2024") ?>', {
+        // Auto-process email queue in background (non-blocking) via API Route
+        fetch('<?= url("/api/cron/process_email_queue?key=hvu_cron_2024") ?>', {
             method: 'GET'
         }).catch(() => {});
     </script>

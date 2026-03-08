@@ -1,6 +1,6 @@
-<?php 
+<?php
 $title = 'Thùng rác - Hồ sơ đã xóa';
-include __DIR__ . '/../../layouts/admin_header.php'; 
+ob_start();
 ?>
 
 <div class="bg-white rounded-lg shadow-sm p-6">
@@ -11,7 +11,7 @@ include __DIR__ . '/../../layouts/admin_header.php';
             </h1>
             <p class="text-gray-500 text-sm mt-1">Danh sách hồ sơ đã bị xóa tạm thời. Bạn có thể khôi phục hoặc xóa vĩnh viễn.</p>
         </div>
-        
+
         <div class="flex gap-2">
             <a href="<?= url('/admin/dashboard') ?>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                 <i class="fas fa-arrow-left mr-2"></i>Quay lại Dashboard
@@ -42,8 +42,8 @@ include __DIR__ . '/../../layouts/admin_header.php';
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <i class="fas fa-search"></i>
                 </span>
-                <input type="text" name="search" value="<?= htmlspecialchars($search ?? '') ?>" 
-                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none" 
+                <input type="text" name="search" value="<?= htmlspecialchars($search ?? '') ?>"
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                     placeholder="Tìm theo tên, CCCD...">
             </div>
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
@@ -125,8 +125,8 @@ include __DIR__ . '/../../layouts/admin_header.php';
         <div class="mt-6 flex justify-center">
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" 
-                       class="<?= $i == $currentPage ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50' ?> relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"
+                        class="<?= $i == $currentPage ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50' ?> relative inline-flex items-center px-4 py-2 border text-sm font-medium">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
@@ -135,4 +135,7 @@ include __DIR__ . '/../../layouts/admin_header.php';
     <?php endif; ?>
 </div>
 
-<?php include __DIR__ . '/../../layouts/admin_footer.php'; ?>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../../layouts/admin.php';
+?>

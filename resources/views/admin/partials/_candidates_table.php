@@ -22,6 +22,22 @@
                     <option value="Đã duyệt">Duyệt ngay</option>
                     <option value="Từ chối">Từ chối</option>
                 </select>
+
+                <!-- Transfer: Session Options -->
+                <select name="target_session_id" id="bulk-transfer-opt" class="hidden px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm outline-none">
+                    <option value="">-- Chọn đợt tuyển sinh --</option>
+                    <?php foreach ($sessions ?? [] as $s): ?>
+                        <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['ten_dot'] ?? ('Đợt ' . $s['id'])) ?> (<?= $s['nam_tuyen_sinh'] ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+
+                <!-- Send Email: Template Options -->
+                <select name="template_id" id="bulk-email-opt" class="hidden px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm outline-none">
+                    <option value="">-- Chọn mẫu email --</option>
+                    <?php foreach ($emailTemplates ?? [] as $t): ?>
+                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['name'] ?? $t['ten_mau'] ?? 'Mẫu ' . $t['id']) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <button type="submit" onclick="return confirm('Xác nhận thực hiện hành động này?')" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">Apply</button>
         </div>
@@ -346,5 +362,48 @@
                 }
             });
         });
+        
+        // --- Checkbox Select All ---
+        var selectAll = document.getElementById('select-all');
+        var bulkActionsBar = document.getElementById('bulk-actions');
+        var selectedCount = document.getElementById('selected-count');
+
+        function updateBulkBar() {
+            var checked = document.querySelectorAll('.item-checkbox:checked');
+            if (selectedCount) selectedCount.textContent = checked.length;
+            if (bulkActionsBar) {
+                if (checked.length > 0) {
+                    bulkActionsBar.classList.remove('hidden');
+                } else {
+                    bulkActionsBar.classList.add('hidden');
+                }
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.item-checkbox').forEach(function(cb) {
+                    cb.checked = selectAll.checked;
+                });
+                updateBulkBar();
+            });
+        }
+
+        document.querySelectorAll('.item-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', updateBulkBar);
+        });
+
     })();
+
+    // --- Toggle sub-options based on selected bulk action ---
+    function toggleBulkOptions() {
+        var action = document.getElementById('bulk-action-select').value;
+        var statusOpt = document.getElementById('bulk-status-opt');
+        var transferOpt = document.getElementById('bulk-transfer-opt');
+        var emailOpt = document.getElementById('bulk-email-opt');
+        
+        if (statusOpt) statusOpt.classList.toggle('hidden', action !== 'update_status');
+        if (transferOpt) transferOpt.classList.toggle('hidden', action !== 'transfer');
+        if (emailOpt) emailOpt.classList.toggle('hidden', action !== 'send_email');
+    }
 </script>

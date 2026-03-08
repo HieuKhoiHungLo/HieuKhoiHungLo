@@ -506,16 +506,19 @@
             const noteInput = document.querySelector(`textarea[name="note_${section}"]`);
             if (noteInput) formData.append(noteInput.name, noteInput.value);
 
-            // For 'personal' section, manually find file inputs outside the form container
+            // For 'personal' section: collect files from hover overlay inputs (personal-edit-file-trigger)
+            // These are always present in _evidence.php (not gated behind personal-edit-field)
             if (section === 'personal') {
-                const fileInputs = document.querySelectorAll('.personal-edit-field input[type="file"]');
+                const fileInputs = document.querySelectorAll('input.personal-edit-file-trigger, .personal-edit-field input[type="file"]');
                 fileInputs.forEach(input => {
-                    if (input.files.length > 0) {
-                        formData.append(input.name, input.files[0]);
-                        console.log('Appended File:', input.name);
+                    if (input.name && input.files && input.files.length > 0) {
+                        // Map field names: avatar→avatar, cccd_front→cccd_front, etc.
+                        formData.set(input.name, input.files[0]);
+                        console.log('Appended personal file:', input.name);
                     }
                 });
             }
+
 
             // For 'academic' section, collect evidence file inputs from outside the form container
             if (section === 'academic') {
@@ -687,8 +690,17 @@
             const formData = new FormData();
             formData.append('path', path);
 
+            // Xử lý đính kèm CSRF Token chống lỗi 403 (Phiên làm việc hết hạn)
+            const csrfInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                formData.append('csrf_token', csrfInput.value);
+            }
+
             const res = await fetch('<?= url("/admin/media/rotate") ?>', {
                 method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: formData
             });
 

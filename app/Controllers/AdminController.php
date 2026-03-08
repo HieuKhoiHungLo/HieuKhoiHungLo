@@ -311,6 +311,102 @@ class AdminController extends Controller
             return;
         }
 
+        // ============================================
+        // Handle Google Drive Images
+        // ============================================
+        if (strpos($filePath, 'http') === 0 && strpos($filePath, 'drive.google.com') !== false) {
+            preg_match('/id=([^&]+)/', $filePath, $matches);
+            $fileId = $matches[1] ?? '';
+
+            if (!$fileId) {
+                echo json_encode(['success' => false, 'error' => 'Không thể trích xuất ID ảnh từ Google Drive']);
+                return;
+            }
+
+            try {
+                // Initialize Google Client
+                $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
+                if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
+
+                $tokenName = $_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json';
+                $tokenPath = realpath(__DIR__ . '/../../') . '/' . $tokenName;
+                if (!file_exists($tokenPath)) $tokenPath = __DIR__ . '/../../' . $tokenName;
+
+                if (!file_exists($clientSecretPath) || !file_exists($tokenPath)) {
+                    echo json_encode(['success' => false, 'error' => 'Chưa cấu hình JSON hoặc thiếu Token Google Drive trên máy chủ']);
+                    return;
+                }
+
+                $client = new \Google\Client();
+                $client->setAuthConfig($clientSecretPath);
+                $client->addScope(\Google\Service\Drive::DRIVE_FILE);
+                $client->setAccessType('offline');
+
+                $accessToken = json_decode(file_get_contents($tokenPath), true);
+                if (!$accessToken) {
+                    echo json_encode(['success' => false, 'error' => 'Token Google Drive không hợp lệ']);
+                    return;
+                }
+
+                $client->setAccessToken($accessToken);
+                if ($client->isAccessTokenExpired()) {
+                    if ($client->getRefreshToken()) {
+                        $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                        file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+                    } else {
+                        echo json_encode(['success' => false, 'error' => 'Token Google Drive hết hạn. Cần xác thực lại.']);
+                        return;
+                    }
+                }
+
+                $service = new \Google\Service\Drive($client);
+
+                // Download file content
+                $response = $service->files->get($fileId, ['alt' => 'media']);
+                $content = $response->getBody()->getContents();
+
+                $sourceImage = @imagecreatefromstring($content);
+                if (!$sourceImage) {
+                    echo json_encode(['success' => false, 'error' => 'Google Drive: Không giải mã được định dạng ảnh gốc']);
+                    return;
+                }
+
+                $degrees = -90; // Rotate 90 degrees clockwise
+                $rotatedImage = imagerotate($sourceImage, $degrees, 0);
+                if (!$rotatedImage) {
+                    echo json_encode(['success' => false, 'error' => 'Google Drive: Lỗi Engine trong quá trình xoay.']);
+                    imagedestroy($sourceImage);
+                    return;
+                }
+
+                // Save rotated to temp file
+                $tmpFile = tempnam(sys_get_temp_dir(), 'rot_');
+                imagejpeg($rotatedImage, $tmpFile, 90);
+
+                // Upload back to override
+                $emptyFile = new \Google\Service\Drive\DriveFile();
+                $service->files->update($fileId, $emptyFile, [
+                    'data' => file_get_contents($tmpFile),
+                    'mimeType' => 'image/jpeg',
+                    'uploadType' => 'media'
+                ]);
+
+                imagedestroy($sourceImage);
+                imagedestroy($rotatedImage);
+                @unlink($tmpFile);
+
+                echo json_encode(['success' => true]);
+                return;
+            } catch (\Exception $e) {
+                error_log("Google Drive Rotate Error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'error' => 'Lỗi API Google Drive - Bật log kiểm tra chi tiết.']);
+                return;
+            }
+        }
+
+        // ============================================
+        // Handle Local Server Images
+        // ============================================
         // Clean path and prevent directory traversal
         $filePath = ltrim(parse_url($filePath, PHP_URL_PATH), '/');
         $filePath = str_replace('../', '', $filePath);

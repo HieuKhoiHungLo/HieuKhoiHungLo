@@ -22,18 +22,12 @@
 
     <?php if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 1): ?>
         <div class="flex items-center gap-3">
-            <form action="<?= url('/admin/calculate-scores') ?>" method="POST" onsubmit="if(confirm('Hệ thống sẽ tính toán lại điểm xét tuyển cho TOÀN BỘ thí sinh. Quá trình này có thể mất vài phút. Bạn có chắc chắn không?')) { Loading.show(); return true; } return false;">
-                <?= csrf_field() ?>
-                <button type="submit" class="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-rose-500 to-orange-500 text-white border border-transparent rounded-lg text-sm font-bold hover:shadow-lg hover:from-rose-600 hover:to-orange-600 transition shadow-md">
-                    <i class="fas fa-calculator animate-pulse"></i> Tính điểm
-                </button>
-            </form>
-
             <a href="<?= url('/admin/candidates/trash') ?>" class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:text-red-600 hover:border-red-200 transition shadow-sm" title="Xem hồ sơ đã xóa">
                 <i class="fas fa-trash-alt"></i> Thùng rác
             </a>
         </div>
     <?php endif; ?>
+
 
     <form action="<?= $mode === 'review' ? url('/admin/review-management') : url('/admin/candidates') ?>" method="GET" class="flex flex-wrap gap-3">
         <!-- Persist Sort Params -->

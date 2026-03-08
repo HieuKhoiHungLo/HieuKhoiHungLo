@@ -165,7 +165,39 @@ class ThiSinhRepository
 
     public function forceDelete($cccd)
     {
-        return $this->model->delete($cccd);
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Delete from dependent tables first (Cascading Delete manually)
+            $dependentTables = [
+                'nguyen_vong' => 'so_cccd',
+                'ho_so_xet_tuyen' => 'so_cccd',
+                'chung_chi_thi_sinh' => 'so_cccd',
+                'ket_qua_hoc_tap' => 'so_cccd',
+                'diem_chi_tiet' => 'so_cccd',
+                'diem_thi_thpt' => 'so_cccd',
+                'diem_nang_khieu' => 'so_cccd',
+                'diem_nang_khieu_ngoai' => 'so_cccd',
+                'notification_reads' => 'user_cccd' // Special column name
+            ];
+
+            foreach ($dependentTables as $table => $column) {
+                $stmt = $this->db->prepare("DELETE FROM $table WHERE $column = ?");
+                $stmt->execute([$cccd]);
+            }
+
+            // 2. Delete the main candidate record
+            $result = $this->model->delete($cccd);
+
+            $this->db->commit();
+            return $result;
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Error in forceDelete for CCCD $cccd: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function findAll()
@@ -443,20 +475,29 @@ class ThiSinhRepository
     public function bulkUpdateStatus($cccds, $status)
     {
         if (empty($cccds)) return false;
+        if (!is_array($cccds)) $cccds = [$cccds];
+
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
 
-        // Update nguyen_vong status
-        $sql = "UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
-        $params = array_merge([$status], $cccds);
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        try {
+            // Update nguyen_vong status
+            $sql = "UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
+            $params = array_merge([$status], $cccds);
+            $stmt = $this->db->prepare($sql);
+            $result1 = $stmt->execute($params);
 
-        // Update ho_so_xet_tuyen status as well for consistency
-        $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
-        $stmt2 = $this->db->prepare($sql2);
-        $stmt2->execute($params);
+            // Update ho_so_xet_tuyen status and ghi_chu (clear "Đã duyệt." if reverted to pending)
+            $ghiChuValue = ($status === 'Đã duyệt' ? 'Đã duyệt.' : null);
+            $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, ghi_chu = ?, yeu_cau_chinh_sua = FALSE WHERE so_cccd IN ($placeholders)";
+            $params2 = array_merge([$status, $ghiChuValue], $cccds);
+            $stmt2 = $this->db->prepare($sql2);
+            $result2 = $stmt2->execute($params2);
 
-        return true;
+            return $result1 || $result2;
+        } catch (\PDOException $e) {
+            error_log("bulkUpdateStatus PDO Error: " . $e->getMessage() . " - SQL: $sql");
+            return false;
+        }
     }
 
     public function bulkTransferSession($cccds, $sessionId)

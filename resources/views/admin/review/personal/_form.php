@@ -1,6 +1,6 @@
 <!-- Edit Form (Redesigned) -->
 <div id="form_personal" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
-    <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50">
+    <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50 overflow-visible">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
             <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
@@ -94,58 +94,8 @@
             </div>
         </div>
 
-        <!-- Divider -->
-        <div class="h-px bg-slate-100 my-6"></div>
 
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
-                <i class="fas fa-camera"></i>
-            </div>
-            <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Ảnh bản thân & CCCD</h3>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Avatar -->
-            <div class="space-y-3">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ảnh thẻ (3x4)</label>
-                <div class="relative group aspect-[3/4] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden hover:border-blue-400 transition-all">
-                    <img id="preview_personal_avatar" src="<?= $user['anh_dai_dien'] ? url($user['anh_dai_dien']) : '' ?>" class="w-full h-full object-cover <?= !empty($user['anh_dai_dien']) ? '' : 'hidden' ?>">
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 <?= !empty($user['anh_dai_dien']) ? 'hidden' : '' ?>" id="placeholder_avatar">
-                        <i class="fas fa-camera text-2xl mb-2"></i>
-                        <span class="text-[10px] font-bold uppercase">Nhấn để tải lên</span>
-                    </div>
-                    <input type="file" name="avatar" accept="image/*" onchange="previewPersonalImg(this, 'preview_personal_avatar')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                </div>
-            </div>
-
-            <!-- CCCD Front -->
-            <div class="space-y-3">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">CCCD Mặt trước</label>
-                <div class="relative group aspect-[1.6/1] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden hover:border-blue-400 transition-all">
-                    <img id="preview_personal_cccd_front" src="<?= $user['anh_cccd_truoc'] ? url($user['anh_cccd_truoc']) : '' ?>" class="w-full h-full object-contain <?= !empty($user['anh_cccd_truoc']) ? '' : 'hidden' ?>">
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 <?= !empty($user['anh_cccd_truoc']) ? 'hidden' : '' ?>" id="placeholder_cccd_front">
-                        <i class="fas fa-id-card text-2xl mb-2"></i>
-                        <span class="text-[10px] font-bold uppercase">Mặt trước</span>
-                    </div>
-                    <input type="file" name="cccd_front" accept="image/*" onchange="previewPersonalImg(this, 'preview_personal_cccd_front')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                </div>
-            </div>
-
-            <!-- CCCD Back -->
-            <div class="space-y-3">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">CCCD Mặt sau</label>
-                <div class="relative group aspect-[1.6/1] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden hover:border-blue-400 transition-all">
-                    <img id="preview_personal_cccd_back" src="<?= $user['anh_cccd_sau'] ? url($user['anh_cccd_sau']) : '' ?>" class="w-full h-full object-contain <?= !empty($user['anh_cccd_sau']) ? '' : 'hidden' ?>">
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 <?= !empty($user['anh_cccd_sau']) ? 'hidden' : 'flex' ?>" id="placeholder_cccd_back">
-                        <i class="fas fa-id-card text-2xl mb-2"></i>
-                        <span class="text-[10px] font-bold uppercase">Mặt sau</span>
-                    </div>
-                    <input type="file" name="cccd_back" accept="image/*" onchange="previewPersonalImg(this, 'preview_personal_cccd_back')" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                </div>
-            </div>
-        </div>
-
-        <!-- Divider -->
         <div class="h-px bg-slate-100 my-6"></div>
 
         <div class="flex items-center gap-3 mb-6">
@@ -210,7 +160,8 @@
                     <!-- Dropdown -->
                     <div x-show="open"
                         x-transition.opacity.duration.200ms
-                        class="absolute z-50 w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                        class="absolute z-[100] w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar"
+                        style="top: 100%; left: 0;">
                         <template x-for="ward in filteredWards" :key="ward.ma_xa">
                             <div @click="select(ward)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 border-b border-slate-50 last:border-0 transition-colors">
                                 <span x-text="ward.ten_xa"></span>

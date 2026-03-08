@@ -1,6 +1,6 @@
 <!-- Edit Form -->
 <div id="form_academic" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
-    <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50">
+    <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50 overflow-visible">
 
         <!-- ===== SECTION 1: Thông tin Trường THPT ===== -->
         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
@@ -46,7 +46,7 @@
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
 
                     <!-- Dropdown -->
-                    <div x-show="open" class="absolute z-50 w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                    <div x-show="open" class="absolute z-[100] w-full mt-2 bg-white border border-blue-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar" style="top: 100%; left: 0;">
                         <template x-for="school in filteredSchools" :key="school.ma_truong">
                             <div @click="select(school)" class="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm font-medium text-slate-700 border-b border-slate-50 last:border-0 transition-colors">
                                 <div class="flex flex-col">
@@ -128,8 +128,8 @@
                 <div class="relative">
                     <select name="dt_uu_tien" x-model="dt" :disabled="!isCustomDt" class="w-full pl-4 pr-10 py-3 bg-white border border-blue-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
                         <option value="">-- Không thuộc đối tượng ưu tiên --</option>
-                        <?php foreach ($priorityObjects as $r): ?>
-                            <option value="<?= trim($r['ma_dt']) ?>"><?= trim($r['ma_dt']) ?> - <?= $r['ten_dt'] ?? '' ?> (+<?= $r['diem_uu_tien'] ?> điểm)</option>
+                        <?php foreach ($priorityObjects as $ma_dt => $diem): ?>
+                            <option value="<?= $ma_dt ?>"><?= $ma_dt ?> (+<?= $diem ?> điểm)</option>
                         <?php endforeach; ?>
                     </select>
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-blue-300 text-xs pointer-events-none"></i>

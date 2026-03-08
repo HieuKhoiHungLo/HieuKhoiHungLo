@@ -185,14 +185,49 @@ include __DIR__ . '/../layouts/header.php'; ?>
                             </div>
                             <div class="lg:col-span-2">
                                 <label class="label"><i class="fas fa-graduation-cap"></i> Tên trường THPT</label>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
-                                    <input type="text" id="school_search" class="hvu-input pl-10 mb-2 border-gray-200" placeholder="Nhập tên trường để lọc nhanh...">
+                                <div x-data="schoolSearch('<?= $user['ma_tinh_lop_12'] ?? '' ?>', '<?= $user['ma_truong_lop_12'] ?? '' ?>')"
+                                    @school-province-change.window="handleProvinceChange($event.detail)"
+                                    class="relative">
+                                    <input type="hidden" name="ma_truong_lop_12" :value="selectedCode">
+                                    <div class="relative group">
+                                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-hvu-red transition-colors"></i>
+                                        <input type="text"
+                                            x-model="search"
+                                            @focus="open = true; if(search === '-- Chọn Trường --') search = ''"
+                                            @click.away="open = false"
+                                            placeholder="-- Nhập tên trường để tìm kiếm --"
+                                            class="w-full pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 focus:border-hvu-red focus:ring-4 focus:ring-red-50 transition-all outline-none shadow-sm">
+                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                            <i x-show="isLoading" class="fas fa-circle-notch fa-spin text-hvu-red text-xs"></i>
+                                            <i class="fas fa-chevron-down text-gray-300 text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dropdown -->
+                                    <div x-show="open"
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0 translate-y-2"
+                                        x-transition:enter-end="opacity-100 translate-y-0"
+                                        class="absolute z-[100] w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-72 overflow-y-auto custom-scrollbar"
+                                        style="top: 100%; left: 0;">
+                                        <div x-show="schools.length === 0 && !isLoading" class="p-8 text-center">
+                                            <i class="fas fa-school text-gray-200 text-3xl mb-2"></i>
+                                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Không tìm thấy trường nào</p>
+                                        </div>
+                                        <template x-for="school in filteredSchools" :key="school.ma_truong">
+                                            <div @click="select(school)" class="px-5 py-4 hover:bg-red-50 cursor-pointer border-b border-gray-50 last:border-0 transition-all group">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <div class="text-sm font-bold text-gray-800 group-hover:text-hvu-red transition-colors" x-text="school.ten_truong"></div>
+                                                        <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-black" x-text="'Mã: ' + school.ma_truong + ' • KV: ' + school.khu_vuc"></div>
+                                                    </div>
+                                                    <i class="fas fa-check text-hvu-red opacity-0 group-hover:opacity-100 transition-opacity" x-show="selectedCode == school.ma_truong"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
-                                <select name="ma_truong_lop_12" id="school" class="hvu-input font-bold" required size="5">
-                                    <option value="">-- Chọn Tỉnh trường THPT trước --</option>
-                                </select>
-                                <p class="text-[10px] text-red-500 mt-1 italic">* Nhập tên vào ô tìm kiếm để lọc trường nhanh.</p>
+                                <p class="text-[10px] text-red-500 mt-2 font-bold italic flex items-center"><i class="fas fa-info-circle mr-1"></i> Gõ tên trường vào ô trên để lọc và chọn nhanh.</p>
                             </div>
                             <div>
                                 <label class="label"><i class="fas fa-calendar-check"></i> Năm tốt nghiệp</label>
@@ -269,14 +304,46 @@ include __DIR__ . '/../layouts/header.php'; ?>
                             </div>
                             <div>
                                 <label class="label"><i class="fas fa-building"></i> Xã / Phường</label>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
-                                    <input type="text" id="ward_search" class="hvu-input pl-10 mb-2 border-gray-200" placeholder="Nhập tên xã/phường...">
+                                <div x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')"
+                                    @ward-province-change.window="handleProvinceChange($event.detail)"
+                                    class="relative">
+                                    <input type="hidden" name="ma_xa_thuong_tru" :value="selectedCode">
+                                    <div class="relative group">
+                                        <i class="fas fa-building absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-hvu-red transition-colors"></i>
+                                        <input type="text"
+                                            x-model="search"
+                                            @focus="open = true; if(search === '-- Chọn Xã/Phường --') search = ''"
+                                            @click.away="open = false"
+                                            placeholder="-- Nhập tên xã/phường --"
+                                            class="w-full pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 focus:border-hvu-red focus:ring-4 focus:ring-red-50 transition-all outline-none shadow-sm">
+                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                            <i x-show="isLoading" class="fas fa-circle-notch fa-spin text-hvu-red text-xs"></i>
+                                            <i class="fas fa-chevron-down text-gray-300 text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dropdown -->
+                                    <div x-show="open"
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0 translate-y-2"
+                                        x-transition:enter-end="opacity-100 translate-y-0"
+                                        class="absolute z-[100] w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar"
+                                        style="top: 100%; left: 0;">
+                                        <div x-show="wards.length === 0 && !isLoading" class="p-6 text-center">
+                                            <i class="fas fa-map-marker-alt text-gray-200 text-3xl mb-2"></i>
+                                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Không tìm thấy xã phường</p>
+                                        </div>
+                                        <template x-for="ward in filteredWards" :key="ward.ma_xa">
+                                            <div @click="select(ward)" class="px-5 py-3.5 hover:bg-red-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors group">
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-sm font-bold text-gray-700 group-hover:text-hvu-red transition-colors" x-text="ward.ten_xa"></span>
+                                                    <i class="fas fa-check text-hvu-red opacity-0 group-hover:opacity-100 transition-opacity" x-show="selectedCode == ward.ma_xa"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
-                                <select name="ma_xa_thuong_tru" id="ward" class="hvu-input font-bold" required size="5">
-                                    <option value="">-- Chọn Tỉnh trước --</option>
-                                </select>
-                                <p class="text-[10px] text-gray-400 mt-1 italic">* Chọn Tỉnh/TP trước, sau đó tìm kiếm Xã/Phường.</p>
+                                <p class="text-[10px] text-gray-400 mt-2 italic">* Chọn Tỉnh/TP bên trái trước, sau đó tìm kiếm tại đây.</p>
                             </div>
                             <div class="md:col-span-2 lg:col-span-1">
                                 <label class="label"><i class="fas fa-home"></i> Địa chỉ chi tiết (Thôn/Xóm/Số nhà...)</label>
@@ -437,175 +504,228 @@ include __DIR__ . '/../layouts/header.php'; ?>
 </style>
 
 <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('wardSearch', (initialProvince, initialWard) => ({
+            open: false,
+            search: initialWard ? '-- Đang nạp --' : '',
+            selectedCode: initialWard,
+            provinceId: initialProvince,
+            wards: [],
+            isLoading: false,
+
+            async init() {
+                if (this.provinceId) {
+                    await this.fetchWards(this.provinceId);
+                }
+            },
+
+            async handleProvinceChange(newPid) {
+                this.provinceId = newPid;
+                this.selectedCode = '';
+                this.search = '';
+                await this.fetchWards(newPid);
+            },
+
+            async fetchWards(pid) {
+                if (!pid) {
+                    this.wards = [];
+                    return;
+                }
+                this.isLoading = true;
+                try {
+                    const res = await fetch(`<?= url('/api/wards') ?>?province_id=${pid}`);
+                    this.wards = await res.json();
+
+                    if (this.selectedCode) {
+                        const found = this.wards.find(w => w.ma_xa == this.selectedCode);
+                        if (found) {
+                            this.search = found.ten_xa;
+                        } else {
+                            this.search = '';
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+                this.isLoading = false;
+            },
+
+            select(ward) {
+                this.selectedCode = ward.ma_xa;
+                this.search = ward.ten_xa;
+                this.open = false;
+            },
+
+            get filteredWards() {
+                if (!this.search || this.search === '') return this.wards;
+                const lower = this.search.toLowerCase();
+                return this.wards.filter(w => w.ten_xa && w.ten_xa.toLowerCase().includes(lower));
+            }
+        }));
+
+        Alpine.data('schoolSearch', (initialProvince, initialSchool) => ({
+            open: false,
+            search: initialSchool ? '-- Đang nạp --' : '',
+            selectedCode: initialSchool,
+            provinceId: initialProvince,
+            schools: [],
+            isLoading: false,
+
+            async init() {
+                if (this.provinceId) {
+                    await this.fetchSchools(this.provinceId);
+                }
+
+                // Lắng nghe sự kiện từ Auto-KV logic nếu có
+                window.addEventListener('update-kv-external', (e) => {
+                    // Cập nhật KV nếu cần
+                });
+            },
+
+            async handleProvinceChange(newPid) {
+                this.provinceId = newPid;
+                this.selectedCode = '';
+                this.search = '';
+                await this.fetchSchools(newPid);
+            },
+
+            async fetchSchools(pid) {
+                if (!pid) {
+                    this.schools = [];
+                    return;
+                }
+                this.isLoading = true;
+                try {
+                    const res = await fetch(`<?= url('/api/schools') ?>?province_id=${pid}`);
+                    this.schools = await res.json();
+
+                    if (this.selectedCode) {
+                        const found = this.schools.find(s => s.ma_truong == this.selectedCode);
+                        if (found) {
+                            this.search = found.ten_truong;
+                            // Re-trigger KV update on initial load
+                            this.dispatchKV(found.khu_vuc);
+                        } else {
+                            this.search = '';
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+                this.isLoading = false;
+            },
+
+            select(school) {
+                this.selectedCode = school.ma_truong;
+                this.search = school.ten_truong;
+                this.open = false;
+
+                // Cập nhật KV
+                this.dispatchKV(school.khu_vuc);
+            },
+
+            dispatchKV(kv) {
+                window.dispatchEvent(new CustomEvent('school-selected-alpine', {
+                    detail: {
+                        khu_vuc: kv
+                    }
+                }));
+            },
+
+            get filteredSchools() {
+                if (!this.search || this.search === '') return this.schools;
+                const lower = this.search.toLowerCase();
+                return this.schools.filter(s =>
+                    (s.ten_truong && s.ten_truong.toLowerCase().includes(lower)) ||
+                    (s.ma_truong && s.ma_truong.toLowerCase().includes(lower))
+                );
+            }
+        }));
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. Handling School Selection
-        const provinceSchool = document.getElementById('province_school');
-        const schoolSelect = document.getElementById('school');
         const displayKV = document.getElementById('display_kv');
         const inputKV = document.getElementById('kv_uu_tien');
-
-        const currentSchool = "<?= $user['ma_truong_lop_12'] ?? '' ?>";
-
-        provinceSchool.addEventListener('change', function() {
-            loadSchools(this.value);
-        });
-
-        schoolSelect.addEventListener('change', function() {
-            updateKV();
-        });
-
-        function loadSchools(provinceId, selectedId = null) {
-            if (!provinceId) {
-                schoolSelect.innerHTML = '<option value="">-- Chọn Trường --</option>';
-                return;
-            }
-
-            fetch(`<?= url('/api/schools') ?>?province_id=${provinceId}`)
-                .then(response => response.json())
-                .then(data => {
-                    window.allSchools = data; // Store for filtering
-                    renderSchools(data, selectedId);
-                });
-        }
-
-        function renderSchools(schools, selectedId = null) {
-            let html = '<option value="">-- Chọn Trường --</option>';
-            if (schools.length === 0) {
-                html = '<option value="">-- Không tìm thấy trường --</option>';
-            }
-            schools.forEach(item => {
-                const isSelected = (selectedId == item.ma_truong || currentSchool == item.ma_truong) ? 'selected' : '';
-                html += `<option value="${item.ma_truong}" data-kv="${item.khu_vuc}" ${isSelected}>${item.ten_truong}</option>`;
-            });
-            schoolSelect.innerHTML = html;
-            updateKV();
-        }
-
-        // Filter Logic
-        const schoolSearch = document.getElementById('school_search');
-        schoolSearch.addEventListener('input', function(e) {
-            const keyword = e.target.value.toLowerCase();
-            if (!window.allSchools) return;
-
-            const filtered = window.allSchools.filter(s => s.ten_truong.toLowerCase().includes(keyword));
-            renderSchools(filtered);
-        });
-
-        function updateKV() {
-            if (isCustomKv.checked) return; // Do nothing if manual override is active
-
-            const selectedOption = schoolSelect.options[schoolSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.kv) {
-                const kv = selectedOption.dataset.kv;
-                displayKV.textContent = kv;
-                inputKV.value = kv;
-            } else {
-                displayKV.textContent = '--';
-                inputKV.value = '';
-            }
-        }
-
-        // Manual KV Toggle Logic
         const isCustomKv = document.getElementById('is_custom_kv');
         const kvDisplayBox = document.getElementById('kv_display_box');
         const kvSelectBox = document.getElementById('kv_select_box');
         const kvManualSelect = document.getElementById('kv_manual_select');
         const kvEvidenceSection = document.getElementById('kv_evidence_section');
 
+        // Lắng nghe sự kiện từ Alpine School Search
+        window.addEventListener('school-selected-alpine', function(e) {
+            if (isCustomKv.checked) return;
+            const kv = e.detail.khu_vuc;
+            if (displayKV) displayKV.textContent = kv || '--';
+            if (inputKV) inputKV.value = kv || '';
+        });
+
+        // Tỉnh Trường THPT Change -> Notify Alpine
+        const provinceSchool = document.getElementById('province_school');
+        if (provinceSchool) {
+            provinceSchool.addEventListener('change', function() {
+                window.dispatchEvent(new CustomEvent('school-province-change', {
+                    detail: this.value
+                }));
+            });
+        }
+
+        // Tỉnh Liên hệ Change -> Notify Alpine
+        const provinceContact = document.getElementById('province_contact');
+        if (provinceContact) {
+            provinceContact.addEventListener('change', function() {
+                window.dispatchEvent(new CustomEvent('ward-province-change', {
+                    detail: this.value
+                }));
+            });
+        }
+
         function toggleKvMode() {
             if (isCustomKv.checked) {
                 kvDisplayBox.classList.add('hidden');
                 kvSelectBox.classList.remove('hidden');
                 kvEvidenceSection.classList.remove('hidden');
-                // Shift value to manual select value
                 inputKV.value = kvManualSelect.value;
             } else {
                 kvDisplayBox.classList.remove('hidden');
                 kvSelectBox.classList.add('hidden');
                 kvEvidenceSection.classList.add('hidden');
-                updateKV(); // Re-trigger auto update
+                // KV will be updated by Alpine school search event
             }
         }
 
-        isCustomKv.addEventListener('change', toggleKvMode);
-        kvManualSelect.addEventListener('change', function() {
-            if (isCustomKv.checked) inputKV.value = this.value;
-        });
+        if (isCustomKv) {
+            isCustomKv.addEventListener('change', toggleKvMode);
+            toggleKvMode(); // Init
+        }
 
-        // --- Handling Priority Object ---
+        if (kvManualSelect) {
+            kvManualSelect.addEventListener('change', function() {
+                if (isCustomKv.checked) inputKV.value = this.value;
+            });
+        }
+
+        // Priority Object Toggle
         const isCustomDt = document.getElementById('is_custom_dt');
         const dtSelectBox = document.getElementById('dt_select_box');
         const dtEvidenceSection = document.getElementById('dt_evidence_section');
         const inputDT = document.getElementById('dt_uu_tien');
 
         function toggleDtMode() {
-            if (isCustomDt.checked) {
-                dtSelectBox.classList.remove('hidden');
-                dtEvidenceSection.classList.remove('hidden');
+            if (isCustomDt && isCustomDt.checked) {
+                if (dtSelectBox) dtSelectBox.classList.remove('hidden');
+                if (dtEvidenceSection) dtEvidenceSection.classList.remove('hidden');
             } else {
-                dtSelectBox.classList.add('hidden');
-                dtEvidenceSection.classList.add('hidden');
-                inputDT.value = ''; // Reset when not checking
+                if (dtSelectBox) dtSelectBox.classList.add('hidden');
+                if (dtEvidenceSection) dtEvidenceSection.classList.add('hidden');
+                if (inputDT) inputDT.value = '';
             }
         }
 
-        isCustomDt.addEventListener('change', toggleDtMode);
-
-        // Run once on load to set correct state
-        toggleKvMode();
-        toggleDtMode();
-
-        // 2. Handling Contact Wards
-        const provinceContact = document.getElementById('province_contact');
-        const wardSelect = document.getElementById('ward');
-        const wardSearch = document.getElementById('ward_search');
-        const currentWard = "<?= $user['ma_xa_thuong_tru'] ?? '' ?>";
-
-        provinceContact.addEventListener('change', function() {
-            loadWards(this.value);
-        });
-
-        if (wardSearch) {
-            wardSearch.addEventListener('input', function(e) {
-                const keyword = e.target.value.toLowerCase();
-                if (!window.allWards) return;
-                const filtered = window.allWards.filter(w => w.ten_xa.toLowerCase().includes(keyword));
-                renderWards(filtered);
-            });
+        if (isCustomDt) {
+            isCustomDt.addEventListener('change', toggleDtMode);
+            toggleDtMode(); // Init
         }
-
-        function loadWards(provinceId, selectedId = null) {
-            if (!provinceId) {
-                wardSelect.innerHTML = '<option value="">-- Chọn Tỉnh trước --</option>';
-                window.allWards = [];
-                return;
-            }
-
-            if (wardSearch) wardSearch.value = '';
-
-            fetch(`<?= url('/api/wards') ?>?province_id=${provinceId}`)
-                .then(response => response.json())
-                .then(data => {
-                    window.allWards = data;
-                    renderWards(data, selectedId);
-                });
-        }
-
-        function renderWards(wards, selectedId = null) {
-            let html = '<option value="">-- Chọn Xã/Phường --</option>';
-            if (wards.length === 0) {
-                html = '<option value="">-- Không tìm thấy --</option>';
-            }
-            wards.forEach(item => {
-                const isSelected = (selectedId == item.ma_xa || currentWard == item.ma_xa) ? 'selected' : '';
-                html += `<option value="${item.ma_xa}" ${isSelected}>${item.ten_xa}</option>`;
-            });
-            wardSelect.innerHTML = html;
-        }
-
-        // Initial Loads
-        if (provinceSchool.value) loadSchools(provinceSchool.value, currentSchool);
-        if (provinceContact.value) loadWards(provinceContact.value, currentWard);
     });
 
     function previewImage(input, previewId) {

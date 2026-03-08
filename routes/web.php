@@ -49,6 +49,9 @@ $router->post('/profile/step5', 'ApplicationController@step5');
 $router->get('/profile/change-password', 'ProfileController@changePassword');
 $router->post('/profile/change-password', 'ProfileController@changePassword');
 
+// Cron API
+$router->get('/api/cron/process_email_queue', 'ApiController@processEmailQueue');
+
 // Student Notification API
 $router->get('/api/notifications', 'NotificationController@getNotifications');
 $router->get('/api/notifications/unread-count', 'NotificationController@getUnreadCount');

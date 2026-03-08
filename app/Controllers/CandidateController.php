@@ -43,6 +43,8 @@ class CandidateController extends Controller
      */
     public function bulkAction()
     {
+        error_log("=== BULK ACTION TRIGGERED ===");
+        error_log("POST DATA: " . print_r($_POST, true));
 
         // Prioritize forced_action (from JS fix)
         $action = $_POST['forced_action'] ?? $_POST['action'] ?? '';
@@ -99,8 +101,11 @@ class CandidateController extends Controller
                 $this->redirect(url('/admin/dashboard?error=invalid_action'));
                 return;
         }
+        // Redirect back to exactly where the user was (preserving sort, search query strings etc.)
+        $redirectTo = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
 
-        $this->redirect(url('/admin/dashboard?success=' . $action));
+        header("Location: " . $redirectTo);
+        exit;
     }
 
     /**
@@ -528,8 +533,9 @@ class CandidateController extends Controller
         $diemThi = $diemThiModel->getByCCCD($cccd);
 
         $provinces = $this->masterData->getProvinces();
-        $priorityAreas = $this->masterData->getPriorityAreas(); // New
-        $priorityObjects = $this->masterData->getPriorityObjects(); // New
+        $masterDataRepo = new \App\Repositories\MasterDataRepository();
+        $priorityAreas = $masterDataRepo->getPriorityAreas(); // Fixed: Use Repository for Key-Value map
+        $priorityObjects = $masterDataRepo->getPriorityObjects(); // Fixed: Use Repository for Key-Value map
         $certs = $this->thiSinhRepo->getCertifications($cccd);
 
         $this->view('admin/candidates/edit', [
@@ -813,7 +819,9 @@ class CandidateController extends Controller
                         if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
                         if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
                     }
-                    break;
+
+                    $this->json(['success' => true, 'message' => 'Đã lưu kết quả học tập thành công']);
+                    return;
 
                 case 'thpt':
                     // THPT Scores Update
@@ -869,7 +877,9 @@ class CandidateController extends Controller
                     }
 
                     $this->thiSinhRepo->saveDiemThiTHPT($cccd, $scores);
-                    break;
+
+                    $this->json(['success' => true, 'message' => 'Đã lưu điểm thi THPT thành công']);
+                    return;
 
                 case 'certs':
                     $certsArr = $_POST['certs'] ?? [];
@@ -930,7 +940,9 @@ class CandidateController extends Controller
                     }
 
                     $this->thiSinhRepo->saveCertifications($cccd, $certsData);
-                    break;
+
+                    $this->json(['success' => true, 'message' => 'Đã lưu chứng chỉ thành công']);
+                    return;
 
                 case 'wishes':
                     $applicationId = $_POST['application_id'] ?? null;
@@ -979,11 +991,16 @@ class CandidateController extends Controller
                     break;
             }
 
-            $this->auditService->log('UPDATE_CANDIDATE', 'candidates', $cccd, null, ['section' => $section]);
+            // Audit log (non-critical: failures here should not break the JSON response)
+            try {
+                $this->auditService->log('UPDATE_CANDIDATE', 'candidates', $cccd, null, ['section' => $section]);
+            } catch (\Exception $auditEx) {
+                error_log("Audit log failed: " . $auditEx->getMessage());
+            }
             $this->json(['success' => true]);
         } catch (\Exception $e) {
-            $this->auditService->log('UPDATE_ERROR', 'candidates', $cccd, null, ['error' => $e->getMessage()]);
-            $this->json(['error' => $e->getMessage()], 500);
+            error_log("UPDATE CANDIDATE ERROR: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 
