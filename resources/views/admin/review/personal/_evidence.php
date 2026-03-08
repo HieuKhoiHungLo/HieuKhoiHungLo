@@ -10,15 +10,15 @@
                 <span class="text-[10px] font-black uppercase tracking-wider">Chưa có ảnh</span>
             </div>
         <?php else: ?>
-            <div class="relative group">
-                <div class="relative w-full overflow-hidden rounded-xl shadow-md border-2 border-slate-200">
+            <div class="relative group cursor-pointer transition-transform duration-300 hover:scale-[1.3] hover:z-50 z-10 w-full aspect-[2/3]">
+                <div class="relative w-full h-full rounded-xl shadow-md border-2 border-slate-200">
                     <?php
                     $avatarSrc = strpos($user['anh_dai_dien'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_dai_dien'], 'w400') : asset($user['anh_dai_dien']);
                     ?>
-                    <img id="current_avatar" loading="lazy" src="<?= $avatarSrc ?>" class="w-full aspect-[2/3] object-cover cursor-pointer transition-transform duration-300 group-hover:scale-110 relative z-10" title="Double click to view full size">
-                    <a href="<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity" ondblclick="window.open('<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
+                    <img id="current_avatar" loading="lazy" src="<?= $avatarSrc ?>" class="w-full h-full object-cover rounded-xl" title="Double click to view full size">
+                    <a href="<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity rounded-xl" ondblclick="window.open('<?= strpos($user['anh_dai_dien'], 'http') === 0 ? $user['anh_dai_dien'] : asset($user['anh_dai_dien']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
                 </div>
-                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_dai_dien'] ?>', 'current_avatar', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110" title="Xoay ảnh 90 độ">
+                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_dai_dien'] ?>', 'current_avatar', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300" title="Xoay ảnh 90 độ">
                     <i class="fas fa-redo-alt text-sm"></i>
                 </button>
                 <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-40 pointer-events-none rounded-b-xl overflow-hidden flex justify-center pb-2">
@@ -39,13 +39,13 @@
     <!-- CCCD Mặt trước -->
     <div class="mt-2">
         <?php if (!empty($user['anh_cccd_truoc'])): ?>
-            <div class="relative group mb-3">
-                <div class="relative w-full overflow-hidden rounded-xl shadow-md border-2 border-slate-200">
+            <div class="relative group cursor-pointer mb-3 transition-transform duration-300 hover:scale-[1.3] hover:z-50 z-10 w-full aspect-[3/2]">
+                <div class="relative w-full h-full rounded-xl shadow-md border-2 border-slate-200">
                     <?php $cccdFrontSrc = strpos($user['anh_cccd_truoc'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_cccd_truoc'], 'w400') : asset($user['anh_cccd_truoc']); ?>
-                    <img id="current_cccd_front" loading="lazy" src="<?= $cccdFrontSrc ?>" class="w-full aspect-[3/2] object-cover cursor-pointer transition-transform duration-300 group-hover:scale-110 relative z-10" title="Double click to view full size">
-                    <a href="<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity" ondblclick="window.open('<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
+                    <img id="current_cccd_front" loading="lazy" src="<?= $cccdFrontSrc ?>" class="w-full h-full object-cover rounded-xl" title="Double click to view full size">
+                    <a href="<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity rounded-xl" ondblclick="window.open('<?= strpos($user['anh_cccd_truoc'], 'http') === 0 ? $user['anh_cccd_truoc'] : asset($user['anh_cccd_truoc']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
                 </div>
-                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_cccd_truoc'] ?>', 'current_cccd_front', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110" title="Xoay ảnh 90 độ">
+                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_cccd_truoc'] ?>', 'current_cccd_front', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300" title="Xoay ảnh 90 độ">
                     <i class="fas fa-redo-alt text-sm"></i>
                 </button>
                 <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-40 pointer-events-none rounded-b-xl overflow-hidden flex justify-center pb-2">
@@ -68,13 +68,13 @@
     <!-- CCCD Mặt sau -->
     <div class="mt-2">
         <?php if (!empty($user['anh_cccd_sau'])): ?>
-            <div class="relative group mb-3">
-                <div class="relative w-full overflow-hidden rounded-xl shadow-md border-2 border-slate-200">
+            <div class="relative group cursor-pointer mb-3 transition-transform duration-300 hover:scale-[1.3] hover:z-50 z-10 w-full aspect-[3/2]">
+                <div class="relative w-full h-full rounded-xl shadow-md border-2 border-slate-200">
                     <?php $cccdBackSrc = strpos($user['anh_cccd_sau'], 'http') === 0 ? google_drive_thumbnail_url($user['anh_cccd_sau'], 'w400') : asset($user['anh_cccd_sau']); ?>
-                    <img id="current_cccd_back" loading="lazy" src="<?= $cccdBackSrc ?>" class="w-full aspect-[3/2] object-cover cursor-pointer transition-transform duration-300 group-hover:scale-110 relative z-10" title="Double click to view full size">
-                    <a href="<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity" ondblclick="window.open('<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
+                    <img id="current_cccd_back" loading="lazy" src="<?= $cccdBackSrc ?>" class="w-full h-full object-cover rounded-xl" title="Double click to view full size">
+                    <a href="<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity rounded-xl" ondblclick="window.open('<?= strpos($user['anh_cccd_sau'], 'http') === 0 ? $user['anh_cccd_sau'] : asset($user['anh_cccd_sau']) ?>', '_blank')"><i class="fas fa-external-link-alt text-2xl text-slate-800"></i></a>
                 </div>
-                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_cccd_sau'] ?>', 'current_cccd_back', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110" title="Xoay ảnh 90 độ">
+                <button type="button" onclick="rotateEvidenceImage('<?= $user['anh_cccd_sau'] ?>', 'current_cccd_back', this)" class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300" title="Xoay ảnh 90 độ">
                     <i class="fas fa-redo-alt text-sm"></i>
                 </button>
                 <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-40 pointer-events-none rounded-b-xl overflow-hidden flex justify-center pb-2">

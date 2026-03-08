@@ -83,20 +83,20 @@
                     $src = strpos($path, 'http') === 0 ? google_drive_thumbnail_url($path, 'w400') : asset($path);
                     $link = strpos($path, 'http') === 0 ? $path : asset($path);
                     ?>
-                    <div class="relative w-full overflow-hidden rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50 group">
+                    <div class="relative w-full cursor-pointer transition-transform duration-300 hover:scale-[1.3] hover:z-50 z-10 group">
                         <img id="<?= $imgId ?>" loading="lazy" src="<?= $src ?>"
-                            class="w-full h-full object-contain cursor-pointer transition-transform duration-300 group-hover:scale-110 relative z-10"
+                            class="w-full h-full object-contain relative rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50"
                             style="min-height: 150px; max-height: 500px;"
                             title="Double click to view full size">
 
-                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity" ondblclick="window.open('<?= $link ?>', '_blank')">
+                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity rounded-xl" ondblclick="window.open('<?= $link ?>', '_blank')">
                             <div class="w-12 h-12 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
                                 <i class="fas fa-external-link-alt text-lg"></i>
                             </div>
                         </a>
 
                         <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
-                            class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
+                            class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
                             title="Xoay ảnh 90 độ">
                             <i class="fas fa-redo-alt text-sm"></i>
                         </button>
