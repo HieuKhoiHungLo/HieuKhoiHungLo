@@ -90,13 +90,13 @@
                             style="min-height: 150px; max-height: 500px;"
                             title="Double click to view full size">
 
-                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition duration-300 rounded-xl">
+                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-[60] flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition duration-300 rounded-xl">
                             <div class="w-12 h-12 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
                                 <i class="fas fa-external-link-alt text-lg"></i>
                             </div>
                         </a>
                         <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
-                            class="absolute top-3 right-3 z-20 w-10 h-10 bg-white/90 hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
+                            class="absolute top-3 right-3 z-[70] w-10 h-10 bg-white/90 hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110"
                             title="Xoay ảnh 90 độ">
                             <i class="fas fa-redo-alt"></i>
                         </button>
@@ -108,7 +108,7 @@
                         <img id="<?= $imgId ?>" loading="lazy" class="hidden w-full h-full object-cover absolute inset-0">
                     </div>
                 <?php endif; ?>
-                <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-20 pointer-events-none rounded-b-xl overflow-hidden">
+                <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-[70] pointer-events-none rounded-b-xl overflow-hidden">
                     <span class="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-sm"><?= $label ?></span>
                 </div>
             </div>
