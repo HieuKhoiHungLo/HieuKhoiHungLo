@@ -490,11 +490,19 @@ include __DIR__ . '/../layouts/header.php'; ?>
 
 <style>
     .label {
-        @apply block text-gray-800 text-sm font-bold mb-2 flex items-center;
+        display: block;
+        color: #1f2937;
+        font-size: 0.875rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
     }
 
     .label i {
-        @apply text-hvu-red mr-2 text-xs;
+        color: #BE1E2D;
+        margin-right: 0.5rem;
+        font-size: 0.75rem;
     }
 
     /* Fix overlap of icon and text */
