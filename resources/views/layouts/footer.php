@@ -231,6 +231,19 @@
                 dropdown.classList.toggle('hidden');
                 if (!dropdown.classList.contains('hidden')) {
                     window.fetchNotifications(currentFilter);
+
+                    // Tự động đánh dấu tất cả đã đọc khi người dùng mở chuông thông báo
+                    if (badge && !badge.classList.contains('hidden')) {
+                        fetch(baseUrl + '/api/notifications/mark-all-read', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                            }
+                        }).then(() => {
+                            badge.classList.add('hidden');
+                            badge.textContent = '0';
+                        });
+                    }
                 }
             });
 
