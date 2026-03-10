@@ -9,6 +9,12 @@ use App\Models\NguyenVong;
 
 class HomeController extends Controller {
     public function index() {
+        // Redirect logged-in admins to the admin dashboard
+        if (isset($_SESSION['admin_id'])) {
+            header('Location: ' . url('/admin/dashboard'));
+            exit;
+        }
+
         // Redirect logged-in students to the full application dashboard
         if (isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
             header('Location: ' . url('/application/index'));

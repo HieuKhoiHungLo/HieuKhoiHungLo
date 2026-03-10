@@ -37,6 +37,7 @@ class ProfileController extends Controller
     {
         unset($_SESSION['user_cached']);
         unset($_SESSION['user_cached_cccd']);
+        unset($_SESSION['user_avatar_cached']); // Invalidate avatar cache (used in header.php)
         // Reload user data
         $this->user = $this->thiSinhRepo->findByCCCD($_SESSION['cccd']);
         $_SESSION['user_cached'] = $this->user;
@@ -192,19 +193,7 @@ class ProfileController extends Controller
 
                 $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
 
-                if ($uploadDriver === 'google') {
-                    $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
-                    $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
-                    $folderId = $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '';
-                    $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $folderId);
-
-                    // Resolve folder in Drive
-                    $driveService = new \App\Services\DriveService($uploader);
-                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                    if ($targetFolderId) {
-                        $uploader->setTargetFolderId($targetFolderId);
-                    }
-                }
+                $driveInitialized = false;
 
                 $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
                 $uploader->setMaxSize(2 * 1024 * 1024);
@@ -220,6 +209,24 @@ class ProfileController extends Controller
 
                 foreach ($files as $field => $dbColumn) {
                     if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+                        
+                        // Initialize Google Drive ON DEMAND (only if a file is actually uploaded)
+                        if ($uploadDriver === 'google' && !$driveInitialized) {
+                            $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                            $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                            $folderId = $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '';
+                            $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $folderId);
+
+                            // Resolve folder in Drive
+                            $driveService = new \App\Services\DriveService($uploader);
+                            $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
+                            $driveInitialized = true;
+                        }
+
+                        $uploader->clearErrors(); // Clear errors before each upload to avoid repetition
                         $fileName = $_SESSION['cccd'] . '_' . ($field === 'kv_file' ? 'kv_evidence' : ($field === 'dt_file' ? 'dt_evidence' : $field));
                         $result = $uploader->upload($_FILES[$field], $fileName);
                         if ($result) {

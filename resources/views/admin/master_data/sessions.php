@@ -98,7 +98,7 @@
         </div>
         
         <form action="<?= url('/admin/master-data/sessions') ?>" method="POST" class="space-y-5">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <input type="hidden" name="id" id="session_id">
             
             <div>
@@ -145,7 +145,7 @@
 </div>
 
 <form id="deleteForm" action="<?= url('/admin/master-data/sessions/delete') ?>" method="POST" class="hidden">
-    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+    <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
     <input type="hidden" name="id" id="delete_id">
 </form>
 

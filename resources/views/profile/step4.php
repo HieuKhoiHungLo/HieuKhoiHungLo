@@ -42,12 +42,12 @@ include __DIR__ . '/../layouts/header.php';
             <?php if (!empty($error)): ?>
                 <div class="bg-red-50 border-l-4 border-hvu-red text-red-700 p-4 mb-6 rounded shadow-sm">
                     <p class="font-bold">Lỗi:</p>
-                    <p><?= $error ?></p>
+                    <p><?= (string) ($error ?? "") ?></p>
                 </div>
             <?php endif; ?>
 
             <form method="POST" action="<?= url('/profile/step4') ?>" id="scoresForm" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <?php if (!empty($isLocked)): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">

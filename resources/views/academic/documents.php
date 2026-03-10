@@ -41,12 +41,12 @@
             <?php if (isset($error)): ?>
                 <div class="bg-red-50 border-l-4 border-hvu-red text-red-700 p-4 rounded mb-6 flex items-start">
                      <svg class="w-6 h-6 mr-3 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                     <div><?= $error ?></div>
+                     <div><?= (string) ($error ?? "") ?></div>
                 </div>
             <?php endif; ?>
 
             <form action="<?= url('/academic/documents') ?>" method="POST" enctype="multipart/form-data" class="space-y-8">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start">
                     <svg class="w-6 h-6 text-blue-500 mr-3 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

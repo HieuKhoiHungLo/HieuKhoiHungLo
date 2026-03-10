@@ -94,7 +94,7 @@
 </div>
 
 <form action="<?= url('/admin/posts/save') ?>" method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+    <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
     <input type="hidden" name="id" value="<?= $post['id'] ?? '' ?>">
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">

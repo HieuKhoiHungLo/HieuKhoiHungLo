@@ -47,17 +47,17 @@ class WorkflowService
      */
     public function getStatusColor($status)
     {
-        return match ($status) {
-            self::STATUS_DRAFT => 'gray',
-            self::STATUS_SUBMITTED => 'blue',
-            self::STATUS_VERIFYING => 'yellow',
-            self::STATUS_VERIFIED => 'indigo',
-            self::STATUS_SCORING => 'emerald',
-            self::STATUS_QUALIFIED => 'cyan',
-            self::STATUS_ADMITTED => 'green',
-            self::STATUS_REJECTED => 'red',
-            default => 'gray'
-        };
+        switch ($status) {
+            case self::STATUS_DRAFT:     return 'gray';
+            case self::STATUS_SUBMITTED: return 'blue';
+            case self::STATUS_VERIFYING: return 'yellow';
+            case self::STATUS_VERIFIED:  return 'indigo';
+            case self::STATUS_SCORING:   return 'emerald';
+            case self::STATUS_QUALIFIED: return 'cyan';
+            case self::STATUS_ADMITTED:  return 'green';
+            case self::STATUS_REJECTED:  return 'red';
+            default:                     return 'gray';
+        }
     }
 
     /**

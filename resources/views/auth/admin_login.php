@@ -60,7 +60,6 @@
         .hvu-input:focus {
             outline: none;
             border-color: #ce1b22;
-            ring: 3px solid rgba(206, 27, 34, 0.1);
             background-color: #fff;
             box-shadow: 0 0 0 3px rgba(206, 27, 34, 0.1);
         }
@@ -144,7 +143,7 @@
         <?php endif; ?>
 
         <form action="<?= url('/admin/login') ?>" method="POST" class="space-y-5">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
             <div class="group">
                 <label class="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2 ml-1 group-focus-within:text-[#ce1b22] transition-colors">

@@ -22,7 +22,7 @@
 
     <div class="max-w-4xl">
         <form action="<?= url('/admin/master-data/settings/save') ?>" method="POST">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
             <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
                 <div class="p-8 border-b border-slate-50 bg-slate-50/50">

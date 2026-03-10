@@ -14,13 +14,14 @@ class AdmissionController extends Controller {
     protected $masterData;
     protected $currentUser;
     protected $emailService;
+    protected $scoreCalculator;
 
     public function __construct() {
         if (!isset($_SESSION['admin_id'])) {
             $this->redirect(url('/admin/login'));
         }
         $this->masterData = new MasterData();
-        $this->scoreCalculator = new ScoreCalculator();
+        $this->scoreCalculator = new \App\Services\ScoreCalculator();
         $this->emailService = new EmailTemplateService();
 
         // Load current user and check permission

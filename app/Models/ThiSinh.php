@@ -190,7 +190,6 @@ class ThiSinh extends Model {
             COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE THEN t.so_cccd END) as edit_requests
                 FROM {$this->table} t
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
-                LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd
                 WHERE 1=1";
 
         $params = [];
@@ -545,29 +544,25 @@ class ThiSinh extends Model {
         $todayStart = date('Y-m-d 00:00:00');
         $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
         
-        $sqlToday = "SELECT COUNT(DISTINCT so_cccd) FROM ho_so_xet_tuyen WHERE created_at >= ?";
-        $sqlWeek = "SELECT COUNT(DISTINCT so_cccd) FROM ho_so_xet_tuyen WHERE created_at >= ?";
-        $paramsToday = [$todayStart];
-        $paramsWeek = [$weekStart];
+        $sql = "SELECT 
+                  COUNT(DISTINCT CASE WHEN created_at >= ? THEN so_cccd END) as count_today,
+                  COUNT(DISTINCT CASE WHEN created_at >= ? THEN so_cccd END) as count_week
+                FROM ho_so_xet_tuyen";
+        
+        $params = [$todayStart, $weekStart];
 
         if ($sessionId) {
-            $sqlToday .= " AND dot_tuyen_sinh_id = ?";
-            $sqlWeek .= " AND dot_tuyen_sinh_id = ?";
-            $paramsToday[] = $sessionId;
-            $paramsWeek[] = $sessionId;
+            $sql .= " WHERE dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
         }
 
-        $stmtToday = $this->db->prepare($sqlToday);
-        $stmtToday->execute($paramsToday);
-        $countToday = $stmtToday->fetchColumn();
-
-        $stmtWeek = $this->db->prepare($sqlWeek);
-        $stmtWeek->execute($paramsWeek);
-        $countWeek = $stmtWeek->fetchColumn();
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         return [
-            'today' => (int)$countToday,
-            'this_week' => (int)$countWeek
+            'today' => (int)($result['count_today'] ?? 0),
+            'this_week' => (int)($result['count_week'] ?? 0)
         ];
     }
 

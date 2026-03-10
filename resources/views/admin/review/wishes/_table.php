@@ -19,11 +19,11 @@
             $maNganh = $wish['ma_nganh'];
             $majorInfo = $majorMap[$maNganh] ?? null;
             $status = $wish['trang_thai'] ?? 'Chờ duyệt';
-            $statusCfg = match ($status) {
-                'Đã duyệt'  => ['bg-emerald-50 text-emerald-600 border-emerald-200', 'fa-check-circle', 'from-emerald-400 to-teal-500'],
-                'Từ chối'    => ['bg-rose-50 text-rose-600 border-rose-200', 'fa-times-circle', 'from-rose-400 to-pink-500'],
-                default      => ['bg-amber-50 text-amber-600 border-amber-200', 'fa-clock', 'from-amber-400 to-orange-500'],
-            };
+            $statusCfgMap = [
+                'Đã duyệt' => ['bg-emerald-50 text-emerald-600 border-emerald-200', 'fa-check-circle', 'from-emerald-400 to-teal-500'],
+                'Từ chối'   => ['bg-rose-50 text-rose-600 border-rose-200', 'fa-times-circle', 'from-rose-400 to-pink-500'],
+            ];
+            $statusCfg = $statusCfgMap[$status] ?? ['bg-amber-50 text-amber-600 border-amber-200', 'fa-clock', 'from-amber-400 to-orange-500'];
         ?>
             <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex group hover:shadow-md hover:border-blue-200 transition-all">
                 <!-- Color Bar -->

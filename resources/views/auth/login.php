@@ -29,7 +29,7 @@
         <?php endif; ?>
 
         <form method="POST" action="<?= url('/login') ?>">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <div class="mb-5">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-id-card text-hvu-red mr-2"></i> Số CCCD/CMND

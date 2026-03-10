@@ -97,4 +97,4 @@
     </div>
 </aside>
 <!-- Script for AlpineJS if not present in main layout, but added here just in case for submenus -->
-<script src="//unpkg.com/alpinejs" defer></script>
+<script src="<?= url('/assets/js/alpine.min.js') ?>" defer></script>

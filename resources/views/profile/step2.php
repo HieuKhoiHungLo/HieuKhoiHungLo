@@ -50,7 +50,7 @@ $getVal = function ($grade, $field) use ($records) {
         <!-- Header -->
         <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
             <h2 class="text-2xl font-bold uppercase tracking-wide">Nhập điểm Học bạ THPT</h2>
-            <p class="text-white/80 text-sm mt-1">Bước 2/<?= $totalStepsCount ?>: Điểm trung bình cả năm theo Thông tư 06/2026</p>
+            <p class="text-white/80 text-sm mt-1">Bước 2/<?= (int) ($totalStepsCount ?? 0) ?>: Điểm trung bình cả năm theo Thông tư 06/2026</p>
         </div>
 
         <!-- Wizard Navigation -->
@@ -93,12 +93,12 @@ $getVal = function ($grade, $field) use ($records) {
                     <svg class="w-6 h-6 mr-3 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <div><?= $error ?></div>
+                    <div><?= (string) ($error ?? "") ?></div>
                 </div>
             <?php endif; ?>
 
             <form method="POST" action="<?= url('/profile/step2') ?>" id="academicForm" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <?php if (!empty($isLocked)): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">

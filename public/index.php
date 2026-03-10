@@ -26,12 +26,14 @@ require_once __DIR__ . '/../app/Helpers/functions.php';
 // Secure session setup
 \App\Middleware\SecurityMiddleware::secureSession();
 
-// Fix session path for Windows XAMPP
-$sessionPath = 'D:\\xampp\\tmp';
+// Fix session path for cross-platform compatibility
+$sessionPath = (PHP_OS_FAMILY === 'Windows') ? 'D:\\xampp\\tmp' : sys_get_temp_dir();
 if (!is_dir($sessionPath)) {
     $sessionPath = sys_get_temp_dir();
 }
-session_save_path($sessionPath);
+if (is_writable($sessionPath)) {
+    session_save_path($sessionPath);
+}
 
 // Prevent PHP Garbage Collector from clearing the session file before 24 hours
 ini_set('session.gc_maxlifetime', 86400);
@@ -52,15 +54,16 @@ try {
     // Fail silently if .env not found
 }
 
-// --- REMEMBER ME AUTO-LOGIN LOGIC ---
+// --- REMEMBER ME AUTO-LOGIN LOGIC (Secure Hash Version) ---
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
     // Check Candidate
     if (isset($_COOKIE['remember_ts'])) {
         $token = $_COOKIE['remember_ts'];
+        $hash = hash('sha256', $token);
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
             $stmt = $db->prepare("SELECT id, ho_va_ten, so_cccd FROM thi_sinh WHERE remember_token = ? LIMIT 1");
-            $stmt->execute([$token]);
+            $stmt->execute([$hash]);
             $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($user) {
@@ -78,10 +81,11 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
     // Check Admin
     elseif (isset($_COOKIE['remember_admin'])) {
         $token = $_COOKIE['remember_admin'];
+        $hash = hash('sha256', $token);
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
             $stmt = $db->prepare("SELECT id, ho_ten, ten_dang_nhap, vai_tro, avatar, role_id FROM quan_tri_vien WHERE remember_token = ? LIMIT 1");
-            $stmt->execute([$token]);
+            $stmt->execute([$hash]);
             $admin = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($admin) {
@@ -93,6 +97,14 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {
                 $_SESSION['admin_role_id'] = $admin['role_id'] ?? 1;
                 $_SESSION['login_time'] = time();
                 $_SESSION['last_activity'] = time();
+                
+                // Redirect immediately if on home page and logged in as admin
+                $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+                $base = \App\Core\App::getBaseUrl();
+                if ($uri === $base . '/' || $uri === $base) {
+                    header('Location: ' . \App\Core\App::url('/admin/dashboard'));
+                    exit;
+                }
             } else {
                 setcookie('remember_admin', '', ['expires' => time() - 3600, 'path' => '/']);
             }

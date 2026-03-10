@@ -34,7 +34,7 @@
                             <td class="px-6 py-3 font-medium text-slate-700 text-sm"><?= htmlspecialchars($zone['ten_tinh'] ?? $zone['ma_tinh']) ?></td>
                             <td class="px-6 py-3 text-center">
                                 <form action="<?= url('/admin/master-data/zones/delete') ?>" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa cấu hình này?')" class="inline-block">
-                                    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                                     <input type="hidden" name="id" value="<?= $zone['id'] ?>">
                                     <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs uppercase" title="Xóa">
                                         <i class="fas fa-trash"></i>
@@ -59,7 +59,7 @@
     <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
         <h3 class="text-xl font-black uppercase mb-6 text-gray-800">Thêm Cấu hình Vùng</h3>
         <form action="<?= url('/admin/master-data/zones/save') ?>" method="POST" class="space-y-4">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             
             <div>
                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Mã Ngành (Prefix)</label>

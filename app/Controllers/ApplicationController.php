@@ -223,6 +223,14 @@ class ApplicationController extends Controller
             // Save choices logic
             // Assume POST contains 'choices' array
             $items = $_POST['choices'] ?? [];
+            
+            // Map POST nganh_id to ma_nganh so that the view can retrieve old values upon validation error
+            foreach ($items as &$item) {
+                if (isset($item['nganh_id'])) {
+                    $item['ma_nganh'] = $item['nganh_id'];
+                }
+            }
+            unset($item);
 
             // Basic Validation
             if (empty($items)) {

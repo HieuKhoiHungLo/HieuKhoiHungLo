@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Core;
 
-class FileUploader {
+class FileUploader
+{
     protected $allowedMimes = [
         'jpg' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
@@ -10,7 +12,7 @@ class FileUploader {
         'webp' => 'image/webp',
         'pdf' => 'application/pdf'
     ];
-    
+
     protected $maxSize = 31457280; // 30MB default
     protected $targetDir;
     protected $errors = [];
@@ -21,26 +23,30 @@ class FileUploader {
     protected $googleTokenPath;
     protected $googleClientSecretPath;
 
-    public function __construct($targetDir, $driver = 'local') {
+    public function __construct($targetDir, $driver = 'local')
+    {
         $this->targetDir = rtrim($targetDir, '/');
         $this->driver = $driver;
 
         if ($this->driver === 'local') {
             if (!is_dir($this->targetDir)) {
-                 mkdir($this->targetDir, 0777, true);
+                mkdir($this->targetDir, 0777, true);
             }
         }
     }
 
-    public function setAllowedMimes(array $mimes) {
+    public function setAllowedMimes(array $mimes)
+    {
         $this->allowedMimes = $mimes;
     }
 
-    public function setMaxSize($bytes) {
+    public function setMaxSize($bytes)
+    {
         $this->maxSize = $bytes;
     }
 
-    public function setGoogleConfig($clientSecretPath, $tokenPath, $folderId) {
+    public function setGoogleConfig($clientSecretPath, $tokenPath, $folderId)
+    {
         if ($this->driver === 'google') {
             if (!file_exists($clientSecretPath)) {
                 $this->errors[] = "Không tìm thấy file client_secret Google ($clientSecretPath).";
@@ -57,7 +63,7 @@ class FileUploader {
                 $client->setAuthConfig($clientSecretPath);
                 $client->addScope(\Google\Service\Drive::DRIVE_FILE);
                 $client->setAccessType('offline');
-                
+
                 if (file_exists($tokenPath)) {
                     $accessToken = json_decode(file_get_contents($tokenPath), true);
                     $client->setAccessToken($accessToken);
@@ -87,7 +93,8 @@ class FileUploader {
         }
     }
 
-    public function upload($file, $prefix = 'file') {
+    public function upload($file, $prefix = 'file')
+    {
         if (!isset($file['error']) || is_array($file['error'])) {
             $this->errors[] = "Tham số file không hợp lệ.";
             return false;
@@ -108,7 +115,7 @@ class FileUploader {
         // 2. MIME Check
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($file['tmp_name']);
-        
+
         // Map common MIME to standard extension
         $mimeToExt = array_flip($this->allowedMimes);
         $ext = $mimeToExt[$mime] ?? null;
@@ -138,7 +145,8 @@ class FileUploader {
         }
     }
 
-    protected function uploadToLocal($tmpName, $filename) {
+    protected function uploadToLocal($tmpName, $filename)
+    {
         $destination = $this->targetDir . '/' . $filename;
         if (!move_uploaded_file($tmpName, $destination)) {
             $this->errors[] = "Không thể lưu file cục bộ.";
@@ -147,7 +155,8 @@ class FileUploader {
         return $filename; // Return filename only, path constructed by controller if needed
     }
 
-    protected function uploadToGoogleDrive($tmpName, $filename, $mimeType) {
+    protected function uploadToGoogleDrive($tmpName, $filename, $mimeType)
+    {
         if (!$this->googleService || empty($this->googleFolderId)) {
             $this->errors[] = "Chưa cấu hình Google Drive hoặc kết nối thất bại.";
             return false;
@@ -184,8 +193,7 @@ class FileUploader {
             }
 
             // Return direct display link (thumbnail API is more reliable for direct <img> tags)
-            return "https://drive.google.com/thumbnail?id=" . $file->id . "&sz=w1000"; 
-
+            return "https://drive.google.com/thumbnail?id=" . $file->id . "&sz=w1000";
         } catch (\Exception $e) {
             error_log("GOOGLE_UPLOAD_EX: " . $e->getMessage());
             $this->errors[] = "Lỗi upload lên Google Drive: " . $e->getMessage();
@@ -196,16 +204,18 @@ class FileUploader {
     // New property to allow overriding the target folder per upload
     protected $targetFolderId = null;
 
-    public function setTargetFolderId($id) {
+    public function setTargetFolderId($id)
+    {
         $this->targetFolderId = $id;
     }
 
-    public function findFolder($name, $parentId = null) {
+    public function findFolder($name, $parentId = null)
+    {
         if (!$this->googleService) return false;
         $parentId = $parentId ?? $this->googleFolderId;
-        
+
         $query = "mimeType = 'application/vnd.google-apps.folder' and name = '$name' and '$parentId' in parents and trashed = false";
-        
+
         try {
             $files = $this->googleService->files->listFiles([
                 'q' => $query,
@@ -224,7 +234,8 @@ class FileUploader {
         }
     }
 
-    public function createFolder($name, $parentId = null) {
+    public function createFolder($name, $parentId = null)
+    {
         if (!$this->googleService) return false;
         $parentId = $parentId ?? $this->googleFolderId;
 
@@ -246,11 +257,18 @@ class FileUploader {
         }
     }
 
-    public function getErrors() {
+    public function clearErrors()
+    {
+        $this->errors = [];
+    }
+
+    public function getErrors()
+    {
         return $this->errors;
     }
 
-    public function getFirstError() {
-         return $this->errors[0] ?? null;
+    public function getFirstError()
+    {
+        return $this->errors[0] ?? null;
     }
 }

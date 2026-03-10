@@ -22,8 +22,9 @@
     <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . $tailwindVer) ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js self-hosted v3.14.9 — tránh phụ thuộc CDN bên ngoài -->
+    <script defer src="<?= url('/assets/js/alpine-collapse.min.js') ?>"></script>
+    <script defer src="<?= url('/assets/js/alpine.min.js') ?>"></script>
 
     <!-- Design System -->
     <style>

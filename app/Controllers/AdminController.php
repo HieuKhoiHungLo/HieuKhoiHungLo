@@ -175,7 +175,7 @@ class AdminController extends Controller
         $editRequest = $_GET['edit_request'] ?? '';
 
         // Load sessions (cached 30 min)
-        $admissionSessionModel = new \App\Models\AdmissionSession();
+        $admissionSessionModel = new AdmissionSession();
         $sessions = \App\Core\Cache::remember('all_sessions', 30, function () use ($admissionSessionModel) {
             return $admissionSessionModel->getAll();
         });
@@ -325,12 +325,8 @@ class AdminController extends Controller
 
             try {
                 // Initialize Google Client
-                $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-
-                $tokenName = $_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json';
-                $tokenPath = realpath(__DIR__ . '/../../') . '/' . $tokenName;
-                if (!file_exists($tokenPath)) $tokenPath = __DIR__ . '/../../' . $tokenName;
+                $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
 
                 if (!file_exists($clientSecretPath) || !file_exists($tokenPath)) {
                     echo json_encode(['success' => false, 'error' => 'Chưa cấu hình JSON hoặc thiếu Token Google Drive trên máy chủ']);
@@ -362,6 +358,7 @@ class AdminController extends Controller
                 $service = new \Google\Service\Drive($client);
 
                 // Download file content
+                /** @var \Psr\Http\Message\ResponseInterface $response */
                 $response = $service->files->get($fileId, ['alt' => 'media']);
                 $content = $response->getBody()->getContents();
 
@@ -419,7 +416,9 @@ class AdminController extends Controller
             $filePath = substr('/' . $filePath, strlen($basePath));
         }
 
-        $absolutePath = realpath(__DIR__ . '/../../public/' . $filePath);
+        // Standardize file path
+        $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath);
+        $absolutePath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $filePath;
 
         if (!$absolutePath || !file_exists($absolutePath) || !is_file($absolutePath)) {
             echo json_encode(['success' => false, 'error' => 'Không tìm thấy file ảnh gốc: ' . $filePath]);
@@ -626,9 +625,6 @@ class AdminController extends Controller
                 try {
                     $candidate = $this->thiSinhRepo->findByCCCD($so_cccd);
                     if ($candidate && !empty($candidate['email'])) {
-                        $emailService = new \App\Services\EmailTemplateService();
-
-                        // Build review result sections
                         $sections = [];
                         $sections[] = ['name' => 'Trạng thái hồ sơ', 'status' => $status === UserStatus::APPROVED ? 'ok' : 'missing', 'note' => $status];
 
@@ -639,9 +635,9 @@ class AdminController extends Controller
                             $sections[] = ['name' => 'Ảnh chân dung', 'status' => 'missing', 'note' => 'Chưa upload'];
                         }
 
-                        $resultHtml = $emailService->buildReviewResultHtml($sections);
+                        $resultHtml = $this->emailTemplateService->buildReviewResultHtml($sections);
 
-                        $emailService->queueWithTemplate($candidate['email'], 'application_reviewed', [
+                        $this->emailTemplateService->queueWithTemplate($candidate['email'], 'application_reviewed', [
                             'ho_ten' => $candidate['ho_va_ten'],
                             'ket_qua_chi_tiet' => $resultHtml,
                             'ghi_chu' => $note ?: 'Không có ghi chú.'
@@ -668,7 +664,7 @@ class AdminController extends Controller
     {
         $this->checkPermission('stats');
 
-        $sessionModel = new \App\Models\AdmissionSession();
+        $sessionModel = new AdmissionSession();
         $sessions = \App\Core\Cache::remember('all_sessions', 30, fn() => $sessionModel->getAll());
 
         $years = array_unique(array_column($sessions, 'nam_tuyen_sinh'));
@@ -731,7 +727,7 @@ class AdminController extends Controller
             exit;
         }
 
-        $sessionModel = new \App\Models\AdmissionSession();
+        $sessionModel = new AdmissionSession();
 
         $selectedYear = $_GET['year'] ?? null;
         $sessionId = $_GET['session_id'] ?? null;
@@ -775,40 +771,43 @@ class AdminController extends Controller
             $endDate = $_GET['end'] ?? "$y-12-31";
         }
 
-        // Fetch Data — cached per unique filter combo (5 min TTL)
-        $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate");
+        $type = $_GET['type'] ?? 'all';
+
+        // Fetch Data — cached per unique filter combo (30 min TTL)
+        $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate|$type");
         try {
-            $result = \App\Core\Cache::remember($cacheKey, 30, function () use ($startDate, $endDate, $sessionId, $selectedYear) {
-                $dailyStats    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
-                $majorStats    = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
-                $provinceStats = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
-                $schoolStats   = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
-                $overviewStats = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
-                $reviewerStats = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
-                $recentStats   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
-                $latestCands   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
-                $detailedMajorStats = $this->nguyenVongRepo->getDetailedMajorStats($startDate, $endDate, $sessionId);
+            $result = \App\Core\Cache::remember($cacheKey, 30, function () use ($startDate, $endDate, $sessionId, $selectedYear, $type) {
+                $data = [];
 
-                // Consolidated query: gender + area + object in ONE round-trip
-                $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
+                if ($type === 'overview' || $type === 'all') {
+                    $data['overview'] = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
+                    $data['daily']    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
+                    $data['recent']   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
+                    $data['latest']   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
+                }
 
-                return [
-                    'overview' => $overviewStats,
-                    'daily'    => $dailyStats,
-                    'major'    => $majorStats,
-                    'province' => $provinceStats,
-                    'school'   => $schoolStats,
-                    'reviewers' => $reviewerStats,
-                    'gender'   => $demographic['gender'],
-                    'area'     => $demographic['area'],
-                    'object'   => $demographic['object'],
-                    'recent'   => $recentStats,
-                    'latest'   => $latestCands,
-                    'detailed_major_stats' => $detailedMajorStats,
-                ];
+                if ($type === 'majors' || $type === 'all') {
+                    $data['major']                = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
+                    $data['detailed_major_stats'] = $this->nguyenVongRepo->getDetailedMajorStats($startDate, $endDate, $sessionId);
+                }
+
+                if ($type === 'demographics' || $type === 'all') {
+                    $data['province']  = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
+                    $data['school']    = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
+                    $data['reviewers'] = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
+                    
+                    // Demographic query (Gender, Area, Object)
+                    $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
+                    $data['gender'] = $demographic['gender'];
+                    $data['area']   = $demographic['area'];
+                    $data['object'] = $demographic['object'];
+                }
+
+                return $data;
             });
 
             $result['meta'] = [
+                'type'       => $type,
                 'year'       => $selectedYear,
                 'session_id' => $sessionId,
                 'start'      => $startDate,

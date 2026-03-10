@@ -291,15 +291,9 @@ class CandidateController extends Controller
             true // trashed = true
         );
 
-        $total = $this->thiSinhRepo->countFiltered(
-            $search,
-            '',
-            '',
-            null,
-            false,
-            null,
-            true // trashed = true
-        );
+        // _total_count vẫn có trong kết quả getFiltered (COUNT(*) OVER() window function)
+        // Không cần gọi countFiltered() — tránh thêm 1 DB round-trip
+        $total = !empty($candidates) ? (int)($candidates[0]['_total_count'] ?? count($candidates)) : 0;
 
         $totalPages = ceil($total / $limit);
 
@@ -380,9 +374,9 @@ class CandidateController extends Controller
                     $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                     $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
                     if ($uploadDriver === 'google') {
-                        $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                        if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                        $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                        $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                        $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                        $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                         if ($targetFolderId) {
@@ -393,6 +387,7 @@ class CandidateController extends Controller
                 }
 
                 // Upload Avatar
+                $uploader->clearErrors();
                 $fileName = $cccd . '_avatar_' . time();
                 $result = $uploader->upload([
                     'name' => $_FILES['avatar']['name'],
@@ -423,9 +418,9 @@ class CandidateController extends Controller
                         $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                         $uploader = new FileUploader($pathInfo['absolute'], $uploadDriver);
                         if ($uploadDriver === 'google') {
-                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                            $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                            $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                            $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                             if ($targetFolderId) {
@@ -445,6 +440,7 @@ class CandidateController extends Controller
                                 'size' => $_FILES['cert_files']['size'][$index]
                             ];
 
+                            $uploader->clearErrors();
                             $fileName = $cccd . '_cert_' . $index . '_' . time();
                             $result = $uploader->upload($file, $fileName);
                             if ($result) {
@@ -625,9 +621,9 @@ class CandidateController extends Controller
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
                         if ($uploadDriver === 'google') {
-                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                            $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                            $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                            $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                             if ($targetFolderId) {
@@ -638,16 +634,17 @@ class CandidateController extends Controller
                         foreach ($fileMap as $field => $dbCol) {
                             if (!empty($_FILES[$field]['name'])) {
                                 // Map special field names to readable file prefixes
-                                $filePrefix = match ($field) {
-                                    'kv_file' => 'kv_evidence',
-                                    'dt_file' => 'dt_evidence',
-                                    'avatar'  => 'avatar',
-                                    'cccd_front' => 'cccd_front',
-                                    'cccd_back' => 'cccd_back',
-                                    default   => $field
-                                };
+                                switch ($field) {
+                                    case 'kv_file':    $filePrefix = 'kv_evidence'; break;
+                                    case 'dt_file':    $filePrefix = 'dt_evidence'; break;
+                                    case 'avatar':     $filePrefix = 'avatar'; break;
+                                    case 'cccd_front': $filePrefix = 'cccd_front'; break;
+                                    case 'cccd_back':  $filePrefix = 'cccd_back'; break;
+                                    default:           $filePrefix = $field; break;
+                                }
 
                                 $prefix = $cccd . '_' . $filePrefix . '_' . time();
+                                $uploader->clearErrors();
                                 $fileName = $uploader->upload($_FILES[$field], $prefix);
                                 if ($fileName) {
                                     $data[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
@@ -680,7 +677,7 @@ class CandidateController extends Controller
                         $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
                     }
                     return;
-                    break;
+
 
                 case 'academic':
                     $academicRepo = new \App\Repositories\AcademicRepository();
@@ -703,9 +700,9 @@ class CandidateController extends Controller
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
                         if ($uploadDriver === 'google') {
-                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                            $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                            $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                            $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                             if ($targetFolderId) {
@@ -748,6 +745,7 @@ class CandidateController extends Controller
                                             'size' => $_FILES["transcripts_$g"]['size'][$i]
                                         ];
                                         $prefix = $cccd . "_transcript_grade{$g}_" . time() . "_" . $i;
+                                        $uploader->clearErrors();
                                         $fileName = $uploader->upload($fileToUpload, $prefix);
                                         if ($fileName) {
                                             $uploadedFiles[] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
@@ -788,9 +786,9 @@ class CandidateController extends Controller
                                 $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                                 $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
                                 if ($uploadDriver === 'google') {
-                                    $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                                    if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                                    $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                                    $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                                    $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                                    $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                                     $driveService = new \App\Services\DriveService($uploader);
                                     $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                                     if ($targetFolderId) {
@@ -799,6 +797,7 @@ class CandidateController extends Controller
                                 }
                             }
                             $prefix = $cccd . '_' . ($field === 'kv_file' ? 'kv_evidence' : 'dt_evidence') . '_' . time();
+                            $uploader->clearErrors();
                             $fileName = $uploader->upload($_FILES[$field], $prefix);
                             if ($fileName) {
                                 $personalData[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
@@ -807,7 +806,7 @@ class CandidateController extends Controller
                     }
 
                     if (!empty($personalData)) {
-                        $this->thiSinhRepo->update($cccd, $personalData);
+                        $this->thiSinhRepo->updateFullProfile($cccd, $personalData);
                     }
 
                     // Update Status & Note
@@ -844,9 +843,9 @@ class CandidateController extends Controller
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
                         if ($uploadDriver === 'google') {
-                            $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                            if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                            $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                            $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                            $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                            $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                             if ($targetFolderId) {
@@ -854,6 +853,7 @@ class CandidateController extends Controller
                             }
                         }
 
+                        $uploader->clearErrors();
                         $fileName = $uploader->upload($_FILES['thpt_file_evidence'], "{$cccd}_THPT_" . time());
                         if ($fileName) {
                             $scores['file_chung_nhan'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
@@ -890,9 +890,9 @@ class CandidateController extends Controller
                     $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
                     if ($uploadDriver === 'google') {
-                        $clientSecretPath = realpath(__DIR__ . '/../../') . '/client_secret.json';
-                        if (!file_exists($clientSecretPath)) $clientSecretPath = __DIR__ . '/../../client_secret.json';
-                        $uploader->setGoogleConfig($clientSecretPath, __DIR__ . '/../../' . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'), $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
+                        $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
+                        $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
+                        $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                         $driveService = new \App\Services\DriveService($uploader);
                         $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
                         if ($targetFolderId) {
@@ -920,6 +920,7 @@ class CandidateController extends Controller
                             ];
 
                             $prefix = $cccd . '_cert_' . time() . '_' . $index;
+                            $uploader->clearErrors();
                             $fileName = $uploader->upload($fileToUpload, $prefix);
                             if ($fileName) {
                                 $item['file_minh_chung_cc'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;

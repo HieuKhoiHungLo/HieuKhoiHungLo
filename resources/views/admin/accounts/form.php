@@ -11,7 +11,7 @@
     </div>
 
     <form action="<?= url($account['id'] ?? null ? '/admin/accounts/update' : '/admin/accounts/store') ?>" method="POST">
-        <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+        <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
         <?php if (isset($account['id'])): ?>
             <input type="hidden" name="id" value="<?= $account['id'] ?>">
         <?php endif; ?>
@@ -19,7 +19,7 @@
         <?php if (isset($error)): ?>
             <div class="p-4 mb-6 bg-red-50 text-red-600 rounded-xl font-medium text-sm border border-red-100 flex items-start">
                 <i class="fas fa-exclamation-triangle mt-0.5 mr-2"></i>
-                <?= $error ?>
+                <?= (string) ($error ?? "") ?>
             </div>
         <?php endif; ?>
 

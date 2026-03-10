@@ -87,11 +87,16 @@ class Controller
     protected static function resolveConfigPath($envValue, $default = '')
     {
         $path = $envValue ?: $default;
-        // Already absolute (Linux /path or Windows C:\path)
-        if (preg_match('#^(/|[A-Za-z]:\\\\)#', $path)) {
+        if (empty($path)) return '';
+
+        // Check if already absolute (Linux /path or Windows C:\path or \\network\path)
+        if (preg_match('#^(/|[A-Za-z]:[\\\\/]|\\\\\\\\)#', $path)) {
             return $path;
         }
+
         // Relative: resolve from project root
-        return realpath(__DIR__ . '/../../') . '/' . $path;
+        $rootDir = dirname(dirname(__DIR__));
+        
+        return rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
     }
 }

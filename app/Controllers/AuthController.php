@@ -63,7 +63,8 @@ class AuthController extends Controller
                 // --- REMEMBER ME LOGIC ---
                 if (isset($_POST['remember']) && $_POST['remember'] === 'on') {
                     $token = bin2hex(random_bytes(32)); // Generate secure 64-char hex token
-                    $this->thiSinhRepo->updateRememberToken($user['id'], $token);
+                    $hash = hash('sha256', $token);
+                    $this->thiSinhRepo->updateRememberToken($user['id'], $hash);
                     // Set cookie for 30 days
                     setcookie('remember_ts', $token, [
                         'expires' => time() + (30 * 24 * 60 * 60),
@@ -145,7 +146,8 @@ class AuthController extends Controller
                 // --- REMEMBER ME LOGIC ---
                 if (isset($_POST['remember']) && $_POST['remember'] === 'on') {
                     $token = bin2hex(random_bytes(32));
-                    $this->adminRepo->updateRememberToken($admin['id'], $token);
+                    $hash = hash('sha256', $token);
+                    $this->adminRepo->updateRememberToken($admin['id'], $hash);
                     // Set cookie for 30 days
                     setcookie('remember_admin', $token, [
                         'expires' => time() + (30 * 24 * 60 * 60),

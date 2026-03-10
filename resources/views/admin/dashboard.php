@@ -1,5 +1,19 @@
 <?php ob_start(); ?>
-<div id="dashboardRoot" x-data="{ activeTab: 'overview' }" x-init="$watch('activeTab', tab => { $nextTick(() => { if (window.renderChartsByTab) window.renderChartsByTab(tab); }); }); $nextTick(() => { if (window.renderChartsByTab) window.renderChartsByTab(activeTab); });">
+<div id="dashboardRoot" x-data="{
+    activeTab: 'overview',
+    loadedTabs: [],
+    initTab(tab) {
+        if (!this.loadedTabs.includes(tab)) {
+            window.fetchStats(tab);
+            this.loadedTabs.push(tab);
+        }
+        $nextTick(() => { if (window.renderChartsByTab) window.renderChartsByTab(tab); });
+    },
+    resetTabs() {
+        this.loadedTabs = [];
+        this.initTab(this.activeTab);
+    }
+}" x-init="$watch('activeTab', tab => initTab(tab)); $nextTick(() => initTab(activeTab));">
     <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h2 class="text-xl lg:text-2xl font-black text-slate-800 font-heading uppercase tracking-tight">Thống kê & Báo cáo</h2>
@@ -51,7 +65,7 @@
                 <input type="date" id="filterEnd" value="<?= $endDate ?>" class="flex-1 sm:w-36 px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
 
-            <button id="btnFilter" class="w-full sm:w-auto px-6 py-2 bg-[#0066FF] text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-md shadow-blue-200">
+            <button id="btnFilter" @click="resetTabs()" class="w-full sm:w-auto px-6 py-2 bg-[#0066FF] text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-md shadow-blue-200">
                 <i class="fas fa-filter mr-2"></i>Lọc
                 <i class="fas fa-spinner fa-spin ml-2" id="btnFilterStatsSpinner" style="display: none;"></i>
             </button>
@@ -314,7 +328,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Initialize global chart management
-    window.lastStatsData = null;
+    window.lastStatsData = {};
     window.charts = {};
     let isFetching = false;
 
@@ -578,108 +592,85 @@
         }
     };
 
-    document.addEventListener('DOMContentLoaded', function() {
-        let isFetching = false;
+    window.fetchStats = function(type = 'overview') {
+        if (isFetching) return;
 
-        // Initial Load
-        fetchStats();
+        const btnFilter = document.getElementById('btnFilter');
+        const buttonSpinner = document.getElementById('btnFilterStatsSpinner');
+        const chartSpinner = document.getElementById('chartLoadingSpinner');
 
-        // Event Listeners
-        if (document.getElementById('btnFilter')) {
-            document.getElementById('btnFilter').addEventListener('click', fetchStats);
-        }
+        // UI Loading State Start
+        isFetching = true;
+        if (typeof window.Loading !== 'undefined') window.Loading.show();
+        if (buttonSpinner) buttonSpinner.style.display = 'inline-block';
+        if (chartSpinner) chartSpinner.style.display = 'flex';
+        if (btnFilter) btnFilter.disabled = true;
 
-        document.getElementById('filterYear').addEventListener('change', function() {
-            const year = this.value;
-            const sessionSelect = document.getElementById('filterSession');
-            Array.from(sessionSelect.options).forEach(opt => {
-                if (opt.value === "") return;
-                const optYear = opt.getAttribute('data-year');
-                opt.style.display = (optYear == year) ? 'block' : 'none';
-            });
-            const selectedOpt = sessionSelect.selectedOptions[0];
-            if (selectedOpt && selectedOpt.value !== "" && selectedOpt.style.display === 'none') {
-                sessionSelect.value = "";
-            }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const params = new URLSearchParams({
+            type: type,
+            year: document.getElementById('filterYear')?.value || '',
+            session_id: document.getElementById('filterSession')?.value || '',
+            start: document.getElementById('filterStart')?.value || '',
+            end: document.getElementById('filterEnd')?.value || ''
         });
 
-        function fetchStats() {
-            if (isFetching) return;
+        fetch(`<?= url('/admin/stats/api?') ?>${params.toString()}`, {
+                signal: controller.signal,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Stats Data (${type}) Received:`, data);
+                // Merge into global data storage
+                window.lastStatsData = { ...window.lastStatsData, ...data };
+                updateUI(data, type);
 
-            const btnFilter = document.getElementById('btnFilter');
-            const buttonSpinner = document.getElementById('btnFilterStatsSpinner');
-            const chartSpinner = document.getElementById('chartLoadingSpinner');
+                // Re-render charts for THIS tab if active
+                const root = document.getElementById('dashboardRoot');
+                if (root && typeof Alpine !== 'undefined') {
+                    const alpine = Alpine.$data(root);
+                    if (alpine && alpine.activeTab === type) {
+                        setTimeout(() => window.renderChartsByTab(type), 50);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error(`Dashboard Fetch Error (${type}):`, error);
+                if (error.name !== 'AbortError') {
+                    if (typeof showToast === 'function') {
+                        showToast(`Không thể tải dữ liệu ${type}. Vui lòng thử lại.`, "error");
+                    }
+                }
+            })
+            .finally(() => {
+                clearTimeout(timeoutId);
+                isFetching = false;
 
-            // UI Loading State Start
-            isFetching = true;
-            if (typeof window.Loading !== 'undefined') window.Loading.show();
-            if (buttonSpinner) buttonSpinner.style.display = 'inline-block';
-            if (chartSpinner) chartSpinner.style.display = 'flex';
-            if (btnFilter) btnFilter.disabled = true;
+                console.log("Stats fetch completed, hiding spinners...");
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+                // UI Loading State End
+                if (typeof window.Loading !== 'undefined') window.Loading.hide();
+                if (buttonSpinner) buttonSpinner.style.setProperty('display', 'none', 'important');
+                if (chartSpinner) chartSpinner.style.setProperty('display', 'none', 'important');
+                if (btnFilter) btnFilter.disabled = false;
 
-            const params = new URLSearchParams({
-                year: document.getElementById('filterYear')?.value || '',
-                session_id: document.getElementById('filterSession')?.value || '',
-                start: document.getElementById('filterStart')?.value || '',
-                end: document.getElementById('filterEnd')?.value || ''
+                // Force a resize to ensure charts are correct on mobile
+                setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
             });
+    };
 
-            fetch(`<?= url('/admin/stats/api?') ?>${params.toString()}`, {
-                    signal: controller.signal,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Stats Data Received:", data);
-                    window.lastStatsData = data;
-                    updateUI(data);
+    function updateUI(data, type) {
+        if (!data) return;
 
-                    // Trigger chart rendering for current active tab with $nextTick
-                    const root = document.getElementById('dashboardRoot');
-                    if (root && typeof Alpine !== 'undefined') {
-                        const data = Alpine.$data(root);
-                        if (data && data.activeTab) {
-                            // Use setTimeout or nextTick to ensure UI is ready
-                            setTimeout(() => window.renderChartsByTab(data.activeTab), 50);
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error("Dashboard Fetch Error:", error);
-                    if (error.name !== 'AbortError') {
-                        if (typeof showToast === 'function') {
-                            showToast("Không thể tải dữ liệu thống kê. Vui lòng thử lại.", "error");
-                        }
-                    }
-                })
-                .finally(() => {
-                    clearTimeout(timeoutId);
-                    isFetching = false;
-
-                    console.log("Stats fetch completed, hiding spinners...");
-
-                    // UI Loading State End
-                    if (typeof window.Loading !== 'undefined') window.Loading.hide();
-                    if (buttonSpinner) buttonSpinner.style.setProperty('display', 'none', 'important');
-                    if (chartSpinner) chartSpinner.style.setProperty('display', 'none', 'important');
-                    if (btnFilter) btnFilter.disabled = false;
-
-                    // Force a resize to ensure charts are correct on mobile
-                    setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
-                });
-        }
-
-        function updateUI(data) {
-            if (!data) return;
-
+        if (type === 'overview') {
             // Stats Cards
             const ov = data.overview || {};
             const map = {
@@ -747,7 +738,9 @@
                     if (cards) cards.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có hồ sơ mới.</div>`;
                 }
             }
+        }
 
+        if (type === 'majors') {
             // Detailed Major Stats
             const db = document.getElementById('detailedMajorStatsBody');
             const df = document.getElementById('detailedMajorStatsFoot');
@@ -781,7 +774,9 @@
                     df.innerHTML = '';
                 }
             }
+        }
 
+        if (type === 'demographics') {
             // Reviewer Stats Table Update
             const rb = document.getElementById('reviewerTableBody');
             if (rb && data.reviewers) {
@@ -803,6 +798,23 @@
                 }
             }
         }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Event Listeners for dependent selects
+        document.getElementById('filterYear').addEventListener('change', function() {
+            const year = this.value;
+            const sessionSelect = document.getElementById('filterSession');
+            Array.from(sessionSelect.options).forEach(opt => {
+                if (opt.value === "") return;
+                const optYear = opt.getAttribute('data-year');
+                opt.style.display = (optYear == year) ? 'block' : 'none';
+            });
+            const selectedOpt = sessionSelect.selectedOptions[0];
+            if (selectedOpt && selectedOpt.value !== "" && selectedOpt.style.display === 'none') {
+                sessionSelect.value = "";
+            }
+        });
     });
 </script>
 

@@ -45,12 +45,12 @@
             <?php if (isset($error)): ?>
                 <div class="bg-red-50 border-l-4 border-hvu-red text-red-700 p-4 rounded mb-6">
                     <p class="font-bold">Lỗi:</p>
-                    <p><?= $error ?></p>
+                    <p><?= (string) ($error ?? "") ?></p>
                 </div>
             <?php endif; ?>
 
             <form action="<?= url('/academic/certification') ?>" method="POST" enctype="multipart/form-data" class="space-y-8">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
                     <p class="text-blue-800 text-sm font-medium leading-relaxed">

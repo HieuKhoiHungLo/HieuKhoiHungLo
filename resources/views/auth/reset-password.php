@@ -16,7 +16,7 @@
         </div>
 
         <form method="POST" action="<?= url('/reset-password') ?>">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <div class="mb-5">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-key text-hvu-red mr-2"></i> Mật khẩu mới

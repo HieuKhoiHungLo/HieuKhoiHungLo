@@ -140,6 +140,20 @@ class ThiSinhRepository
         return $this->model->updateFullProfile($cccd, $data);
     }
 
+    /**
+     * Compatibility alias for updateFullProfile
+     */
+    public function update($cccd, array $data)
+    {
+        return $this->updateFullProfile($cccd, $data);
+    }
+
+    public function saveDiemThiTHPT($cccd, array $data)
+    {
+        $model = new \App\Models\DiemThiTHPT();
+        return $model->save($cccd, $data);
+    }
+
     public function updateHocBaStatus($cccd, $status)
     {
         return $this->model->updateHocBaStatus($cccd, $status);
@@ -241,86 +255,28 @@ class ThiSinhRepository
         $params = [];
 
         if (!empty($search)) {
-            // Function to generate nested replace for unaccenting in PostgreSQL
+            // Danh sách bỏ dấu tiếng Việt (để xử lý từ khóa search ở phía PHP)
             $replacements = [
-                'à' => 'a',
-                'á' => 'a',
-                'ả' => 'a',
-                'ã' => 'a',
-                'ạ' => 'a',
-                'ă' => 'a',
-                'ằ' => 'a',
-                'ắ' => 'a',
-                'ẳ' => 'a',
-                'ẵ' => 'a',
-                'ặ' => 'a',
-                'â' => 'a',
-                'ầ' => 'a',
-                'ấ' => 'a',
-                'ẩ' => 'a',
-                'ẫ' => 'a',
-                'ậ' => 'a',
-                'è' => 'e',
-                'é' => 'e',
-                'ẻ' => 'e',
-                'ẽ' => 'e',
-                'ẹ' => 'e',
-                'ê' => 'e',
-                'ề' => 'e',
-                'ế' => 'e',
-                'ể' => 'e',
-                'ễ' => 'e',
-                'ệ' => 'e',
-                'ì' => 'i',
-                'í' => 'i',
-                'ỉ' => 'i',
-                'ĩ' => 'i',
-                'ị' => 'i',
-                'ò' => 'o',
-                'ó' => 'o',
-                'ỏ' => 'o',
-                'õ' => 'o',
-                'ọ' => 'o',
-                'ô' => 'o',
-                'ồ' => 'o',
-                'ố' => 'o',
-                'ổ' => 'o',
-                'ỗ' => 'o',
-                'ộ' => 'o',
-                'ơ' => 'o',
-                'ờ' => 'o',
-                'ớ' => 'o',
-                'ở' => 'o',
-                'ỡ' => 'o',
-                'ợ' => 'o',
-                'ù' => 'u',
-                'ú' => 'u',
-                'ủ' => 'u',
-                'ũ' => 'u',
-                'ụ' => 'u',
-                'ư' => 'u',
-                'ừ' => 'u',
-                'ứ' => 'u',
-                'ử' => 'u',
-                'ữ' => 'u',
-                'ự' => 'u',
-                'ỳ' => 'y',
-                'ý' => 'y',
-                'ỷ' => 'y',
-                'ỹ' => 'y',
-                'ỵ' => 'y',
+                'à' => 'a', 'á' => 'a', 'ả' => 'a', 'ã' => 'a', 'ạ' => 'a',
+                'ă' => 'a', 'ằ' => 'a', 'ắ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a', 'ặ' => 'a',
+                'â' => 'a', 'ầ' => 'a', 'ấ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ậ' => 'a',
+                'è' => 'e', 'é' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ẹ' => 'e',
+                'ê' => 'e', 'ề' => 'e', 'ế' => 'e', 'ể' => 'e', 'ễ' => 'e', 'ệ' => 'e',
+                'ì' => 'i', 'í' => 'i', 'ỉ' => 'i', 'ĩ' => 'i', 'ị' => 'i',
+                'ò' => 'o', 'ó' => 'o', 'ỏ' => 'o', 'õ' => 'o', 'ọ' => 'o',
+                'ô' => 'o', 'ồ' => 'o', 'ố' => 'o', 'ổ' => 'o', 'ỗ' => 'o', 'ộ' => 'o',
+                'ơ' => 'o', 'ờ' => 'o', 'ớ' => 'o', 'ở' => 'o', 'ỡ' => 'o', 'ợ' => 'o',
+                'ù' => 'u', 'ú' => 'u', 'ủ' => 'u', 'ũ' => 'u', 'ụ' => 'u',
+                'ư' => 'u', 'ừ' => 'u', 'ứ' => 'u', 'ử' => 'u', 'ữ' => 'u', 'ự' => 'u',
+                'ỳ' => 'y', 'ý' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
                 'đ' => 'd'
             ];
 
-            $unaccentedColumn = "lower(t.ho_va_ten)";
-            foreach ($replacements as $accented => $unaccented) {
-                $unaccentedColumn = "replace($unaccentedColumn, '$accented', '$unaccented')";
-            }
+            // Sử dụng generated column `ho_va_ten_search` (từ DB) thay vì 56 replace calls
+            // Search criteria: Không dấu (ho_va_ten_search) OR Có dấu (ho_va_ten) OR CCCD OR Email
+            $sql .= " AND (t.ho_va_ten_search ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ? OR t.ho_va_ten ILIKE ?)";
 
-            // Normal search logic for exact match/accents and unaccented search
-            $sql .= " AND ({$unaccentedColumn} ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ? OR t.ho_va_ten ILIKE ?)";
-
-            // Unaccent the search term in PHP for the first placeholder
+            // Loại bỏ dấu trong từ khóa search để so khớp với DB ho_va_ten_search
             $searchUnaccented = str_replace(array_keys($replacements), array_values($replacements), mb_strtolower($search, 'UTF-8'));
 
             $params[] = "%$searchUnaccented%";

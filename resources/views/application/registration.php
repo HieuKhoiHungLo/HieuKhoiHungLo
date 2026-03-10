@@ -10,12 +10,12 @@
         <div class="p-8">
             <?php if (isset($error)): ?>
                 <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                    <p><?= $error ?></p>
+                    <p><?= (string) ($error ?? "") ?></p>
                 </div>
             <?php endif; ?>
 
             <form action="<?= url('/application/registration') ?>" method="POST" id="choiceForm">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left" id="choiceTable">

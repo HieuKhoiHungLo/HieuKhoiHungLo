@@ -70,16 +70,16 @@ class RuleEngine {
         $value = $cond['value'] ?? 0;
         $actual = $data[$field] ?? 0;
 
-        return match($op) {
-            '=' => $actual == $value,
-            '!=' => $actual != $value,
-            '>' => $actual > $value,
-            '>=' => $actual >= $value,
-            '<' => $actual < $value,
-            '<=' => $actual <= $value,
-            'in' => in_array($actual, (array)$value),
-            default => true
-        };
+        switch ($op) {
+            case '=':  return $actual == $value;
+            case '!=': return $actual != $value;
+            case '>':  return $actual > $value;
+            case '>=': return $actual >= $value;
+            case '<':  return $actual < $value;
+            case '<=': return $actual <= $value;
+            case 'in': return in_array($actual, (array)$value);
+            default:   return true;
+        }
     }
 
     /**

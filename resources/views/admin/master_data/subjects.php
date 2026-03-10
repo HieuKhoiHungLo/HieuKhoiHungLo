@@ -8,7 +8,7 @@
             <p class="text-gray-500 text-sm mt-1">Quản lý các môn văn hóa và năng khiếu</p>
         </div>
         <div class="flex space-x-2">
-            <a href="<?= url('/admin/master-data/subjects/export') ?>?csrf_token=<?= $this->csrfToken() ?>" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow transition flex items-center">
+            <a href="<?= url('/admin/master-data/subjects/export') ?>?csrf_token=<?= (string) $this->csrfToken() ?>" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow transition flex items-center">
                 <i class="fas fa-file-export mr-2"></i> Xuất Excel
             </a>
             <button onclick="openImportModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow transition flex items-center">
@@ -37,7 +37,7 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <form action="<?= url('/admin/master-data/subjects') ?>" method="POST" id="bulk-delete-form">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <input type="hidden" name="action" value="bulk_delete">
 
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center hidden" id="bulk-actions">
@@ -147,7 +147,7 @@
 
 <!-- Forms for single actions -->
 <form id="single-delete-form" action="<?= url('/admin/master-data/subjects') ?>" method="POST" class="hidden">
-    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+    <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
     <input type="hidden" name="action" value="delete">
     <input type="hidden" name="id" id="single-delete-id">
 </form>
@@ -157,7 +157,7 @@
     <div class="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl transform transition-all">
         <h3 id="modal-title" class="text-xl font-black uppercase mb-6 border-b pb-4 text-gray-800">Thêm Môn học</h3>
         <form action="<?= url('/admin/master-data/subjects') ?>" method="POST">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <input type="hidden" name="action" id="form-action" value="create">
             <input type="hidden" name="id" id="subject-id">
 
@@ -198,7 +198,7 @@
     <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl transform transition-all">
         <h3 class="text-xl font-black uppercase mb-6 border-b pb-4 text-gray-800">Nhập từ Excel (CSV)</h3>
         <form action="<?= url('/admin/master-data/subjects') ?>" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <input type="hidden" name="action" value="import">
 
             <div class="space-y-4">

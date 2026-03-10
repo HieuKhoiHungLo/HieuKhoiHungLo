@@ -11,6 +11,7 @@ class AcademicController extends Controller
 
     protected $academicRecordModel;
     protected $thiSinhModel;
+    protected $db;
 
     public function __construct()
     {
@@ -42,20 +43,7 @@ class AcademicController extends Controller
                 $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                 $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
-                if ($uploadDriver === 'google') {
-                    $uploader->setGoogleConfig(
-                        self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
-                        self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
-                        $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
-                    );
-
-                    // Resolve folder in Drive
-                    $driveService = new \App\Services\DriveService($uploader);
-                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                    if ($targetFolderId) {
-                        $uploader->setTargetFolderId($targetFolderId);
-                    }
-                }
+                $driveInitialized = false; // Flag for lazy-loading Google Drive API
 
                 $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
                 $uploader->setMaxSize(5 * 1024 * 1024);
@@ -93,6 +81,24 @@ class AcademicController extends Controller
                     if (isset($_FILES['transcripts_' . $grade])) {
                         foreach ($_FILES['transcripts_' . $grade]['name'] as $i => $name) {
                             if ($_FILES['transcripts_' . $grade]['error'][$i] === UPLOAD_ERR_OK) {
+                                
+                                // Initialize Google Drive ON DEMAND (only if a file is actually uploaded)
+                                if ($uploadDriver === 'google' && !$driveInitialized) {
+                                    $uploader->setGoogleConfig(
+                                        self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
+                                        self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
+                                        $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
+                                    );
+
+                                    // Resolve folder in Drive
+                                    $driveService = new \App\Services\DriveService($uploader);
+                                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
+                                    if ($targetFolderId) {
+                                        $uploader->setTargetFolderId($targetFolderId);
+                                    }
+                                    $driveInitialized = true;
+                                }
+
                                 $fileObj = [
                                     'name' => $_FILES['transcripts_' . $grade]['name'][$i],
                                     'type' => $_FILES['transcripts_' . $grade]['type'][$i],
@@ -100,6 +106,7 @@ class AcademicController extends Controller
                                     'error' => $_FILES['transcripts_' . $grade]['error'][$i],
                                     'size' => $_FILES['transcripts_' . $grade]['size'][$i]
                                 ];
+                                $uploader->clearErrors();
                                 $fileName = $_SESSION['cccd'] . "_Lop{$grade}_" . ($i + 1);
                                 $result = $uploader->upload($fileObj, $fileName);
                                 if ($result) {
@@ -150,22 +157,9 @@ class AcademicController extends Controller
                 $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                 $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
 
-                if ($uploadDriver === 'google') {
-                    $uploader->setGoogleConfig(
-                        self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
-                        self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
-                        $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
-                    );
+                $driveInitialized = false; // Flag for lazy-loading Google Drive
 
-                    // Resolve folder in Drive
-                    $driveService = new \App\Services\DriveService($uploader);
-                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
-                    if ($targetFolderId) {
-                        $uploader->setTargetFolderId($targetFolderId);
-                    }
-                }
-
-                $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png']);
+                $uploader->setAllowedMimes(['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'pdf' => 'application/pdf']);
                 $uploader->setMaxSize(5 * 1024 * 1024);
 
                 foreach ($certInputs as $index => $input) {
@@ -179,6 +173,24 @@ class AcademicController extends Controller
 
                     // Check for new upload for this specifically indexed cert
                     if (isset($_FILES['cert_files']['name'][$index]) && $_FILES['cert_files']['error'][$index] === UPLOAD_ERR_OK) {
+                        
+                        // Initialize Google Drive ON DEMAND (only if a file is actually uploaded)
+                        if ($uploadDriver === 'google' && !$driveInitialized) {
+                            $uploader->setGoogleConfig(
+                                self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json'),
+                                self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json'),
+                                $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
+                            );
+
+                            // Resolve folder in Drive
+                            $driveService = new \App\Services\DriveService($uploader);
+                            $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $_SESSION['cccd']);
+                            if ($targetFolderId) {
+                                $uploader->setTargetFolderId($targetFolderId);
+                            }
+                            $driveInitialized = true;
+                        }
+
                         $fileData = [
                             'name' => $_FILES['cert_files']['name'][$index],
                             'type' => $_FILES['cert_files']['type'][$index],
@@ -187,6 +199,7 @@ class AcademicController extends Controller
                             'size' => $_FILES['cert_files']['size'][$index]
                         ];
 
+                        $uploader->clearErrors();
                         $result = $uploader->upload($fileData, $_SESSION['cccd'] . "_Cert_" . ($index + 1));
                         if ($result) {
                             $certData['file_minh_chung_cc'] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $result : $result;

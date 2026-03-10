@@ -117,7 +117,7 @@ class SecurityMiddleware {
         $csp .= "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; ";
         $csp .= "font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com data:; ";
         $csp .= "img-src 'self' data: https: blob:; ";
-        $csp .= "connect-src 'self'; ";
+        $csp .= "connect-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com unpkg.com; ";
         $csp .= "frame-src https://www.youtube.com https://www.youtube-nocookie.com; ";
         $csp .= "frame-ancestors 'none';";
         

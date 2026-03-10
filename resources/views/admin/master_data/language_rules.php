@@ -41,7 +41,7 @@
                             <td class="px-6 py-3 text-center opacity-0 group-hover:opacity-100 transition">
                                 <button onclick='editRule(<?= json_encode($rule) ?>)' class="text-[#0066FF] hover:text-blue-800 font-bold text-xs uppercase mr-4">Sửa</button>
                                 <form action="<?= url('/admin/master-data/language-rules/delete') ?>" method="POST" class="inline" onsubmit="return confirm('Xóa quy tắc này?')">
-                                    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                                     <input type="hidden" name="id" value="<?= $rule['id'] ?>">
                                     <button type="submit" class="text-slate-400 hover:text-red-600 font-bold text-xs uppercase">Xóa</button>
                                 </form>
@@ -64,7 +64,7 @@
             </button>
         </div>
         <form action="<?= url('/admin/master-data/language-rules') ?>" method="POST" class="p-6">
-            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <input type="hidden" name="id" id="rule-id">
             
             <div class="space-y-4">

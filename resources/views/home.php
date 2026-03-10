@@ -351,7 +351,7 @@ if (isset($stepStatus)) {
                         <p class="text-gray-500 mt-2">Hoàn thành các bước bên dưới để nộp hồ sơ xét tuyển.</p>
                     </div>
                     <div class="hidden md:block">
-                        <div class="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center text-hvu-red text-2xl font-black border-4 border-white shadow-lg">
+                        <div class="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center text-hvu-red text-3xl font-black border-4 border-white shadow-lg">
                             <?= floor((($nextStep - 1) / $totalSteps) * 100) ?>%
                         </div>
                     </div>

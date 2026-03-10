@@ -5,7 +5,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
     <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-red-900/5 border border-gray-100 overflow-hidden">
         <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
             <h2 class="text-2xl font-bold uppercase tracking-wide">Hồ sơ thí sinh</h2>
-            <p class="text-white/80 text-sm mt-1">Bước 1/<?= $totalStepsCount ?>: Cập nhật thông tin cá nhân và minh chứng định danh</p>
+            <p class="text-white/80 text-sm mt-1">Bước 1/<?= (int) ($totalStepsCount ?? 0) ?>: Cập nhật thông tin cá nhân và minh chứng định danh</p>
         </div>
 
         <!-- Wizard Navigation -->
@@ -49,7 +49,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
             <?php endif; ?>
 
             <form action="<?= url('/profile/step1') ?>" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <?php if (!empty($isLocked)): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">
@@ -96,7 +96,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label class="label"><i class="fas fa-calendar-alt"></i> Ngày sinh</label>
-                                        <input type="date" name="dob" value="<?= htmlspecialchars($user['ngay_sinh'] ?? '2007-01-01') ?>" class="hvu-input font-bold" required>
+                                        <input type="date" name="dob" value="<?= htmlspecialchars($user['ngay_sinh'] ?? '2008-01-01') ?>" class="hvu-input font-bold" required>
                                     </div>
                                     <div>
                                         <label class="label"><i class="fas fa-venus-mars"></i> Giới tính</label>

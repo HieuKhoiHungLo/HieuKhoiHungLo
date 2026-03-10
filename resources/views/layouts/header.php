@@ -37,9 +37,9 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
 
-    <!-- Alpine.js (for interactive components) -->
-    <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js (for interactive components) — self-hosted v3.14.9 for reliability & speed -->
+    <script defer src="<?= url('/assets/js/alpine-collapse.min.js') ?>"></script>
+    <script defer src="<?= url('/assets/js/alpine.min.js') ?>"></script>
 
     <!-- Fallback for browsers with JS disabled -->
     <noscript>
@@ -139,15 +139,25 @@
                         <!-- User Avatar Menu (Desktop Only) -->
                         <div class="relative hidden md:block ml-2" id="user-menu-container">
                             <?php
-                            // Lấy thông tin người dùng hiện tại để lấy ảnh thẻ
+                            // Lấy avatar từ session cache — tránh DB query mỗi page load
                             $currentAvatar = '';
                             if (isset($_SESSION['user_id'])) {
-                                try {
-                                    $__db = \App\Core\Database::getInstance()->getConnection();
-                                    $__stmt = $__db->prepare("SELECT anh_dai_dien FROM thi_sinh WHERE id = ?");
-                                    $__stmt->execute([$_SESSION['user_id']]);
-                                    $currentAvatar = $__stmt->fetchColumn() ?: '';
-                                } catch (\Exception $e) {
+                                // Nếu user_cached chứa avatar, dùng luôn; không cần query DB
+                                if (isset($_SESSION['user_cached']['anh_dai_dien'])) {
+                                    $currentAvatar = $_SESSION['user_cached']['anh_dai_dien'] ?? '';
+                                } elseif (!isset($_SESSION['user_avatar_cached'])) {
+                                    // Lần đầu tiên chưa có cache — query 1 lần duy nhất rồi lưu session
+                                    try {
+                                        $__db = \App\Core\Database::getInstance()->getConnection();
+                                        $__stmt = $__db->prepare("SELECT anh_dai_dien FROM thi_sinh WHERE id = ?");
+                                        $__stmt->execute([$_SESSION['user_id']]);
+                                        $currentAvatar = $__stmt->fetchColumn() ?: '';
+                                        $_SESSION['user_avatar_cached'] = $currentAvatar;
+                                    } catch (\Exception $e) {
+                                        $_SESSION['user_avatar_cached'] = '';
+                                    }
+                                } else {
+                                    $currentAvatar = $_SESSION['user_avatar_cached'];
                                 }
                             }
                             // If avatar is a full URL (Google Drive), use directly; otherwise prepend base URL

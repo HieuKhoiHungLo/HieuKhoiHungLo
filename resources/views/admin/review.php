@@ -28,7 +28,7 @@
             ];
             $rawStatus = $user['trang_thai'] ?? 'Chờ duyệt';
             $statusLabel = $statusMap[strtolower($rawStatus)] ?? $rawStatus;
-            $statusStyles = match ($statusLabel) {
+            $statusStyleMap = [
                 'Đã duyệt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 'Từ chối'    => 'bg-rose-50 text-rose-700 border-rose-200',
                 'Yêu cầu bổ sung' => 'bg-blue-50 text-blue-700 border-blue-200',
@@ -38,18 +38,22 @@
                 'Đang tính điểm' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                 'Đủ điều kiện'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
                 'Trúng tuyển'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                default      => 'bg-amber-50 text-amber-700 border-amber-200',
-            };
-            $statusIcon = match ($statusLabel) {
-                'Đã duyệt', 'Trúng tuyển' => 'fa-check-circle',
+            ];
+            $statusStyles = $statusStyleMap[$statusLabel] ?? 'bg-amber-50 text-amber-700 border-amber-200';
+
+            $statusIconMap = [
+                'Đã duyệt' => 'fa-check-circle',
+                'Trúng tuyển' => 'fa-check-circle',
                 'Từ chối'    => 'fa-times-circle',
                 'Yêu cầu bổ sung' => 'fa-edit',
                 'Đã nộp'     => 'fa-paper-plane',
-                'Đang xác minh', 'Đang tính điểm' => 'fa-spinner fa-spin',
-                'Đã xác minh', 'Đủ điều kiện' => 'fa-clipboard-check',
+                'Đang xác minh' => 'fa-spinner fa-spin',
+                'Đang tính điểm' => 'fa-spinner fa-spin',
+                'Đã xác minh' => 'fa-clipboard-check',
+                'Đủ điều kiện' => 'fa-clipboard-check',
                 'Nháp'       => 'fa-file-alt',
-                default      => 'fa-clock',
-            };
+            ];
+            $statusIcon = $statusIconMap[$statusLabel] ?? 'fa-clock';
             ?>
             <span class="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-full border <?= $statusStyles ?>">
                 <i class="fas <?= $statusIcon ?>"></i> <?= $statusLabel ?>

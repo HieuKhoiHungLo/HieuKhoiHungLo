@@ -6,7 +6,7 @@
         <!-- Header Section -->
         <div class="bg-gradient-to-r from-hvu-red to-red-700 p-6 text-white text-center">
             <h2 class="text-2xl font-bold uppercase tracking-wide">Chứng chỉ Quốc tế</h2>
-            <p class="text-white/80 text-sm mt-1">Bước 3/<?= $totalStepsCount ?>: Khai báo các chứng chỉ quốc tế bạn đang sở hữu</p>
+            <p class="text-white/80 text-sm mt-1">Bước 3/<?= (int) ($totalStepsCount ?? 0) ?>: Khai báo các chứng chỉ quốc tế bạn đang sở hữu</p>
         </div>
 
         <!-- Wizard Navigation -->
@@ -49,12 +49,12 @@
             <?php if (isset($error)): ?>
                 <div class="bg-red-50 border-l-4 border-hvu-red text-red-700 p-4 rounded mb-6">
                     <p class="font-bold">Lỗi:</p>
-                    <p><?= $error ?></p>
+                    <p><?= (string) ($error ?? "") ?></p>
                 </div>
             <?php endif; ?>
 
             <form action="<?= url('/profile/step3') ?>" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <?php if (!empty($isLocked)): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">

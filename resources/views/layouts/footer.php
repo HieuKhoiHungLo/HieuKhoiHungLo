@@ -28,18 +28,18 @@
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">HỖ TRỢ THÍ SINH</h3>
                     <?php
-                    if (!isset($_SESSION['cache_footer_links'])) {
+                    $footerLinks = \App\Core\Cache::remember('footer_support_links', 60, function () {
                         try {
                             $__db = \App\Core\Database::getInstance()->getConnection();
                             $__stmt = $__db->prepare("SELECT value FROM settings WHERE \"key\" = ?");
                             $__stmt->execute(['footer_support_links']);
                             $__json = $__stmt->fetchColumn();
-                            $_SESSION['cache_footer_links'] = $__json ? json_decode($__json, true) : [];
+                            return $__json ? json_decode($__json, true) : [];
                         } catch (\Exception $e) {
-                            $_SESSION['cache_footer_links'] = [];
+                            return [];
                         }
-                    }
-                    $footerLinks = $_SESSION['cache_footer_links'];
+                    });
+
                     if (empty($footerLinks)) {
                         $footerLinks = [
                             ['label' => 'Đăng ký xét tuyển', 'url' => url('/register'), 'icon' => 'fas fa-check-circle'],
@@ -389,7 +389,6 @@
                 <i class="fas fa-cloud-upload-alt absolute inset-0 flex items-center justify-center text-hvu-red text-xl animate-pulse"></i>
             </div>
             <h3 class="text-lg font-bold text-gray-800 mb-2">Đang xử lý dữ liệu...</h3>
-            <p class="text-sm text-gray-500 mb-2" id="overlayMessage">Hệ thống đang nén và tải tệp lên máy chủ. Vui lòng không đóng trình duyệt!</p>
             <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2 overflow-hidden hidden" id="overlayProgressContainer">
                 <div class="bg-hvu-red h-1.5 rounded-full transition-all duration-300 w-0" id="overlayProgressBar"></div>
             </div>
@@ -429,8 +428,6 @@
                             overlay.classList.remove('opacity-0');
                             overlay.querySelector('.bg-white').classList.remove('scale-95');
                         }, 10);
-
-                        document.getElementById('overlayMessage').textContent = 'Đang tự động nén ảnh để tăng tốc tải lên...';
 
                         const fileInputs = form.querySelectorAll('input[type="file"][accept*="image"]');
                         let hasFilesToProcess = false;
@@ -485,9 +482,6 @@
                                 console.error('[Optimizer] Global processing error:', err);
                             }
                         }
-
-                        // Update UX and submit
-                        document.getElementById('overlayMessage').textContent = 'Đang lưu hồ sơ và kết nối mây...';
 
                         // Submit form natively bypassing this event listener
                         HTMLFormElement.prototype.submit.call(form);

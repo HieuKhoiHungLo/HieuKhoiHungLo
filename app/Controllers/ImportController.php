@@ -31,7 +31,7 @@ class ImportController extends Controller {
     public function upload() {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['status' => false, 'message' => 'Invalid method']);
+            $this->json(['status' => false, 'message' => 'Invalid method']);
             return;
         }
 
@@ -39,12 +39,12 @@ class ImportController extends Controller {
         $batchId = $_POST['batch_id'] ?? '';
         
         if (empty($batchId) || empty($type)) {
-            $this->jsonResponse(['status' => false, 'message' => 'Missing parameters']);
+            $this->json(['status' => false, 'message' => 'Missing parameters']);
             return;
         }
 
         if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-            $this->jsonResponse(['status' => false, 'message' => 'Upload failed']);
+            $this->json(['status' => false, 'message' => 'Upload failed']);
             return;
         }
 
@@ -55,7 +55,7 @@ class ImportController extends Controller {
         $filePath = $uploadDir . $fileName;
 
         if (!move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
-            $this->jsonResponse(['status' => false, 'message' => 'Failed to save file']);
+            $this->json(['status' => false, 'message' => 'Failed to save file']);
             return;
         }
 
@@ -77,7 +77,7 @@ class ImportController extends Controller {
             $result = $this->importService->parseTranscripts($filePath, $batchId, $adminId);
         }
 
-        $this->jsonResponse($result);
+        $this->json($result);
     }
     
     public function createBatch() {
