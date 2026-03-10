@@ -11,10 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?= isset($title) ? $title : 'Tuyển sinh Đại học Hùng Vương' ?></title>
 
-    <!-- PWA Manifest -->
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/png" href="<?= url('/assets/img/Logo.png') ?>">
+    <link rel="apple-touch-icon" href="<?= url('/assets/img/Logo.png') ?>">
     <link rel="manifest" href="<?= url('/manifest.json') ?>">
-    <link rel="icon" type="image/png" href="<?= url('/assets/img/icon-pwa.png') ?>">
-    <link rel="apple-touch-icon" href="<?= url('/assets/img/icon-pwa.png') ?>">
 
     <!-- Critical CSS (Local) -->
     <?php $tailwindPath = __DIR__ . '/../../../public/assets/css/tailwind.min.css'; ?>

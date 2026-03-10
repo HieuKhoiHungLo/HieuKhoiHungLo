@@ -1,7 +1,7 @@
 <!-- View Mode -->
 <div id="view_academic" class="space-y-6">
     <!-- Priority & School -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <!-- Trường THPT -->
         <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md h-full">
             <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
@@ -113,7 +113,7 @@
                         $fieldCode = $code;
                     ?>
                         <tr class="hover:bg-blue-50/30 transition-colors group">
-                            <td class="px-5 py-3 font-medium text-slate-700 border-r sticky left-0 bg-white group-hover:bg-blue-50/30 z-0 border-slate-100 flex items-center gap-2">
+                            <td class="px-5 py-3 font-medium text-slate-700 border-r sticky left-0 bg-white group-hover:bg-blue-50/30 z-0 border-slate-100 flex items-center gap-2" style="min-width: 180px;">
                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-400"></span>
                                 <?= $name ?>
                             </td>

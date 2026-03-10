@@ -10,11 +10,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="<?= url('/manifest.json') ?>">
+    <link rel="icon" type="image/png" href="<?= url('/assets/img/Logo.png') ?>">
     <link rel="apple-touch-icon" href="<?= url('/assets/img/Logo.png') ?>">
     <title><?= $title ?? 'Admin Portal - HVU' ?></title>
 
     <!-- Dependencies -->
-    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . (file_exists(__DIR__ . '/../../../public/assets/css/tailwind.min.css') ? filemtime(__DIR__ . '/../../../public/assets/css/tailwind.min.css') : time())) ?>">
+    <?php
+    $tailwindFile = __DIR__ . '/../../../public/assets/css/tailwind.min.css';
+    $tailwindVer = file_exists($tailwindFile) ? filemtime($tailwindFile) : time();
+    ?>
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . $tailwindVer) ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
