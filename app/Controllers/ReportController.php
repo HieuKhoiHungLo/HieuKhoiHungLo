@@ -60,6 +60,15 @@ class ReportController extends Controller {
         $this->exportService->toCsv($data, 'trung_tuyen_' . $maNganh . '_' . date('Ymd') . '.csv');
     }
 
+    public function exportCertificates() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+
+        $data = $this->exportService->exportCertificates();
+        $this->exportService->toCsv($data, 'danh_sach_chung_chi_' . date('Ymd') . '.csv');
+    }
+
     public function statsApi() {
         header('Content-Type: application/json');
         echo json_encode($this->exportService->getStatistics());

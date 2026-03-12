@@ -52,14 +52,12 @@ class ScoreCalculationService {
             $bestMethod = null;
             $bestDetails = [];
 
-            // 3. Iterate Combinations
-            
+            $allCombinationsParams = [];
+
             // 3. Iterate Combinations
             foreach ($combinations as $comboCode) {
-                // echo "  Checking Combo: $comboCode\n"; flush();
                 $comboSubjects = $this->getComboSubjects($comboCode);
                 if (!$comboSubjects) continue;
-                // echo "    Subjects: " . json_encode($comboSubjects) . "\n"; flush();
 
                 // 3a. Calculate HOC_BA (Method 200)
                 $hbResult = $this->calculateMethodScore(
@@ -72,11 +70,14 @@ class ScoreCalculationService {
                     $priorityPoints
                 );
                 
-                if ($hbResult && $hbResult['total'] > $bestScore) {
-                    $bestScore = $hbResult['total'];
-                    $bestCombo = $comboCode;
-                    $bestMethod = '200'; // Code 200 for Hoc Ba
-                    $bestDetails = $hbResult['details'];
+                if ($hbResult) {
+                    $allCombinationsParams["HB_{$comboCode}"] = $hbResult['total'];
+                    if ($hbResult['total'] > $bestScore) {
+                        $bestScore = $hbResult['total'];
+                        $bestCombo = $comboCode;
+                        $bestMethod = '200'; // Code 200 for Hoc Ba
+                        $bestDetails = $hbResult['details'];
+                    }
                 }
 
                 // 3b. Calculate DIEM_THI (Method 100)
@@ -91,11 +92,14 @@ class ScoreCalculationService {
                         $priorityPoints
                     );
 
-                    if ($thptResult && $thptResult['total'] > $bestScore) {
-                        $bestScore = $thptResult['total'];
-                        $bestCombo = $comboCode;
-                        $bestMethod = '100'; // Code 100 for THPT
-                        $bestDetails = $thptResult['details'];
+                    if ($thptResult) {
+                        $allCombinationsParams["THPT_{$comboCode}"] = $thptResult['total'];
+                        if ($thptResult['total'] > $bestScore) {
+                            $bestScore = $thptResult['total'];
+                            $bestCombo = $comboCode;
+                            $bestMethod = '100'; // Code 100 for THPT
+                            $bestDetails = $thptResult['details'];
+                        }
                     }
                 }
             }
@@ -115,6 +119,7 @@ class ScoreCalculationService {
             }
             
             $details = $bestDetails;
+            $details['all_combinations'] = $allCombinationsParams;
             if ($thresholdNote) {
                 $details['threshold_note'] = $thresholdNote;
             }
@@ -386,7 +391,7 @@ class ScoreCalculationService {
             $stmtCombo = $this->db->prepare("SELECT id FROM dm_to_hop WHERE ma_to_hop = ? LIMIT 1");
             $stmtCombo->execute([$combo]);
             $comboId = $stmtCombo->fetchColumn();
-            
+            // Extract from details
             $diem_mon_1 = $details['diem_mon_1'] ?? 0;
             $diem_mon_2 = $details['diem_mon_2'] ?? 0;
             $diem_mon_3 = $details['diem_mon_3'] ?? 0;
@@ -406,13 +411,12 @@ class ScoreCalculationService {
                     diem_uu_tien_goc = ?,
                     diem_uu_tien_qd = ?
                     WHERE so_cccd = ? AND ma_nganh = ?";
-            
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $score,
                 $comboId ?: null,
                 $method,
-                json_encode($details),
+                json_encode($details, JSON_UNESCAPED_UNICODE),
                 $combo,
                 $method,
                 $diem_mon_1,

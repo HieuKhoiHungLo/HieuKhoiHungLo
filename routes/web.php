@@ -190,16 +190,24 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notifyAdmitted');
 
-    // Virtual Filter Dashboard
-    $router->get('/admin/admission/virtual-filter', 'VirtualFilterController@index');
-    $router->get('/admin/admission/virtual-filter/api-load', 'VirtualFilterController@loadBatchData');
-    $router->post('/admin/admission/virtual-filter/api-recalculate', 'VirtualFilterController@recalculateScores');
-    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering');
+    // Virtual Filter Dashboard (New Grid UI)
+    $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
+    $router->get('/admin/admission/virtual-filter/api-load', 'VirtualAdmissionController@loadBatchData');
+    $router->post('/admin/admission/virtual-filter/api-recalculate', 'VirtualAdmissionController@recalculateScores');
+    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering'); // Keep the run filtering API intact if it was called externally
 
     // Aptitude Scores
     $router->get('/admin/aptitude-scores', 'AptitudeScoreController@index');
+    $router->post('/admin/aptitude-scores/api-list', 'AptitudeScoreController@apiList');
     $router->post('/admin/aptitude-scores/import', 'AptitudeScoreController@import');
     $router->get('/admin/aptitude-scores/template', 'AptitudeScoreController@template');
+    $router->post('/admin/aptitude-scores/delete', 'AptitudeScoreController@delete');
+
+    // Certificate Scores
+    $router->get('/admin/certificate-scores', 'CertificateScoreController@index');
+    $router->post('/admin/certificate-scores/api-list', 'CertificateScoreController@apiList');
+    $router->post('/admin/certificate-scores/import', 'CertificateScoreController@import');
+    $router->post('/admin/certificate-scores/delete', 'CertificateScoreController@delete');
 
     // Email Settings & Templates
     $router->get('/admin/settings/email', 'EmailConfigController@index');
@@ -226,11 +234,18 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports', 'ReportController@index');
     $router->get('/admin/reports/export-candidates', 'ReportController@exportCandidates');
     $router->get('/admin/reports/export-admitted', 'ReportController@exportAdmitted');
+    $router->get('/admin/reports/export-certificates', 'ReportController@exportCertificates');
 
     // Rules
     $router->get('/admin/rules', 'RuleController@index');
     $router->post('/admin/rules/save', 'RuleController@save');
     $router->get('/admin/rules/delete', 'RuleController@delete');
+
+    // Backup & System
+    $router->get('/admin/system/backup', 'BackupController@index');
+    $router->get('/admin/system/backup/create', 'BackupController@create');
+    $router->get('/admin/system/backup/delete', 'BackupController@delete');
+    $router->get('/admin/system/backup/restore', 'BackupController@restore');
 
     // 2FA Management
     $router->get('/admin/2fa/setup', 'TwoFactorController@setup');

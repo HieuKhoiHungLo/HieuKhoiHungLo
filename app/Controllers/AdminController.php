@@ -42,9 +42,23 @@ class AdminController extends Controller
         $this->auditService = new \App\Services\AuditService();
         $this->scoreService = new \App\Services\ScoreCalculationService();
 
-        // Load current user for permission checking
-        $adminModel = new \App\Models\QuanTriVien();
-        $this->currentUser = $adminModel->find($_SESSION['admin_id'] ?? 0);
+        // Load current user for permission checking - Use Cache
+        if (isset($_SESSION['admin_id'])) {
+            $adminId = $_SESSION['admin_id'];
+            $sessionKey = '_cached_admin_user_' . $adminId;
+            
+            if (isset($_SESSION[$sessionKey])) {
+                $this->currentUser = $_SESSION[$sessionKey];
+            } else {
+                $adminModel = new \App\Models\QuanTriVien();
+                $this->currentUser = $adminModel->find($adminId);
+                if ($this->currentUser) {
+                    $_SESSION[$sessionKey] = $this->currentUser;
+                }
+            }
+        } else {
+            $this->currentUser = null;
+        }
 
         // Enforce active status
         if (!$this->currentUser || !$this->currentUser['is_active']) {
@@ -784,6 +798,7 @@ class AdminController extends Controller
                     $data['daily']    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
                     $data['recent']   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
                     $data['latest']   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
+                    $data['major']    = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
                 }
 
                 if ($type === 'majors' || $type === 'all') {
@@ -796,11 +811,11 @@ class AdminController extends Controller
                     $data['school']    = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
                     $data['reviewers'] = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
                     
-                    // Demographic query (Gender, Area, Object)
-                    $demographic = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
-                    $data['gender'] = $demographic['gender'];
-                    $data['area']   = $demographic['area'];
-                    $data['object'] = $demographic['object'];
+                    // Demographic query (Gender, Area, Object) - use combined query to save 2 DB roundtrips
+                    $combinedDemos = $this->thiSinhRepo->getCombinedDemographicStats($startDate, $endDate, $sessionId);
+                    $data['gender'] = $combinedDemos['gender'] ?? [];
+                    $data['area'] = $combinedDemos['area'] ?? [];
+                    $data['object'] = $combinedDemos['object'] ?? [];
                 }
 
                 return $data;

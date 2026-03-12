@@ -14,14 +14,27 @@
     <link rel="apple-touch-icon" href="<?= url('/assets/img/Logo.png') ?>">
     <title><?= $title ?? 'Admin Portal - HVU' ?></title>
 
-    <!-- Dependencies -->
+    <!-- Preconnect to external domains to reduce latency -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <!-- Critical CSS — Tailwind (local, high priority) -->
     <?php
     $tailwindFile = __DIR__ . '/../../../public/assets/css/tailwind.min.css';
     $tailwindVer = file_exists($tailwindFile) ? filemtime($tailwindFile) : time();
     ?>
-    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . $tailwindVer) ?>">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= url('/assets/css/tailwind.min.css?v=' . $tailwindVer) ?>" fetchpriority="high">
+
+    <!-- Google Fonts — font-display=swap prevents FOIT -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome — non-blocking (render won't wait for icons) -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></noscript>
+
     <!-- Alpine.js self-hosted v3.14.9 — tránh phụ thuộc CDN bên ngoài -->
     <script defer src="<?= url('/assets/js/alpine-collapse.min.js') ?>"></script>
     <script defer src="<?= url('/assets/js/alpine.min.js') ?>"></script>
@@ -236,14 +249,23 @@
                     ]
                 ],
                 [
-                    'group' => 'QUẢN LÝ TUYỂN SINH',
+                    'group' => 'QUẢN LÝ GHI DANH SỚM',
                     'icon'  => 'fa-clipboard-check',
                     'items' => [
-                        ['url' => '/admin/review-management',       'icon' => 'fa-user-check',    'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
+                        ['url' => '/admin/review-management',       'icon' => 'fa-user-check',      'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
+                        ['url' => '/admin/reports',                 'icon' => 'fa-file-export',     'label' => 'Xuất dữ liệu hồ sơ',  'perm' => 'report.export'],
+                        ['url' => '/admin/reports/export-certificates', 'icon' => 'fa-certificate', 'label' => 'Xuất DL Chứng chỉ',   'perm' => 'report.export'],
+                    ]
+                ],
+                [
+                    'group' => 'XÉT TUYỂN LỌC ẢO',
+                    'icon'  => 'fa-shield-halved',
+                    'items' => [
                         ['url' => '/admin/admission/virtual-filter', 'icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/results',       'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
-                        ['url' => '/admin/reports',                 'icon' => 'fa-file-export',   'label' => 'Xuất dữ liệu',         'perm' => 'report.export'],
                         ['url' => '/admin/aptitude-scores',         'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
+                        ['url' => '/admin/certificate-scores', 'icon' => 'fa-language',  'label' => 'Điểm chứng chỉ quy đổi', 'perm' => 'settings.edit'],
+                        ['url' => '/admin/admission/benchmarks',    'icon' => 'fa-sliders-h',     'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
                     ]
                 ],
                 [
@@ -259,7 +281,6 @@
                     'icon'  => 'fa-sliders-h',
                     'items' => [
                         ['url' => '/admin/master-data/sessions',    'icon' => 'fa-calendar-alt',  'label' => 'Đợt tuyển sinh',       'perm' => 'settings.edit'],
-                        ['url' => '/admin/admission/benchmarks',    'icon' => 'fa-sliders-h',     'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
                         ['url' => '/admin/rules',                   'icon' => 'fa-gavel',         'label' => 'Điều kiện Xét tuyển',  'perm' => 'settings.edit'],
                         ['url' => '/admin/master-data/zones',       'icon' => 'fa-map-marker-alt', 'label' => 'Cấu hình Vùng',        'perm' => 'settings.edit'],
                         ['url' => '/admin/settings/scoring',        'icon' => 'fa-calculator',    'label' => 'Cấu hình Điểm',        'perm' => 'settings.edit'],
@@ -281,19 +302,28 @@
                     'items' => [
                         ['url' => '/admin/accounts',                    'icon' => 'fa-user-shield',      'label' => 'Tài khoản Admin',      'perm' => 'role.view'],
                         ['url' => '/admin/roles',                       'icon' => 'fa-users-cog',        'label' => 'Quản lý Vai trò',      'perm' => 'role.view'],
+                        ['url' => '/admin/settings/home',               'icon' => 'fa-home',             'label' => 'Cài đặt Trang chủ',    'perm' => 'settings.edit'],
                         ['url' => '/admin/master-data/settings',        'icon' => 'fa-cog',              'label' => 'Cấu hình Chung',       'perm' => 'settings.edit'],
                         ['url' => '/admin/settings/email',              'icon' => 'fa-envelope',         'label' => 'Cấu hình Email',       'perm' => 'settings.edit'],
                         ['url' => '/admin/settings/email-templates',    'icon' => 'fa-file-alt',         'label' => 'Mẫu Email',            'perm' => 'settings.edit'],
                         ['url' => '/admin/import',                      'icon' => 'fa-cloud-upload-alt', 'label' => 'Nhập dữ liệu GD&ĐT',  'perm' => 'settings.edit'],
+                        ['url' => '/admin/system/backup',               'icon' => 'fa-database',         'label' => 'Sao lưu dữ liệu',      'perm' => 'settings.edit'],
                         ['url' => '/admin/audit',                       'icon' => 'fa-history',          'label' => 'Nhật ký Hoạt động',    'perm' => 'audit.view'],
                     ]
                 ],
             ];
 
-            // Load current user once for sidebar permission checks
+            // Load current user once for sidebar permission checks - Prioritize cached session
             static $_sidebarUser = null;
             if ($_sidebarUser === null && !empty($_SESSION['admin_id'])) {
-                $_sidebarUser = (new \App\Models\QuanTriVien())->find($_SESSION['admin_id']);
+                if (isset($_SESSION['_cached_admin_user_' . $_SESSION['admin_id']])) {
+                    $_sidebarUser = $_SESSION['_cached_admin_user_' . $_SESSION['admin_id']];
+                } else {
+                    $_sidebarUser = (new \App\Models\QuanTriVien())->find($_SESSION['admin_id']);
+                    if ($_sidebarUser) {
+                        $_SESSION['_cached_admin_user_' . $_SESSION['admin_id']] = $_sidebarUser;
+                    }
+                }
             }
             $canSee = function (string $perm) use ($_sidebarUser): bool {
                 if (!$_sidebarUser) return false;
@@ -616,14 +646,19 @@
                     });
             }
 
-            // Initial fetch to update badge
-            fetchAdminNotifications();
+            // DO NOT auto-fetch on load -> prevents useless HTTP request for every admin page view.
+            // Badge is updated only when user clicks bell or explicitly reloaded.
+            // fetchAdminNotifications(); 
         }
 
         // Auto-process email queue in background (non-blocking) via API Route
-        fetch('<?= url("/api/cron/process_email_queue?key=hvu_cron_2024") ?>', {
-            method: 'GET'
-        }).catch(() => {});
+        // DELAY execution by 3 seconds so it doesn't compete with primary render/assets
+        setTimeout(() => {
+            fetch('<?= url("/api/cron/process_email_queue?key=hvu_cron_2024") ?>', {
+                method: 'GET',
+                keepalive: true
+            }).catch(() => {});
+        }, 3000);
     </script>
 
 </body>

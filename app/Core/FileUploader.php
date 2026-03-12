@@ -209,6 +209,7 @@ class FileUploader
         $this->targetFolderId = $id;
     }
 
+
     public function findFolder($name, $parentId = null)
     {
         if (!$this->googleService) return false;
@@ -253,6 +254,41 @@ class FileUploader
             return $file->id;
         } catch (\Exception $e) {
             $this->errors[] = "Lỗi tạo folder: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function listFiles($folderId = null)
+    {
+        if (!$this->googleService) return false;
+        $parentId = $folderId ?? $this->googleFolderId;
+
+        $query = "'$parentId' in parents and trashed = false";
+
+        try {
+            $files = $this->googleService->files->listFiles([
+                'q' => $query,
+                'fields' => 'files(id, name, mimeType, size, createdTime)',
+                'orderBy' => 'createdTime desc',
+                'supportsAllDrives' => true,
+                'includeItemsFromAllDrives' => true
+            ]);
+            return $files->getFiles();
+        } catch (\Exception $e) {
+            $this->errors[] = "Lỗi liệt kê file: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function deleteFile($fileId)
+    {
+        if (!$this->googleService) return false;
+
+        try {
+            $this->googleService->files->delete($fileId, ['supportsAllDrives' => true]);
+            return true;
+        } catch (\Exception $e) {
+            $this->errors[] = "Lỗi xóa file: " . $e->getMessage();
             return false;
         }
     }

@@ -118,6 +118,23 @@ class ExportService {
     }
 
     /**
+     * Export candidate certificates to CSV
+     */
+    public function exportCertificates() {
+        $sql = "SELECT t.so_cccd AS \"Số CCCD\", 
+                       t.ho_va_ten AS \"Họ và Tên\", 
+                       cc.loai_chung_chi AS \"Loại chứng chỉ\", 
+                       cc.diem_chung_chi AS \"Điểm/Xếp loại\"
+                FROM chung_chi_thi_sinh cc
+                JOIN thi_sinh t ON cc.so_cccd = t.so_cccd
+                ORDER BY t.ho_va_ten";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Generate CSV output
      */
     public function toCsv($data, $filename) {
