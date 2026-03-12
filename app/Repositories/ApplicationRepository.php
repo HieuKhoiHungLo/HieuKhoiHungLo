@@ -78,7 +78,7 @@ class ApplicationRepository
         $values = array_values($data);
         $values[] = $applicationId;
 
-        $stmt = $db->prepare("UPDATE ho_so_tuyen_sinh SET $sets WHERE id = ?");
+        $stmt = $db->prepare("UPDATE ho_so_xet_tuyen SET $sets WHERE id = ?");
         return $stmt->execute($values);
     }
 
