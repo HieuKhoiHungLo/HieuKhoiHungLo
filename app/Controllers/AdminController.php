@@ -698,12 +698,39 @@ class AdminController extends Controller
 
         if ($selectedYear === null && $sessionId === null) {
             $activeSession = $sessionModel->getActiveSession();
+            
+            // Smarter logic: If active session is empty, but we have older sessions with data, 
+            // maybe default to the one with data? 
+            // Actually, let's stick to active but if no active, get latest.
             if (!$activeSession) {
                 $activeSession = $sessionModel->getLatestActiveSession();
             }
+
             if ($activeSession) {
                 $sessionId   = $activeSession['id'];
                 $selectedYear = $activeSession['nam_tuyen_sinh'];
+                
+                // Extra check: if this session is totally empty, check if it's the 2026 one we just added
+                // if it's empty, and there's a 2025 session with data, the user probably wants to see that.
+                $hasData = \App\Core\Cache::remember('session_has_data_' . $sessionId, 60, function() use ($sessionId) {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+                    $stmt->execute([$sessionId]);
+                    return $stmt->fetchColumn() > 0;
+                });
+
+                if (!$hasData && $selectedYear == 2026) {
+                    // Fallback to 2025 latest session if 2026 is empty
+                    $prevSession = \App\Core\Cache::remember('latest_session_2025', 60, function() {
+                        $db = \App\Core\Database::getInstance()->getConnection();
+                        $stmt = $db->query("SELECT * FROM dm_dot_tuyen_sinh WHERE nam_tuyen_sinh = 2025 ORDER BY id DESC LIMIT 1");
+                        return $stmt->fetch(\PDO::FETCH_ASSOC);
+                    });
+                    if ($prevSession) {
+                        $sessionId = $prevSession['id'];
+                        $selectedYear = 2025;
+                    }
+                }
             } elseif (!empty($sessions)) {
                 $firstSession = $sessions[0];
                 $sessionId   = $firstSession['id'];

@@ -106,41 +106,34 @@ class NguyenVong extends Model {
     public function getDetailedMajorStats($startDate = null, $endDate = null, $sessionId = null) {
         // Query to get detailed stats per major (Total, NV1, NV2, Others)
         // We join dm_nganh to ensure we get all majors and their quota (chỉ tiêu)
-        $sql = "SELECT 
-                    n.ma_nganh, 
-                    n.ten_nganh, 
-                    n.chi_tieu,
-                    COUNT(nv.so_cccd) as tong_nv,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
-                FROM dm_nganh n
-                LEFT JOIN nguyen_vong nv ON n.ma_nganh = nv.ma_nganh
-                LEFT JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd";
         
-        $whereFilters = [];
         $params = [];
-
+        $hsFilter = "";
+        
         if ($startDate && $endDate) {
-            $whereFilters[] = "hs.created_at >= ? AND hs.created_at <= ?";
+            $hsFilter .= " AND hs.created_at >= ? AND hs.created_at <= ?";
             $params[] = $startDate . ' 00:00:00';
             $params[] = $endDate . ' 23:59:59';
         }
 
         if ($sessionId) {
-             $whereFilters[] = "hs.dot_tuyen_sinh_id = ?";
+             $hsFilter .= " AND hs.dot_tuyen_sinh_id = ?";
              $params[] = $sessionId;
         }
 
-        // Apply filters if any (only to the join conditions so we still get all majors if needed, 
-        // or we filter hs entirely. Standard approach is to filter the WHERE clause)
-        if (!empty($whereFilters)) {
-            $sql .= " WHERE (" . implode(" AND ", $whereFilters) . ") OR nv.so_cccd IS NULL";
-            // We use OR nv.so_cccd IS NULL to ensure dm_nganh rows with 0 count are still returned
-        }
-
-        $sql .= " GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
-                  ORDER BY n.ma_nganh ASC";
+        $sql = "SELECT 
+                    n.ma_nganh, 
+                    n.ten_nganh, 
+                    n.chi_tieu,
+                    COUNT(hs.so_cccd) as tong_nv,
+                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
+                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
+                    SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
+                FROM dm_nganh n
+                LEFT JOIN nguyen_vong nv ON n.ma_nganh = nv.ma_nganh
+                LEFT JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd $hsFilter
+                GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
+                ORDER BY n.ma_nganh ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
