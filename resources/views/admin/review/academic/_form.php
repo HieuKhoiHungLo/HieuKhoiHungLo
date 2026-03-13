@@ -53,76 +53,76 @@ $mapDisplay = function($v) {
             </div>
 
             <!-- Row 2: Năm tốt nghiệp, KV ưu tiên, ĐT ưu tiên -->
+            <div class="col-span-1 md:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Năm tốt nghiệp</label>
+                <div class="relative">
+                    <i class="fas fa-calendar-check absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <select name="nam_tot_nghiep" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
+                        <?php
+                        $currentYear = date('Y');
+                        for ($y = $currentYear; $y >= $currentYear - 10; $y--): ?>
+                            <option value="<?= $y ?>" <?= ($user['nam_tot_nghiep'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+                </div>
+            </div>
+
             <div x-data="{ 
-                kv: '<?= $user['khu_vuc_uu_tien'] ?? '' ?>', 
-                isCustomKv: <?= ($user['is_custom_kv'] ?? 0) ? 'true' : 'false' ?>,
-                dt: '<?= $user['doi_tuong_uu_tien'] ?? '' ?>',
-                isCustomDt: <?= ($user['is_custom_dt'] ?? 0) ? 'true' : 'false' ?>
-            }"
+                    kv: '<?= $user['khu_vuc_uu_tien'] ?? '' ?>', 
+                    isCustomKv: <?= ($user['is_custom_kv'] ?? 0) ? 'true' : 'false' ?>
+                }"
                 @school-selected.window="if(!isCustomKv) kv = $event.detail.ma_kv"
-                class="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                class="col-span-1 md:col-span-4">
                 
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Năm tốt nghiệp</label>
-                    <div class="relative">
-                        <i class="fas fa-calendar-check absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                        <select name="nam_tot_nghiep" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
-                            <?php
-                            $currentYear = date('Y');
-                            for ($y = $currentYear; $y >= $currentYear - 10; $y--): ?>
-                                <option value="<?= $y ?>" <?= ($user['nam_tot_nghiep'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
-                            <?php endfor; ?>
-                        </select>
-                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-                    </div>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">KV ưu tiên</label>
+                    <label class="flex items-center gap-1.5 cursor-pointer group">
+                        <input type="checkbox" name="is_custom_kv" value="1" x-model="isCustomKv" class="w-3.5 h-3.5 rounded border-slate-300 text-orange-500 focus:ring-orange-200">
+                        <span class="text-[9px] font-black text-slate-400 group-hover:text-orange-500 transition-colors uppercase">Tùy chỉnh</span>
+                    </label>
                 </div>
+                <div class="relative">
+                    <i class="fas fa-star absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <select name="kv_uu_tien" x-model="kv" :disabled="!isCustomKv" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
+                        <option value="">-- Chọn --</option>
+                        <?php foreach ($priorityAreas as $ma_kv => $diem): ?>
+                            <option value="<?= $ma_kv ?>"><?= $ma_kv ?> (+<?= $diem ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+                </div>
+                <template x-if="isCustomKv">
+                    <p class="mt-1.5 text-[10px] text-orange-500 italic font-medium flex items-center gap-1">
+                        <i class="fas fa-info-circle text-[9px]"></i> thí sinh tự chọn
+                    </p>
+                </template>
+                <input type="hidden" name="kv_uu_tien" :value="kv" x-show="!isCustomKv">
+            </div>
 
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">KV ưu tiên</label>
-                        <label class="flex items-center gap-1.5 cursor-pointer group">
-                            <input type="checkbox" name="is_custom_kv" value="1" x-model="isCustomKv" class="w-3.5 h-3.5 rounded border-slate-300 text-orange-500 focus:ring-orange-200">
-                            <span class="text-[9px] font-black text-slate-400 group-hover:text-orange-500 transition-colors uppercase">Tùy chỉnh</span>
-                        </label>
-                    </div>
-                    <div class="relative">
-                        <i class="fas fa-star absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                        <select name="kv_uu_tien" x-model="kv" :disabled="!isCustomKv" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
-                            <option value="">-- Chọn --</option>
-                            <?php foreach ($priorityAreas as $ma_kv => $diem): ?>
-                                <option value="<?= $ma_kv ?>"><?= $ma_kv ?> (+<?= $diem ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-                    </div>
-                    <template x-if="isCustomKv">
-                        <p class="mt-1.5 text-[10px] text-orange-500 italic font-medium flex items-center gap-1">
-                            <i class="fas fa-info-circle text-[9px]"></i> thí sinh tự chọn
-                        </p>
-                    </template>
-                    <input type="hidden" name="kv_uu_tien" :value="kv" x-show="!isCustomKv">
+            <div x-data="{ 
+                    dt: '<?= $user['doi_tuong_uu_tien'] ?? '' ?>',
+                    isCustomDt: <?= ($user['is_custom_dt'] ?? 0) ? 'true' : 'false' ?>
+                }"
+                class="col-span-1 md:col-span-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider text-blue-600">ĐT ưu tiên</label>
+                    <label class="flex items-center gap-1.5 cursor-pointer group">
+                        <input type="checkbox" name="is_custom_dt" value="1" x-model="isCustomDt" class="w-3.5 h-3.5 rounded border-slate-300 text-blue-500 focus:ring-blue-200">
+                        <span class="text-[9px] font-bold text-slate-400 group-hover:text-blue-500 transition-colors uppercase">Tùy chỉnh</span>
+                    </label>
                 </div>
-
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider text-blue-600">ĐT ưu tiên</label>
-                        <label class="flex items-center gap-1.5 cursor-pointer group">
-                            <input type="checkbox" name="is_custom_dt" value="1" x-model="isCustomDt" class="w-3.5 h-3.5 rounded border-slate-300 text-blue-500 focus:ring-blue-200">
-                            <span class="text-[9px] font-bold text-slate-400 group-hover:text-blue-500 transition-colors uppercase">Tùy chỉnh</span>
-                        </label>
-                    </div>
-                    <div class="relative">
-                        <i class="fas fa-user-shield absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                        <select name="dt_uu_tien" x-model="dt" :disabled="!isCustomDt" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
-                            <option value="">-- Không ưu tiên --</option>
-                            <?php foreach ($priorityObjects as $ma_dt => $diem): ?>
-                                <option value="<?= $ma_dt ?>"><?= $ma_dt ?> (+<?= $diem ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-                    </div>
-                    <input type="hidden" name="dt_uu_tien" :value="dt" x-show="!isCustomDt">
+                <div class="relative">
+                    <i class="fas fa-user-shield absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <select name="dt_uu_tien" x-model="dt" :disabled="!isCustomDt" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed">
+                        <option value="">-- Không ưu tiên --</option>
+                        <?php foreach ($priorityObjects as $ma_dt => $diem): ?>
+                            <option value="<?= $ma_dt ?>"><?= $ma_dt ?> (+<?= $diem ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
                 </div>
+                <input type="hidden" name="dt_uu_tien" :value="dt" x-show="!isCustomDt">
             </div>
         </div>
 
@@ -155,7 +155,7 @@ $mapDisplay = function($v) {
                                 ?>
                                     <td class="px-2 py-1 text-center border-r border-slate-50">
                                         <input type="number" step="0.1" name="scores[<?= $g ?>][diem_<?= $code ?>_cn]" 
-                                            value="<?= $gradeRow["diem_{$code}_cn"] ?? '' ?>" 
+                                            value="<?= is_numeric($gradeRow["diem_{$code}_cn"]) ? number_format((float)$gradeRow["diem_{$code}_cn"], 1, '.', '') : ($gradeRow["diem_{$code}_cn"] ?? '') ?>" 
                                             class="w-16 px-1 py-1 text-center bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 focus:ring-4 focus:ring-blue-50 focus:border-blue-400 outline-none transition-all shadow-sm">
                                     </td>
                                 <?php endforeach; ?>
@@ -169,7 +169,7 @@ $mapDisplay = function($v) {
                             ?>
                                 <td class="px-2 py-1 text-center border-r border-slate-200">
                                     <input type="number" step="0.01" name="scores[<?= $g ?>][diem_tb_ca_nam]" 
-                                        value="<?= $gradeRow['diem_tb_ca_nam'] ?? '' ?>" 
+                                        value="<?= is_numeric($gradeRow['diem_tb_ca_nam']) ? number_format((float)$gradeRow['diem_tb_ca_nam'], 1, '.', '') : ($gradeRow['diem_tb_ca_nam'] ?? '') ?>" 
                                         class="w-16 px-1 py-1 text-center bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm focus:ring-4 focus:ring-blue-50 focus:border-blue-400 outline-none transition-all">
                                 </td>
                             <?php endforeach; ?>
@@ -210,40 +210,6 @@ $mapDisplay = function($v) {
             </div>
         </div>
 
-        <!-- Evidence & Save (Merged into main div) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <?php foreach ([10, 11, 12] as $g): 
-                $gradeRow = $rowsByGrade[$g] ?? [];
-            ?>
-                <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <i class="fas fa-camera text-blue-400"></i> Minh chứng học bạ Lớp <?= $g ?>
-                    </h4>
-                    <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-blue-50 file:text-[#0066FF] mb-3">
-                    <div class="flex gap-2">
-                        <?php foreach ([1, 2] as $i): ?>
-                            <?php if (!empty($gradeRow["file_minh_chung_$i"])): ?>
-                                <div class="relative group w-12 h-16 rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-                                    <img src="<?= strpos($gradeRow["file_minh_chung_$i"], 'http') === 0 ? google_drive_thumbnail_url($gradeRow["file_minh_chung_$i"], 'w200') : asset($gradeRow["file_minh_chung_$i"]) ?>" class="w-full h-full object-cover">
-                                    <a href="<?= strpos($gradeRow["file_minh_chung_$i"], 'http') === 0 ? $gradeRow["file_minh_chung_$i"] : asset($gradeRow["file_minh_chung_$i"]) ?>" target="_blank" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity"><i class="fas fa-eye"></i></a>
-                                </div>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-slate-100">
-            <div class="p-4 bg-orange-50/20 rounded-2xl border border-orange-100">
-                <label class="block text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2">Minh chứng Khu vực</label>
-                <input type="file" name="kv_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all cursor-pointer">
-            </div>
-            <div class="p-4 bg-blue-50/20 rounded-2xl border border-blue-100">
-                <label class="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Minh chứng Đối tượng</label>
-                <input type="file" name="dt_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 transition-all cursor-pointer">
-            </div>
-        </div>
 
         <div class="flex justify-end gap-4 pt-10">
             <button type="button" onclick="toggleEdit('academic')" class="px-6 py-3.5 rounded-xl text-slate-500 font-bold text-sm hover:bg-slate-50 hover:text-slate-700 transition-colors uppercase tracking-wider">Hủy bỏ</button>
