@@ -60,9 +60,32 @@
             </span>
         </div>
         <?php if (($navTotal ?? 0) > 0): ?>
-            <span class="text-xs font-bold text-slate-400">
-                Hồ sơ chờ duyệt: <span class="text-[#0066FF]"><?= $navPosition ?? 0 ?>/<?= $navTotal ?></span>
-            </span>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1 mr-4">
+                    <?php if (!empty($prevCCCD)): ?>
+                        <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ trước">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </a>
+                    <?php else: ?>
+                        <span class="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-100 text-slate-300 rounded-lg cursor-not-allowed">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </span>
+                    <?php endif; ?>
+
+                    <?php if (!empty($nextCCCD)): ?>
+                        <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ tiếp">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </a>
+                    <?php else: ?>
+                        <span class="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-100 text-slate-300 rounded-lg cursor-not-allowed">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <span class="text-xs font-bold text-slate-400">
+                    Hồ sơ chờ duyệt: <span class="text-[#0066FF]"><?= $navPosition ?? 0 ?>/<?= $navTotal ?></span>
+                </span>
+            </div>
         <?php endif; ?>
     </div>
 </div>
@@ -143,7 +166,7 @@
     </div>
 
     <!-- TABS CONTENT AREA -->
-    <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-slate-200 p-6 min-h-[500px]">
+    <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-slate-200 px-6 pb-6 pt-2 min-h-[500px]">
 
         <?php include __DIR__ . '/review/_tab_personal.php'; ?>
 
@@ -159,7 +182,7 @@
         <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between gap-4">
             <!-- Previous -->
             <?php if (!empty($prevCCCD)): ?>
-                <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 hover:-translate-x-0.5 transition-all">
+                <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 hover:-translate-x-0.5 transition-all shadow-md shadow-blue-200/50">
                     <i class="fas fa-chevron-left"></i> Hồ sơ trước
                 </a>
             <?php else: ?>

@@ -1,8 +1,8 @@
     <!-- Review Status Section (Extracted from Form) -->
     <?php
     $currentStatus = $user['trang_thai_diem_thi'] ?? '';
-    // Default to approved for new or pending
-    $checkApproved = ($currentStatus === 'Đã duyệt' || empty($currentStatus) || $currentStatus === 'Chờ duyệt') ? 'checked' : '';
+    // Default to 'Approved' if not explicitly 'Rejected'
+    $checkApproved = ($currentStatus !== 'Từ chối') ? 'checked' : '';
     $checkRejected = ($currentStatus === 'Từ chối') ? 'checked' : '';
     ?>
     <div class="bg-slate-50 rounded-[2rem] p-6 border border-slate-200 mt-6 shadow-sm transition-all hover:bg-white">
