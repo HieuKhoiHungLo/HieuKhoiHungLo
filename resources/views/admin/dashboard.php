@@ -531,9 +531,11 @@
                     x: {
                         ticks: {
                             font: {
-                                size: isMobile ? 9 : 11
+                                size: (canvasId === 'majorChart' || canvasId === 'schoolChart') ? 8 : (isMobile ? 9 : 11)
                             },
-                            maxRotation: isVertical ? 45 : 0
+                            maxRotation: isVertical ? 45 : 0,
+                            minRotation: isVertical ? 45 : 0,
+                            autoSkip: false
                         },
                         grid: {
                             display: false
