@@ -8,7 +8,7 @@ $mapDisplay = function($v) {
 };
 ?>
 <div id="form_academic" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
-    <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50 overflow-visible">
+    <div class="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-50/50 overflow-visible">
  
         <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-10">
             <!-- Row 1: Tỉnh/TP (1/3) và Trường (2/3) -->
@@ -82,10 +82,7 @@ $mapDisplay = function($v) {
                         <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">KV ưu tiên</label>
                         <label class="flex items-center gap-1.5 cursor-pointer group">
                             <input type="checkbox" name="is_custom_kv" value="1" x-model="isCustomKv" class="w-3.5 h-3.5 rounded border-slate-300 text-orange-500 focus:ring-orange-200">
-                            <span class="text-[9px] font-black text-slate-400 group-hover:text-orange-500 transition-colors uppercase flex items-center gap-1">
-                                <span x-show="isCustomKv" class="text-orange-600">Thí sinh tự chọn</span>
-                                <span x-show="!isCustomKv">Tùy chỉnh</span>
-                            </span>
+                            <span class="text-[9px] font-black text-slate-400 group-hover:text-orange-500 transition-colors uppercase">Tùy chỉnh</span>
                         </label>
                     </div>
                     <div class="relative">
@@ -98,6 +95,11 @@ $mapDisplay = function($v) {
                         </select>
                         <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
                     </div>
+                    <template x-if="isCustomKv">
+                        <p class="mt-1.5 text-[10px] text-orange-500 italic font-medium flex items-center gap-1">
+                            <i class="fas fa-info-circle text-[9px]"></i> thí sinh tự chọn
+                        </p>
+                    </template>
                     <input type="hidden" name="kv_uu_tien" :value="kv" x-show="!isCustomKv">
                 </div>
 
@@ -143,9 +145,9 @@ $mapDisplay = function($v) {
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
                         <?php foreach ($subjects as $code => $name): ?>
-                            <tr class="border-t border-slate-50 even:bg-slate-50/50 transition-colors">
-                                <td class="px-5 py-1.5 text-slate-600 border-r border-slate-50 font-medium sticky left-0 bg-inherit z-0 flex items-center gap-2 tracking-tighter">
-                                    <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                            <tr class="border-t border-slate-50 even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors group">
+                                <td class="px-5 py-1 text-slate-600 border-r border-slate-50 font-medium sticky left-0 bg-inherit z-0 flex items-center gap-2 tracking-tighter">
+                                    <span class="w-1 h-1 rounded-full bg-slate-200 group-hover:bg-[#0066FF] transition-colors"></span>
                                     <?= $name ?>
                                 </td>
                                 <?php foreach ([10, 11, 12] as $g): 
@@ -160,8 +162,8 @@ $mapDisplay = function($v) {
                             </tr>
                         <?php endforeach; ?>
 
-                        <tr class="bg-blue-50/30 text-slate-700 border-t-2 border-slate-200 font-bold">
-                            <td class="px-5 py-2 border-r sticky left-0 bg-[#f8fafc] z-0 border-slate-200 uppercase tracking-widest text-[#0066FF]">ĐTB chung</td>
+                        <tr class="bg-blue-50/30 text-slate-700 border-t-2 border-slate-200">
+                            <td class="px-5 py-2 border-r sticky left-0 bg-[#f8fafc] z-0 border-slate-200 tracking-widest text-[#0066FF]">ĐTB chung</td>
                             <?php foreach ([10, 11, 12] as $g): 
                                 $gradeRow = $rowsByGrade[$g] ?? [];
                             ?>

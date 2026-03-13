@@ -30,18 +30,16 @@
             </div>
 
             <div class="md:col-span-4">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex justify-between items-center">
-                    KV ưu tiên
-                    <?php if ($user['is_custom_kv'] ?? 0): ?>
-                        <span class="px-2 py-0.5 bg-orange-100 text-orange-600 text-[9px] font-black rounded-md border border-orange-200 flex items-center gap-1 animate-pulse">
-                            <i class="fas fa-exclamation-circle text-[8px]"></i> THÍ SINH TỰ CHỌN
-                        </span>
-                    <?php endif; ?>
-                </label>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">KV ưu tiên</label>
                 <div class="relative">
                     <i class="fas fa-star absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     <input type="text" disabled value="<?= $user['khu_vuc_uu_tien'] ?? '--' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
                 </div>
+                <?php if ($user['is_custom_kv'] ?? 0): ?>
+                    <p class="mt-1.5 text-[10px] text-orange-500 italic font-medium flex items-center gap-1">
+                        <i class="fas fa-info-circle text-[9px]"></i> thí sinh tự chọn
+                    </p>
+                <?php endif; ?>
             </div>
 
             <div class="md:col-span-4">
@@ -94,7 +92,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
                         <?php foreach ($subjects as $code => $name): ?>
-                            <tr class="border-t border-slate-50 even:bg-slate-50/50 transition-colors">
+                            <tr class="border-t border-slate-50 even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors cursor-default">
                                 <td class="px-5 py-1.5 text-slate-600 border-r border-slate-50 font-medium sticky left-0 bg-inherit z-0 flex items-center gap-2 tracking-tighter">
                                     <span class="w-1 h-1 rounded-full bg-slate-200"></span>
                                     <?= $name ?>
@@ -105,8 +103,8 @@
                             </tr>
                         <?php endforeach; ?>
 
-                        <tr class="bg-blue-50/30 font-medium text-xs text-slate-700 border-t-2 border-slate-200">
-                            <td class="px-5 py-2 border-r sticky left-0 bg-[#f8fafc] z-0 border-slate-200 uppercase tracking-widest text-[#0066FF] font-bold">Điểm TB chung</td>
+                        <tr class="bg-blue-50/30 text-xs text-slate-700 border-t-2 border-slate-200">
+                            <td class="px-5 py-2 border-r sticky left-0 bg-[#f8fafc] z-0 border-slate-200 tracking-widest text-[#0066FF]">Điểm TB chung</td>
                             <td class="px-2 py-2 text-center border-r border-slate-200 font-medium text-slate-600"><?= $getScore(10, 'diem_tb_ca_nam') ?></td>
                             <td class="px-2 py-2 text-center border-r border-slate-200 font-medium text-slate-600"><?= $getScore(11, 'diem_tb_ca_nam') ?></td>
                             <td class="px-2 py-2 text-center font-medium text-[#0066FF]"><?= $getScore(12, 'diem_tb_ca_nam') ?></td>
