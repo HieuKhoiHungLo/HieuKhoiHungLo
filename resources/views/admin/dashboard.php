@@ -15,9 +15,20 @@
     }
 }" x-init="$watch('activeTab', tab => initTab(tab)); $nextTick(() => initTab(activeTab));">
     <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h2 class="text-xl lg:text-2xl font-black text-slate-800 font-heading uppercase tracking-tight">Thống kê & Báo cáo</h2>
-            <p class="text-xs lg:text-sm text-slate-500 font-medium">Tổng quan dữ liệu tuyển sinh</p>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+            <div>
+                <h2 class="text-xl lg:text-2xl font-black text-slate-800 font-heading uppercase tracking-tight">Thống kê & Báo cáo</h2>
+            </div>
+            <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                <p class="text-[11px] lg:text-xs font-bold text-indigo-700">
+                    Đang truy cập: <span id="statOnlineTotal">0</span> 
+                    <span class="font-medium text-indigo-500 opacity-80">(Khách: <span id="statOnlineGuests">0</span>, Thí sinh: <span id="statOnlineUsers">0</span>, Quản trị: <span id="statOnlineAdmins">0</span>)</span>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -72,58 +83,89 @@
         </div>
     </div>
 
-    <div x-show="activeTab === 'overview'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-4">
-        <!-- Overview Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-            <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group">
-                <div class="relative z-10">
-                    <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-wider mb-1">Tổng hồ sơ</p>
-                    <p class="text-3xl lg:text-4xl font-black" id="statTotal"><?= $stats['total'] ?></p>
-                    <div class="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-4 text-[10px]">
-                        <div class="flex items-center gap-1.5 text-indigo-100">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                            <span>Hồ sơ đăng ký hôm nay: <strong id="recentToday" class="text-white">0</strong></span>
+    <div x-show="activeTab === 'overview'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" class="space-y-8">
+        <!-- Unified Stats Cards - Branded HVU Blue -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            <!-- Primary Card: Total (HVU Brand Blue) -->
+            <div class="p-5 rounded-2xl shadow-xl text-white relative overflow-hidden group transition-all duration-300 hover:-translate-y-1" style="background: linear-gradient(135deg, #0066FF 0%, #003D99 100%) !important;">
+                <div class="relative z-10 flex flex-col justify-between h-full">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-white/80 text-[10px] font-black uppercase tracking-widest font-heading">Tổng hồ sơ</p>
+                            <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                                <i class="fas fa-users-viewfinder text-sm text-white"></i>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1.5 text-indigo-100">
-                            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                            <span>Hồ sơ đăng ký trong tuần: <strong id="recentWeek" class="text-white">0</strong></span>
+                        <p class="text-4xl lg:text-5xl font-black mb-4 tracking-tight font-heading" id="statTotal"><?= $stats['total'] ?></p>
+                    </div>
+                    <div class="flex flex-col gap-2.5 border-t border-white/20 pt-4 mt-auto">
+                        <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span class="text-blue-100 uppercase tracking-tighter">Hôm nay:</span>
+                            <span id="recentToday" class="bg-white/20 text-white px-2 py-0.5 rounded-lg font-black backdrop-blur-sm">0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span class="text-blue-100 uppercase tracking-tighter">Trong tuần:</span>
+                            <span id="recentWeek" class="bg-white/20 text-white px-2 py-0.5 rounded-lg font-black backdrop-blur-sm">0</span>
                         </div>
                     </div>
                 </div>
-                <i class="fas fa-users absolute -bottom-4 -right-4 text-8xl text-blue-400 opacity-20 transition transform group-hover:scale-110"></i>
+                <!-- Brand Accent Decoration -->
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-3xl transition-transform group-hover:scale-125"></div>
             </div>
 
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 lg:block">
-                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl lg:mb-4">
-                    <i class="fas fa-check text-xl"></i>
+            <!-- Card: Approved -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest font-heading mb-1">Đã duyệt</p>
+                        <p class="text-3xl font-black text-slate-900 tracking-tight font-heading" id="statApproved"><?= $stats['approved'] ?></p>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100/50">
+                        <i class="fas fa-check-circle text-xl"></i>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Đã duyệt</p>
-                    <p class="text-2xl lg:text-3xl font-black text-slate-800" id="statApproved"><?= $stats['approved'] ?></p>
-                    <div class="mt-1 text-[10px] font-medium text-emerald-600" id="approvalRate">
-                        <?= $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100, 1) : 0 ?>% tỷ lệ duyệt
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-1.5 px-0.5">
+                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Tỷ lệ duyệt</span>
+                        <span class="text-[11px] font-black text-emerald-600" id="approvalRate"><?= $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100, 1) : 0 ?>%</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="approvalRateBar" class="h-full bg-emerald-500 rounded-full transition-all duration-1000" style="width: <?= $stats['total'] > 0 ? ($stats['approved'] / $stats['total']) * 100 : 0 ?>%"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 lg:block">
-                <div class="p-3 bg-amber-50 text-amber-600 rounded-xl lg:mb-4">
-                    <i class="fas fa-clock text-xl"></i>
+            <!-- Card: Pending -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest font-heading mb-1">Chờ duyệt</p>
+                        <p class="text-3xl font-black text-slate-900 tracking-tight font-heading" id="statPending"><?= $stats['pending'] ?></p>
+                    </div>
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100/50">
+                        <i class="fas fa-hourglass-half text-xl"></i>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Chờ duyệt</p>
-                    <p class="text-2xl lg:text-3xl font-black text-slate-800" id="statPending"><?= $stats['pending'] ?></p>
-                    <div class="mt-1 text-[10px] font-medium text-amber-600">Cần xử lý</div>
+                <div class="mt-4">
+                    <span class="inline-flex items-center px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-wider border border-amber-200/50">
+                        <i class="fas fa-bolt mr-1.5 opacity-70"></i> Cần xử lý ngay
+                    </span>
                 </div>
             </div>
 
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 lg:block">
-                <div class="p-3 bg-rose-50 text-rose-600 rounded-xl lg:mb-4">
-                    <i class="fas fa-times text-xl"></i>
+            <!-- Card: Rejected -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest font-heading mb-1">Từ chối</p>
+                        <p class="text-3xl font-black text-slate-900 tracking-tight font-heading" id="statRejected"><?= $stats['rejected'] ?></p>
+                    </div>
+                    <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100/50">
+                        <i class="fas fa-times-circle text-xl"></i>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Từ chối</p>
-                    <p class="text-2xl lg:text-3xl font-black text-slate-800" id="statRejected"><?= $stats['rejected'] ?></p>
+                <div class="mt-4">
+                    <div class="w-full h-2 bg-slate-50 rounded-full border border-slate-100"></div>
                 </div>
             </div>
         </div>
@@ -601,13 +643,9 @@
 
         // UI Loading State Start
         isFetching = true;
-        if (typeof window.Loading !== 'undefined') window.Loading.show();
         if (buttonSpinner) buttonSpinner.style.display = 'inline-block';
         if (chartSpinner) chartSpinner.style.display = 'flex';
         if (btnFilter) btnFilter.disabled = true;
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const params = new URLSearchParams({
             type: type,
@@ -617,11 +655,13 @@
             end: document.getElementById('filterEnd')?.value || ''
         });
 
+        // Use a 20s timeout for slow network/Supabase cold start
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
         fetch(`<?= url('/admin/stats/api?') ?>${params.toString()}`, {
                 signal: controller.signal,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -629,41 +669,31 @@
             })
             .then(data => {
                 console.log(`Stats Data (${type}) Received:`, data);
-                // Merge into global data storage
+                // Merge into global persistent data
                 window.lastStatsData = { ...window.lastStatsData, ...data };
                 updateUI(data, type);
 
-                // Re-render charts for THIS tab if active
+                // Re-render charts for CURRENT tab
                 const root = document.getElementById('dashboardRoot');
                 if (root && typeof Alpine !== 'undefined') {
                     const alpine = Alpine.$data(root);
                     if (alpine && alpine.activeTab === type) {
-                        setTimeout(() => window.renderChartsByTab(type), 50);
+                        setTimeout(() => window.renderChartsByTab(type), 100);
                     }
                 }
             })
             .catch(error => {
                 console.error(`Dashboard Fetch Error (${type}):`, error);
-                if (error.name !== 'AbortError') {
-                    if (typeof showToast === 'function') {
-                        showToast(`Không thể tải dữ liệu ${type}. Vui lòng thử lại.`, "error");
-                    }
+                if (error.name !== 'AbortError' && typeof showToast === 'function') {
+                    showToast(`Không thể tải dữ liệu ${type}. Vui lòng thử lại.`, "error");
                 }
             })
             .finally(() => {
                 clearTimeout(timeoutId);
                 isFetching = false;
-
-                console.log("Stats fetch completed, hiding spinners...");
-
-                // UI Loading State End
-                if (typeof window.Loading !== 'undefined') window.Loading.hide();
-                if (buttonSpinner) buttonSpinner.style.setProperty('display', 'none', 'important');
-                if (chartSpinner) chartSpinner.style.setProperty('display', 'none', 'important');
+                if (buttonSpinner) buttonSpinner.style.display = 'none';
+                if (chartSpinner) chartSpinner.style.display = 'none';
                 if (btnFilter) btnFilter.disabled = false;
-
-                // Force a resize to ensure charts are correct on mobile
-                setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
             });
     };
 
@@ -684,11 +714,25 @@
                 if (el) el.textContent = val ?? 0;
             }
 
+            // Online Stats
+            if (data.online_stats) {
+                const os = data.online_stats;
+                if (document.getElementById('statOnlineTotal')) document.getElementById('statOnlineTotal').textContent = os.total;
+                if (document.getElementById('statOnlineGuests')) document.getElementById('statOnlineGuests').textContent = os.guests;
+                if (document.getElementById('statOnlineUsers')) document.getElementById('statOnlineUsers').textContent = os.users;
+                if (document.getElementById('statOnlineAdmins')) document.getElementById('statOnlineAdmins').textContent = os.admins;
+            }
+
             const rateEl = document.getElementById('approvalRate');
+            const rateBar = document.getElementById('approvalRateBar');
             if (rateEl) {
                 const total = parseInt(ov.total) || 0;
                 const approved = parseInt(ov.approved) || 0;
-                rateEl.textContent = (total > 0 ? (approved / total * 100).toFixed(1) : 0) + '% tỷ lệ duyệt';
+                const percentage = total > 0 ? (approved / total * 100).toFixed(1) : 0;
+                rateEl.textContent = percentage + '%';
+                if (rateBar) {
+                    rateBar.style.width = percentage + '%';
+                }
             }
 
             if (document.getElementById('recentToday') && data.recent) document.getElementById('recentToday').textContent = data.recent.today;
@@ -815,6 +859,20 @@
                 sessionSelect.value = "";
             }
         });
+
+        // Auto-refresh online stats every 30 seconds
+        setInterval(function() {
+            // Only refresh if 'overview' tab is active to save resources
+            const root = document.getElementById('dashboardRoot');
+            if (root && typeof Alpine !== 'undefined') {
+                const alpine = Alpine.$data(root);
+                if (alpine && alpine.activeTab === 'overview') {
+                    // Fetch with small type to minimize impact
+                    // For now, full overview fetch is fine as it's cached
+                    window.fetchStats('overview');
+                }
+            }
+        }, 30000);
     });
 </script>
 

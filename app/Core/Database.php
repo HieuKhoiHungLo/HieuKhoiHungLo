@@ -19,6 +19,12 @@ class Database {
         if (empty($dsn)) {
             die("DB Connection Error: DSN is empty. Check config/db.php.");
         }
+        if (empty($user)) {
+            die("DB Connection Error: DB_USERNAME is empty. Check your .env file.");
+        }
+        if (empty($pass)) {
+            die("DB Connection Error: DB_PASSWORD is empty. Check your .env file.");
+        }
 
         try {
             $this->pdo = new PDO($dsn, $user, $pass, $options);

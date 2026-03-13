@@ -2,13 +2,6 @@
 <div id="form_personal" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
     <div class="bg-white rounded-[2rem] p-8 border border-blue-100 shadow-xl shadow-blue-50/50 overflow-visible">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
-        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
-                <i class="fas fa-user-edit"></i>
-            </div>
-            <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Chỉnh sửa Thông tin Cá nhân</h3>
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Họ tên -->
             <div class="col-span-2 md:col-span-1">
@@ -28,82 +21,64 @@
                 </div>
             </div>
 
-            <!-- Ngày sinh -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ngày sinh</label>
-                <div class="relative">
-                    <i class="fas fa-calendar-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="date" name="ngay_sinh" value="<?= $user['ngay_sinh'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+            <!-- Row: Ngày sinh, Giới tính, Dân tộc -->
+            <div class="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Ngày sinh -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ngày sinh</label>
+                    <div class="relative">
+                        <i class="fas fa-calendar-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="date" name="ngay_sinh" value="<?= $user['ngay_sinh'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                    </div>
+                </div>
+
+                <!-- Giới tính -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Giới tính</label>
+                    <div class="relative">
+                        <i class="fas fa-venus-mars absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <select name="gioi_tinh" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
+                            <option value="Nam" <?= $user['gioi_tinh'] == 'Nam' ? 'selected' : '' ?>>Nam</option>
+                            <option value="Nữ" <?= $user['gioi_tinh'] == 'Nữ' ? 'selected' : '' ?>>Nữ</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Dân tộc -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dân tộc</label>
+                    <div class="relative">
+                        <i class="fas fa-users absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="text" name="dan_toc" value="<?= $user['dan_toc'] ?? '' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                    </div>
                 </div>
             </div>
 
-            <!-- Giới tính -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Giới tính</label>
-                <div class="relative">
-                    <i class="fas fa-venus-mars absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <select name="gioi_tinh" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
-                        <option value="Nam" <?= $user['gioi_tinh'] == 'Nam' ? 'selected' : '' ?>>Nam</option>
-                        <option value="Nữ" <?= $user['gioi_tinh'] == 'Nữ' ? 'selected' : '' ?>>Nữ</option>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+            <!-- Row: SĐT và Email -->
+            <div class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- SĐT -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Số điện thoại</label>
+                    <div class="relative">
+                        <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="text" name="dien_thoai" value="<?= $user['dien_thoai'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Email</label>
+                    <div class="relative">
+                        <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                        <input type="email" name="email" value="<?= $user['email'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
+                    </div>
                 </div>
             </div>
 
-            <!-- Dân tộc -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dân tộc</label>
-                <div class="relative">
-                    <i class="fas fa-users absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="text" name="dan_toc" value="<?= $user['dan_toc'] ?? '' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                </div>
-            </div>
-
-            <!-- SĐT -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Số điện thoại</label>
-                <div class="relative">
-                    <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="text" name="dien_thoai" value="<?= $user['dien_thoai'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                </div>
-            </div>
-
-            <!-- Email -->
-            <div class="col-span-2 md:col-span-1">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Email</label>
-                <div class="relative">
-                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="email" name="email" value="<?= $user['email'] ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none">
-                </div>
-            </div>
-
-            <!-- Năm tốt nghiệp -->
-            <div class="col-span-2 md:col-span-1">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Năm tốt nghiệp</label>
-                <div class="relative">
-                    <i class="fas fa-calendar-check absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <select name="nam_tot_nghiep" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none appearance-none">
-                        <?php
-                        $currentYear = date('Y');
-                        for ($y = $currentYear; $y >= $currentYear - 10; $y--): ?>
-                            <option value="<?= $y ?>" <?= ($user['nam_tot_nghiep'] ?? '') == $y ? 'selected' : '' ?>><?= $y ?></option>
-                        <?php endfor; ?>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
-                </div>
-            </div>
         </div>
 
 
-
-        <div class="h-px bg-slate-100 my-6"></div>
-
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#0066FF] shadow-sm">
-                <i class="fas fa-map-marker-alt"></i>
-            </div>
-            <h3 class="font-black text-slate-800 text-lg uppercase tracking-tight">Hộ khẩu & Địa chỉ Liên lạc</h3>
-        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Hộ khẩu thường trú -->

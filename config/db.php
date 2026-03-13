@@ -4,11 +4,11 @@
 // MẪU KẾT NỐI CSDL SUPABASE
 
 // MẪU KẾT NỐI CSDL SUPABASE
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$db   = $_ENV['DB_DATABASE'] ?? 'test';
-$user = $_ENV['DB_USERNAME'] ?? 'root'; 
-$pass = $_ENV['DB_PASSWORD'] ?? '';
-$port = $_ENV['DB_PORT'] ?? '5432';
+$host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: '127.0.0.1';
+$db   = $_ENV['DB_DATABASE'] ?? getenv('DB_DATABASE') ?: 'test';
+$user = $_ENV['DB_USERNAME'] ?? getenv('DB_USERNAME') ?: 'root'; 
+$pass = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
+$port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '5432';
 
 $dsn = "pgsql:host=$host;port=$port;dbname=$db";
 

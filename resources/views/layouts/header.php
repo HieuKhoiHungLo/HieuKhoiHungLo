@@ -7,9 +7,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="theme-color" content="#BE1E2D">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title><?= isset($title) ? $title : 'Tuyển sinh Đại học Hùng Vương' ?></title>
+
+    <!-- SEO & Social Media Metadata (Open Graph / Zalo / Facebook) -->
+    <?php
+    $pageTitle = isset($title) ? $title : 'Tuyển sinh Đại học Hùng Vương 2026 - Khởi đầu vững chắc';
+    $pageDesc = $description ?? 'Cổng thông tin tuyển sinh chính thức của Trường Đại học Hùng Vương năm 2026. Đăng ký xét tuyển trực tuyến nhanh chóng, chính xác.';
+    $pageUrl = url($_SERVER['REQUEST_URI']);
+    $pageImage = url('/assets/img/Logo.png'); // Official Logo
+    ?>
+    <title><?= $pageTitle ?></title>
+    <meta name="description" content="<?= $pageDesc ?>">
+    <link rel="canonical" href="<?= $pageUrl ?>">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?= $pageUrl ?>">
+    <meta property="og:title" content="<?= $pageTitle ?>">
+    <meta property="og:description" content="<?= $pageDesc ?>">
+    <meta property="og:image" content="<?= $pageImage ?>">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="<?= $pageUrl ?>">
+    <meta property="twitter:title" content="<?= $pageTitle ?>">
+    <meta property="twitter:description" content="<?= $pageDesc ?>">
+    <meta property="twitter:image" content="<?= $pageImage ?>">
 
     <!-- Favicon & PWA Icons -->
     <link rel="icon" type="image/png" href="<?= url('/assets/img/Logo.png') ?>">

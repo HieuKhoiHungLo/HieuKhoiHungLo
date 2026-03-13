@@ -25,7 +25,7 @@ class PdfService {
         if (!$candidate) return null;
 
         // Get aspirations
-        $stmt = $this->db->prepare("SELECT nv.*, n.ten_nganh FROM nguyen_vong nv JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh WHERE nv.so_cccd = ? ORDER BY nv.thu_tu");
+        $stmt = $this->db->prepare("SELECT nv.*, n.ten_nganh FROM nguyen_vong nv JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh WHERE nv.so_cccd = ? ORDER BY nv.thu_tu_nguyen_vong");
         $stmt->execute([$soCccd]);
         $aspirations = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

@@ -2,9 +2,36 @@
 namespace App\Middleware;
 
 use App\Models\MasterData;
+use App\Repositories\OnlineTrackingRepository;
 
 class SecurityMiddleware {
     
+    /**
+     * Track online activity
+     */
+    public static function trackOnlineActivity() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $sessionId = session_id();
+        $userId = $_SESSION['user_id'] ?? null;
+        $adminId = $_SESSION['admin_id'] ?? null;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+        }
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        try {
+            $repo = new OnlineTrackingRepository();
+            $repo->trackActivity($sessionId, $userId, $adminId, $ip, $userAgent);
+        } catch (\Exception $e) {
+            // Silently fail to not break the app if DB is busy
+            error_log("Online Tracking Error: " . $e->getMessage());
+        }
+    }
+
     /**
      * Generate CSRF token
      */
@@ -151,6 +178,9 @@ class SecurityMiddleware {
  * Check session timeout for admin and student (configurable minutes)
  */
 public static function checkSessionTimeout($timeoutMinutes = 30) {
+    // Track activity first
+    self::trackOnlineActivity();
+
     $timeoutSeconds = $timeoutMinutes * 60;
     
     // Admin timeout

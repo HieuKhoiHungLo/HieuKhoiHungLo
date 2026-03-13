@@ -19,10 +19,13 @@ class ThiSinh extends Model {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false) {
-        // 1. Build Base Query to get Candidates first (Optimize OFFSET/LIMIT)
+    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = []) {
         $sql = "SELECT t.* FROM {$this->table} t WHERE 1=1";
         $params = [];
+
+        if ($excludeTrash) {
+            $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+        }
 
         if (!empty($search)) {
             $sql .= " AND (ho_va_ten LIKE ? OR so_cccd LIKE ? OR email LIKE ?)";
@@ -42,41 +45,61 @@ class ThiSinh extends Model {
         }
         
         if ($sessionId) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = t.so_cccd AND dot_tuyen_sinh_id = ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
             $params[] = $sessionId;
+        } elseif ($year) {
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
+            $params[] = $year;
         }
 
         if ($onlyEditRequests) {
             $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
         }
 
-        // Add Order By
-        // Note: Ordering by 'has_edit_request' is tricky without subquery/join. 
-        // We can keep it simple: Order by Created At, OR join specifically for ordering if strictly needed.
-        // For performance, let's optimize core list. If sort by edit request is P0, we need a join.
-        // Let's add a lightweight LEFT JOIN only if we need to sort by complex field, 
-        // OR just keep it simple: sort by ngay_tao DESC.
-        // The original query sorted by `has_edit_request DESC`. To keep this behavior without N+1 in SELECT:
-        // We SHOULD Join with ho_so_xet_tuyen for sorting/filtering anyway.
-        
-        // Revised Strategy: LEFT JOIN for sorting and data fetching in one go IS better than dependent subquery SELECTs
-        // PostGres optimizes JOINs well.
-        
-        $selectSql = "SELECT t.*, 
-                       string_agg(DISTINCT nv.trang_thai, ', ') as statuses,
-                       MAX(hs.yeu_cau_chinh_sua) as has_edit_request
-                      FROM {$this->table} t
-                      LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd
-                      LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
-                      WHERE 1=1";
-                      
-        // BUT, if we JOIN, pagination limit applies to Result Rows (which might be multiplied by nguyen_vong).
-        // GROUP BY is needed.
-        
-        // Let's stick to the "Fetch IDs first" strategy (Eager Load) which is safest for Pagination + One-to-Many.
-        
-        // 1. Fetch filtered Candidates
-        $sql .= " ORDER BY ngay_tao DESC LIMIT ? OFFSET ?";
+        // Extra column-specific filters
+        if (!empty($extraFilters)) {
+            foreach ($extraFilters as $field => $val) {
+                if ($val === '' || $val === null) continue;
+                if ($field === 'phone') {
+                    $sql .= " AND t.dien_thoai LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'dob') {
+                    $sql .= " AND t.ngay_sinh::text LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'province') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'school') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'nv1') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'gender') {
+                    $sql .= " AND t.gioi_tinh LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'ethnicity') {
+                    $sql .= " AND t.dan_toc LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'area') {
+                    $sql .= " AND t.khu_vuc_uu_tien LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'object') {
+                    $sql .= " AND t.doi_tuong_uu_tien LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'grad_year') {
+                    $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
+                    $params[] = "%$val%";
+                }
+            }
+        }
+
+        // Validate sort field
+        $allowedSort = ['ho_va_ten', 'so_cccd', 'ngay_sinh', 'dien_thoai', 'ngay_tao'];
+        if (!in_array($sort, $allowedSort)) $sort = 'ngay_tao';
+        $dir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
+
+        $sql .= " ORDER BY $sort $dir LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
 
@@ -84,62 +107,60 @@ class ThiSinh extends Model {
         $stmt->execute($params);
         $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (empty($candidates)) {
-            return [];
-        }
+        if (empty($candidates)) return [];
 
-        // 2. Extract CCCDs
         $cccds = array_column($candidates, 'so_cccd');
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
 
-        // 3. Eager Load Statuses (nguyen_vong)
         $statusSql = "SELECT so_cccd, string_agg(trang_thai, ', ') as statuses 
                       FROM nguyen_vong 
                       WHERE so_cccd IN ($placeholders) 
                       GROUP BY so_cccd";
         $stmtStatus = $this->db->prepare($statusSql);
         $stmtStatus->execute($cccds);
-        $statusMap = [];
-        while ($row = $stmtStatus->fetch(PDO::FETCH_ASSOC)) {
-            $statusMap[$row['so_cccd']] = $row['statuses'];
-        }
+        $statusMap = $stmtStatus->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        // 4. Eager Load Edit Requests (ho_so_xet_tuyen)
-        // Note: Filter by session? Maybe, but usually has_edit_request is global or we want to see any.
-        // Original logic: "AND hs.yeu_cau_chinh_sua = TRUE" count > 0
         $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request 
                     FROM ho_so_xet_tuyen 
                     WHERE so_cccd IN ($placeholders) AND yeu_cau_chinh_sua = TRUE 
                     GROUP BY so_cccd";
         $stmtEdit = $this->db->prepare($editSql);
         $stmtEdit->execute($cccds);
-        $editMap = [];
-        while ($row = $stmtEdit->fetch(PDO::FETCH_ASSOC)) {
-            $editMap[$row['so_cccd']] = $row['has_edit_request'];
+        $editMap = $stmtEdit->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        // Fetch display names for province and school
+        $infoSql = "SELECT t.so_cccd, p.ten_tinh as province_name, s.ten_truong as school_name, nv.ten_nganh as nv1
+                    FROM {$this->table} t
+                    LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
+                    LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                    LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND nv.thu_tu_nguyen_vong = 1
+                    WHERE t.so_cccd IN ($placeholders)";
+        $stmtInfo = $this->db->prepare($infoSql);
+        $stmtInfo->execute($cccds);
+        $infoMap = [];
+        while($r = $stmtInfo->fetch(PDO::FETCH_ASSOC)) {
+            $infoMap[$r['so_cccd']] = $r;
         }
 
-        // 5. Merge Data
         foreach ($candidates as &$candidate) {
             $cccd = $candidate['so_cccd'];
             $candidate['statuses'] = $statusMap[$cccd] ?? '';
-            $candidate['has_edit_request'] = $editMap[$cccd] ?? false;
+            $candidate['has_edit_request'] = !empty($editMap[$cccd]);
+            $candidate['province_name'] = $infoMap[$cccd]['province_name'] ?? '';
+            $candidate['school_name'] = $infoMap[$cccd]['school_name'] ?? '';
+            $candidate['nv1'] = $infoMap[$cccd]['nv1'] ?? '';
         }
-
-        // 6. Sort (Optional, since we lost 'ORDER BY has_edit_request' from SQL)
-        // If sorting by `has_edit_request` is critical, we can do it in PHP code since page size is small (20).
-        usort($candidates, function($a, $b) {
-            if ($a['has_edit_request'] == $b['has_edit_request']) {
-                return 0; // Keep original order (ngay_tao DESC)
-            }
-            return ($a['has_edit_request'] ? -1 : 1);
-        });
 
         return $candidates;
     }
 
-    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false) {
+    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = []) {
         $sql = "SELECT COUNT(*) FROM {$this->table} t WHERE 1=1";
         $params = [];
+
+        if ($excludeTrash) {
+            $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+        }
 
         if (!empty($search)) {
             $sql .= " AND (ho_va_ten LIKE ? OR so_cccd LIKE ? OR email LIKE ?)";
@@ -159,20 +180,61 @@ class ThiSinh extends Model {
         }
         
         if ($sessionId) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = t.so_cccd AND dot_tuyen_sinh_id = ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
             $params[] = $sessionId;
+        } elseif ($year) {
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
+            $params[] = $year;
         }
 
         if ($onlyEditRequests) {
             $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
         }
 
+        // Extra column-specific filters
+        if (!empty($extraFilters)) {
+            foreach ($extraFilters as $field => $val) {
+                if ($val === '' || $val === null) continue;
+                if ($field === 'phone') {
+                    $sql .= " AND t.dien_thoai LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'dob') {
+                    $sql .= " AND t.ngay_sinh::text LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'province') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'school') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'nv1') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                    $params[] = "%$val%";
+                } elseif ($field === 'gender') {
+                    $sql .= " AND t.gioi_tinh LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'ethnicity') {
+                    $sql .= " AND t.dan_toc LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'area') {
+                    $sql .= " AND t.khu_vuc_uu_tien LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'object') {
+                    $sql .= " AND t.doi_tuong_uu_tien LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'grad_year') {
+                    $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
+                    $params[] = "%$val%";
+                }
+            }
+        }
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchColumn();
+        return (int)$stmt->fetchColumn();
     }
 
-    public function getStats($sessionId = null, $year = null) {
+    public function getStats($sessionId = null, $year = null, $startDate = null, $endDate = null) {
         $stats = [
             'total' => 0,
             'pending' => 0,
@@ -193,6 +255,12 @@ class ThiSinh extends Model {
                 WHERE 1=1";
 
         $params = [];
+
+        if ($startDate && $endDate) {
+            $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
+            $params[] = $startDate . ' 00:00:00';
+            $params[] = $endDate . ' 23:59:59';
+        }
 
         if ($sessionId) {
             $sql .= " AND hs.dot_tuyen_sinh_id = ?";
@@ -494,37 +562,29 @@ class ThiSinh extends Model {
             $params[] = $sessionId;
         }
 
-        $sql = "
-            SELECT
-                CASE WHEN ts.gioi_tinh = 'Nam' THEN 'Nam'
-                     WHEN ts.gioi_tinh = 'Nữ'  THEN 'Nữ'
-                     ELSE 'Khác' END                        AS gender_label,
-                COALESCE(ts.khu_vuc_uu_tien,  'Không')     AS area_label,
-                COALESCE(ts.doi_tuong_uu_tien, 'Không')    AS object_label,
-                ts.so_cccd
-            FROM {$this->table} ts
-            JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-            $where
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $sqlGender = "SELECT 'gender' as type, COALESCE(ts.gioi_tinh, 'Khác') as label, COUNT(*) as count 
+                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.gioi_tinh";
+        
+        $sqlArea = "SELECT 'area' as type, COALESCE(ts.khu_vuc_uu_tien, 'Không') as label, COUNT(*) as count 
+                    FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.khu_vuc_uu_tien";
+        
+        $sqlObject = "SELECT 'object' as type, COALESCE(ts.doi_tuong_uu_tien, 'Không') as label, COUNT(*) as count 
+                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.doi_tuong_uu_tien";
+
+        $combinedSql = "($sqlGender) UNION ALL ($sqlArea) UNION ALL ($sqlObject)";
+        $allParams = array_merge($params, $params, $params);
+        
+        $stmt = $this->db->prepare($combinedSql);
+        $stmt->execute($allParams);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Aggregate in PHP (faster than multiple GROUP BY round-trips to Supabase)
-        $gender = []; $area = []; $object = [];
-        foreach ($rows as $r) {
-            $gender[$r['gender_label']]  = ($gender[$r['gender_label']]  ?? 0) + 1;
-            $area[$r['area_label']]      = ($area[$r['area_label']]      ?? 0) + 1;
-            $object[$r['object_label']]  = ($object[$r['object_label']]  ?? 0) + 1;
+        $result = ['gender' => [], 'area' => [], 'object' => []];
+        foreach ($rows as $row) {
+            $type = $row['type'];
+            $result[$type][] = ['label' => $row['label'], 'count' => (int)$row['count']];
         }
 
-        $toArr = fn($map) => array_map(fn($label, $cnt) => ['label' => $label, 'count' => $cnt], array_keys($map), $map);
-
-        return [
-            'gender' => $toArr($gender),
-            'area'   => $toArr($area),
-            'object' => $toArr($object),
-        ];
+        return $result;
     }
 
     public function delete($cccd) {

@@ -4,6 +4,14 @@
 // Autoloader (load first for middleware)
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Load Env early (Before middleware and session)
+try {
+    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
+    $dotenv->load();
+} catch (\Exception $e) {
+    // Fail silently if .env not found
+}
+
 spl_autoload_register(function ($class) {
     $prefix = 'App\\';
     $base_dir = __DIR__ . '/../app/';
@@ -45,14 +53,6 @@ session_start();
 
 // Session timeout check (1 day = 1440 minutes)
 \App\Middleware\SecurityMiddleware::checkSessionTimeout(1440);
-
-// Load Env
-try {
-    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
-    $dotenv->load();
-} catch (\Exception $e) {
-    // Fail silently if .env not found
-}
 
 // --- REMEMBER ME AUTO-LOGIN LOGIC (Secure Hash Version) ---
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['admin_id'])) {

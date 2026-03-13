@@ -3,18 +3,88 @@
 <?php include __DIR__ . '/partials/_stats.php'; ?>
 
 <!-- Main Content Area with AlpineJS context -->
+<!-- Custom Table Styles -->
+<style>
+    .candidate-table-container {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+    .candidate-table {
+        border-spacing: 0;
+        border-collapse: separate;
+    }
+    .candidate-table th, .candidate-table td {
+        padding: 0.25rem 0.75rem !important; /* Compact padding */
+    }
+    /* Alternating row colors */
+    .candidate-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    .candidate-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+    /* Hover effect: Change font color and background */
+    .candidate-table tbody tr:hover td {
+        color: #1e3a8a !important; /* Darker, more prominent blue text */
+        background-color: #e0f2fe !important; /* Distinct light blue background */
+    }
+    .candidate-table tbody tr:hover td a, 
+    .candidate-table tbody tr:hover td span,
+    .candidate-table tbody tr:hover td p {
+        color: #1e3a8a !important;
+    }
+    
+    /* Sticky Columns Support */
+    .sticky-col {
+        position: sticky;
+        background-color: inherit;
+        z-index: 10;
+        border-right: 1px solid #f1f5f9 !important;
+    }
+    .sticky-col-left-0 { left: 0; }
+    .sticky-col-left-1 { left: 40px; } /* Adjust based on checkbox width */
+    .sticky-col-left-2 { left: 80px; } /* Adjust based on STT width */
+    .sticky-col-left-3 { left: 180px; } /* Adjust based on Action width */
+    
+    thead th.sticky-col {
+        z-index: 20;
+        background-color: #f8fafc;
+    }
+    
+    /* Sort icon styling */
+    .sort-link {
+        color: #94a3b8;
+        transition: color 0.15s;
+    }
+    .sort-link.active {
+        color: #0066FF;
+    }
+</style>
+
 <div x-data="{ 
-    showCols: JSON.parse(localStorage.getItem('admin_cols')) || { 
-        cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
-        gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false
-    },
+    showCols: (function() {
+        let cols = JSON.parse(localStorage.getItem('admin_cols')) || { 
+            cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
+            gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false
+        };
+        // Enforce fixed columns
+        cols.cccd = true;
+        cols.ho_va_ten = true; // Added for name
+        cols.dob = true;
+        cols.phone = true;
+        cols.nv1 = true;
+        return cols;
+    })(),
+    fixedCols: ['cccd', 'ho_va_ten', 'dob', 'phone', 'nv1'],
     toggleCol(col) {
+        if (this.fixedCols.includes(col)) return;
         this.showCols[col] = !this.showCols[col];
         localStorage.setItem('admin_cols', JSON.stringify(this.showCols));
     },
     colLabel(col) {
         const labels = { 
             cccd: 'Số CCCD',
+            ho_va_ten: 'Họ tên',
             phone: 'Điện thoại',
             email: 'Email',
             province: 'Hộ khẩu', 

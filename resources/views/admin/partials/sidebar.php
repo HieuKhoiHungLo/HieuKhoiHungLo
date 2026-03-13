@@ -2,7 +2,7 @@
 <aside class="w-64 bg-[#0066FF] text-white flex-shrink-0 hidden md:flex flex-col shadow-2xl">
     <div class="p-6 border-b border-white/10 uppercase italic">
         <h1 class="text-xl font-black tracking-wider">HVU Portal</h1>
-        <p class="text-white/70 text-[10px] mt-1 font-bold">Hệ thống Tuyển sinh 2025</p>
+        <p class="text-white/70 text-[10px] mt-1 font-bold">Hệ thống Tuyển sinh 2026</p>
     </div>
     <nav class="flex-grow p-4 space-y-2 mt-4">
         <?php if(\App\Models\QuanTriVien::hasPermission($user, 'dashboard')): ?>

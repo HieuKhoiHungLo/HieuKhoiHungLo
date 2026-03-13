@@ -1,174 +1,138 @@
 <!-- View Mode -->
 <div id="view_academic" class="space-y-6">
-    <!-- Priority & School -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <!-- Trường THPT -->
-        <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md h-full">
-            <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
-            <div class="px-4 py-2 w-full">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center text-[10px]"><i class="fas fa-school"></i></span>
-                    <span class="text-[11px] font-bold text-sky-400 uppercase tracking-wider">Trường THPT Lớp 12</span>
+    <!-- Priority & School (Redesigned to match Tab 1) -->
+    <div class="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-50/50 overflow-visible mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-10">
+            <!-- Row 1: Tỉnh/TP (1/3) và Trường (2/3) -->
+            <div class="md:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉnh/TP</label>
+                <div class="relative">
+                    <i class="fas fa-map-marker-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" disabled value="<?= isset($provinceMap[$user['ma_tinh_lop_12']]) ? $provinceMap[$user['ma_tinh_lop_12']] : 'Chưa cập nhật' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
                 </div>
-                <div class="font-bold text-slate-800 text-base leading-tight">
-                    <?= $user['ten_truong_lop_12'] ?? 'Chưa cập nhật' ?>
+            </div>
+
+            <div class="md:col-span-8">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Trường THPT</label>
+                <div class="relative">
+                    <i class="fas fa-university absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" disabled value="<?= $user['ten_truong_lop_12'] ?? 'Chưa cập nhật' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
                 </div>
-                <div class="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-tight">
-                    <i class="fas fa-map-marker-alt mr-1"></i> <?= isset($provinceMap[$user['ma_tinh_lop_12']]) ? $provinceMap[$user['ma_tinh_lop_12']] : '' ?>
+            </div>
+
+            <!-- Row 2: Năm TN, KV ưu tiên, ĐT ưu tiên -->
+            <div class="md:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Năm tốt nghiệp</label>
+                <div class="relative">
+                    <i class="fas fa-calendar-check absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" disabled value="<?= $user['nam_tot_nghiep'] ?? 'Chưa cập nhật' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
+                </div>
+            </div>
+
+            <div class="md:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex justify-between items-center">
+                    KV ưu tiên
+                    <?php if ($user['is_custom_kv'] ?? 0): ?>
+                        <span class="px-2 py-0.5 bg-orange-100 text-orange-600 text-[9px] font-black rounded-md border border-orange-200 flex items-center gap-1 animate-pulse">
+                            <i class="fas fa-exclamation-circle text-[8px]"></i> THÍ SINH TỰ CHỌN
+                        </span>
+                    <?php endif; ?>
+                </label>
+                <div class="relative">
+                    <i class="fas fa-star absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" disabled value="<?= $user['khu_vuc_uu_tien'] ?? '--' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
+                </div>
+            </div>
+
+            <div class="md:col-span-4">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-blue-600">ĐT ưu tiên</label>
+                <div class="relative">
+                    <i class="fas fa-user-shield absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <input type="text" disabled value="<?= $user['doi_tuong_uu_tien'] ?? '--' ?>" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 cursor-default">
                 </div>
             </div>
         </div>
 
-        <!-- Năm Tốt Nghiệp -->
-        <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md h-full">
-            <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
-            <div class="px-4 py-2 w-full">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center text-[10px]"><i class="fas fa-calendar-check"></i></span>
-                    <span class="text-[11px] font-bold text-sky-400 uppercase tracking-wider">Năm Tốt Nghiệp</span>
-                </div>
-                <div class="font-bold text-slate-800 text-base leading-tight">
-                    <?= $user['nam_tot_nghiep'] ?? 'Chưa cập nhật' ?>
-                </div>
-                <div class="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-tight">
-                    <i class="fas fa-info-circle mr-1"></i> Quy định xét ưu tiên
-                </div>
-            </div>
-        </div>
-
-        <!-- KV -->
-        <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md">
-            <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
-            <div class="px-4 py-2 w-full">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center text-[10px]"><i class="fas fa-map"></i></span>
-                    <span class="text-[11px] font-bold text-sky-400 uppercase tracking-wider">Khu vực UT</span>
-                </div>
-                <div class="font-black text-slate-800 text-2xl">
-                    <?= $user['khu_vuc_uu_tien'] ?? '--' ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- ĐT -->
-        <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex transition-all hover:shadow-md">
-            <div class="w-1.5 bg-gradient-to-b from-sky-400 to-cyan-500 shrink-0"></div>
-            <div class="px-4 py-2 w-full">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center text-[10px]"><i class="fas fa-user-tag"></i></span>
-                    <span class="text-[11px] font-bold text-sky-400 uppercase tracking-wider">Đối tượng UT</span>
-                </div>
-                <div class="font-black text-slate-800 text-2xl">
-                    <?= $user['doi_tuong_uu_tien'] ?? '--' ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scores Table (Student Interface Style) -->
-    <div class="bg-white rounded-[1.5rem] border border-blue-100 overflow-hidden shadow-sm">
-        <div class="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center text-xs shadow-sm"><i class="fas fa-table"></i></span>
-                <div>
+        <!-- Scores Table Inner -->
+        <div class="bg-slate-50/30 rounded-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center text-xs shadow-sm"><i class="fas fa-table"></i></span>
                     <span class="block text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Chi tiết điểm học tập</span>
                 </div>
+                <div>
+                    <?php if (isset($user['da_du_6_ky']) && $user['da_du_6_ky']): ?>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-100"><i class="fas fa-check-circle"></i> Đủ 3 năm</span>
+                    <?php else: ?>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-100"><i class="fas fa-exclamation-triangle"></i> Thiếu điểm Lớp 12</span>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div>
-                <?php if (isset($user['da_du_6_ky']) && $user['da_du_6_ky']): ?>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-emerald-100"><i class="fas fa-check-circle"></i> Đã có đủ học bạ 3 năm</span>
-                <?php else: ?>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-100"><i class="fas fa-exclamation-triangle"></i> Chưa có điểm Lớp 12</span>
-                <?php endif; ?>
-            </div>
-        </div>
 
-        <?php
-        // Prepare Data
-        $rowsByGrade = [];
-        if (isset($academicRows) && is_array($academicRows)) {
-            foreach ($academicRows as $r) {
-                $rowsByGrade[$r['lop']] = $r;
+            <?php
+            // Prepare Data
+            $rowsByGrade = [];
+            if (isset($academicRows) && is_array($academicRows)) {
+                foreach ($academicRows as $r) {
+                    $rowsByGrade[$r['lop']] = $r;
+                }
             }
-        }
-        // Helper to safely get value
-        $getScore = function ($grade, $field) use ($rowsByGrade) {
-            return $rowsByGrade[$grade][$field] ?? '-';
-        };
-        ?>
+            $getScore = function ($grade, $field) use ($rowsByGrade) {
+                return $rowsByGrade[$grade][$field] ?? '-';
+            };
+            ?>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-widest">
-                        <th class="px-5 py-4 border-b border-r sticky left-0 bg-slate-50 z-10 w-48 text-left">Môn học</th>
-                        <th class="px-2 py-4 border-b border-r bg-slate-50 text-center">Lớp 10<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
-                        <th class="px-2 py-4 border-b border-r bg-slate-50 text-center">Lớp 11<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
-                        <th class="px-2 py-4 border-b bg-slate-50 text-center">Lớp 12<br><span class="text-[10px] normal-case font-medium">(ĐTB cả năm)</span></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
-                    <?php
-                    foreach ($subjects as $code => $name):
-                        $fieldCode = $code;
-                    ?>
-                        <tr class="hover:bg-blue-50/30 transition-colors group">
-                            <td class="px-5 py-3 font-medium text-slate-700 border-r sticky left-0 bg-white group-hover:bg-blue-50/30 z-0 border-slate-100 flex items-center gap-2" style="min-width: 180px;">
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-blue-400"></span>
-                                <?= $name ?>
-                            </td>
-
-                            <!-- Grade 10 -->
-                            <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(10, "diem_{$fieldCode}_cn") ?></td>
-
-                            <!-- Grade 11 -->
-                            <td class="px-2 py-3 text-center border-r border-slate-50 bg-white text-slate-700 font-bold"><?= $getScore(11, "diem_{$fieldCode}_cn") ?></td>
-
-                            <!-- Grade 12 -->
-                            <td class="px-2 py-3 text-center bg-white text-slate-700 border-r-0 font-bold"><?= $getScore(12, "diem_{$fieldCode}_cn") ?></td>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-700 uppercase font-bold text-xs tracking-widest">
+                            <th class="px-5 py-2 border-b border-r sticky left-0 bg-slate-50 z-10 w-48 text-left">Môn học</th>
+                            <th class="px-2 py-2 border-b border-r bg-slate-50 text-center">Lớp 10</th>
+                            <th class="px-2 py-2 border-b border-r bg-slate-50 text-center">Lớp 11</th>
+                            <th class="px-2 py-2 border-b bg-slate-50 text-center">Lớp 12</th>
                         </tr>
-                    <?php endforeach; ?>
-
-                    <!-- Avg Row -->
-                    <tr class="bg-slate-50 font-medium text-xs text-slate-700 border-t-2 border-slate-200">
-                        <td class="px-5 py-4 border-r sticky left-0 bg-slate-50 z-0 border-slate-200 uppercase tracking-widest">Điểm TB chung</td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(10, 'diem_tb_ca_nam') ?></td>
-                        <td class="px-2 py-4 text-center border-r border-slate-200"><?= $getScore(11, 'diem_tb_ca_nam') ?></td>
-                        <td class="px-2 py-4 text-center"><?= $getScore(12, 'diem_tb_ca_nam') ?></td>
-                    </tr>
-
-                    <?php
-                    $mapDisplay = function ($val) {
-                        $map = [
-                            'Gioi' => 'Giỏi',
-                            'Kha' => 'Khá',
-                            'Trung binh' => 'Trung bình',
-                            'TB' => 'Trung bình',
-                            'Yeu' => 'Yếu',
-                            'Tot' => 'Tốt',
-                            'TrungBinh' => 'Trung bình'
-                        ];
-                        return $map[$val] ?? $val;
-                    };
-                    ?>
-                    <!-- Rank Row -->
-                    <tr class="bg-white font-medium text-xs uppercase border-t border-slate-100 text-slate-700">
-                        <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-white border-slate-100 tracking-tighter">Kết quả Học Lực</td>
-                        <?php foreach ([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g == 12 ? ' border-r-0' : '' ?>"><?= $mapDisplay($getScore($g, 'hoc_luc_ca_nam')) ?></td>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50 text-xs text-slate-600">
+                        <?php foreach ($subjects as $code => $name): ?>
+                            <tr class="border-t border-slate-50 even:bg-slate-50/50 transition-colors">
+                                <td class="px-5 py-1.5 text-slate-600 border-r border-slate-50 font-medium sticky left-0 bg-inherit z-0 flex items-center gap-2 tracking-tighter">
+                                    <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                                    <?= $name ?>
+                                </td>
+                                <td class="px-2 py-1.5 text-center border-r border-slate-50 text-slate-600 font-medium tracking-tight"><?= $getScore(10, "diem_{$code}_cn") ?></td>
+                                <td class="px-2 py-1.5 text-center border-r border-slate-50 text-slate-600 font-medium tracking-tight"><?= $getScore(11, "diem_{$code}_cn") ?></td>
+                                <td class="px-2 py-1.5 text-center text-slate-600 font-medium tracking-tight"><?= $getScore(12, "diem_{$code}_cn") ?></td>
+                            </tr>
                         <?php endforeach; ?>
-                    </tr>
 
-                    <!-- Conduct Row -->
-                    <tr class="bg-slate-50 font-medium text-xs uppercase border-t border-slate-200 text-slate-700">
-                        <td class="px-5 py-3 text-slate-500 border-r sticky left-0 bg-slate-50 border-slate-200">Hạnh Kiểm</td>
-                        <?php foreach ([10, 11, 12] as $g): ?>
-                            <td class="px-2 py-3 text-center border-r border-slate-50<?= $g == 12 ? ' border-r-0' : '' ?>"><?= $mapDisplay($getScore($g, 'hanh_kiem_ca_nam')) ?></td>
-                        <?php endforeach; ?>
-                    </tr>
+                        <tr class="bg-blue-50/30 font-medium text-xs text-slate-700 border-t-2 border-slate-200">
+                            <td class="px-5 py-2 border-r sticky left-0 bg-[#f8fafc] z-0 border-slate-200 uppercase tracking-widest text-[#0066FF] font-bold">Điểm TB chung</td>
+                            <td class="px-2 py-2 text-center border-r border-slate-200 font-medium text-slate-600"><?= $getScore(10, 'diem_tb_ca_nam') ?></td>
+                            <td class="px-2 py-2 text-center border-r border-slate-200 font-medium text-slate-600"><?= $getScore(11, 'diem_tb_ca_nam') ?></td>
+                            <td class="px-2 py-2 text-center font-medium text-[#0066FF]"><?= $getScore(12, 'diem_tb_ca_nam') ?></td>
+                        </tr>
 
-                </tbody>
-            </table>
+                        <?php
+                        $mapDisplay = function ($val) {
+                            $map = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'Trung binh' => 'Trung bình', 'TB' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt', 'TrungBinh' => 'Trung bình'];
+                            return $map[$val] ?? $val;
+                        };
+                        ?>
+                        <tr class="bg-white font-medium text-xs uppercase border-t border-slate-100 text-slate-700">
+                            <td class="px-5 py-1.5 text-slate-500 border-r sticky left-0 bg-white border-slate-100 tracking-tighter font-normal">Kết quả Học Lực</td>
+                            <?php foreach ([10, 11, 12] as $g): ?>
+                                <td class="px-2 py-1.5 text-center border-r border-slate-50 text-slate-600 font-normal"><?= $mapDisplay($getScore($g, 'hoc_luc_ca_nam')) ?></td>
+                            <?php endforeach; ?>
+                        </tr>
+                        <tr class="bg-slate-50/50 font-medium text-xs uppercase border-t border-slate-100 text-slate-700">
+                            <td class="px-5 py-1.5 text-slate-500 border-r sticky left-0 bg-inherit border-slate-100 font-normal">Hạnh Kiểm</td>
+                            <?php foreach ([10, 11, 12] as $g): ?>
+                                <td class="px-2 py-1.5 text-center border-r border-slate-50 text-slate-600 font-normal"><?= $mapDisplay($getScore($g, 'hanh_kiem_ca_nam')) ?></td>
+                            <?php endforeach; ?>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

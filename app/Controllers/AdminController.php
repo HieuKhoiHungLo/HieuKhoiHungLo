@@ -183,7 +183,7 @@ class AdminController extends Controller
 
     private function handleCandidateList($mode = 'dashboard')
     {
-        $search = $_GET['search'] ?? '';
+        $search = $_GET['q'] ?? $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
         $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
         $editRequest = $_GET['edit_request'] ?? '';
@@ -243,10 +243,16 @@ class AdminController extends Controller
 
         // Extra Column Filters
         $extraFilters = [
-            'phone' => $_GET['f_phone'] ?? '',
-            'dob' => $_GET['f_dob'] ?? '',
-            'province' => $_GET['f_province'] ?? '',
-            'school' => $_GET['f_school'] ?? '',
+            'phone'     => $_GET['f_phone'] ?? '',
+            'dob'       => $_GET['f_dob'] ?? '',
+            'province'  => $_GET['f_province'] ?? '',
+            'school'    => $_GET['f_school'] ?? '',
+            'nv1'       => $_GET['f_nv1'] ?? '',
+            'gender'    => $_GET['f_gender'] ?? '',
+            'ethnicity' => $_GET['f_ethnicity'] ?? '',
+            'area'      => $_GET['f_area'] ?? '',
+            'object'    => $_GET['f_object'] ?? '',
+            'grad_year' => $_GET['f_grad_year'] ?? '',
         ];
 
         $candidates = $this->thiSinhRepo->getFiltered(
@@ -283,11 +289,14 @@ class AdminController extends Controller
 
         $this->view('admin/candidates', [
             'mode' => $mode,
+            'baseUrl' => url($mode === "review" ? "/admin/review-management" : "/admin/candidates"),
             'candidates' => $candidates,
             'stats' => $stats,
             'sessions' => $sessions,
             'yearSessions' => $yearSessions,
             'years' => $years,
+            'sort' => $sort,
+            'dir' => $dir,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -302,7 +311,7 @@ class AdminController extends Controller
                 'f_province' => $extraFilters['province'],
                 'f_school' => $extraFilters['school'],
             ],
-            'pagination' => ['current_page' => $page, 'total_pages' => $totalPages],
+            'pagination' => ['current_page' => $page, 'total_pages' => $totalPages, 'total_items' => $total],
             'emailTemplates' => $emailTemplates
         ]);
     }
@@ -794,7 +803,7 @@ class AdminController extends Controller
                 $data = [];
 
                 if ($type === 'overview' || $type === 'all') {
-                    $data['overview'] = $this->thiSinhRepo->getStats($sessionId, $selectedYear);
+                    $data['overview'] = $this->thiSinhRepo->getStats($sessionId, $selectedYear, $startDate, $endDate);
                     $data['daily']    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
                     $data['recent']   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
                     $data['latest']   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
@@ -820,6 +829,12 @@ class AdminController extends Controller
 
                 return $data;
             });
+
+            // Real-time Online Stats (Always fetch, never cache)
+            if ($type === 'overview' || $type === 'all') {
+                $onlineRepo = new \App\Repositories\OnlineTrackingRepository();
+                $result['online_stats'] = $onlineRepo->getOnlineStats(15);
+            }
 
             $result['meta'] = [
                 'type'       => $type,

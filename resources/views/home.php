@@ -1,5 +1,5 @@
 <?php
-$title = 'Tuyển sinh Đại học Hùng Vương 2025 - Khởi đầu vững chắc';
+$title = 'Tuyển sinh Đại học Hùng Vương 2026 - Khởi đầu vững chắc';
 include __DIR__ . '/layouts/header.php';
 ?>
 
