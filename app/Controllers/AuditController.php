@@ -46,4 +46,26 @@ class AuditController extends Controller {
             'page' => $page
         ]);
     }
+
+    public function purge() {
+        if (!isset($_SESSION['admin_id'])) {
+            $this->json(['success' => false, 'error' => 'Unauthorized']);
+            return;
+        }
+
+        $days = intval($_POST['days'] ?? 20);
+        if ($days < 1) {
+            $this->json(['success' => false, 'error' => 'Invalid days']);
+            return;
+        }
+
+        try {
+            $this->auditService->purgeOldRecords($days);
+            $this->auditService->log('PURGE_LOGS', 'audit_logs', null, null, ['days' => $days]);
+            
+            $this->json(['success' => true]);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
 }

@@ -7,6 +7,14 @@
             <h2 class="text-3xl font-black text-gray-900 uppercase">Nhật ký Hoạt động</h2>
             <p class="text-gray-500 mt-1">Theo dõi mọi thao tác của cán bộ quản trị</p>
         </div>
+        <div class="flex space-x-2">
+            <button onclick="purgeLogs(20)" class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg border border-red-200 hover:bg-red-100 transition text-sm">
+                <i class="fas fa-trash-alt mr-1"></i> Dọn dẹp cũ hơn 20 ngày
+            </button>
+            <button onclick="location.reload()" class="px-4 py-2 bg-white text-gray-600 font-bold rounded-lg border hover:bg-gray-50 transition text-sm">
+                <i class="fas fa-sync-alt mr-1"></i> Làm mới
+            </button>
+        </div>
     </header>
 
     <!-- Stats -->
@@ -131,6 +139,44 @@
         </div>
     </div>
 </div>
+
+<script>
+function purgeLogs(days) {
+    if (!confirm('Bạn có chắc chắn muốn xóa tất cả nhật ký cũ hơn ' + days + ' ngày không? Thao tác này không thể hoàn tác.')) {
+        return;
+    }
+
+    const btn = event.currentTarget;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang dọn dẹp...';
+
+    const formData = new FormData();
+    formData.append('days', days);
+
+    fetch('<?= url("/admin/audit/purge") ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Đã dọn dẹp nhật ký thành công!');
+            location.reload();
+        } else {
+            alert('Lỗi: ' + (data.error || 'Không thể thực hiện'));
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi xảy ra khi kết nối máy chủ.');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    });
+}
+</script>
 
 <?php 
 $content = ob_get_clean();

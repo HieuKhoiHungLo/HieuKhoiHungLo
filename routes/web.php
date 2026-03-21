@@ -225,6 +225,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/settings/scoring', 'ScoringSettingsController@index');
     $router->post('/admin/settings/scoring/save', 'ScoringSettingsController@save');
     $router->get('/admin/audit', 'AuditController@index');
+    $router->post('/admin/audit/purge', 'AuditController@purge');
     $router->post('/admin/calculate-scores', 'AdminController@calculateScores');
 
     // Roles & Reports
