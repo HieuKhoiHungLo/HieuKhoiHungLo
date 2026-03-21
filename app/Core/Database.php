@@ -49,10 +49,10 @@ class Database {
         if (session_status() === PHP_SESSION_ACTIVE) {
             try {
                 if (isset($_SESSION['cccd'])) {
-                    $stmt = $this->pdo->prepare("SET app.current_cccd = ?");
+                    $stmt = $this->pdo->prepare("SELECT set_config('app.current_cccd', ?, false)");
                     $stmt->execute([$_SESSION['cccd']]);
                 } else {
-                    $this->pdo->exec("SET app.current_cccd = ''");
+                    $this->pdo->exec("SELECT set_config('app.current_cccd', '', false)");
                 }
                 
                 $role = 'public';
@@ -62,7 +62,7 @@ class Database {
                     $role = 'candidate';
                 }
                 
-                $stmt = $this->pdo->prepare("SET app.current_role = ?");
+                $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
                 $stmt->execute([$role]);
             } catch (PDOException $e) {
                 // Fail silently or log error
