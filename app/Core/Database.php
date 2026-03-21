@@ -7,6 +7,7 @@ use PDOException;
 class Database {
     private static $instance = null;
     private $pdo;
+    private $rlsContextSet = false;
 
     private function __construct() {
         $config = require __DIR__ . '/../../config/db.php';
@@ -46,6 +47,8 @@ class Database {
     }
 
     private function ensureRLSContext() {
+        if ($this->rlsContextSet) return;
+        
         if (session_status() === PHP_SESSION_ACTIVE) {
             try {
                 if (isset($_SESSION['cccd'])) {
@@ -64,6 +67,8 @@ class Database {
                 
                 $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
                 $stmt->execute([$role]);
+                
+                $this->rlsContextSet = true;
             } catch (PDOException $e) {
                 // Fail silently or log error
                 error_log("RLS Context Error: " . $e->getMessage());

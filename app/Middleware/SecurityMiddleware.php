@@ -179,7 +179,7 @@ class SecurityMiddleware {
  */
 public static function checkSessionTimeout($timeoutMinutes = 30) {
     // Track activity first
-    // self::trackOnlineActivity();
+    self::trackOnlineActivity();
 
     $timeoutSeconds = $timeoutMinutes * 60;
     
