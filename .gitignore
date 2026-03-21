@@ -31,8 +31,10 @@ CODEBASE.md
 # Cache & Storage
 /storage/cache/*
 /storage/logs/*
+/storage/framework/*
 !/storage/cache/.gitkeep
 !/storage/logs/.gitkeep
+!/storage/framework/.gitkeep
 
 # IDE & OS
 .idea/
