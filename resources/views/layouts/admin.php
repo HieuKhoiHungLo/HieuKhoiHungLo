@@ -249,7 +249,7 @@
                     ]
                 ],
                 [
-                    'group' => 'QUẢN LÝ GHI DANH SỚM',
+                    'group' => 'QUẢN LÝ HỒ SƠ',
                     'icon'  => 'fa-clipboard-check',
                     'items' => [
                         ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'dashboard'],
