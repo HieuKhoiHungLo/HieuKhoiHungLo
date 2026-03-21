@@ -1,7 +1,11 @@
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-4">
         <h3 class="text-lg font-bold text-slate-800 uppercase tracking-wide">
-            <?= $mode === 'review' ? 'Xét duyệt Hồ sơ' : 'Danh sách Thí sinh' ?>
+            <?php
+            if ($mode === 'review') echo 'Xét duyệt Hồ sơ';
+            elseif ($mode === 'all') echo 'Thí sinh chưa nhập hồ sơ (' . ($total ?? 0) . ')';
+            else echo 'Danh sách Hồ sơ';
+            ?>
         </h3>
 
         <!-- Column Config Dropdown (Alpine context from parent) -->
@@ -29,7 +33,7 @@
     <?php endif; ?>
 
 
-    <form action="<?= $mode === 'review' ? url('/admin/review-management') : url('/admin/candidates') ?>" method="GET" class="flex flex-wrap gap-3">
+    <form action="<?= $baseUrl ?>" method="GET" class="flex flex-wrap gap-3">
         <!-- Persist Sort Params -->
         <input type="hidden" name="sort" value="<?= $filters['sort'] ?>">
         <input type="hidden" name="dir" value="<?= $filters['dir'] ?>">
@@ -48,6 +52,10 @@
                 </option>
             <?php endforeach; ?>
         </select>
+
+        <?php if ($mode === 'all'): ?>
+        <input type="hidden" name="app_status" value="ghost">
+        <?php endif; ?>
 
         <button type="submit" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-blue-600 hover:border-blue-200 transition shadow-sm">
             <i class="fas fa-sync-alt text-sm"></i>

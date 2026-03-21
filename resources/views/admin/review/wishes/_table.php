@@ -1,100 +1,97 @@
 <!-- Wishes List — Card Style -->
 <?php if (empty($choices)): ?>
-    <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-12 text-center">
-        <div class="w-14 h-14 mx-auto mb-3 bg-slate-50 rounded-xl flex items-center justify-center">
-            <i class="fas fa-inbox text-xl text-slate-300"></i>
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
+        <div class="w-16 h-16 mx-auto mb-4 bg-slate-50 rounded-2xl flex items-center justify-center shadow-inner">
+            <i class="fas fa-inbox text-2xl text-slate-200"></i>
         </div>
-        <p class="text-sm font-bold text-slate-400">Chưa đăng ký nguyện vọng nào</p>
+        <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Chưa đăng ký nguyện vọng</p>
     </div>
 <?php else: ?>
-    <!-- Map majors for quick thresholds lookup -->
     <?php
     $majorMap = [];
     foreach ($majors as $m) {
         $majorMap[$m['ma_nganh']] = $m;
     }
     ?>
-    <div class="space-y-3">
-        <?php foreach ($choices as $index => $wish):
-            $maNganh = $wish['ma_nganh'];
-            $majorInfo = $majorMap[$maNganh] ?? null;
-            $status = $wish['trang_thai'] ?? 'Chờ duyệt';
-            $statusCfgMap = [
-                'Đã duyệt' => ['bg-emerald-50 text-emerald-600 border-emerald-200', 'fa-check-circle', 'from-emerald-400 to-teal-500'],
-                'Từ chối'   => ['bg-rose-50 text-rose-600 border-rose-200', 'fa-times-circle', 'from-rose-400 to-pink-500'],
-            ];
-            $statusCfg = $statusCfgMap[$status] ?? ['bg-amber-50 text-amber-600 border-amber-200', 'fa-clock', 'from-amber-400 to-orange-500'];
-        ?>
-            <div class="rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden flex group hover:shadow-md hover:border-blue-200 transition-all">
-                <!-- Color Bar -->
-                <div class="w-1.5 bg-gradient-to-b <?= $statusCfg[2] ?> shrink-0"></div>
-
-                <!-- Content -->
-                <div class="flex-1 flex items-center gap-5 px-5 py-4">
-                    <!-- NV Number -->
-                    <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-sm text-slate-700 group-hover:bg-[#0066FF] group-hover:text-white transition-all shrink-0">
-                        <?= $index + 1 ?>
-                    </div>
-
-                    <!-- Ngành Info -->
-                    <div class="flex-1 min-w-0">
-                        <div class="font-bold text-slate-800 text-base truncate"><?= $wish['ten_nganh'] ?></div>
-                        <div class="flex items-center gap-3 mt-1.5 flex-wrap">
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-sky-50 text-sky-600 rounded text-[10px] font-bold border border-sky-100">
-                                <?= $wish['ma_nganh'] ?>
-                            </span>
-
-                            <!-- School Code (Always THV as per requirement/image) -->
-                            <div class="flex items-center bg-slate-100 rounded-md px-2 py-0.5 border border-slate-200">
-                                <span class="text-[9px] text-slate-400 font-bold uppercase mr-1.5">Mã trường:</span>
-                                <span class="font-black text-slate-700 text-[10px]">THV</span>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse border border-slate-100">
+            <thead>
+                <tr class="bg-slate-100/50">
+                    <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-16 text-center border border-slate-100">STT</th>
+                    <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border border-slate-100">Ngành đăng ký</th>
+                    <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-48 border border-slate-100">Tổ hợp môn</th>
+                    <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-40 text-center border border-slate-100">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($choices as $index => $wish):
+                    $maNganh = $wish['ma_nganh'];
+                    $majorInfo = $majorMap[$maNganh] ?? null;
+                    $status = $wish['trang_thai'] ?? 'Chờ duyệt';
+                    $statusCfgMap = [
+                        'Đã duyệt' => ['bg-emerald-50 text-emerald-600 border-emerald-100', 'fa-check-circle'],
+                        'Từ chối'   => ['bg-rose-50 text-rose-600 border-rose-100', 'fa-times-circle'],
+                    ];
+                    $statusCfg = $statusCfgMap[$status] ?? ['bg-amber-50 text-amber-600 border-amber-100', 'fa-clock'];
+                ?>
+                    <tr class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30' ?> hover:bg-blue-50/50 transition-colors">
+                        <td class="px-4 py-4 text-center border border-slate-100">
+                            <span class="text-xs font-mono font-bold text-slate-400"><?= $index + 1 ?></span>
+                        </td>
+                        <td class="px-4 py-4 border border-slate-100">
+                            <div class="flex flex-col gap-1.5">
+                                <span class="font-bold text-slate-800 text-sm tracking-tight leading-tight"><?= $wish['ten_nganh'] ?></span>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-[10px] text-[#0066FF] font-black rounded border border-blue-100"><?= $wish['ma_nganh'] ?></span>
+                                </div>
+                                <?php if ($majorInfo && (!empty($majorInfo['nguong_hoc_luc']) || !empty($majorInfo['nguong_diem_thpt']))): 
+                                    $nhomLabels = ['SuPham' => 'Sư phạm', 'SuPhamDacThu' => 'SP Đặc thù', 'DieuDuong' => 'Điều dưỡng'];
+                                    $hlLabels = ['Tot' => 'Tốt', 'Kha' => 'Khá', 'Dat' => 'Đạt', 'ChuaDat' => 'Chưa Đạt'];
+                                    $nhom = $majorInfo['nhom_nganh'] ?? '';
+                                    $nhomLabel = $nhomLabels[$nhom] ?? '';
+                                    $parts = [];
+                                    if (!empty($majorInfo['nguong_hoc_luc'])) {
+                                        $hl = $hlLabels[$majorInfo['nguong_hoc_luc']] ?? $majorInfo['nguong_hoc_luc'];
+                                        $parts[] = 'HL ≥ ' . $hl;
+                                    }
+                                    if (!empty($majorInfo['nguong_diem_thpt'])) {
+                                        $parts[] = 'Điểm ≥ ' . number_format((float)$majorInfo['nguong_diem_thpt'], 1);
+                                    }
+                                ?>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <?php if ($nhomLabel): ?>
+                                            <span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[8px] font-black rounded border border-amber-100 uppercase"><?= $nhomLabel ?></span>
+                                        <?php endif; ?>
+                                        <span class="text-rose-500 text-[9px] font-bold">
+                                            <i class="fas fa-bolt text-[8px] mr-1"></i> Ngưỡng: <?= implode(' | ', $parts) ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-
-                            <!-- Combinations (Badges) -->
-                            <?php if (!empty($wish['to_hop_mon'])):
-                                $combos = array_map('trim', explode(',', $wish['to_hop_mon']));
+                        </td>
+                        <td class="px-4 py-4 border border-slate-100">
+                            <?php 
+                                $displayCombos = !empty($majorInfo['to_hop_xet_tuyen']) ? $majorInfo['to_hop_xet_tuyen'] : ($wish['to_hop_mon'] ?? '');
+                                if (!empty($displayCombos)):
+                                    $combos = array_map('trim', explode(',', $displayCombos));
                             ?>
-                                <div class="flex flex-wrap items-center gap-1">
+                                <div class="flex flex-wrap gap-1">
                                     <?php foreach ($combos as $c): ?>
-                                        <span class="inline-block px-1.5 py-0.5 bg-slate-50 text-slate-600 text-[9px] font-bold rounded border border-slate-200"><?= htmlspecialchars($c) ?></span>
+                                        <span class="px-1.5 py-0.5 bg-slate-50 text-slate-600 text-[9px] font-bold rounded border border-slate-200"><?= htmlspecialchars($c) ?></span>
                                     <?php endforeach; ?>
                                 </div>
+                            <?php else: ?>
+                                <span class="text-[10px] text-slate-300 italic">N/A</span>
                             <?php endif; ?>
-
-                            <!-- Threshold Badges (Match Student View) -->
-                            <?php if ($majorInfo && (!empty($majorInfo['nguong_hoc_luc']) || !empty($majorInfo['nguong_diem_thpt']))): ?>
-                                <?php
-                                $nhomLabels = ['SuPham' => 'Sư phạm', 'SuPhamDacThu' => 'SP Đặc thù', 'DieuDuong' => 'Điều dưỡng'];
-                                $hlLabels = ['Tot' => 'Tốt', 'Kha' => 'Khá', 'Dat' => 'Đạt', 'ChuaDat' => 'Chưa Đạt'];
-                                $nhom = $majorInfo['nhom_nganh'] ?? '';
-                                $nhomLabel = $nhomLabels[$nhom] ?? '';
-                                $parts = [];
-                                if (!empty($majorInfo['nguong_hoc_luc'])) {
-                                    $hl = $hlLabels[$majorInfo['nguong_hoc_luc']] ?? $majorInfo['nguong_hoc_luc'];
-                                    $parts[] = 'KQHT L12 ≥ ' . $hl;
-                                }
-                                if (!empty($majorInfo['nguong_diem_thpt'])) {
-                                    $parts[] = 'Tổng ĐThi ≥ ' . number_format((float)$majorInfo['nguong_diem_thpt'], 1);
-                                }
-                                ?>
-                                <div class="flex items-center gap-1.5">
-                                    <?php if ($nhomLabel): ?>
-                                        <span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-bold rounded border border-amber-100 uppercase tracking-tighter"><?= $nhomLabel ?></span>
-                                    <?php endif; ?>
-                                    <span class="px-1.5 py-0.5 bg-rose-50 text-rose-600 text-[9px] font-bold rounded border border-rose-100 whitespace-nowrap">
-                                        <i class="fas fa-bolt text-[8px] mr-1"></i> <?= implode(' | ', $parts) ?>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Status Badge -->
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-full border shrink-0 <?= $statusCfg[0] ?>">
-                        <i class="fas <?= $statusCfg[1] ?> text-[9px]"></i> <?= $status ?>
-                    </span>
-                </div>
-            </div>
-        <?php endforeach; ?>
+                        </td>
+                        <td class="px-4 py-4 text-center border border-slate-100">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg border <?= $statusCfg[0] ?> shadow-sm">
+                                <i class="fas <?= $statusCfg[1] ?> text-[8px]"></i> <?= $status ?>
+                            </span>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 <?php endif; ?>

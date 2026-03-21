@@ -49,9 +49,6 @@ class AdmissionService
 
             if ($status === 'rejected') {
                 $isRejected = true;
-                if (!empty($note)) {
-                    $collectedNotes[] = "[$secName]: $note";
-                }
             }
 
             $reviewResults[] = [
@@ -61,8 +58,9 @@ class AdmissionService
             ];
         }
 
-        $finalStatus = $isRejected ? \App\Core\UserStatus::REJECTED : \App\Core\UserStatus::APPROVED;
-        $dbNote = empty($collectedNotes) ? ($isRejected ? 'Cần xem lại hồ sơ.' : 'Đã duyệt.') : implode("\n", $collectedNotes);
+        // Use explicit master status from UI or fallback to auto-calculated
+        $finalStatus = $reviewData['master_status'] ?? ($isRejected ? \App\Core\UserStatus::REJECTED : \App\Core\UserStatus::APPROVED);
+        $dbNote = $reviewData['master_note'] ?? '';
 
         // 2. Update Database
         $this->thiSinhRepo->updateApplicationStatus($cccd, $finalStatus, $dbNote, $reviewerId);
@@ -77,7 +75,14 @@ class AdmissionService
         }
         if (!empty($email)) {
             $resultHtml = $this->emailService->buildReviewResultHtml($reviewResults);
-            $generalNote = $isRejected ? 'Hồ sơ của bạn có nội dung cần chỉnh sửa. Vui lòng xem chi tiết.' : 'Hồ sơ đã được duyệt hợp lệ.';
+            $generalNote = '';
+            if ($finalStatus === \App\Core\UserStatus::REJECTED) {
+                $generalNote = 'Hồ sơ của bạn không đủ điều kiện trúng tuyển theo quy định.';
+            } elseif ($finalStatus === \App\Core\UserStatus::REQUIRE_EDIT || $isRejected) {
+                $generalNote = 'Hồ sơ của bạn có nội dung cần chỉnh sửa/bổ sung. Vui lòng xem chi tiết bên dưới và cập nhật lại sớm nhất.';
+            } else {
+                $generalNote = 'Hồ sơ đã được tiếp nhận và kiểm tra hợp lệ.';
+            }
 
             $this->emailService->queueWithTemplate($email, 'application_reviewed', [
                 'ho_ten' => $hoTen,
@@ -87,7 +92,11 @@ class AdmissionService
         }
 
         // 4. Audit Log
-        $action = $isRejected ? 'REVIEW_REJECTED' : 'REVIEW_APPROVED';
+        $action = 'REVIEW_PROCESSED';
+        if ($finalStatus === \App\Core\UserStatus::REJECTED) $action = 'REVIEW_REJECTED';
+        elseif ($finalStatus === \App\Core\UserStatus::APPROVED) $action = 'REVIEW_APPROVED';
+        elseif ($finalStatus === \App\Core\UserStatus::REQUIRE_EDIT) $action = 'REVIEW_REQUIRE_EDIT';
+        
         $this->auditService->log($action, 'candidate', $cccd, null, ['status' => $finalStatus]);
 
         // 5. Find next candidate

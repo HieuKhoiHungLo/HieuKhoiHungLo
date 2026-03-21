@@ -41,6 +41,33 @@ class Database {
     }
 
     public function getConnection() {
+        $this->ensureRLSContext();
         return $this->pdo;
+    }
+
+    private function ensureRLSContext() {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            try {
+                if (isset($_SESSION['cccd'])) {
+                    $stmt = $this->pdo->prepare("SET app.current_cccd = ?");
+                    $stmt->execute([$_SESSION['cccd']]);
+                } else {
+                    $this->pdo->exec("SET app.current_cccd = ''");
+                }
+                
+                $role = 'public';
+                if (isset($_SESSION['admin_id'])) {
+                    $role = 'admin';
+                } elseif (isset($_SESSION['user_id'])) {
+                    $role = 'candidate';
+                }
+                
+                $stmt = $this->pdo->prepare("SET app.current_role = ?");
+                $stmt->execute([$role]);
+            } catch (PDOException $e) {
+                // Fail silently or log error
+                error_log("RLS Context Error: " . $e->getMessage());
+            }
+        }
     }
 }

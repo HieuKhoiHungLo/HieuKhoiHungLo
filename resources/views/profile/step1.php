@@ -86,7 +86,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="label"><i class="fas fa-user"></i> Họ và tên</label>
-                                        <input type="text" name="fullname" value="<?= htmlspecialchars($user['ho_va_ten'] ?? '') ?>" class="hvu-input font-bold" required>
+                                        <input type="text" name="fullname" value="<?= htmlspecialchars($user['ho_va_ten'] ?? '') ?>" class="hvu-input font-bold uppercase" required oninput="this.value = this.value.toUpperCase();">
                                     </div>
                                     <div>
                                         <label class="label"><i class="fas fa-id-card-alt"></i> Số CCCD (Cố định)</label>

@@ -38,6 +38,20 @@
                 <div class="mt-2 space-y-4">
                      <p class="text-sm text-gray-500">Gửi email đến <span id="email-count" class="font-bold">0</span> thí sinh đã chọn.</p>
                      
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700">Chọn mẫu Email nhanh</label>
+                        <select id="modal-email-template" onchange="applyEmailTemplate(this.value)" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Để trống hoặc tự soạn --</option>
+                            <?php if (!empty($emailTemplates)): ?>
+                                <?php foreach ($emailTemplates as $tpl): ?>
+                                    <option value="<?= $tpl['id'] ?>" data-subject="<?= htmlspecialchars($tpl['subject']) ?>" data-body="<?= htmlspecialchars($tpl['body']) ?>">
+                                        <?= htmlspecialchars($tpl['subject']) ?> (<?= $tpl['code'] ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                     </div>
+
                      <div>
                         <label class="block text-sm font-medium text-gray-700">Tiêu đề</label>
                         <input type="text" id="modal-email-subject" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">

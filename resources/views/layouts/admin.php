@@ -252,9 +252,9 @@
                     'group' => 'QUẢN LÝ GHI DANH SỚM',
                     'icon'  => 'fa-clipboard-check',
                     'items' => [
+                        ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'dashboard'],
                         ['url' => '/admin/review-management',       'icon' => 'fa-user-check',      'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
                         ['url' => '/admin/reports',                 'icon' => 'fa-file-export',     'label' => 'Xuất dữ liệu hồ sơ',  'perm' => 'report.export'],
-                        ['url' => '/admin/reports/export-certificates', 'icon' => 'fa-certificate', 'label' => 'Xuất DL Chứng chỉ',   'perm' => 'report.export'],
                     ]
                 ],
                 [
@@ -264,7 +264,6 @@
                         ['url' => '/admin/admission/virtual-filter', 'icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/results',       'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
                         ['url' => '/admin/aptitude-scores',         'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
-                        ['url' => '/admin/certificate-scores', 'icon' => 'fa-language',  'label' => 'Điểm chứng chỉ quy đổi', 'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/benchmarks',    'icon' => 'fa-sliders-h',     'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
                     ]
                 ],

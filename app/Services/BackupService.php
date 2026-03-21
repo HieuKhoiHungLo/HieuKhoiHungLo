@@ -54,7 +54,7 @@ class BackupService
             file_put_contents($localFilePath, "-- Mock SQL Backup Content\nSELECT current_timestamp;");
         } else {
             putenv("PGPASSWORD={$this->dbConfig['password']}");
-            $cmd = "pg_dump -h {$this->dbConfig['host']} -p {$this->dbConfig['port']} -U {$this->dbConfig['username']} -F p -d {$this->dbConfig['database']} > \"{$localFilePath}\" 2>&1";
+            $cmd = "pg_dump -h {$this->dbConfig['host']} -p {$this->dbConfig['port']} -U {$this->dbConfig['username']} -F p -b --clean --if-exists --no-owner --no-privileges -d {$this->dbConfig['database']} > \"{$localFilePath}\" 2>&1";
             
             exec($cmd, $dumpOutput, $returnCode);
 
@@ -193,6 +193,16 @@ class BackupService
         }
 
         putenv("PGPASSWORD={$this->dbConfig['password']}");
+
+        // Cleanup schema before restore to avoid conflicts
+        $cleanupCmd = "psql -h {$this->dbConfig['host']} -p {$this->dbConfig['port']} -U {$this->dbConfig['username']} -d {$targetDb} -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\" 2>&1";
+        exec($cleanupCmd, $cleanupOutput, $cleanupReturnCode);
+        
+        if ($cleanupReturnCode !== 0) {
+            if ($isGz && file_exists($sqlPath)) unlink($sqlPath);
+            throw new \Exception("Pre-restore schema cleanup failed: " . implode("\n", $cleanupOutput));
+        }
+
         $cmd = "psql -h {$this->dbConfig['host']} -p {$this->dbConfig['port']} -U {$this->dbConfig['username']} -d {$targetDb} -f \"{$sqlPath}\" 2>&1";
         
         exec($cmd, $output, $returnCode);

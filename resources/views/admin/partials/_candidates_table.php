@@ -16,39 +16,34 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 ?>
 
 <!-- Bulk Actions & Table -->
-<form action="<?= $mode === 'review' ? url('/admin/candidates/bulk-action') : '#' ?>" method="POST" id="bulk-form">
+<form action="<?= url('/admin/candidates/bulk-action') ?>" method="POST" id="bulk-form">
     <?= csrf_field() ?>
     <input type="hidden" name="redirect_to" value="<?= $_SERVER['REQUEST_URI'] ?>">
 
-    <?php if ($mode === 'review'): ?>
-        <div id="bulk-actions" class="hidden bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-4 flex items-center justify-between shadow-sm animate-fade-in-down">
-            <div class="flex items-center space-x-3">
-                <span class="font-bold text-indigo-700 text-sm"><span id="selected-count">0</span> đã chọn</span>
+    <div id="bulk-actions" class="hidden bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-4 flex items-center justify-between shadow-sm animate-fade-in-down">
+        <div class="flex items-center space-x-3">
+            <span class="font-bold text-indigo-700 text-sm"><span id="selected-count">0</span> đã chọn</span>
 
-                <select name="action" id="bulk-action-select" onchange="toggleBulkOptions()" class="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Action...</option>
+            <select name="action" id="bulk-action-select" onchange="toggleBulkOptions()" class="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">Hành động...</option>
+                <?php if ($mode !== 'all'): ?>
                     <option value="update_status">Đổi Trạng thái</option>
                     <option value="transfer">Chuyển đợt</option>
-                    <option value="send_email">Gửi thư</option>
-                    <option value="delete">Xóa hồ sơ</option>
-                </select>
+                    <option value="normalize_names">Chuẩn hóa họ tên</option>
+                <?php endif; ?>
+                <option value="send_email">Gửi thư</option>
+                <option value="delete">Xóa hồ sơ</option>
+            </select>
 
-                <select name="status" id="bulk-status-opt" class="hidden px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm outline-none">
-                    <option value="Chờ duyệt">Về Chờ duyệt</option>
-                    <option value="Đã duyệt">Duyệt ngay</option>
-                    <option value="Từ chối">Từ chối</option>
-                </select>
-
-                <select name="target_session_id" id="bulk-transfer-opt" class="hidden px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm outline-none">
-                    <option value="">-- Chọn đợt tuyển sinh --</option>
-                    <?php foreach ($sessions ?? [] as $s): ?>
-                        <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['ten_dot'] ?? ('Đợt ' . $s['id'])) ?> (<?= $s['nam_tuyen_sinh'] ?>)</option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" onclick="return confirm('Xác nhận thực hiện hành động này?')" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">Apply</button>
+            <select name="status" id="bulk-status-opt" class="hidden px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm outline-none">
+                <option value="Chờ duyệt">Về Chờ duyệt</option>
+                <option value="Đã duyệt">Duyệt ngay</option>
+                <option value="Yêu cầu sửa">Yêu cầu sửa</option>
+                <option value="Từ chối">Từ chối</option>
+            </select>
         </div>
-    <?php endif; ?>
+        <button type="submit" onclick="return confirm('Xác nhận thực hiện hành động này?')" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">Áp dụng</button>
+    </div>
 
     <!-- Table Container -->
     <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto candidate-table-container">
@@ -117,16 +112,17 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <th class="px-2 py-1 bg-slate-50/30">
                         <select onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
-                            <option value="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
+                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
+                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
+                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
+                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Yêu cầu sửa', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Yêu cầu sửa' ? 'selected' : '' ?>>Yêu cầu sửa</option>
+                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
                         </select>
                     </th>
 
                     <th class="sticky-col sticky-col-left-3 bg-white px-2 py-1">
-                        <input type="text" data-filter-key="q" placeholder="Tên / CCCD..."
-                            value="<?= htmlspecialchars($filters['q'] ?? $filters['search'] ?? '') ?>"
+                        <input type="text" data-filter-key="search" placeholder="Tên / CCCD..."
+                            value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
@@ -188,7 +184,11 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
-                    <th class="bg-slate-50/10"></th>
+                    <?php if ($mode === 'all'): ?>
+                        <th class="w-24 text-center bg-slate-50/10">Thao tác</th>
+                    <?php else: ?>
+                        <th class="bg-slate-50/10"></th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody class="text-[12px]">
@@ -224,20 +224,38 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                             <td class="text-center">
                                 <?php
-                                $statuses = array_unique(explode(', ', $c['statuses'] ?? ''));
-                                foreach ($statuses as $st):
-                                    $icon = '<i class="fas fa-clock text-amber-400"></i>';
-                                    if ($st == 'Đã duyệt') $icon = '<i class="fas fa-check-circle text-emerald-500"></i>';
-                                    if ($st == 'Từ chối') $icon = '<i class="fas fa-times-circle text-rose-500"></i>';
-                                ?>
-                                    <div class="inline-block px-1" title="<?= htmlspecialchars($st ?: 'Mới') ?>">
-                                        <?= $icon ?>
+                                $mStatus = $c['master_status'] ?? '';
+                                $statuses = array_filter(array_unique(explode(', ', $c['statuses'] ?? '')));
+                                // If master_status is empty but statuses has something, use statuses for backward compatibility
+                                $displayStatuses = !empty($mStatus) ? array_unique(explode(', ', $mStatus)) : $statuses;
+                                
+                                if (empty($displayStatuses)): ?>
+                                    <div class="inline-block px-1" title="Chưa nộp hồ sơ">
+                                        <i class="fas fa-minus-circle text-slate-300"></i>
                                     </div>
-                                <?php endforeach; ?>
+                                <?php else:
+                                    foreach ($displayStatuses as $st):
+                                        $icon = '<i class="fas fa-clock text-amber-400"></i>';
+                                        if (strpos($st, 'Đã duyệt') !== false || strpos(strtolower($st), 'approved') !== false) 
+                                            $icon = '<i class="fas fa-check-circle text-emerald-500"></i>';
+                                        elseif (strpos($st, 'Từ chối') !== false || strpos(strtolower($st), 'rejected') !== false) 
+                                            $icon = '<i class="fas fa-times-circle text-rose-500"></i>';
+                                        elseif (strpos($st, 'Yêu cầu sửa') !== false || strpos(strtolower($st), 'require_edit') !== false)
+                                            $icon = '<i class="fas fa-edit text-orange-500"></i>';
+                                    ?>
+                                        <div class="inline-block px-1" title="<?= htmlspecialchars($st ?: 'Mới') ?>">
+                                            <?= $icon ?>
+                                        </div>
+                                    <?php endforeach; 
+                                endif; ?>
                             </td>
                             
                             <td class="sticky-col sticky-col-left-3">
-                                <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="flex items-center py-1">
+                                <?php if ($mode === 'all'): ?>
+                                    <div class="flex items-center py-1">
+                                <?php else: ?>
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="flex items-center py-1">
+                                <?php endif; ?>
                                     <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-xs">
                                         <?php if ($avatar): ?>
                                             <img src="<?= $avatar ?>" class="w-full h-full object-cover">
@@ -249,7 +267,11 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                         <p class="font-bold text-slate-700 truncate line-clamp-1"><?= htmlspecialchars($c['ho_va_ten']) ?></p>
                                         <p class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($c['so_cccd']) ?></p>
                                     </div>
-                                </a>
+                                <?php if ($mode === 'all'): ?>
+                                    </div>
+                                <?php else: ?>
+                                    </a>
+                                <?php endif; ?>
                             </td>
 
                             <td class="font-medium text-slate-600">
@@ -257,7 +279,26 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             </td>
 
                             <td x-show="showCols.phone" class="font-bold text-slate-600">
-                                <?= htmlspecialchars($c['dien_thoai']) ?>
+                                <div class="flex items-center gap-2">
+                                    <span><?= htmlspecialchars($c['dien_thoai']) ?></span>
+                                    <?php 
+                                    $purePhone = preg_replace('/\D/', '', $c['dien_thoai']); 
+                                    if ($purePhone):
+                                    ?>
+                                        <div class="flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <a href="tel:<?= $purePhone ?>" 
+                                               class="w-6 h-6 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm"
+                                               title="Gọi điện (Phone Link)">
+                                                <i class="fas fa-phone-alt text-[10px]"></i>
+                                            </a>
+                                            <a href="https://zalo.me/<?= $purePhone ?>" target="_blank"
+                                               class="w-6 h-6 flex items-center justify-center rounded bg-sky-50 text-sky-600 hover:bg-sky-600 hover:text-white transition shadow-sm"
+                                               title="Nhắn tin Zalo">
+                                                <span class="text-[10px] font-black">Z</span>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </td>
 
                             <td x-show="showCols.email" class="truncate text-slate-500 text-[11px]" title="<?= htmlspecialchars($c['email']) ?>">
@@ -303,11 +344,27 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             </td>
 
                             <td class="text-slate-400 italic text-[11px] leading-snug">
-                                <?= htmlspecialchars($c['ghi_chu'] ?? '') ?>
-                                <?php if (!empty($c['has_edit_request'])): ?>
-                                    <span class="block text-emerald-600 font-bold uppercase text-[8px] animate-pulse">[Yêu cầu sửa]</span>
-                                <?php endif; ?>
+                                <?= nl2br(htmlspecialchars($c['ghi_chu'] ?? '')) ?>
                             </td>
+
+                            <?php if ($mode === 'all'): ?>
+                                <td class="text-center">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" 
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition"
+                                            title="Gửi mail">
+                                            <i class="fas fa-envelope text-[10px]"></i>
+                                        </button>
+                                        <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')"
+                                            class="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition"
+                                            title="Xóa hồ sơ">
+                                            <i class="fas fa-trash-alt text-[10px]"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            <?php else: ?>
+                                <td class="bg-slate-50/10"></td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -336,8 +393,15 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                              </div>
                         </div>
                     </div>
-                    <div class="flex flex-col items-end gap-2">
-                        <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-check scale-90"></i></a>
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                        <?php if ($mode === 'all'): ?>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-envelope scale-90"></i></button>
+                                <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-trash-alt scale-90"></i></button>
+                            </div>
+                        <?php else: ?>
+                            <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-check scale-90"></i></a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -357,7 +421,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
             </div>
             <div class="flex gap-1.5">
                 <?php if ($page > 1): ?>
-                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Trước</a>
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Trước</a>
                 <?php endif; ?>
 
                 <?php 
@@ -365,13 +429,13 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                 $end = min($totalPages, $page + 2);
                 for ($i = $start; $i <= $end; $i++): 
                 ?>
-                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-8 h-8 flex items-center justify-center border rounded-lg font-bold text-xs transition <?= $i == $page ? 'bg-[#0066FF] border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-8 h-8 flex items-center justify-center border rounded-lg font-bold text-xs transition <?= $i == $page ? 'bg-[#0066FF] border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
 
                 <?php if ($page < $totalPages): ?>
-                    <a href="<?= url($mode === 'review' ? '/admin/review-management' : '/admin/candidates') . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Sau</a>
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Sau</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -380,7 +444,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
 <script>
     (function() {
-        var baseUrl = '<?= url($mode === "review" ? "/admin/review-management" : "/admin/candidates") ?>';
+        var baseUrl = '<?= $baseUrl ?>';
         var currentFilters = <?= json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
         // Header Search logic

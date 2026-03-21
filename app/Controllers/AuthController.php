@@ -213,7 +213,7 @@ class AuthController extends Controller
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
             $data = [
                 'cccd' => $cccd,
-                'fullname' => trim($_POST['fullname']),
+                'fullname' => normalize_name($_POST['fullname']),
                 'password' => $hashedPassword,
                 'phone' => trim($_POST['phone']),
                 'email' => trim($_POST['email'])

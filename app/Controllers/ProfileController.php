@@ -168,7 +168,7 @@ class ProfileController extends Controller
 
             // 1. Prepare Data for updateFullProfile
             $data = [
-                'ho_va_ten' => trim($_POST['fullname']),
+                'ho_va_ten' => normalize_name($_POST['fullname']),
                 'ngay_sinh' => $_POST['dob'],
                 'gioi_tinh' => $_POST['gender'],
                 'dan_toc' => $_POST['ethnic'],

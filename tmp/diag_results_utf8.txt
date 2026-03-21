@@ -1,0 +1,46 @@
+﻿php : PHP Warning:  
+PHP Startup: Unable to 
+load dynamic library 
+'zip' (tried: 
+\xampp\php\ext\zip 
+(The specified module 
+could not be found), \x
+ampp\php\ext\php_zip.dl
+l (The specified 
+module could not be 
+found)) in Unknown on 
+line 0
+At line:1 char:1
++ php d:\xampp\htdocs\T
+S\tmp\raw_check.php > d
+:\xampp\htdocs\TS\tmp\d
+ia ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (PHP Warning:    
+  P...known on line    
+ 0:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+Warning: PHP Startup: Unable to load dynamic library 'zip' (tried: \xampp\php\ext\zip (The specified module could not be found), \xampp\php\ext\php_zip.dll (The specified module could not be found)) in Unknown on line 0
+--- DIAGNOSTIC RESULTS ---
+Total Active Candidates (thi_sinh): 554
+Candidates with ANY application (all time): 286
+Candidates with NO applications (ever): 268
+
+--- 2026 SPECIFIC ---
+Total registered in 2026: 554
+Total with 2026 application (submitted): 286
+Candidates registered in 2026 but NO application in 2026: 268
+
+--- BY SESSION ---
+- Ghi danh sß╗¢m (2026): 286
+- ─Éß╗út 1 (hß╗ô s╞í kh├┤ng hß╗úp lß╗ç) (2026): 0

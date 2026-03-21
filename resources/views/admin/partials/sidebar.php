@@ -6,8 +6,13 @@
     </div>
     <nav class="flex-grow p-4 space-y-2 mt-4">
         <?php if(\App\Models\QuanTriVien::hasPermission($user, 'dashboard')): ?>
-        <a href="<?= url('/admin/dashboard') ?>" class="flex items-center space-x-3 p-3 <?= strpos($_SERVER['REQUEST_URI'], '/admin/dashboard') !== false ? 'bg-white/20 shadow-inner' : 'rounded-xl transition hover:bg-white/10 opacity-70 hover:opacity-100' ?>">
-            <i class="fas fa-users text-sm"></i>
+        <a href="<?= url('/admin/candidate-management') ?>" class="flex items-center space-x-3 p-3 <?= strpos($_SERVER['REQUEST_URI'], '/admin/candidate-management') !== false ? 'bg-white/20 shadow-inner' : 'rounded-xl transition hover:bg-white/10 opacity-70 hover:opacity-100' ?>">
+            <i class="fas fa-user-friends text-sm"></i>
+            <span class="font-bold text-sm">Quản lý Thí sinh</span>
+        </a>
+
+        <a href="<?= url('/admin/candidates') ?>" class="flex items-center space-x-3 p-3 <?= (strpos($_SERVER['REQUEST_URI'], '/admin/candidates') !== false && strpos($_SERVER['REQUEST_URI'], '/trash') === false) ? 'bg-white/20 shadow-inner' : 'rounded-xl transition hover:bg-white/10 opacity-70 hover:opacity-100' ?>">
+            <i class="fas fa-file-invoice text-sm"></i>
             <span class="font-bold text-sm">Danh sách hồ sơ</span>
         </a>
         <?php endif; ?>

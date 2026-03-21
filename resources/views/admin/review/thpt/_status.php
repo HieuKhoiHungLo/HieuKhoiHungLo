@@ -17,7 +17,7 @@
                 <input type="radio" name="status_thpt" value="approved" <?= $checkApproved ?> class="w-5 h-5 text-emerald-600 border-slate-300 focus:ring-emerald-500">
                 <div class="ml-4">
                     <span class="block text-sm font-black text-slate-800 uppercase tracking-tight">Hợp lệ</span>
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase mt-0.5">Điểm khớp với hệ thống</span>
+                    <span class="block text-[10px] font-bold text-slate-400 mt-0.5">Điểm khớp với hệ thống</span>
                 </div>
                 <div class="ml-auto opacity-0 group-has-[:checked]:opacity-100 transition-opacity">
                     <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
@@ -28,7 +28,7 @@
                 <input type="radio" name="status_thpt" value="rejected" <?= $checkRejected ?> class="w-5 h-5 text-rose-600 border-slate-300 focus:ring-rose-500">
                 <div class="ml-4">
                     <span class="block text-sm font-black text-slate-800 uppercase tracking-tight">Cần bổ sung</span>
-                    <span class="block text-[10px] font-bold text-slate-400 uppercase mt-0.5">Sai lệch thông tin</span>
+                    <span class="block text-[10px] font-bold text-slate-400 mt-0.5">Sai lệch thông tin</span>
                 </div>
                 <div class="ml-auto opacity-0 group-has-[:checked]:opacity-100 transition-opacity">
                     <i class="fas fa-exclamation-circle text-rose-500 text-xl"></i>

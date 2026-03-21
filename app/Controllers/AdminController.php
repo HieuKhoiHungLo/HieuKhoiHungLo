@@ -72,96 +72,13 @@ class AdminController extends Controller
 
     // ... (existing methods)
 
+    // bulkAction was moved to CandidateController
+    /*
     public function bulkAction()
     {
-        $this->checkPermission('manage_candidates'); // Assume basic permission
-
-        $redirectTo = $_POST['redirect_to'] ?? url('/admin/dashboard');
-
-        // Check forced_action first (from JS fix)
-        $action = $_POST['forced_action'] ?? $_POST['action'] ?? '';
-        $ids = $_POST['ids'] ?? [];
-
-        if (empty($ids)) {
-            $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=No candidates selected');
-            return;
-        }
-
-
-
-        switch ($action) {
-            case 'update_status':
-                $status = $_POST['status'] ?? '';
-                if ($status && !empty($ids)) {
-                    if ($this->thiSinhRepo->bulkUpdateStatus($ids, $status)) {
-                        $count = count($ids);
-                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Cập nhật trạng thái cho $count thí sinh thành công.");
-                    } else {
-                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Lỗi cập nhật trạng thái.");
-                    }
-                }
-                break;
-
-            case 'delete':
-                $count = 0;
-                foreach ($ids as $cccd) {
-                    if ($this->thiSinhRepo->delete($cccd)) {
-                        $count++;
-                    }
-                }
-                $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Deleted $count candidates");
-                break;
-
-            case 'transfer':
-                $targetSessionId = $_POST['target_session_id'] ?? '';
-                if ($targetSessionId) {
-                    try {
-                        $count = $this->applicationRepo->transferSession($ids, (int)$targetSessionId);
-
-                        // Preserve filters
-                        $filters = [
-                            'success' => "Đã chuyển $count hồ sơ sang đợt mới.",
-                            'year' => $_POST['current_year'] ?? '',
-                            'session_id' => $_POST['current_session_id'] ?? '',
-                            'status' => $_POST['current_status'] ?? '',
-                            'search' => $_POST['current_search'] ?? ''
-                        ];
-
-                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . http_build_query(array_filter($filters)));
-                    } catch (\Throwable $e) {
-                        $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Lỗi hệ thống: " . urlencode($e->getMessage()));
-                    }
-                } else {
-                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Chưa chọn đợt đích.");
-                }
-                break;
-
-            case 'send_email':
-                $subject = $_POST['email_subject'] ?? '';
-                $content = $_POST['email_content'] ?? '';
-
-                if ($subject && $content) {
-                    $candidates = $this->thiSinhRepo->findManyByCCCD($ids);
-                    $count = 0;
-                    foreach ($candidates as $candidate) {
-                        if (!empty($candidate['email'])) {
-                            // Simple personalization
-                            $personalContent = str_replace(['{{name}}', '{{ho_ten}}'], $candidate['ho_va_ten'], $content);
-                            $this->mailerService->send($candidate['email'], $subject, nl2br($personalContent), true);
-                            $count++;
-                        }
-                    }
-                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=Đã gửi email tới $count thí sinh.");
-                } else {
-                    $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . "error=Thiếu tiêu đề hoặc nội dung email.");
-                }
-                break;
-
-            default:
-                $debugAction = is_array($action) ? 'Array' : $action;
-                $this->redirect($redirectTo . (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=Invalid action: ' . urlencode((string)$debugAction));
-        }
+        // ...
     }
+    */
 
     protected function checkPermission($permission)
     {
@@ -171,150 +88,6 @@ class AdminController extends Controller
         }
     }
 
-    public function candidates()
-    {
-        return $this->handleCandidateList('dashboard');
-    }
-
-    public function reviewList()
-    {
-        return $this->handleCandidateList('review');
-    }
-
-    private function handleCandidateList($mode = 'dashboard')
-    {
-        $search = $_GET['q'] ?? $_GET['search'] ?? '';
-        $status = $_GET['status'] ?? '';
-        $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
-        $editRequest = $_GET['edit_request'] ?? '';
-
-        // Load sessions (cached 30 min)
-        $admissionSessionModel = new AdmissionSession();
-        $sessions = \App\Core\Cache::remember('all_sessions', 30, function () use ($admissionSessionModel) {
-            return $admissionSessionModel->getAll();
-        });
-
-        // Extract distinct years for filter
-        $years = [];
-        foreach ($sessions as $s) {
-            $years[$s['nam_tuyen_sinh']] = $s['nam_tuyen_sinh'];
-        }
-        arsort($years);
-
-        // Time Filters
-        $year = $_GET['year'] ?? null;
-        $sessionId = $_GET['session_id'] ?? null;
-
-        // Default to Active Session if no filters provided
-        if ($year === null && $sessionId === null) {
-            $activeSession = $admissionSessionModel->getActiveSession();
-            if (!$activeSession) {
-                $activeSession = $admissionSessionModel->getLatestActiveSession();
-            }
-
-            if ($activeSession) {
-                $sessionId = $activeSession['id'];
-                $year = $activeSession['nam_tuyen_sinh'];
-            } elseif (!empty($years)) {
-                $year = reset($years);
-                if (!empty($sessions)) {
-                    $firstSession = $sessions[0];
-                    $sessionId = $firstSession['id'];
-                    $year = $firstSession['nam_tuyen_sinh'];
-                }
-            } else {
-                $year = date('Y');
-            }
-        } elseif ($year === null) {
-            $year = !empty($years) ? reset($years) : date('Y');
-        }
-
-        // Filter sessions by selected year for display logic
-        $yearSessions = array_filter($sessions, function ($s) use ($year) {
-            return $s['nam_tuyen_sinh'] == $year;
-        });
-
-        // Pagination & Sorting Defaults
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-        $offset = ($page - 1) * $limit;
-        $sort = $_GET['sort'] ?? 'created_at';
-        $dir = $_GET['dir'] ?? 'DESC';
-
-        // Extra Column Filters
-        $extraFilters = [
-            'phone'     => $_GET['f_phone'] ?? '',
-            'dob'       => $_GET['f_dob'] ?? '',
-            'province'  => $_GET['f_province'] ?? '',
-            'school'    => $_GET['f_school'] ?? '',
-            'nv1'       => $_GET['f_nv1'] ?? '',
-            'gender'    => $_GET['f_gender'] ?? '',
-            'ethnicity' => $_GET['f_ethnicity'] ?? '',
-            'area'      => $_GET['f_area'] ?? '',
-            'object'    => $_GET['f_object'] ?? '',
-            'grad_year' => $_GET['f_grad_year'] ?? '',
-        ];
-
-        $candidates = $this->thiSinhRepo->getFiltered(
-            $search,
-            $status,
-            $hocBaStatus,
-            $limit,
-            $offset,
-            $sessionId,
-            $editRequest == '1',
-            $year,
-            $sort,
-            $dir,
-            false,
-            $extraFilters
-        );
-
-        $total = !empty($candidates) ? (int)($candidates[0]['_total_count'] ?? 0) : 0;
-        $totalPages = ceil($total / max($limit, 1));
-
-        foreach ($candidates as &$c) {
-            unset($c['_total_count']);
-        }
-        unset($c);
-
-        $stats = $this->thiSinhRepo->getStats($sessionId, $year);
-        $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
-        $stats['today'] = $recent['today'] ?? 0;
-        $stats['this_week'] = $recent['this_week'] ?? 0;
-        $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function () {
-            $model = new \App\Models\EmailTemplate();
-            return $model->getAll();
-        });
-
-        $this->view('admin/candidates', [
-            'mode' => $mode,
-            'baseUrl' => url($mode === "review" ? "/admin/review-management" : "/admin/candidates"),
-            'candidates' => $candidates,
-            'stats' => $stats,
-            'sessions' => $sessions,
-            'yearSessions' => $yearSessions,
-            'years' => $years,
-            'sort' => $sort,
-            'dir' => $dir,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'hoc_ba_status' => $hocBaStatus,
-                'edit_request' => $editRequest,
-                'session_id' => $sessionId,
-                'year' => $year,
-                'sort' => $sort,
-                'dir' => $dir,
-                'f_phone' => $extraFilters['phone'],
-                'f_dob' => $extraFilters['dob'],
-                'f_province' => $extraFilters['province'],
-                'f_school' => $extraFilters['school'],
-            ],
-            'pagination' => ['current_page' => $page, 'total_pages' => $totalPages, 'total_items' => $total],
-            'emailTemplates' => $emailTemplates
-        ]);
-    }
 
 
 
@@ -758,7 +531,7 @@ class AdminController extends Controller
             'years'           => $years,
             'selectedYear'    => $selectedYear,
             'currentSessionId' => $sessionId,
-            'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'rejected' => 0],
+            'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'require_edit' => 0],
             'user'            => $this->currentUser
         ]);
     }

@@ -67,7 +67,7 @@
                             <i class="fas fa-chevron-left text-xs"></i>
                         </a>
                     <?php else: ?>
-                        <span class="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-100 text-slate-300 rounded-lg cursor-not-allowed">
+                        <span class="w-8 h-8 flex items-center justify-center bg-slate-100 border border-slate-200 text-slate-400 rounded-lg cursor-not-allowed" title="Không có hồ sơ trước">
                             <i class="fas fa-chevron-left text-xs"></i>
                         </span>
                     <?php endif; ?>
@@ -77,7 +77,7 @@
                             <i class="fas fa-chevron-right text-xs"></i>
                         </a>
                     <?php else: ?>
-                        <span class="w-8 h-8 flex items-center justify-center bg-slate-50 border border-slate-100 text-slate-300 rounded-lg cursor-not-allowed">
+                        <span class="w-8 h-8 flex items-center justify-center bg-slate-100 border border-slate-200 text-slate-400 rounded-lg cursor-not-allowed" title="Không có hồ sơ tiếp">
                             <i class="fas fa-chevron-right text-xs"></i>
                         </span>
                     <?php endif; ?>
@@ -147,19 +147,19 @@
     <!-- TABS NAVIGATION -->
     <div class="bg-white rounded-t-2xl shadow-sm border-b border-slate-200">
         <div class="flex overflow-x-auto gap-1 p-2" id="reviewTabs">
-            <button type="button" onclick="switchTab('personal')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
+            <button type="button" onclick="switchTab('personal')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
                 <i class="fas fa-user mr-2"></i> 1. Thông tin cá nhân
             </button>
-            <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
+            <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
                 <i class="fas fa-graduation-cap mr-2"></i> 2. Học bạ
             </button>
-            <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
+            <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
                 <i class="fas fa-certificate mr-2"></i> 3. Chứng chỉ
             </button>
-            <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
+            <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
                 <i class="fas fa-poll-h mr-2"></i> 4. Điểm THPT
             </button>
-            <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-bold text-sm uppercase tracking-wide rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
+            <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
                 <i class="fas fa-list-ol mr-2"></i> 5. Nguyện vọng
             </button>
         </div>
@@ -178,37 +178,134 @@
 
         <?php include __DIR__ . '/review/_tab_wishes.php'; ?>
 
-        <!-- Action Bar: Prev / Submit / Next -->
-        <div class="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between gap-4">
-            <!-- Previous -->
-            <?php if (!empty($prevCCCD)): ?>
-                <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 hover:-translate-x-0.5 transition-all shadow-md shadow-blue-200/50">
-                    <i class="fas fa-chevron-left"></i> Hồ sơ trước
-                </a>
-            <?php else: ?>
-                <span class="inline-flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-300 font-bold text-sm rounded-xl cursor-not-allowed">
-                    <i class="fas fa-chevron-left"></i> Hồ sơ trước
-                </span>
-            <?php endif; ?>
 
-            <!-- Submit -->
-            <button type="button" onclick="submitReview()" class="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-1 transition transform flex items-center text-lg">
-                <i class="fas fa-paper-plane mr-3"></i> DUYỆT HỒ SƠ & GỬI EMAIL
-            </button>
-
-            <!-- Next -->
-            <?php if (!empty($nextCCCD)): ?>
-                <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="inline-flex items-center gap-2 px-5 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 hover:translate-x-0.5 transition-all shadow-md shadow-blue-200/50">
-                    Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
-                </a>
-            <?php else: ?>
-                <span class="inline-flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-300 font-bold text-sm rounded-xl cursor-not-allowed">
-                    Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
-                </span>
-            <?php endif; ?>
-        </div>
     </div>
 </form>
+
+<!-- Action Bar: Fixed sticky bottom, respects sidebar width -->
+<div id="review-action-bar" style="
+    position: fixed;
+    bottom: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 32px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    transition: left 0.3s ease;
+">
+    <!-- Previous -->
+    <div>
+        <?php if (!empty($prevCCCD)): ?>
+            <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
+                <i class="fas fa-chevron-left"></i> Hồ sơ trước
+            </a>
+        <?php else: ?>
+            <span class="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm rounded-xl cursor-not-allowed">
+                <i class="fas fa-ban"></i> Không có hồ sơ trước
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <!-- Submit -->
+    <div>
+        <button type="button" onclick="openReviewModal()" class="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-xl hover:bg-emerald-700 hover:-translate-y-0.5 transition-all flex items-center text-base whitespace-nowrap">
+            <i class="fas fa-paper-plane mr-3"></i> DUYỆT HỒ SƠ & GỬI EMAIL
+        </button>
+    </div>
+
+    <!-- Next -->
+    <div>
+        <?php if (!empty($nextCCCD)): ?>
+            <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
+                Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
+            </a>
+        <?php else: ?>
+            <span class="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 border border-slate-200 text-slate-400 font-bold text-sm rounded-xl cursor-not-allowed">
+                Không có hồ sơ tiếp <i class="fas fa-ban"></i>
+            </span>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Push space so content isn't hidden behind fixed bar -->
+<div style="height: 88px;"></div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Xác nhận duyệt hồ sơ</h3>
+            <button type="button" onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Trạng thái quyết định <span class="text-rose-500">*</span></label>
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="cursor-pointer relative">
+                        <input type="radio" name="modal_master_status" value="Đã duyệt" class="peer sr-only" checked>
+                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 hover:bg-slate-50 transition-all shadow-sm">
+                            <i class="fas fa-check-circle block text-lg mb-1"></i> Đã duyệt
+                        </div>
+                    </label>
+                    <label class="cursor-pointer relative">
+                        <input type="radio" name="modal_master_status" value="Yêu cầu sửa" class="peer sr-only">
+                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-orange-50 peer-checked:border-orange-500 peer-checked:text-orange-700 hover:bg-slate-50 transition-all shadow-sm">
+                            <i class="fas fa-edit block text-lg mb-1"></i> Yêu cầu sửa
+                        </div>
+                    </label>
+                    <label class="cursor-pointer relative">
+                        <input type="radio" name="modal_master_status" value="Từ chối" class="peer sr-only">
+                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-rose-50 peer-checked:border-rose-500 peer-checked:text-rose-700 hover:bg-slate-50 transition-all shadow-sm">
+                            <i class="fas fa-times-circle block text-lg mb-1"></i> Từ chối
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ghi chú nội bộ</label>
+                <textarea id="modal_master_note" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#0066FF] focus:ring focus:ring-blue-100 outline-none transition-all resize-none shadow-sm" placeholder="Nhập ghi chú cho ban tuyển sinh (không gửi cho thí sinh)..."></textarea>
+                <p class="text-[11px] text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100"><i class="fas fa-info-circle text-blue-500 mr-1"></i> Trạng thái lỗi chi tiết của từng phần vẫn được tổng hợp gửi qua Email cho thí sinh nếu chọn Từ chối/Yêu cầu sửa.</p>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeReviewModal()" class="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">
+                Hủy bỏ
+            </button>
+            <button type="button" id="btnConfirmSubmit" onclick="confirmSubmitReview()" class="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
+                <i class="fas fa-paper-plane mr-2"></i> Lưu & Gửi Email
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Adjust action bar left position when sidebar collapses/expands
+function updateActionBarOffset() {
+    const bar = document.getElementById('review-action-bar');
+    if (!bar) return;
+    const sidebar = document.querySelector('.admin-sidebar');
+    const collapsed = sidebar && sidebar.classList.contains('collapsed');
+    bar.style.left = collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)';
+}
+// Watch for sidebar toggle
+const sidebarObserver = new MutationObserver(updateActionBarOffset);
+const sidebarEl = document.querySelector('.admin-sidebar');
+if (sidebarEl) sidebarObserver.observe(sidebarEl, { attributes: true, attributeFilter: ['class'] });
+// Initial call
+updateActionBarOffset();
+</script>
 
 
 <script>
@@ -362,33 +459,94 @@
         });
     });
 
-    function submitReview() {
-        if (confirm('Bạn có chắc chắn muốn HOÀN TẤT việc duyệt hồ sơ và GỬI EMAIL kết quả cho thí sinh?')) {
-            Loading.show();
-            const form = document.getElementById('reviewForm');
-            const formData = new FormData(form);
-
-            fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        const msg = data.is_rejected ? 'Đã lưu yêu cầu chỉnh sửa.' : 'Đã duyệt hồ sơ thành công!';
-                        if (typeof Toast !== 'undefined') Toast.success(msg);
-                        // Redirect immediately — page load happens in background
-                        window.location.href = data.next_url;
-                    } else {
-                        Loading.hide();
-                        if (typeof Toast !== 'undefined') Toast.error(data.error || 'Có lỗi xảy ra');
-                    }
-                })
-                .catch(err => {
-                    Loading.hide();
-                    if (typeof Toast !== 'undefined') Toast.error('Lỗi kết nối: ' + err.message);
-                });
+    function openReviewModal() {
+        const modal = document.getElementById('reviewModal');
+        modal.classList.remove('hidden');
+        
+        let hasRejected = false;
+        let collectedNotes = [];
+        
+        const sectionsList = ['personal', 'academic', 'certs', 'thpt', 'wishes'];
+        const sectionNames = {
+            'personal': 'Thông tin cá nhân',
+            'academic': 'Học bạ',
+            'certs': 'Chứng chỉ',
+            'thpt': 'Điểm THPT',
+            'wishes': 'Nguyện vọng'
+        };
+        
+        sectionsList.forEach(sec => {
+            const checkedRadio = document.querySelector(`input[name="status_${sec}"]:checked`);
+            if (checkedRadio && checkedRadio.value === 'rejected') {
+                hasRejected = true;
+                const reasonInput = document.querySelector(`textarea[name="note_${sec}"]`);
+                if (reasonInput && reasonInput.value.trim() !== '') {
+                    collectedNotes.push(`[${sectionNames[sec]}]: ${reasonInput.value.trim()}`);
+                }
+            }
+        });
+        
+        const statusRadios = document.querySelectorAll('input[name="modal_master_status"]');
+        statusRadios.forEach(r => r.checked = false);
+        
+        if (hasRejected) {
+            document.querySelector('input[name="modal_master_status"][value="Yêu cầu sửa"]').checked = true;
+        } else {
+            document.querySelector('input[name="modal_master_status"][value="Đã duyệt"]').checked = true;
         }
+        
+        const noteArea = document.getElementById('modal_master_note');
+        if (collectedNotes.length > 0) {
+            noteArea.value = collectedNotes.join('\n');
+        } else {
+            noteArea.value = '';
+        }
+    }
+
+    function closeReviewModal() {
+        document.getElementById('reviewModal').classList.add('hidden');
+    }
+
+    function confirmSubmitReview() {
+        const btn = document.getElementById('btnConfirmSubmit');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...';
+        btn.disabled = true;
+        
+        Loading.show();
+        const form = document.getElementById('reviewForm');
+        const formData = new FormData(form);
+        
+        const masterStatus = document.querySelector('input[name="modal_master_status"]:checked').value;
+        const masterNote = document.getElementById('modal_master_note').value;
+        formData.append('master_status', masterStatus);
+        formData.append('master_note', masterNote);
+
+        fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const msg = masterStatus === 'Đã duyệt' ? 'Đã duyệt hồ sơ thành công!' : 'Đã cập nhật trạng thái hồ sơ.';
+                    if (typeof Toast !== 'undefined') Toast.success(msg);
+                    window.location.href = data.next_url;
+                } else {
+                    Loading.hide();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    closeReviewModal();
+                    if (typeof Toast !== 'undefined') Toast.error(data.error || 'Có lỗi xảy ra');
+                }
+            })
+            .catch(err => {
+                Loading.hide();
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                closeReviewModal();
+                if (typeof Toast !== 'undefined') Toast.error('Lỗi kết nối: ' + err.message);
+            });
     }
 
     function toggleEdit(section) {

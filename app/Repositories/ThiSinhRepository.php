@@ -32,6 +32,26 @@ class ThiSinhRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Chuẩn hóa toàn bộ họ tên thí sinh trong hệ thống
+     */
+    public function bulkNormalizeNames()
+    {
+        $stmt = $this->db->query("SELECT so_cccd, ho_va_ten FROM {$this->table}");
+        $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $count = 0;
+        foreach ($candidates as $c) {
+            $normalized = normalize_name($c['ho_va_ten']);
+            if ($normalized !== $c['ho_va_ten']) {
+                $upd = $this->db->prepare("UPDATE {$this->table} SET ho_va_ten = ? WHERE so_cccd = ?");
+                $upd->execute([$normalized, $c['so_cccd']]);
+                $count++;
+            }
+        }
+        return $count;
+    }
+
     public function getEmailsByIds(array $ids)
     {
         if (empty($ids)) return [];
@@ -204,14 +224,14 @@ class ThiSinhRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [])
+    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all')
     {
-        return $this->model->getFiltered($search, $status, $hocBaStatus, $limit, $offset, $sessionId, $onlyEditRequests, $year, $sort, $dir, $excludeTrash, $extraFilters);
+        return $this->model->getFiltered($search, $status, $hocBaStatus, $limit, $offset, $sessionId, $onlyEditRequests, $year, $sort, $dir, $excludeTrash, $extraFilters, $applicationStatus);
     }
 
-    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = [])
+    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all')
     {
-        return $this->model->countFiltered($search, $status, $hocBaStatus, $sessionId, $onlyEditRequests, $year, $excludeTrash, $extraFilters);
+        return $this->model->countFiltered($search, $status, $hocBaStatus, $sessionId, $onlyEditRequests, $year, $excludeTrash, $extraFilters, $applicationStatus);
     }
 
     public function bulkUpdateStatus($cccds, $status)
@@ -326,7 +346,7 @@ class ThiSinhRepository
 
     public function requestEditPermission($applicationId)
     {
-        $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = TRUE, updated_at = NOW() WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = TRUE, trang_thai = 'Yêu cầu sửa', ghi_chu = CONCAT(COALESCE(ghi_chu, ''), '\n[Hệ thống]: Thí sinh chủ động đề xuất chỉnh sửa.'), updated_at = NOW() WHERE id = ?");
         return $stmt->execute([$applicationId]);
     }
 
@@ -391,7 +411,7 @@ class ThiSinhRepository
 
         $sqlFallback = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.dot_tuyen_sinh_id = ? AND hs.trang_thai = 'Chờ duyệt' AND hs.so_cccd != ? ORDER BY hs.created_at ASC LIMIT 1";
         $stmt = $this->db->prepare($sqlFallback);
-        $stmt->execute([sid, $currentCCCD]);
+        $stmt->execute([$sid, $currentCCCD]);
         return $stmt->fetchColumn();
     }
 
@@ -404,7 +424,6 @@ class ThiSinhRepository
         $sql = "SELECT hs.so_cccd 
                 FROM ho_so_xet_tuyen hs
                 WHERE hs.dot_tuyen_sinh_id = ?
-                AND hs.trang_thai = 'Chờ duyệt'
                 ORDER BY hs.created_at ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);

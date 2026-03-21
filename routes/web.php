@@ -92,8 +92,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
         exit;
     });
     $router->get('/admin/dashboard', 'AdminController@dashboard');
-    $router->get('/admin/candidates', 'AdminController@candidates');
-    $router->get('/admin/review-management', 'AdminController@reviewList');
+    $router->get('/admin/candidate-management', 'CandidateController@index');
+    $router->get('/admin/candidates', 'CandidateController@applications');
+    $router->get('/admin/review-management', 'CandidateController@reviewList');
     $router->get('/admin/review', 'AdminController@review');
     $router->post('/admin/update-status', 'AdminController@updateStatus');
     $router->post('/admin/review/submit', 'AdminController@submitReview');
@@ -157,6 +158,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     $router->get('/admin/master-data/schools', 'SchoolController@index');
     $router->post('/admin/master-data/schools', 'SchoolController@save');
+    $router->post('/admin/master-data/schools/actions', 'SchoolController@actions');
     $router->get('/admin/master-data/schools/export', 'SchoolController@export');
     $router->get('/admin/master-data/schools/template', 'SchoolController@template');
 
@@ -235,6 +237,12 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports/export-candidates', 'ReportController@exportCandidates');
     $router->get('/admin/reports/export-admitted', 'ReportController@exportAdmitted');
     $router->get('/admin/reports/export-certificates', 'ReportController@exportCertificates');
+    
+    // MOET Exports
+    $router->get('/admin/reports/export-moet-info', 'ReportController@exportMoetInfo');
+    $router->get('/admin/reports/export-moet-wishes', 'ReportController@exportMoetWishes');
+    $router->get('/admin/reports/export-moet-transcripts', 'ReportController@exportMoetTranscripts');
+    $router->get('/admin/reports/export-aptitude-list', 'ReportController@exportAptitudeList');
 
     // Rules
     $router->get('/admin/rules', 'RuleController@index');

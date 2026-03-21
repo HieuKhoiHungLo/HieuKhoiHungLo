@@ -33,9 +33,172 @@ class CandidateController extends Controller
     protected function checkPermission($permission)
     {
         if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, $permission)) {
-            http_response_code(403);
-            die(json_encode(['error' => 'Không có quyền truy cập']));
+            if ($this->isAjax()) {
+                http_response_code(403);
+                die(json_encode(['error' => 'Không có quyền truy cập']));
+            } else {
+                echo "<script>alert('Bạn không có quyền truy cập chức năng này!'); window.location.href='" . url('/admin/dashboard') . "';</script>";
+                exit;
+            }
         }
+    }
+
+    private function isAjax()
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+    }
+
+    /**
+     * Master Candidate List (The Funnel)
+     */
+    public function index()
+    {
+        return $this->handleCandidateList('all');
+    }
+
+    /**
+     * Submitted Applications List
+     */
+    public function applications()
+    {
+        return $this->handleCandidateList('dashboard');
+    }
+
+    /**
+     * Review Management List
+     */
+    public function reviewList()
+    {
+        return $this->handleCandidateList('review');
+    }
+
+    protected function handleCandidateList($mode = 'dashboard')
+    {
+        $this->checkPermission('dashboard');
+
+        $search = $_GET['search'] ?? '';
+        $status = $_GET['status'] ?? '';
+        $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
+        $editRequest = $_GET['edit_request'] ?? '';
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
+        $year = isset($_GET['year']) && $_GET['year'] !== '' ? (int)$_GET['year'] : null;
+        $appStatusFilter = $_GET['app_status'] ?? 'all';
+
+        // Custom logic for Modes
+        if ($mode === 'all') {
+            $appStatusFilter = 'ghost'; // Force 'chưa nhập hồ sơ' for this view
+        } elseif ($mode === 'dashboard' || $mode === 'review') {
+            $appStatusFilter = 'submitted'; // Force submitted for these views
+        }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        $sessions = $sessionModel->getAll();
+        $years = array_unique(array_column($sessions, 'nam_tuyen_sinh'));
+        rsort($years);
+
+        if ($sessionId === null && $year === null) {
+            // In 'all' (Funnel) mode, we don't force a default session to allow seeing the full 547+ candidate list.
+            if ($mode !== 'all') {
+                $latestSession = $sessionModel->getLatestActiveSession();
+                if ($latestSession) {
+                    $sessionId = $latestSession['id'];
+                    $year = $latestSession['nam_tuyen_sinh'];
+                } else {
+                    $year = !empty($years) ? reset($years) : date('Y');
+                }
+            }
+        }
+
+        $yearSessions = array_filter($sessions, function ($s) use ($year) {
+            return $s['nam_tuyen_sinh'] == $year;
+        });
+
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $offset = ($page - 1) * $limit;
+        $sort = $_GET['sort'] ?? 'ngay_tao';
+        $dir = $_GET['dir'] ?? 'DESC';
+
+        $extraFilters = [
+            'phone'     => $_GET['f_phone'] ?? '',
+            'dob'       => $_GET['f_dob'] ?? '',
+            'province'  => $_GET['f_province'] ?? '',
+            'school'    => $_GET['f_school'] ?? '',
+            'nv1'       => $_GET['f_nv1'] ?? '',
+            'gender'    => $_GET['f_gender'] ?? '',
+            'ethnicity' => $_GET['f_ethnicity'] ?? '',
+            'area'      => $_GET['f_area'] ?? '',
+            'object'    => $_GET['f_object'] ?? '',
+            'grad_year' => $_GET['f_grad_year'] ?? '',
+        ];
+
+        $candidates = $this->thiSinhRepo->getFiltered(
+            $search,
+            $status,
+            $hocBaStatus,
+            $limit,
+            $offset,
+            $sessionId,
+            $editRequest == '1',
+            $year,
+            $sort,
+            $dir,
+            false,
+            $extraFilters,
+            $appStatusFilter
+        );
+
+        $total = $this->thiSinhRepo->countFiltered(
+            $search,
+            $status,
+            $hocBaStatus,
+            $sessionId,
+            $editRequest == '1',
+            $year,
+            false,
+            $extraFilters,
+            $appStatusFilter
+        );
+        $totalPages = ceil($total / max($limit, 1));
+
+        $stats = $this->thiSinhRepo->getStats($sessionId, $year);
+        $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
+        $stats['today'] = $recent['today'] ?? 0;
+        $stats['this_week'] = $recent['this_week'] ?? 0;
+        
+        $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function () {
+            $model = new \App\Models\EmailTemplate();
+            return $model->getAll();
+        });
+
+        $viewName = $mode === 'all' ? 'admin/candidates/index' : 'admin/candidates';
+        $baseUrl = url($mode === "review" ? "/admin/review-management" : ($mode === 'all' ? "/admin/candidate-management" : "/admin/candidates"));
+
+        $this->view($viewName, [
+            'total' => $total,
+            'mode' => $mode,
+            'baseUrl' => $baseUrl,
+            'candidates' => $candidates,
+            'stats' => $stats,
+            'sessions' => $sessions,
+            'yearSessions' => $yearSessions,
+            'years' => $years,
+            'sort' => $sort,
+            'dir' => $dir,
+            'filters' => array_merge([
+                'search' => $search,
+                'status' => $status,
+                'hoc_ba_status' => $hocBaStatus,
+                'edit_request' => $editRequest,
+                'session_id' => $sessionId,
+                'year' => $year,
+                'app_status' => $appStatusFilter,
+                'sort' => $sort,
+                'dir' => $dir,
+            ], $extraFilters),
+            'pagination' => ['current_page' => $page, 'total_pages' => $totalPages, 'total_items' => $total],
+            'emailTemplates' => $emailTemplates
+        ]);
     }
 
     /**
@@ -82,8 +245,11 @@ class CandidateController extends Controller
             case 'send_email':
                 $this->checkPermission('candidates.view');
                 $templateId = $_POST['template_id'] ?? null;
-                if ($templateId) {
-                    $this->bulkSendEmail($ids, $templateId);
+                $subject = $_POST['email_subject'] ?? null;
+                $content = $_POST['email_content'] ?? null;
+
+                if ($templateId || ($subject && $content)) {
+                    $this->bulkSendEmail($ids, $templateId, $subject, $content);
                 }
                 break;
 
@@ -95,6 +261,22 @@ class CandidateController extends Controller
             case 'force_delete':
                 $this->checkPermission('candidates.delete'); // Or candidates.force_delete if special
                 $this->bulkForceDelete($ids);
+                break;
+
+            case 'normalize_names':
+                $this->checkPermission('candidates.edit');
+                $candidates = $this->thiSinhRepo->findManyByCCCD($ids);
+                $count = 0;
+                foreach ($candidates as $candidate) {
+                    $normalized = normalize_name($candidate['ho_va_ten']);
+                    if ($normalized !== $candidate['ho_va_ten']) {
+                        $this->thiSinhRepo->update($candidate['so_cccd'], ['ho_va_ten' => $normalized]);
+                        $count++;
+                    }
+                }
+                
+                $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
+                $_POST['redirect_to'] = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("Đã chuẩn hóa họ tên cho $count thí sinh.");
                 break;
 
             default:
@@ -191,38 +373,62 @@ class CandidateController extends Controller
     /**
      * Bulk send email
      */
-    protected function bulkSendEmail($ids, $templateId)
+    protected function bulkSendEmail($ids, $templateId = null, $customSubject = null, $customContent = null)
     {
-        // Get template. EmailTemplatesRepository? Or just DB for now as non-critical?
-        // Let's use DB for template as it is not in ThiSinh scope.
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
-        $stmt->execute([$templateId]);
-        $template = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $subject = $customSubject;
+        $body = $customContent;
 
-        if (!$template) return;
+        if ($templateId) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+            $stmt->execute([$templateId]);
+            $template = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($template) {
+                // Use template only if subject/body not provided (custom wins)
+                if (empty($subject)) $subject = $template['subject'];
+                if (empty($body)) $body = $template['body'];
+            }
+        }
+
+        if (empty($subject) || empty($body)) return;
 
         // Get candidates using Repository
         $candidates = $this->thiSinhRepo->getEmailsByIds($ids);
-
         $mailer = new \App\Services\MailerService();
-        $sent = 0;
+        $sentNum = 0;
 
         foreach ($candidates as $c) {
             if (empty($c['email'])) continue;
 
-            $subject = str_replace('{ho_ten}', $c['ho_va_ten'], $template['subject']);
-            $body = str_replace(['{ho_ten}', '{so_cccd}'], [$c['ho_va_ten'], $c['so_cccd']], $template['body']);
+            // Support both old and new placeholder styles
+            $personalSubject = str_replace(['{ho_ten}', '{{name}}'], [$c['ho_va_ten'], $c['ho_va_ten']], $subject);
+            $personalBody = str_replace(
+                ['{ho_ten}', '{so_cccd}', '{{name}}', '{{cccd}}'], 
+                [$c['ho_va_ten'], $c['so_cccd'], $c['ho_va_ten'], $c['so_cccd']], 
+                $body
+            );
 
-            if ($mailer->send($c['email'], $subject, $body)) {
-                $sent++;
+            // Enqueue to email_queue table so it shows in logs/queue
+            if ($mailer->enqueue($c['email'], $personalSubject, $personalBody)) {
+                $sentNum++;
             }
         }
 
+        // Log to Audit
         $this->auditService->log('BULK_SEND_EMAIL', 'candidates', null, null, [
             'template_id' => $templateId,
-            'sent_count' => $sent,
+            'sent_count' => $sentNum,
             'total' => count($ids)
+        ]);
+
+        // Create a Notification to appear in "/admin/notifications" (Sent Notifications)
+        $notificationModel = new \App\Models\Notification();
+        $notificationModel->create([
+            'title' => "[Email] " . mb_substr($subject, 0, 50),
+            'content' => "Hệ thống đã gửi email đến " . count($ids) . " thí sinh. Nội dung: " . mb_substr(strip_tags($body), 0, 200) . "...",
+            'type' => 'info',
+            'target_type' => 'all',
+            'created_by' => $_SESSION['admin_id'] ?? null
         ]);
     }
 
@@ -291,11 +497,17 @@ class CandidateController extends Controller
             true // trashed = true
         );
 
-        // _total_count vẫn có trong kết quả getFiltered (COUNT(*) OVER() window function)
-        // Không cần gọi countFiltered() — tránh thêm 1 DB round-trip
-        $total = !empty($candidates) ? (int)($candidates[0]['_total_count'] ?? count($candidates)) : 0;
+        $total = $this->thiSinhRepo->countFiltered(
+            $search,
+            '', // status
+            '', // hocBaStatus
+            null, // sessionId
+            false, // onlyEditRequests
+            null, // year
+            true // trashed = true
+        );
 
-        $totalPages = ceil($total / $limit);
+        $totalPages = ceil($total / max($limit, 1));
 
         $this->view('admin/candidates/trash', [
             'candidates' => $candidates,
@@ -350,7 +562,7 @@ class CandidateController extends Controller
 
             // 1. Update Personal Info
             $data = [
-                'ho_va_ten' => $_POST['ho_va_ten'] ?? '',
+                'ho_va_ten' => normalize_name($_POST['ho_va_ten'] ?? ''),
                 'ngay_sinh' => $_POST['ngay_sinh'] ?? '',
                 'gioi_tinh' => $_POST['gioi_tinh'] ?? '',
                 'dan_toc' => $_POST['dan_toc'] ?? '',
@@ -567,7 +779,7 @@ class CandidateController extends Controller
                     // Personal Info (Updated fields only)
                     // Use '' for text fields if empty, null for IDs if empty
                     $data = [
-                        'ho_va_ten' => $_POST['ho_va_ten'],
+                        'ho_va_ten' => normalize_name($_POST['ho_va_ten']),
                         'ngay_sinh' => $_POST['ngay_sinh'],
                         'gioi_tinh' => $_POST['gioi_tinh'],
                         'dan_toc'   => $_POST['dan_toc'] ?? '',

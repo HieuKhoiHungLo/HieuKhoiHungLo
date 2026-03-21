@@ -19,12 +19,13 @@ class ThiSinh extends Model {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = []) {
+    public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
         $sql = "SELECT t.* FROM {$this->table} t WHERE 1=1";
         $params = [];
 
         if ($excludeTrash) {
-            $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+            // Commenting out missing column logic. The new system handles trash at the 'ho_so_xet_tuyen' level instead of 'thi_sinh'.
+            // $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
         }
 
         if (!empty($search)) {
@@ -35,8 +36,8 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.trang_thai = ?)";
-            $params[] = $status;
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.trang_thai ILIKE ?)";
+            $params[] = "%$status%";
         }
 
         if ($hocBaStatus !== '') {
@@ -44,16 +45,37 @@ class ThiSinh extends Model {
             $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
         
-        if ($sessionId) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
-            $params[] = $sessionId;
-        } elseif ($year) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
-            $params[] = $year;
+        // Session and Year filtering: 
+        // If applicationStatus is 'submitted', we strictly filter by session/year.
+        // If applicationStatus is 'all' or 'ghost', we only filter by session/year for candidates WHO HAVE an application.
+        // Candidates who have NO application (ghosts) should still show up in 'all' or 'ghost' mode.
+        if ($applicationStatus === 'submitted') {
+            if ($sessionId) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
+                $params[] = $year;
+            }
+        } elseif ($applicationStatus === 'all') {
+            if ($sessionId) {
+                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                // If year is specified, we check if application matches year OR if ghost matches year via created_at
+                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                $params[] = $year;
+            }
         }
 
         if ($onlyEditRequests) {
             $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
+        }
+
+        if ($applicationStatus === 'submitted') {
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+        } elseif ($applicationStatus === 'ghost') {
+            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
         }
 
         // Extra column-specific filters
@@ -100,8 +122,8 @@ class ThiSinh extends Model {
         $dir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
 
         $sql .= " ORDER BY $sort $dir LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
+        $params[] = (int)$limit;
+        $params[] = (int)$offset;
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -120,13 +142,19 @@ class ThiSinh extends Model {
         $stmtStatus->execute($cccds);
         $statusMap = $stmtStatus->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request 
+        $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request, string_agg(trang_thai, ', ') as master_status 
                     FROM ho_so_xet_tuyen 
-                    WHERE so_cccd IN ($placeholders) AND yeu_cau_chinh_sua = TRUE 
+                    WHERE so_cccd IN ($placeholders) 
                     GROUP BY so_cccd";
         $stmtEdit = $this->db->prepare($editSql);
         $stmtEdit->execute($cccds);
-        $editMap = $stmtEdit->fetchAll(PDO::FETCH_KEY_PAIR);
+        $masterStatusMap = $stmtEdit->fetchAll(PDO::FETCH_ASSOC);
+        $editMap = [];
+        $statusMapHoso = [];
+        foreach($masterStatusMap as $ms) {
+            $editMap[$ms['so_cccd']] = $ms['has_edit_request'];
+            $statusMapHoso[$ms['so_cccd']] = $ms['master_status'];
+        }
 
         // Fetch display names for province and school
         $infoSql = "SELECT t.so_cccd, p.ten_tinh as province_name, s.ten_truong as school_name, nv.ten_nganh as nv1
@@ -145,6 +173,7 @@ class ThiSinh extends Model {
         foreach ($candidates as &$candidate) {
             $cccd = $candidate['so_cccd'];
             $candidate['statuses'] = $statusMap[$cccd] ?? '';
+            $candidate['master_status'] = $statusMapHoso[$cccd] ?? ''; // Use ho_so_xet_tuyen status
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
             $candidate['province_name'] = $infoMap[$cccd]['province_name'] ?? '';
             $candidate['school_name'] = $infoMap[$cccd]['school_name'] ?? '';
@@ -154,12 +183,13 @@ class ThiSinh extends Model {
         return $candidates;
     }
 
-    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = []) {
+    public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
         $sql = "SELECT COUNT(*) FROM {$this->table} t WHERE 1=1";
         $params = [];
 
         if ($excludeTrash) {
-            $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+            // Commenting out missing column logic. The new system handles trash at the 'ho_so_xet_tuyen' level instead of 'thi_sinh'.
+            // $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
         }
 
         if (!empty($search)) {
@@ -170,8 +200,8 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.trang_thai = ?)";
-            $params[] = $status;
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.trang_thai ILIKE ?)";
+            $params[] = "%$status%";
         }
 
         if ($hocBaStatus !== '') {
@@ -179,16 +209,34 @@ class ThiSinh extends Model {
             $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
         
-        if ($sessionId) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
-            $params[] = $sessionId;
-        } elseif ($year) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
-            $params[] = $year;
+        if ($applicationStatus === 'submitted') {
+            if ($sessionId) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
+                $params[] = $year;
+            }
+        } elseif ($applicationStatus === 'all') {
+            if ($sessionId) {
+                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                $params[] = $year;
+            }
         }
+        // If applicationStatus === 'ghost', we ignore session/year filters because ghosts have none.
+        // Unless we want ghost matching year of registration? For now, keep it simple.
 
         if ($onlyEditRequests) {
             $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
+        }
+
+        if ($applicationStatus === 'submitted') {
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+        } elseif ($applicationStatus === 'ghost') {
+            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
         }
 
         // Extra column-specific filters
@@ -239,35 +287,35 @@ class ThiSinh extends Model {
             'total' => 0,
             'pending' => 0,
             'approved' => 0,
-            'rejected' => 0,
+            'require_edit' => 0,
             'edit_requests' => 0
         ];
 
         // Base Query
+        $sessionFilter = "";
+        if ($sessionId) {
+            $sessionFilter = " AND hs.dot_tuyen_sinh_id = " . (int)$sessionId;
+        } elseif ($year) {
+            $sessionFilter = " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE dt.id = hs.dot_tuyen_sinh_id AND dt.dm_nam_tuyen_sinh_nam = " . (int)$year . ")";
+        }
+
         $sql = "SELECT 
-            COUNT(DISTINCT t.so_cccd) as total,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Chờ duyệt' THEN t.so_cccd END) as pending,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Đã duyệt' THEN t.so_cccd END) as approved,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai = 'Từ chối' THEN t.so_cccd END) as rejected,
-            COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE THEN t.so_cccd END) as edit_requests
+            COUNT(DISTINCT CASE WHEN hs.so_cccd IS NOT NULL $sessionFilter THEN t.so_cccd END) as total,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Chờ duyệt%' $sessionFilter THEN t.so_cccd END) as pending,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Đã duyệt%' $sessionFilter THEN t.so_cccd END) as approved,
+            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Yêu cầu sửa%' $sessionFilter THEN t.so_cccd END) as require_edit,
+            COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE $sessionFilter THEN t.so_cccd END) as edit_requests
                 FROM {$this->table} t
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
                 WHERE 1=1";
-
+        
         $params = [];
-
+        
+        // Date filters still restrict the entire set if provided
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
             $params[] = $startDate . ' 00:00:00';
             $params[] = $endDate . ' 23:59:59';
-        }
-
-        if ($sessionId) {
-            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
-            $params[] = $sessionId;
-        } elseif ($year) {
-            $sql .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE dt.id = hs.dot_tuyen_sinh_id AND dt.dm_nam_tuyen_sinh_nam = ?)";
-            $params[] = $year;
         }
 
         try {
@@ -279,7 +327,7 @@ class ThiSinh extends Model {
                 $stats['total'] = (int)$result['total'];
                 $stats['pending'] = (int)$result['pending'];
                 $stats['approved'] = (int)$result['approved'];
-                $stats['rejected'] = (int)$result['rejected'];
+                $stats['require_edit'] = (int)$result['require_edit'];
                 $stats['edit_requests'] = (int)$result['edit_requests'];
             }
         } catch (\PDOException $e) {

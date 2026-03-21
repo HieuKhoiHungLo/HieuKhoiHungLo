@@ -59,3 +59,16 @@ if (!function_exists('google_drive_thumbnail_url')) {
         return google_drive_embed_url($url, $size);
     }
 }
+
+if (!function_exists('normalize_name')) {
+    /**
+     * Chuẩn hóa họ tên: Xóa khoảng trắng thừa và chuyển sang IN HOA
+     */
+    function normalize_name($name) {
+        if (empty($name)) return '';
+        // Xóa khoảng trắng thừa ở đầu, cuối và giữa các từ
+        $name = preg_replace('/\s+/', ' ', trim($name));
+        // Chuyển sang in hoa (hỗ trợ tiếng Việt multibyte)
+        return mb_strtoupper($name, 'UTF-8');
+    }
+}

@@ -66,15 +66,15 @@
         </div>
     </div>
 
-    <!-- Card: Rejected -->
+    <!-- Card: Require Edit -->
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1">
         <div class="flex items-start justify-between">
             <div>
-                <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest font-heading mb-1">Từ chối</p>
-                <p class="text-3xl font-black text-slate-900 tracking-tight font-heading"><?= number_format($stats['rejected']) ?></p>
+                <p class="text-slate-500 text-[10px] font-black uppercase tracking-widest font-heading mb-1">Yêu cầu sửa</p>
+                <p class="text-3xl font-black text-slate-900 tracking-tight font-heading"><?= number_format($stats['require_edit'] ?? 0) ?></p>
             </div>
-            <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100/50">
-                <i class="fas fa-times-circle text-xl"></i>
+            <div class="p-3 bg-orange-50 text-orange-600 rounded-2xl border border-orange-100/50">
+                <i class="fas fa-edit text-xl"></i>
             </div>
         </div>
         <div class="mt-4">

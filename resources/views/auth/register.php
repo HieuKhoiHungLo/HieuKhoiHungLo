@@ -24,7 +24,7 @@
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-user text-hvu-red mr-2"></i> Họ và tên <span class="text-red-500 ml-1">*</span>
                 </label>
-                <input type="text" name="fullname" value="<?= htmlspecialchars($old['fullname'] ?? '') ?>" required class="hvu-input" placeholder="Nhập họ và tên đầy đủ">
+                <input type="text" name="fullname" value="<?= htmlspecialchars($old['fullname'] ?? '') ?>" required class="hvu-input uppercase" placeholder="Nhập họ và tên đầy đủ" oninput="this.value = this.value.toUpperCase();">
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-5">
