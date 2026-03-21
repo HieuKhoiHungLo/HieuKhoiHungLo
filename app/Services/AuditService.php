@@ -160,6 +160,16 @@ class AuditService {
         return true;
     }
 
+    /**
+     * Clear ALL audit logs and login attempts
+     */
+    public function clearAll() {
+        $this->db->exec("DELETE FROM audit_logs");
+        $this->db->exec("DELETE FROM login_attempts");
+        $this->db->exec("DELETE FROM online_tracking");
+        return true;
+    }
+
     private function getClientIp() {
         if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];

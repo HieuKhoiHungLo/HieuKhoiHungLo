@@ -9,7 +9,10 @@
         </div>
         <div class="flex space-x-2">
             <button onclick="purgeLogs(20)" class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg border border-red-200 hover:bg-red-100 transition text-sm">
-                <i class="fas fa-trash-alt mr-1"></i> Dọn dẹp cũ hơn 20 ngày
+                <i class="fas fa-history mr-1"></i> Dọn dẹp cũ hơn 20 ngày
+            </button>
+            <button onclick="purgeLogs(0)" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition text-sm shadow-sm">
+                <i class="fas fa-trash-alt mr-1"></i> Xóa tất cả
             </button>
             <button onclick="location.reload()" class="px-4 py-2 bg-white text-gray-600 font-bold rounded-lg border hover:bg-gray-50 transition text-sm">
                 <i class="fas fa-sync-alt mr-1"></i> Làm mới
@@ -142,7 +145,11 @@
 
 <script>
 function purgeLogs(days) {
-    if (!confirm('Bạn có chắc chắn muốn xóa tất cả nhật ký cũ hơn ' + days + ' ngày không? Thao tác này không thể hoàn tác.')) {
+    const msg = days === 0 
+        ? 'BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ NHẬT KÝ? Thao tác này sẽ xóa sạch mọi dữ liệu lịch sử và không thể khôi phục!' 
+        : 'Bạn có chắc chắn muốn xóa tất cả nhật ký cũ hơn ' + days + ' ngày không?';
+    
+    if (!confirm(msg)) {
         return;
     }
 

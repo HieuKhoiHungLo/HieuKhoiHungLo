@@ -54,14 +54,19 @@ class AuditController extends Controller {
         }
 
         $days = intval($_POST['days'] ?? 20);
-        if ($days < 1) {
+        if ($days < 0) {
             $this->json(['success' => false, 'error' => 'Invalid days']);
             return;
         }
 
         try {
-            $this->auditService->purgeOldRecords($days);
-            $this->auditService->log('PURGE_LOGS', 'audit_logs', null, null, ['days' => $days]);
+            if ($days === 0) {
+                $this->auditService->clearAll();
+                $this->auditService->log('CLEAR_ALL_LOGS', 'audit_logs', null, null, ['status' => 'success']);
+            } else {
+                $this->auditService->purgeOldRecords($days);
+                $this->auditService->log('PURGE_LOGS', 'audit_logs', null, null, ['days' => $days]);
+            }
             
             $this->json(['success' => true]);
         } catch (\Exception $e) {
