@@ -153,6 +153,7 @@ function purgeLogs(days) {
 
     const formData = new FormData();
     formData.append('days', days);
+    formData.append('_csrf_token', '<?= csrf_token() ?>');
 
     fetch('<?= url("/admin/audit/purge") ?>', {
         method: 'POST',
