@@ -12,6 +12,7 @@ class ApiController extends Controller
 
     public function __construct()
     {
+        \App\Core\Database::getInstance()->setSystemRole('admin');
         $this->masterData = new MasterData();
     }
 
@@ -68,6 +69,13 @@ class ApiController extends Controller
 
         $db = \App\Core\Database::getInstance()->getConnection();
         $mailer = new \App\Services\MailerService();
+
+        // --- AUTOMATED AUDIT PURGE (Throttle: Once per day) ---
+        $today = date('Y-m-d');
+        if ($this->masterData->getSetting('last_audit_purge') !== $today) {
+            (new \App\Services\AuditService())->purgeOldRecords(20);
+            $this->masterData->setSetting('last_audit_purge', $today);
+        }
 
         // Fetch pending emails (limit 10 per run to avoid timeout)
         $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 10");

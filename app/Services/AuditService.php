@@ -141,6 +141,25 @@ class AuditService {
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Purge old audit logs and login attempts
+     */
+    public function purgeOldRecords($days = 20) {
+        // Purge audit logs
+        $sql1 = "DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL '$days days'";
+        $this->db->exec($sql1);
+        
+        // Purge login attempts
+        $sql2 = "DELETE FROM login_attempts WHERE created_at < NOW() - INTERVAL '$days days'";
+        $this->db->exec($sql2);
+        
+        // Purge online tracking (just in case, keep it extra clean)
+        $sql3 = "DELETE FROM online_tracking WHERE last_activity < NOW() - INTERVAL '$days days'";
+        $this->db->exec($sql3);
+
+        return true;
+    }
+
     private function getClientIp() {
         if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];

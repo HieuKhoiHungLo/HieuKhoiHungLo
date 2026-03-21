@@ -8,6 +8,7 @@ class Database {
     private static $instance = null;
     private $pdo;
     private $rlsContextSet = false;
+    private $systemRole = null;
 
     private function __construct() {
         $config = require __DIR__ . '/../../config/db.php';
@@ -41,6 +42,14 @@ class Database {
         return self::$instance;
     }
 
+    /**
+     * Override session-based RLS role for system/cron tasks
+     * Must be called before getConnection() the first time
+     */
+    public function setSystemRole($role) {
+        $this->systemRole = $role;
+    }
+
     public function getConnection() {
         $this->ensureRLSContext();
         return $this->pdo;
@@ -49,30 +58,34 @@ class Database {
     private function ensureRLSContext() {
         if ($this->rlsContextSet) return;
         
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            try {
-                if (isset($_SESSION['cccd'])) {
-                    $stmt = $this->pdo->prepare("SELECT set_config('app.current_cccd', ?, false)");
-                    $stmt->execute([$_SESSION['cccd']]);
-                } else {
-                    $this->pdo->exec("SELECT set_config('app.current_cccd', '', false)");
-                }
-                
-                $role = 'public';
-                if (isset($_SESSION['admin_id'])) {
-                    $role = 'admin';
-                } elseif (isset($_SESSION['user_id'])) {
-                    $role = 'candidate';
-                }
-                
-                $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
-                $stmt->execute([$role]);
-                
-                $this->rlsContextSet = true;
-            } catch (PDOException $e) {
-                // Fail silently or log error
-                error_log("RLS Context Error: " . $e->getMessage());
+        $role = $this->systemRole ?? 'public';
+        $cccd = '';
+
+        if (!$this->systemRole && session_status() === PHP_SESSION_ACTIVE) {
+            if (isset($_SESSION['cccd'])) {
+                $cccd = $_SESSION['cccd'];
             }
+            
+            if (isset($_SESSION['admin_id'])) {
+                $role = 'admin';
+            } elseif (isset($_SESSION['user_id'])) {
+                $role = 'candidate';
+            }
+        }
+
+        try {
+            // Set CCCD
+            $stmt = $this->pdo->prepare("SELECT set_config('app.current_cccd', ?, false)");
+            $stmt->execute([$cccd]);
+            
+            // Set Role
+            $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
+            $stmt->execute([$role]);
+            
+            $this->rlsContextSet = true;
+        } catch (PDOException $e) {
+            // Fail silently or log error
+            error_log("RLS Context Error: " . $e->getMessage());
         }
     }
 }
