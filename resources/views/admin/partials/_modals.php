@@ -59,7 +59,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ghi chú nội bộ (Chỉ quản trị viên thấy)</label>
-                            <input type="text" id="modal-internal-note" placeholder="Nhập ghi chú cho ban tuyển sinh..." class="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all outline-none text-amber-900 font-medium">
+                            <input type="text" id="modal-internal-note" value="Gửi mail ngày: <?= date('d/m/Y') ?>" placeholder="Nhập ghi chú cho ban tuyển sinh..." class="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all outline-none text-amber-900 font-medium">
                         </div>
 
                         <div class="md:col-span-2">

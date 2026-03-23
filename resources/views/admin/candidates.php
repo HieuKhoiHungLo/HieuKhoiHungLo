@@ -219,6 +219,13 @@
     function openEmailModal() {
         const count = document.querySelectorAll('.item-checkbox:checked').length;
         document.getElementById('email-count').innerText = count;
+
+        const noteArea = document.getElementById('modal-internal-note');
+        if (noteArea) {
+            const today = new Date().toLocaleDateString('vi-VN');
+            noteArea.value = `Gửi mail ngày: ${today}`;
+        }
+
         document.getElementById('email-modal').classList.remove('hidden');
     }
 
