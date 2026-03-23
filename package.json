@@ -1,6 +1,6 @@
 {
     "name": "hvu-admissions",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "description": "Hung Vuong University Admissions Portal",
     "main": "index.php",
     "scripts": {
