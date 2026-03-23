@@ -46,45 +46,32 @@ class VirtualAdmissionController extends Controller {
         // Fetch candidates and their aspirations (only approved NV for the chosen session)
         // Note: Joining thi_sinh, nguyen_vong, and dm_nganh
         // We only care about n.khao_sat = 1 (Da duyet)
-        $sql = "
-            SELECT 
-                ts.id, ts.so_cccd, ts.ho_va_ten, ts.gioi_tinh, ts.nam_tot_nghiep, 
-                ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien,
-                n.ma_nganh, n.thu_tu_nv, n.diem_xet_tuyen, n.to_hop_toi_uu, n.phuong_thuc_toi_uu,
-                n.chi_tiet_diem, n.trang_thai_trung_tuyen
-            FROM thi_sinh ts
-            JOIN nguyen_vong n ON ts.so_cccd = n.so_cccd
-            WHERE 
-                ts.dot_xet_tuyen_id = ?
-                AND n.trang_thai_ho_so = 'DaDuyet'
-            ORDER BY ts.so_cccd, n.thu_tu_nv ASC
-        ";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$sessionId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $sql = "
+                SELECT 
+                    ts.id, ts.so_cccd, ts.ho_va_ten, ts.gioi_tinh, ts.nam_tot_nghiep, 
+                    ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien,
+                    n.ma_nganh, n.thu_tu_nguyen_vong, n.diem_xet_tuyen, n.to_hop_toi_uu, n.phuong_thuc_toi_uu,
+                    n.chi_tiet_diem, n.trang_thai_trung_tuyen,
+                    n.diem_mon_1, n.diem_mon_2, n.diem_mon_3
+                FROM thi_sinh ts
+                JOIN nguyen_vong n ON ts.so_cccd = n.so_cccd
+                WHERE 
+                    n.dot_tuyen_sinh_id = ?
+                    AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')
+                ORDER BY ts.so_cccd, n.thu_tu_nguyen_vong ASC
+                LIMIT 100
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$sessionId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Group by CCCD so we can format them for DataTables gracefully
-        $data = [];
-        $candidates = [];
-
-        foreach ($rows as $r) {
-            $cccd = $r['so_cccd'];
-            if (!isset($candidates[$cccd])) {
-                $candidates[$cccd] = [
-                    'so_cccd' => $cccd,
-                    'ho_va_ten' => $r['ho_va_ten'],
-                    'khu_vuc_uu_tien' => $r['khu_vuc_uu_tien'],
-                    'doi_tuong_uu_tien' => $r['doi_tuong_uu_tien'],
-                    'nguyen_vongs' => []
-                ];
-            }
-            $candidates[$cccd]['nguyen_vongs'][] = $r;
+            // Grouping logic (optional if frontend handles flat lists)
+            $this->json(['data' => $rows]);
+        } catch (\Exception $e) {
+            error_log("loadBatchData Error: " . $e->getMessage());
+            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        // Flatten back for easy table iteration OR let frontend handle it.
-        // Actually for the grid, each Row is ONE NguyenVong with its details appended. Let's return flattened:
-        echo json_encode(['data' => $rows]);
-        exit;
     }
 
     public function recalculateScores() {
@@ -100,10 +87,9 @@ class VirtualAdmissionController extends Controller {
         }
 
         // Get all approved candidates in this session
-        $sql = "SELECT DISTINCT ts.so_cccd 
-                FROM thi_sinh ts 
-                JOIN nguyen_vong n ON ts.so_cccd = n.so_cccd 
-                WHERE ts.dot_xet_tuyen_id = ? AND n.trang_thai_ho_so = 'DaDuyet'";
+        $sql = "SELECT DISTINCT n.so_cccd 
+                FROM nguyen_vong n 
+                WHERE n.dot_tuyen_sinh_id = ? AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);
         $candidates = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -114,7 +100,68 @@ class VirtualAdmissionController extends Controller {
             $success++;
         }
 
-        echo json_encode(['success' => true, 'message' => "Đã tính điểm cho $success thí sinh."]);
+        $this->json(['success' => true, 'message' => "Đã tính điểm cho $success thí sinh."]);
+    }
+
+    public function apiSync() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid Request']);
+            exit;
+        }
+
+        $sessionId = $_POST['session_id'] ?? null;
+        if (!$sessionId) {
+            echo json_encode(['success' => false, 'message' => 'Chưa chọn đợt xét tuyển.']);
+            exit;
+        }
+
+        $result = $this->filterService->syncData($sessionId);
+        if ($result) {
+            $this->json(['success' => true, 'message' => 'Đã đồng bộ dữ liệu hồ sơ được duyệt thành công.']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Lỗi khi đồng bộ dữ liệu.'], 500);
+        }
+    }
+
+    public function exportExcel() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) {
+            die("Chưa chọn đợt xét tuyển.");
+        }
+
+        // Logic xuất excel đơn giản (CSV)
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=xet_tuyen_loc_ao_' . $sessionId . '.csv');
+        
+        $output = fopen('php://output', 'w');
+        fputs($output, "\xEF\xBB\xBF"); // BOM for Excel UTF-8
+        
+        // Header
+        fputcsv($output, ['CCCD', 'Họ tên', 'Ngành', 'NV', 'Điểm M1', 'Điểm M2', 'Điểm M3', 'Tổng Điểm', 'Trạng Thái']);
+
+        $sql = "SELECT n.so_cccd, ts.ho_va_ten, n.ma_nganh, n.thu_tu_nguyen_vong, n.diem_mon_1, n.diem_mon_2, n.diem_mon_3, n.diem_xet_tuyen, n.trang_thai_trung_tuyen
+                FROM nguyen_vong n
+                JOIN thi_sinh ts ON n.so_cccd = ts.so_cccd
+                WHERE n.dot_tuyen_sinh_id = ? AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')
+                ORDER BY n.so_cccd, n.thu_tu_nguyen_vong ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $status = ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt';
+            fputcsv($output, [
+                $row['so_cccd'],
+                $row['ho_va_ten'],
+                $row['ma_nganh'],
+                $row['thu_tu_nguyen_vong'],
+                $row['diem_mon_1'],
+                $row['diem_mon_2'],
+                $row['diem_mon_3'],
+                $row['diem_xet_tuyen'],
+                $status
+            ]);
+        }
+        fclose($output);
         exit;
     }
 }

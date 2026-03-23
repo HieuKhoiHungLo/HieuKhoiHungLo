@@ -196,7 +196,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
     $router->get('/admin/admission/virtual-filter/api-load', 'VirtualAdmissionController@loadBatchData');
     $router->post('/admin/admission/virtual-filter/api-recalculate', 'VirtualAdmissionController@recalculateScores');
-    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering'); // Keep the run filtering API intact if it was called externally
+    $router->post('/admin/admission/virtual-filter/api-sync', 'VirtualAdmissionController@apiSync');
+    $router->get('/admin/admission/virtual-filter/export', 'VirtualAdmissionController@exportExcel');
+    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering');
 
     // Aptitude Scores
     $router->get('/admin/aptitude-scores', 'AptitudeScoreController@index');

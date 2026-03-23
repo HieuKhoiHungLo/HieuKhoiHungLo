@@ -247,9 +247,10 @@ class CandidateController extends Controller
                 $templateId = $_POST['template_id'] ?? null;
                 $subject = $_POST['email_subject'] ?? null;
                 $content = $_POST['email_content'] ?? null;
+                $internalNote = $_POST['internal_note'] ?? null;
 
                 if ($templateId || ($subject && $content)) {
-                    $this->bulkSendEmail($ids, $templateId, $subject, $content);
+                    $this->bulkSendEmail($ids, $templateId, $subject, $content, $internalNote);
                 }
                 break;
 
@@ -373,7 +374,7 @@ class CandidateController extends Controller
     /**
      * Bulk send email
      */
-    protected function bulkSendEmail($ids, $templateId = null, $customSubject = null, $customContent = null)
+    protected function bulkSendEmail($ids, $templateId = null, $customSubject = null, $customContent = null, $internalNote = null)
     {
         $subject = $customSubject;
         $body = $customContent;
@@ -411,6 +412,29 @@ class CandidateController extends Controller
             // Enqueue to email_queue table so it shows in logs/queue
             if ($mailer->enqueue($c['email'], $personalSubject, $personalBody)) {
                 $sentNum++;
+                
+                // If internal note provided, update the candidate's record
+                if (!empty($internalNote)) {
+                    // Wait, updateStatusAndNotes updates to specific status. 
+                    // I should probably just update the note without changing status if sending email.
+                    // Or keep the status as is.
+                    // $log->info("Saving internal note for target {$c['so_cccd']}: $internalNote"); // Assuming $log is defined, if not, I'll omit it or add a placeholder.
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    
+                    // Update thi_sinh (Main profile note)
+                    $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = CASE 
+                        WHEN ghi_chu IS NULL OR ghi_chu = '' THEN ? 
+                        ELSE CONCAT(ghi_chu, '\n', ?) 
+                    END WHERE so_cccd = ?");
+                    $upd->execute([$internalNote, $internalNote, $c['so_cccd']]);
+
+                    // Also update ho_so_xet_tuyen if exists for consistency in filters
+                    $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = CASE 
+                        WHEN ghi_chu IS NULL OR ghi_chu = '' THEN ? 
+                        ELSE CONCAT(ghi_chu, '\n', ?) 
+                    END WHERE so_cccd = ?");
+                    $updHoso->execute([$internalNote, $internalNote, $c['so_cccd']]);
+                }
             }
         }
 

@@ -20,7 +20,7 @@ class ThiSinh extends Model {
     }
 
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
-        $sql = "SELECT t.* FROM {$this->table} t WHERE 1=1";
+        $sql = "SELECT t.*, t.ghi_chu as base_ghi_chu FROM {$this->table} t WHERE 1=1";
         $params = [];
 
         if ($excludeTrash) {
@@ -142,7 +142,7 @@ class ThiSinh extends Model {
         $stmtStatus->execute($cccds);
         $statusMap = $stmtStatus->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request, string_agg(trang_thai, ', ') as master_status 
+        $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request, string_agg(trang_thai, ', ') as master_status, string_agg(ghi_chu, '\n') as ghi_chu
                     FROM ho_so_xet_tuyen 
                     WHERE so_cccd IN ($placeholders) 
                     GROUP BY so_cccd";
@@ -151,9 +151,11 @@ class ThiSinh extends Model {
         $masterStatusMap = $stmtEdit->fetchAll(PDO::FETCH_ASSOC);
         $editMap = [];
         $statusMapHoso = [];
+        $noteMap = [];
         foreach($masterStatusMap as $ms) {
             $editMap[$ms['so_cccd']] = $ms['has_edit_request'];
             $statusMapHoso[$ms['so_cccd']] = $ms['master_status'];
+            $noteMap[$ms['so_cccd']] = $ms['ghi_chu'];
         }
 
         // Fetch display names for province and school
@@ -174,6 +176,16 @@ class ThiSinh extends Model {
             $cccd = $candidate['so_cccd'];
             $candidate['statuses'] = $statusMap[$cccd] ?? '';
             $candidate['master_status'] = $statusMapHoso[$cccd] ?? ''; // Use ho_so_xet_tuyen status
+            
+            // Combine base_ghi_chu (from thi_sinh) and ghi_chu (aggregated from ho_so_xet_tuyen)
+            $hosoNotes = $noteMap[$cccd] ?? '';
+            $baseNote = $candidate['base_ghi_chu'] ?? '';
+            
+            $combinedNotes = [];
+            if (!empty($baseNote)) $combinedNotes[] = $baseNote;
+            if (!empty($hosoNotes)) $combinedNotes[] = $hosoNotes;
+            
+            $candidate['ghi_chu'] = implode("\n", array_unique($combinedNotes));
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
             $candidate['province_name'] = $infoMap[$cccd]['province_name'] ?? '';
             $candidate['school_name'] = $infoMap[$cccd]['school_name'] ?? '';

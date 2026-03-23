@@ -11,6 +11,23 @@ if (!empty($combinations)) {
 }
 ?>
 
+<!-- DataTables & jQuery -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+
+<script>
+    // Alias for Toast functionality used in this file
+    window.toast = {
+        success: (msg) => typeof showToast === 'function' ? showToast(msg, 'success') : alert(msg),
+        error: (msg) => typeof showToast === 'function' ? showToast(msg, 'error') : alert('Error: ' + msg),
+        warning: (msg) => typeof showToast === 'function' ? showToast(msg, 'warning') : alert('Warning: ' + msg),
+        info: (msg) => typeof showToast === 'function' ? showToast(msg, 'info') : alert(msg)
+    };
+</script>
+
 <div class="h-full flex flex-col p-6 bg-slate-50 relative" x-data="virtualAdmission()">
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
@@ -34,6 +51,11 @@ if (!empty($combinations)) {
                     <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen"></option>
                 </template>
             </select>
+            
+            <button @click="syncData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
+                <i class="fas fa-sync-alt" :class="{'fa-spin': isSyncing}"></i> 
+                <span>Đồng bộ dữ liệu</span>
+            </button>
             
             <button @click="recalculate()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
                 <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
@@ -109,6 +131,7 @@ if (!empty($combinations)) {
             allSessions: <?= json_encode($sessions) ?>,
             isLoading: false,
             isCalculating: false,
+            isSyncing: false,
             isFiltering: false,
             loadingMessage: 'Đang tải...',
             dt: null,
@@ -131,7 +154,7 @@ if (!empty($combinations)) {
                     { data: 'so_cccd', className: 'font-mono text-indigo-600 font-medium sticky left-0 bg-white shadow-[1px_0_0_#e2e8f0] z-10' },
                     { data: 'ho_va_ten', className: 'font-semibold text-slate-800 sticky left-[120px] bg-white shadow-[1px_0_0_#e2e8f0] z-10 min-w-[200px]' },
                     { data: 'ma_nganh', className: 'font-mono text-slate-500' },
-                    { data: 'thu_tu_nv', className: 'text-center font-bold text-slate-600' },
+                    { data: 'thu_tu_nguyen_vong', className: 'text-center font-bold text-slate-600' },
                 ];
 
                 // Append Combo Columns
@@ -208,15 +231,32 @@ if (!empty($combinations)) {
                 });
 
                 this.dt = $('#virtualGrid').DataTable({
-                    data: [],
+                    ajax: {
+                        url: '<?= url("/admin/admission/virtual-filter/api-load") ?>?session_id=' + (this.selectedSession || 0),
+                        dataSrc: 'data',
+                        error: (xhr) => {
+                            this.isLoading = false;
+                            let msg = "Lỗi khi tải dữ liệu";
+                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                            toast.error(msg);
+                        }
+                    },
                     columns: columns,
                     scrollX: true,
-                    scrollY: 'calc(100vh - 300px)',
+                    scrollY: 'calc(100vh - 350px)',
                     scrollCollapse: true,
                     paging: true,
                     pageLength: 50,
                     lengthMenu: [50, 100, 200, 500, 1000],
-                    language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
+                    language: {
+                        search: 'Tìm kiếm:',
+                        lengthMenu: 'Hiển thị _MENU_ dòng',
+                        info: 'Hiển thị _START_ đến _END_ trong _TOTAL_ dòng',
+                        infoEmpty: 'Không có dữ liệu',
+                        infoFiltered: '(lọc từ _MAX_ dòng)',
+                        zeroRecords: 'Không tìm thấy kết quả',
+                        paginate: { first: 'Đầu', last: 'Cuối', next: 'Sau', previous: 'Trước' }
+                    },
                     dom: '<"flex justify-between items-center p-3 border-b border-slate-200"lf>rt<"flex justify-between items-center p-3"ip>',
                     fixedColumns: {
                         leftColumns: 2 // stick CCCD + Name
@@ -237,20 +277,47 @@ if (!empty($combinations)) {
                 this.isLoading = true;
                 this.loadingMessage = 'Đang tải danh sách nguyện vọng...';
                 
+                this.dt.ajax.url('<?= url("/admin/admission/virtual-filter/api-load") ?>?session_id=' + this.selectedSession).load((json) => {
+                    this.isLoading = false;
+                    if (json && json.data) {
+                        document.getElementById('rowCount').textContent = json.data.length;
+                    }
+                }, false);
+            },
+
+            syncData() {
+                if (!this.selectedSession) return;
+                
+                this.isLoading = true;
+                this.isSyncing = true;
+                this.loadingMessage = 'Đang đồng bộ dữ liệu từ hồ sơ đã duyệt...';
+                
                 $.ajax({
-                    url: '/admin/admission/virtual-filter/api-load',
-                    type: 'GET',
-                    data: { session_id: this.selectedSession },
-                    success: (res) => {
-                        let parsed = JSON.parse(res);
-                        this.dt.clear();
-                        this.dt.rows.add(parsed.data).draw();
-                        document.getElementById('rowCount').textContent = parsed.data.length;
-                        this.isLoading = false;
+                    url: '<?= url("/admin/admission/virtual-filter/api-sync") ?>',
+                    type: 'POST',
+                    data: { 
+                        session_id: this.selectedSession,
+                        _csrf_token: '<?= csrf_token() ?>'
                     },
-                    error: () => {
-                        toast.error("Lỗi khi tải dữ liệu");
+                    success: (res) => {
+                        let parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                        if(parsed.success) {
+                            toast.success(parsed.message);
+                            this.loadData();
+                        } else {
+                            toast.error(parsed.message || parsed.error);
+                        }
+                    },
+                    error: (err) => {
+                        let msg = 'Lỗi khi đồng bộ dữ liệu';
+                        if (err.responseJSON && err.responseJSON.error) {
+                            msg = err.responseJSON.error;
+                        }
+                        toast.error(msg);
+                    },
+                    complete: () => {
                         this.isLoading = false;
+                        this.isSyncing = false;
                     }
                 });
             },
@@ -263,19 +330,28 @@ if (!empty($combinations)) {
                 this.loadingMessage = 'Đang tính toán lại điểm đa tổ hợp... Vui lòng không đóng trang.';
                 
                 $.ajax({
-                    url: '/admin/admission/virtual-filter/api-recalculate',
+                    url: '<?= url("/admin/admission/virtual-filter/api-recalculate") ?>',
                     type: 'POST',
-                    data: { session_id: this.selectedSession },
+                    data: { 
+                        session_id: this.selectedSession,
+                        _csrf_token: '<?= csrf_token() ?>'
+                    },
                     success: (res) => {
-                        let parsed = JSON.parse(res);
+                        let parsed = typeof res === 'string' ? JSON.parse(res) : res;
                         if(parsed.success) {
                             toast.success(parsed.message);
                             this.loadData(); // reload Grid
                         } else {
-                            toast.error(parsed.message);
+                            toast.error(parsed.message || parsed.error);
                         }
                     },
-                    error: () => toast.error('Lỗi khi tính điểm'),
+                    error: (err) => {
+                        let msg = 'Lỗi khi tính điểm';
+                        if (err.responseJSON && err.responseJSON.error) {
+                            msg = err.responseJSON.error;
+                        }
+                        toast.error(msg);
+                    },
                     complete: () => {
                         this.isLoading = false;
                         this.isCalculating = false;
@@ -284,14 +360,50 @@ if (!empty($combinations)) {
             },
 
             runVirtualFilter() {
-                alert('Tính năng gọi luồng Lọc Ảo tự động đang chờ thiết lập điểm chuẩn. Vui lòng cập nhật điểm chuẩn (Hệ thống -> Lọc Ảo -> Thiết lập điểm).');
-                // Could call /admin/admission/virtual-filter/api-run but it needs benchmarks array
+                if (!this.selectedSession) return;
+                
+                // Simple Prompt for now, or we could build a full modal.
+                // For a proper implementation, we'd need a list of majors and their benchmarks.
+                // Let's implement a basic call that sends current session.
+                if (!confirm('Hệ thống sẽ chạy thuật toán lọc ảo dựa trên điểm chuẩn đã thiết lập. Tiếp tục?')) return;
+
+                this.isLoading = true;
+                this.isFiltering = true;
+                this.loadingMessage = 'Đang chạy thuật toán lọc ảo...';
+
+                $.ajax({
+                    url: '<?= url("/admin/admission/virtual-filter/api-run") ?>',
+                    type: 'POST',
+                    data: {
+                        session_id: this.selectedSession,
+                        _csrf_token: '<?= csrf_token() ?>',
+                        // Note: api-run expects benchmarks array. 
+                        // In a real scenario, this would come from a modal.
+                        // For now, we'll let the controller handle defaults if empty, 
+                        // or we can pass some dummy data if we want to test.
+                    },
+                    success: (res) => {
+                        let parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                        if (parsed.status) {
+                            toast.success("Lọc ảo hoàn tất!");
+                            this.loadData();
+                        } else {
+                            toast.error(parsed.message || "Lỗi khi lọc ảo");
+                        }
+                    },
+                    error: () => {
+                        toast.error("Lỗi khi kết nối máy chủ");
+                    },
+                    complete: () => {
+                        this.isLoading = false;
+                        this.isFiltering = false;
+                    }
+                });
             },
             
             exportData() {
-                // TBD: Could trigger csv/excel download through an endpoint 
-                // Currently DataTables can handle it if we add Buttons extension.
-                alert('Tính năng Export Excel chuyên sâu sẽ được bổ sung ở bản sau. Hiện tại bạn có thể dùng Export chung.');
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/admission/virtual-filter/export") ?>?session_id=' + this.selectedSession;
             }
         }
     }

@@ -156,4 +156,62 @@ class VirtualFilterService {
         
         return ['status' => true, 'data' => $stats];
     }
+
+    /**
+     * Đồng bộ dữ liệu thí sinh 'Đã duyệt' vào đợt xét tuyển.
+     * Cập nhật trạng thái trang_thai của nguyen_vong dựa trên ho_so_xet_tuyen.
+     */
+    public function syncData($batchId) {
+        try {
+            // 1. Gán dot_tuyen_sinh_id cho các nguyện vọng đang bị NULL
+            // PostgreSQL syntax: UPDATE ... FROM ...
+            $sqlBackfill = "
+                UPDATE nguyen_vong
+                SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
+                FROM ho_so_xet_tuyen hs
+                WHERE nguyen_vong.so_cccd = hs.so_cccd
+                AND nguyen_vong.dot_tuyen_sinh_id IS NULL
+                AND hs.dot_tuyen_sinh_id = ?
+            ";
+            $stmtBackfill = $this->db->prepare($sqlBackfill);
+            $stmtBackfill->execute([(int)$batchId]);
+
+            // 2. Cập nhật trang_thai = 'DaDuyet' cho những thí sinh có ho_so_xet_tuyen trạng thái 'Đã duyệt'
+            // PostgreSQL syntax: UPDATE ... FROM ...
+            $sqlSync = "
+                UPDATE nguyen_vong
+                SET trang_thai = 'DaDuyet'
+                FROM ho_so_xet_tuyen hs
+                WHERE nguyen_vong.so_cccd = hs.so_cccd 
+                AND nguyen_vong.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
+                AND nguyen_vong.dot_tuyen_sinh_id = ?
+                AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
+            ";
+            $stmtSync = $this->db->prepare($sqlSync);
+            $stmtSync->execute([(int)$batchId]);
+
+            // 3. Các trường hợp không được duyệt thì set về 'ChoDuyet'
+            $sqlReset = "
+                UPDATE nguyen_vong
+                SET trang_thai = 'ChoDuyet'
+                WHERE dot_tuyen_sinh_id = ?
+                AND (trang_thai IS NULL OR trang_thai <> 'DaDuyet')
+                AND NOT EXISTS (
+                    SELECT 1 FROM ho_so_xet_tuyen hs 
+                    WHERE hs.so_cccd = nguyen_vong.so_cccd 
+                    AND hs.dot_tuyen_sinh_id = ?
+                    AND hs.trang_thai LIKE '%Đã duyệt%'
+                )
+            ";
+            $stmtReset = $this->db->prepare($sqlReset);
+            $stmtReset->execute([(int)$batchId, (int)$batchId]);
+
+            return true;
+        } catch (\Exception $e) {
+            $msg = date('Y-m-d H:i:s') . " - VirtualFilterService syncData Error: " . $e->getMessage() . "\n";
+            error_log($msg);
+            file_put_contents(__DIR__ . '/../../app_error.log', $msg, FILE_APPEND);
+            return false;
+        }
+    }
 }

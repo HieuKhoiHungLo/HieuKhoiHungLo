@@ -243,6 +243,12 @@
         inputContent.value = content;
         bulkForm.appendChild(inputContent);
 
+        let inputNote = document.createElement('input');
+        inputNote.type = 'hidden';
+        inputNote.name = 'internal_note';
+        inputNote.value = document.getElementById('modal-internal-note').value;
+        bulkForm.appendChild(inputNote);
+
         Loading.show();
         bulkForm.submit();
     }
