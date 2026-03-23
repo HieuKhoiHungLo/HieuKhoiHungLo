@@ -222,8 +222,20 @@
 
         const noteArea = document.getElementById('modal-internal-note');
         if (noteArea) {
-            const today = new Date().toLocaleDateString('vi-VN');
+            const now = new Date();
+            const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
+            console.log('Setting note value to:', today);
+            
+            // Set immediately
             noteArea.value = `Gửi mail ngày: ${today}`;
+            
+            // Set after a small delay to override any auto-clear
+            setTimeout(() => {
+                noteArea.value = `Gửi mail ngày: ${today}`;
+                console.log('Confirmed note value after timeout:', noteArea.value);
+            }, 100);
+        } else {
+            console.error('Element #modal-internal-note not found!');
         }
 
         document.getElementById('email-modal').classList.remove('hidden');
