@@ -170,10 +170,25 @@ class ScoreCalculationService {
         return null;
     }
 
+    private function getSubjectAliases() {
+        return [
+            'toan' => ['TOAN', 'TO'],
+            'van' => ['VAN', 'NGU_VAN', 'VA'],
+            'ngoai_ngu' => ['ANH', 'TIENG_ANH', 'NGOAI_NGU', 'TA', 'NN'],
+            'ly' => ['LY', 'VAT_LY', 'VAT LI'],
+            'hoa' => ['HOA', 'HOA_HOC', 'HO'],
+            'sinh' => ['SINH', 'SINH_HOC', 'SI'],
+            'su' => ['SU', 'LICH_SU'],
+            'dia' => ['DIA', 'DIA_LY', 'DI'],
+            'gdcd' => ['GDCD', 'GD', 'GDKT_PL', 'KTPL'],
+            'cong_nghe' => ['CONG_NGHE', 'CN'],
+            'tin_hoc' => ['TIN', 'TIN_HOC']
+        ];
+    }
+
     protected function calculateTranscriptAverages($cccd) {
         $records = $this->academicModel->getByCCCD($cccd);
         
-        // Optimize: Fetch Subject Map only once
         static $codeToId = null;
         if ($codeToId === null) {
             $subjects = $this->masterDataRepo->getSubjects(); 
@@ -183,28 +198,25 @@ class ScoreCalculationService {
             }
         }
         
-        $colToCode = [
-            'toan' => 'TOAN', 'van' => 'VAN', 'ngoai_ngu' => 'ANH',
-            'ly' => 'LY', 'hoa' => 'HOA', 'sinh' => 'SINH',
-            'su' => 'SU', 'dia' => 'DIA', 'gdcd' => 'GDCD',
-            'cong_nghe' => 'CONG_NGHE', 'tin_hoc' => 'TIN'
-        ];
-        
-        // Alias Helper
-        if (!isset($codeToId['ANH']) && isset($codeToId['NGOAI_NGU'])) $colToCode['ngoai_ngu'] = 'NGOAI_NGU';
-        if (!isset($codeToId['ANH']) && isset($codeToId['TIENG_ANH'])) $colToCode['ngoai_ngu'] = 'TIENG_ANH';
+        $aliases = $this->getSubjectAliases();
+        $colToMonId = [];
+
+        foreach ($aliases as $colName => $possibleCodes) {
+            foreach ($possibleCodes as $code) {
+                if (isset($codeToId[$code])) {
+                    $colToMonId[$colName] = $codeToId[$code];
+                    break;
+                }
+            }
+        }
 
         $sums = []; 
         $counts = [];
 
         foreach ($records as $r) {
-            foreach ($colToCode as $colKey => $maMon) {
-                $checkCode = strtoupper($maMon);
-                if (!isset($codeToId[$checkCode])) continue;
-                $monId = $codeToId[$checkCode];
-                
-                // TT06/2026: Read annual score (diem_xxx_cn) instead of semester scores
+            foreach ($colToMonId as $colKey => $monId) {
                 $colPrefix = ($colKey == 'ngoai_ngu') ? "diem_ngoai_ngu" : "diem_{$colKey}";
+                // Hỗ trợ cả điểm trung bình bộ môn cả năm nếu có
                 $valCn = isset($r["{$colPrefix}_cn"]) && $r["{$colPrefix}_cn"] !== '' ? (float)$r["{$colPrefix}_cn"] : null;
                 
                 if ($valCn !== null) {
@@ -215,7 +227,6 @@ class ScoreCalculationService {
             }
         }
         
-        // Average across grades (typically 3 grades: 10, 11, 12)
         $averages = [];
         foreach ($sums as $id => $total) {
             if ($counts[$id] > 0) $averages[$id] = round($total / $counts[$id], 2);
@@ -227,34 +238,32 @@ class ScoreCalculationService {
         $record = $this->diemThiModel->getByCCCD($cccd);
         if (!$record) return [];
 
-        static $monMap = null;
-        if (!$monMap) {
-            $mons = $this->masterDataRepo->getSubjects();
-            foreach ($mons as $m) $monMap[$m['ma_mon']] = $m['id']; 
+        static $codeToId = null;
+        if ($codeToId === null) {
+            $subjects = $this->masterDataRepo->getSubjects();
+            $codeToId = [];
+            foreach($subjects as $s) {
+                $codeToId[strtoupper($s['ma_mon'])] = $s['id'];
+            }
         }
         
         $scores = [];
+        // Map db columns in diem_thi_thpt to logical column names and use aliases
         $fieldMap = [
-            'toan' => 'TO', 'van' => 'VA', 'tieng_anh' => 'TA', 
-            'ly' => 'LY', 'hoa' => 'HO', 'sinh' => 'SI', 
-            'su' => 'SU', 'dia' => 'DI', 'gdcd' => 'GD'
-        ];
-        // Handle code variations (TA vs ANH vs TIENG_ANH) - Basic map for now
-        // Assuming Data in dm_mon uses standardized codes like 'TOAN', 'VAN', 'ANH' or 'TO', 'VA', 'TA'
-        // Let's broaden the map
-         $codeAliases = [
-            'TO' => ['TOAN', 'TO'], 'VA' => ['VAN', 'NGU_VAN', 'VA'], 'TA' => ['ANH', 'TIENG_ANH', 'TA'],
-            'LY' => ['LY', 'VAT_LY'], 'HO' => ['HOA', 'HOA_HOC', 'HO'], 'SI' => ['SINH', 'SINH_HOC', 'SI'],
-            'SU' => ['SU', 'LICH_SU'], 'DI' => ['DIA', 'DIA_LY', 'DI'], 'GD' => ['GDCD', 'GD']
+            'toan' => 'toan', 'van' => 'van', 'tieng_anh' => 'ngoai_ngu', 
+            'ly' => 'ly', 'hoa' => 'hoa', 'sinh' => 'sinh', 
+            'su' => 'su', 'dia' => 'dia', 'gdcd' => 'gdcd', 'tin_hoc' => 'tin_hoc'
         ];
         
-        foreach ($fieldMap as $field => $codeKey) {
-            if (!isset($record[$field]) || $record[$field] === null || $record[$field] === '') continue;
+        $aliases = $this->getSubjectAliases();
+
+        foreach ($fieldMap as $dbCol => $logicalCol) {
+            if (!isset($record[$dbCol]) || $record[$dbCol] === null || $record[$dbCol] === '') continue;
             
-            $aliases = $codeAliases[$codeKey] ?? [$codeKey];
-            foreach ($aliases as $alias) {
-                if (isset($monMap[$alias])) {
-                    $scores[$monMap[$alias]] = (float)$record[$field];
+            $possibleCodes = $aliases[$logicalCol] ?? [];
+            foreach ($possibleCodes as $code) {
+                if (isset($codeToId[$code])) {
+                    $scores[$codeToId[$code]] = (float)$record[$dbCol];
                     break;
                 }
             }
