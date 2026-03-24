@@ -37,12 +37,6 @@
                             
                             <th rowspan="2" class="py-2 px-2 border-r border-slate-200 text-[10px]">Tổ hợp<br>max</th>
                             <th rowspan="2" class="py-2 px-2 border-r border-slate-200 text-[10px]">PT<br>max</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200">Điểm M1</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200">Điểm M2</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200">Điểm M3</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200 text-[10px] text-orange-700 bg-orange-50/50" title="Điểm quy đổi (Tổng 3 môn chưa UT)">Điểm QĐ</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200 text-[10px]" title="Điểm ưu tiên khu vực/đối tượng gốc">Điểm<br>UT gốc</th>
-                            <th rowspan="2" class="py-2 px-2 border-r border-slate-200 text-[10px]" title="Điểm ưu tiên quy đổi (Nếu tổng >= 22.5)">Điểm<br>UT QĐ</th>
                             <th rowspan="2" class="py-2 px-3 border-r border-slate-200 bg-indigo-50 font-black text-[12px] text-indigo-800 shadow-[inset_0_0_2px_rgba(0,0,0,0.1)]">Điểm<br>xét tuyển</th>
                             
                             <th rowspan="2" class="py-2 px-2 border-r border-slate-200">ĐK học lực</th>
@@ -122,14 +116,6 @@
                                     <!-- Max & Final -->
                                     <td class="py-2 px-2 text-center font-bold text-slate-600 border-r border-slate-100 bg-slate-50/50"><?= htmlspecialchars($row['to_hop_toi_uu'] ?? ($row['to_hop_xet_tuyen_id'] ?? '-')) ?></td>
                                     <td class="py-2 px-2 text-center font-bold text-slate-600 border-r border-slate-100 bg-slate-50/50"><?= $tsCode ?></td>
-                                    
-                                    <td class="py-2 px-2 text-center border-r border-slate-100"><?= isset($details['diem_mon_1']) ? number_format((float)$details['diem_mon_1'], 2) : '-' ?></td>
-                                    <td class="py-2 px-2 text-center border-r border-slate-100"><?= isset($details['diem_mon_2']) ? number_format((float)$details['diem_mon_2'], 2) : '-' ?></td>
-                                    <td class="py-2 px-2 text-center border-r border-slate-100"><?= isset($details['diem_mon_3']) ? number_format((float)$details['diem_mon_3'], 2) : '-' ?></td>
-                                    
-                                    <td class="py-2 px-2 text-center font-medium text-orange-600 border-r border-slate-100 bg-orange-50/20"><?= isset($details['total_raw']) ? number_format((float)$details['total_raw'], 2) : '-' ?></td>
-                                    <td class="py-2 px-2 text-center text-slate-500 border-r border-slate-100"><?= isset($details['priority_raw']) ? number_format((float)$details['priority_raw'], 2) : '0' ?></td>
-                                    <td class="py-2 px-2 text-center text-slate-500 border-r border-slate-100"><?= isset($details['priority_converted']) ? number_format((float)$details['priority_converted'], 2) : '0' ?></td>
                                     
                                     <td class="py-2 px-3 text-center font-black text-indigo-700 bg-indigo-50/50 border-r border-slate-100 text-[13px]"><?= $row['diem_xet_tuyen'] > 0 ? number_format((float)$row['diem_xet_tuyen'], 2) : '-' ?></td>
                                     
