@@ -75,9 +75,8 @@ class ScoreCalculator {
         $langRecord = $langScoreModel->getByCCCD($cccd);
         $convertedLangScore = $langRecord ? (float)$langRecord['diem_quy_doi'] : 0;
 
-        // Get Transcript Weight Ratio
-        $start = $db->query("SELECT value FROM settings WHERE key = 'transcript_weight_ratio'");
-        $weightRatio = (float)($start->fetchColumn() ?: 1.0);
+        // Get Transcript Weight Ratio (Removed legacy DB config)
+        $weightRatio = 1.0;
 
         $bestResult = [
             'total' => 0,
