@@ -121,17 +121,33 @@ class VirtualFilterController extends Controller {
 
     // API: Thực hiện thuật toán Lọc Ảo ưu tiên (Trượt dây chuyền)
     public function runFiltering() {
-        $batchId = $_POST['batch_id'] ?? 0;
+        $batchId = $_POST['session_id'] ?? ($_POST['batch_id'] ?? 0);
         $benchmarks = $_POST['benchmarks'] ?? []; // ['CNTT' => 24.5, 'QTKD' => 20]
         $quotas = $_POST['quotas'] ?? []; // ['CNTT' => 100]
 
-        if (!$batchId || empty($benchmarks)) {
-            $this->json(['status' => false, 'message' => 'Missing data']);
+        if (!$batchId) {
+            $this->json(['status' => false, 'message' => 'Thiếu ID đợt tuyển sinh (session_id)']);
             return;
         }
 
-        // Lưu lại mốc điểm chuẩn BGH vừa thiết lập
-        $this->filterService->saveExpectedBenchmarks($batchId, $benchmarks, $quotas);
+        // Nếu không truyền benchmarks từ UI, thử lấy từ DB đã lưu trước đó
+        if (empty($benchmarks)) {
+            $saved = $this->filterService->getExpectedBenchmarks($batchId);
+            foreach ($saved as $s) {
+                $benchmarks[$s['ma_nganh']] = $s['diem_chuan'];
+                $quotas[$s['ma_nganh']] = $s['chi_tieu_du_kien'];
+            }
+        }
+
+        if (empty($benchmarks)) {
+            $this->json(['status' => false, 'message' => 'Chưa thiết lập điểm chuẩn dự kiến cho đợt này.']);
+            return;
+        }
+
+        // Lưu lại mốc điểm chuẩn BGH vừa thiết lập (nếu có truyền lên mới)
+        if (!empty($_POST['benchmarks'])) {
+            $this->filterService->saveExpectedBenchmarks($batchId, $benchmarks, $quotas);
+        }
 
         // Chạy lọc ảo dây chuyền
         $result = $this->filterService->runVirtualFilter($batchId, $benchmarks);

@@ -107,7 +107,10 @@ class ExportService {
                        n.ten_nganh AS \"Tên Ngành\",
                        nv.to_hop_toi_uu AS \"Tổ Hợp Tối Ưu\",
                        nv.diem_xet_tuyen AS \"Điểm Xét Tuyển\",
-                       nv.phuong_thuc_toi_uu AS \"Mã Phương Thức\"
+                       nv.phuong_thuc_toi_uu AS \"Mã Phương Thức\",
+                       n.co_xet_chung_chi,
+                       n.co_diem_nangkhieu_thpt,
+                       n.co_diem_nangkhieu_hochba
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
@@ -133,6 +136,12 @@ class ExportService {
             $r["Số CCCD"]   = $this->textCell($r["Số CCCD"]);
             $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
             $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
+            $r["Mã Phương Thức"] = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($r["Mã Phương Thức"], [
+                'co_xet_chung_chi' => $r['co_xet_chung_chi'],
+                'co_diem_nangkhieu_thpt' => $r['co_diem_nangkhieu_thpt'],
+                'co_diem_nangkhieu_hochba' => $r['co_diem_nangkhieu_hochba'],
+            ]);
+            unset($r['co_xet_chung_chi'], $r['co_diem_nangkhieu_thpt'], $r['co_diem_nangkhieu_hochba']);
         }
         return $rows;
     }
@@ -238,7 +247,7 @@ class ExportService {
         $stmt = $this->db->query("SELECT DATE(created_at) as date, COUNT(*) as count FROM ho_so_xet_tuyen WHERE created_at > NOW() - INTERVAL '14 days' GROUP BY DATE(created_at) ORDER BY date");
         $stats['by_date'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        $stmt = $this->db->query("SELECT COUNT(*) FROM thi_sinh");
+        $stmt = $this->db->query("SELECT COUNT(*) FROM ho_so_xet_tuyen");
         $stats['total_candidates'] = $stmt->fetchColumn();
 
         $stmt = $this->db->query("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE trang_thai = 'Đã duyệt'");
@@ -347,7 +356,7 @@ class ExportService {
     }
 
     public function exportMoetWishesCsv($filters = []) {
-        $sql = "SELECT nv.*, n.ten_nganh
+        $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba
                 FROM nguyen_vong nv
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
@@ -371,6 +380,16 @@ class ExportService {
         $data = [];
         $stt = 1;
         foreach ($wishes as $w) {
+            $maTho = $w['ma_phuong_thuc'] ?? $w['phuong_thuc_toi_uu'] ?? '';
+            $ptxtChu = '';
+            if ($maTho) {
+                $ptxtChu = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($maTho, [
+                    'co_xet_chung_chi' => $w['co_xet_chung_chi'],
+                    'co_diem_nangkhieu_thpt' => $w['co_diem_nangkhieu_thpt'],
+                    'co_diem_nangkhieu_hochba' => $w['co_diem_nangkhieu_hochba']
+                ]);
+            }
+
             $data[] = [
                 'STT'                   => $stt++,
                 'Số ĐDCN'               => "\t" . ($w['so_cccd'] ?? ''),
@@ -380,7 +399,7 @@ class ExportService {
                 'Mã xét tuyển'          => $w['ma_nganh'],
                 'Tên mã xét tuyển'      => $w['ten_nganh'],
                 'Thứ tự ngành đợt TS'   => '',
-                'Mã PTXT'               => $w['ma_phuong_thuc'] ?? $w['phuong_thuc_toi_uu'] ?? '',
+                'Mã PTXT'               => $ptxtChu,
                 'Tên PTXT'              => '',
                 'Mã PTXT chuẩn'         => '',
                 'Tên PTXT chuẩn'        => '',
@@ -475,8 +494,6 @@ class ExportService {
                     $row[$msub . ' CN']    = '';
                 }
             }
-
-            foreach ($tail_cols as $tc) { $row[$tc] = ''; }
 
             $data[] = $row;
         }

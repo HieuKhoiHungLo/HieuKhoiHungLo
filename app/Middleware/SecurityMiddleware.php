@@ -140,11 +140,11 @@ class SecurityMiddleware {
     public static function setSecurityHeaders() {
         // Content Security Policy
         $csp = "default-src 'self'; ";
-        $csp .= "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net; ";
-        $csp .= "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; ";
+        $csp .= "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com unpkg.com cdnjs.cloudflare.com cdn.jsdelivr.net code.jquery.com cdn.datatables.net; ";
+        $csp .= "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com cdn.datatables.net; ";
         $csp .= "font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com data:; ";
         $csp .= "img-src 'self' data: https: blob:; ";
-        $csp .= "connect-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com unpkg.com; ";
+        $csp .= "connect-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com unpkg.com cdn.datatables.net; ";
         $csp .= "frame-src https://www.youtube.com https://www.youtube-nocookie.com; ";
         $csp .= "frame-ancestors 'none';";
         

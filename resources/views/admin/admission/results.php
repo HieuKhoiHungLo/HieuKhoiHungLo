@@ -114,7 +114,16 @@ ob_start();
                                         <td class="py-4 px-6 font-bold text-slate-700"><?= htmlspecialchars($row['ho_va_ten']) ?></td>
                                         <td class="py-4 px-6 text-center">
                                             <div class="text-sm font-bold text-slate-600"><?= htmlspecialchars($row['to_hop_xet_tuyen_id'] ?? 'N/A') ?></div>
-                                            <div class="text-[10px] text-slate-400 uppercase"><?= htmlspecialchars($row['phuong_thuc_xet_tuyen']) ?></div>
+                                            <div class="text-[10px] text-slate-400 uppercase">
+                                                <?php
+                                                    $majorArr = [
+                                                        'co_diem_nangkhieu_thpt' => $row['co_diem_nangkhieu_thpt'] ?? false,
+                                                        'co_xet_chung_chi' => $row['co_xet_chung_chi'] ?? false,
+                                                        'co_diem_nangkhieu_hochba' => $row['co_diem_nangkhieu_hochba'] ?? false
+                                                    ];
+                                                    echo \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($row['phuong_thuc_xet_tuyen'], $majorArr);
+                                                ?>
+                                            </div>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex flex-wrap gap-1.5">
@@ -122,7 +131,7 @@ ob_start();
                                                 $details = json_decode($row['chi_tiet_diem'], true);
                                                 if ($details) {
                                                     foreach ($details as $k => $v) {
-                                                        if (in_array($k, ['details', 'total_raw', 'all_combinations', 'combinations'])) continue;
+                                                        if (in_array($k, ['details', 'total_raw', 'all_combinations', 'combinations', 'priority_raw', 'priority_converted', 'diem_mon_1', 'diem_mon_2', 'diem_mon_3'])) continue;
                                                         $val = is_array($v) ? ($v['final'] ?? $v['raw'] ?? '-') : $v;
                                                         if ($val === '-') continue;
                                                         ?>

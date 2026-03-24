@@ -63,7 +63,10 @@ class MajorController extends Controller {
                     'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
                     'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
                     'ghi_chu' => $_POST['ghi_chu'],
-                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
+                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null,
+                    'co_xet_chung_chi' => isset($_POST['co_xet_chung_chi']) ? 'true' : 'false',
+                    'co_diem_nangkhieu_thpt' => isset($_POST['co_diem_nangkhieu_thpt']) ? 'true' : 'false',
+                    'co_diem_nangkhieu_hochba' => isset($_POST['co_diem_nangkhieu_hochba']) ? 'true' : 'false'
                 ]);
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
                 \App\Core\Cache::forget('master_majors_combinations');
@@ -82,7 +85,10 @@ class MajorController extends Controller {
                     'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
                     'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
                     'ghi_chu' => $_POST['ghi_chu'],
-                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null
+                    'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null,
+                    'co_xet_chung_chi' => isset($_POST['co_xet_chung_chi']) ? 'true' : 'false',
+                    'co_diem_nangkhieu_thpt' => isset($_POST['co_diem_nangkhieu_thpt']) ? 'true' : 'false',
+                    'co_diem_nangkhieu_hochba' => isset($_POST['co_diem_nangkhieu_hochba']) ? 'true' : 'false'
                 ], 'ma_nganh');
                 
                 // If ID changed, clear old relationships to avoid orphans

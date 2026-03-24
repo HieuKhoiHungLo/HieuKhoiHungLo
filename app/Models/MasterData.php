@@ -212,4 +212,17 @@ class MasterData extends Model {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getPhuongThuc($activeOnly = false) {
+        return \App\Core\Cache::remember('master_phuong_thuc_' . ($activeOnly ? 'active' : 'all'), 1440, function() use ($activeOnly) {
+            $sql = "SELECT * FROM dm_phuong_thuc";
+            if ($activeOnly) {
+                $sql .= " WHERE is_active = TRUE";
+            }
+            $sql .= " ORDER BY thu_tu ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        });
+    }
 }

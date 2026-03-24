@@ -162,6 +162,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/master-data/schools/export', 'SchoolController@export');
     $router->get('/admin/master-data/schools/template', 'SchoolController@template');
 
+    $router->get('/admin/master-data/phuong-thuc', 'MasterDataController@phuongThuc');
+    $router->post('/admin/master-data/phuong-thuc/save', 'MasterDataController@savePhuongThuc');
+
     $router->get('/admin/master-data/sessions', 'SessionController@index');
     $router->post('/admin/master-data/sessions', 'SessionController@save');
     $router->post('/admin/master-data/sessions/delete', 'SessionController@delete');

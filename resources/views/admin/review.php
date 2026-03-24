@@ -1,4 +1,22 @@
 <?php ob_start(); ?>
+<style>
+    /* Decision Radio Colors */
+    .decision-radio:checked + .decision-box-approve {
+        background-color: #ecfdf5 !important;
+        border-color: #10b981 !important;
+        color: #047857 !important;
+    }
+    .decision-radio:checked + .decision-box-edit {
+        background-color: #fffbeb !important;
+        border-color: #f59e0b !important;
+        color: #b45309 !important;
+    }
+    .decision-radio:checked + .decision-box-reject {
+        background-color: #fef2f2 !important;
+        border-color: #ef4444 !important;
+        color: #b91c1c !important;
+    }
+</style>
 
 <div class="mb-6">
     <a href="<?= url('/admin/dashboard') ?>" class="inline-flex items-center text-xs font-bold text-slate-500 hover:text-[#0066FF] uppercase tracking-wider mb-2 transition">
@@ -214,9 +232,12 @@
     </div>
 
     <!-- Submit -->
-    <div>
+    <div class="flex items-center gap-3">
         <button type="button" onclick="openReviewModal()" class="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-xl hover:bg-emerald-700 hover:-translate-y-0.5 transition-all flex items-center text-base whitespace-nowrap">
             <i class="fas fa-paper-plane mr-3"></i> DUYỆT HỒ SƠ & GỬI EMAIL
+        </button>
+        <button type="button" onclick="openEmailModal()" class="px-6 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl shadow-md hover:bg-slate-50 hover:border-[#0066FF] hover:text-[#0066FF] hover:-translate-y-0.5 transition-all flex items-center text-base whitespace-nowrap">
+            <i class="fas fa-envelope mr-3 text-[#0066FF]"></i> GỬI EMAIL
         </button>
     </div>
 
@@ -252,20 +273,20 @@
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Trạng thái quyết định <span class="text-rose-500">*</span></label>
                 <div class="grid grid-cols-3 gap-3">
                     <label class="cursor-pointer relative">
-                        <input type="radio" name="modal_master_status" value="Đã duyệt" class="peer sr-only" checked>
-                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 hover:bg-slate-50 transition-all shadow-sm">
+                        <input type="radio" name="modal_master_status" value="Đã duyệt" class="decision-radio sr-only" checked>
+                        <div class="decision-box-approve text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all shadow-sm">
                             <i class="fas fa-check-circle block text-lg mb-1"></i> Đã duyệt
                         </div>
                     </label>
                     <label class="cursor-pointer relative">
-                        <input type="radio" name="modal_master_status" value="Yêu cầu sửa" class="peer sr-only">
-                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-orange-50 peer-checked:border-orange-500 peer-checked:text-orange-700 hover:bg-slate-50 transition-all shadow-sm">
+                        <input type="radio" name="modal_master_status" value="Yêu cầu sửa" class="decision-radio sr-only">
+                        <div class="decision-box-edit text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all shadow-sm">
                             <i class="fas fa-edit block text-lg mb-1"></i> Yêu cầu sửa
                         </div>
                     </label>
                     <label class="cursor-pointer relative">
-                        <input type="radio" name="modal_master_status" value="Từ chối" class="peer sr-only">
-                        <div class="text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold peer-checked:bg-rose-50 peer-checked:border-rose-500 peer-checked:text-rose-700 hover:bg-slate-50 transition-all shadow-sm">
+                        <input type="radio" name="modal_master_status" value="Từ chối" class="decision-radio sr-only">
+                        <div class="decision-box-reject text-center px-3 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all shadow-sm">
                             <i class="fas fa-times-circle block text-lg mb-1"></i> Từ chối
                         </div>
                     </label>
@@ -489,11 +510,8 @@ updateActionBarOffset();
         const statusRadios = document.querySelectorAll('input[name="modal_master_status"]');
         statusRadios.forEach(r => r.checked = false);
         
-        if (hasRejected) {
-            document.querySelector('input[name="modal_master_status"][value="Yêu cầu sửa"]').checked = true;
-        } else {
-            document.querySelector('input[name="modal_master_status"][value="Đã duyệt"]').checked = true;
-        }
+        // Luôn mặc định là Đã duyệt theo yêu cầu người dùng
+        document.querySelector('input[name="modal_master_status"][value="Đã duyệt"]').checked = true;
         
         const noteArea = document.getElementById('modal_master_note');
         if (collectedNotes.length > 0) {
@@ -911,8 +929,124 @@ updateActionBarOffset();
             btn.disabled = false;
         }
     }
+
+    // Email Modal Functions
+    function openEmailModal() {
+        const countSpan = document.getElementById('email-count');
+        if (countSpan) countSpan.innerText = '1';
+        
+        // Mặc định nội dung email khi gửi lẻ từ trang review
+        const contentArea = document.getElementById('modal-email-content');
+        const noteArea = document.getElementById('modal-internal-note');
+        
+        const today = new Date().toLocaleDateString('vi-VN');
+        
+        if (contentArea) {
+            const existingNote = <?= json_encode($user['ghi_chu'] ?? '') ?>;
+            let defaultContent = ""; // Giữ nguyên nội dung nếu không cần ngày ở đây? 
+            // User nói: "mặc định là chữ Gửi mail ngày: [Ngày hiện tại]" áp dụng cho INPUT "Ghi chú nội bộ"
+            contentArea.value = existingNote ? `Ghi chú hiện tại: ${existingNote}\n\n` : "";
+        }
+
+        if (noteArea) {
+            noteArea.value = `Gửi mail ngày: ${today}`;
+        }
+        
+        document.getElementById('email-modal').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    }
+
+    function applyEmailTemplate(val) {
+        var sel = document.getElementById('modal-email-template');
+        var opt = sel.options[sel.selectedIndex];
+        if (!opt || !val) {
+            document.getElementById('modal-email-subject').value = '';
+            document.getElementById('modal-email-content').value = '';
+            return;
+        }
+        var subject = opt.getAttribute('data-subject') || '';
+        var body = opt.getAttribute('data-body') || '';
+        document.getElementById('modal-email-subject').value = subject;
+        document.getElementById('modal-email-content').value = body;
+    }
+
+    function confirmSendEmail() {
+        const subject = document.getElementById('modal-email-subject').value;
+        const content = document.getElementById('modal-email-content').value;
+        const templateId = document.getElementById('modal-email-template').value;
+
+        if (!subject || !content) {
+            showToast('Vui lòng nhập tiêu đề và nội dung', 'warning');
+            return;
+        }
+
+        const ids = ['<?= $user['so_cccd'] ?>'];
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<?= url("/admin/candidates/bulk-action") ?>';
+
+        const inputCsrf = document.createElement('input');
+        inputCsrf.type = 'hidden';
+        inputCsrf.name = '_csrf_token';
+        inputCsrf.value = '<?= csrf_token() ?>';
+        form.appendChild(inputCsrf);
+
+        ids.forEach(id => {
+            const inputId = document.createElement('input');
+            inputId.type = 'hidden';
+            inputId.name = 'ids[]';
+            inputId.value = id;
+            form.appendChild(inputId);
+        });
+
+        const inputAction = document.createElement('input');
+        inputAction.type = 'hidden';
+        inputAction.name = 'action';
+        inputAction.value = 'send_email';
+        form.appendChild(inputAction);
+
+        const inputTpl = document.createElement('input');
+        inputTpl.type = 'hidden';
+        inputTpl.name = 'template_id';
+        inputTpl.value = templateId;
+        form.appendChild(inputTpl);
+
+        const inputSubject = document.createElement('input');
+        inputSubject.type = 'hidden';
+        inputSubject.name = 'email_subject';
+        inputSubject.value = subject;
+        form.appendChild(inputSubject);
+
+        const inputContent = document.createElement('input');
+        inputContent.type = 'hidden';
+        inputContent.name = 'email_content';
+        inputContent.value = content;
+        form.appendChild(inputContent);
+
+        const inputNote = document.createElement('input');
+        inputNote.type = 'hidden';
+        inputNote.name = 'internal_note';
+        inputNote.value = document.getElementById('modal-internal-note').value;
+        form.appendChild(inputNote);
+
+        const inputRedirect = document.createElement('input');
+        inputRedirect.type = 'hidden';
+        inputRedirect.name = 'redirect_to';
+        inputRedirect.value = window.location.href;
+        form.appendChild(inputRedirect);
+
+        document.body.appendChild(form);
+        Loading.show();
+        form.submit();
+    }
 </script>
 
+<?php include __DIR__ . '/partials/_modals.php'; ?>
 
 <?php
 $content = ob_get_clean();

@@ -400,39 +400,6 @@ class MasterDataController extends Controller {
         ]);
     }
 
-    public function saveMajor() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->validateCsrf();
-            $action = $_POST['action'] ?? '';
-
-            $majorData = [
-                'ma_nganh' => $_POST['ma_nganh'],
-                'ten_nganh' => $_POST['ten_nganh'],
-                'chi_tieu' => $_POST['chi_tieu'] ?: null,
-                'khoi_xet_tuyen' => implode(', ', $_POST['combinations'] ?? []), 
-                'diem_nam_truoc' => $_POST['diem_nam_truoc'] ?: null,
-                'ghi_chu' => $_POST['ghi_chu'],
-                'khu_vuc_tuyen_sinh' => !empty($_POST['provinces']) ? implode(',', $_POST['provinces']) : null,
-                'nhom_nganh' => $_POST['nhom_nganh'] ?? 'Khac',
-                'nguong_hoc_luc' => !empty($_POST['nguong_hoc_luc']) ? $_POST['nguong_hoc_luc'] : null,
-                'nguong_diem_thpt' => !empty($_POST['nguong_diem_thpt']) ? (float)$_POST['nguong_diem_thpt'] : null
-            ];
-
-            if ($action === 'create') {
-                $this->masterData->create('dm_nganh', $majorData);
-                $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
-
-            } elseif ($action === 'update') {
-                $this->masterData->update('dm_nganh', $_POST['old_ma'], $majorData, 'ma_nganh');
-                $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
-            }
-            // Clear cache for majors
-            \App\Core\Cache::forget('majors_with_combinations');
-            \App\Core\Cache::forget('master_majors');
-            $this->redirect(url('/admin/master-data/majors'));
-        }
-    }
-
     public function deleteMajor() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();
@@ -441,6 +408,8 @@ class MasterDataController extends Controller {
                 // Also delete relationships
                 $this->masterData->delete('dm_nganh_to_hop', $ma, 'ma_nganh');
                 $this->masterData->delete('dm_nganh', $ma, 'ma_nganh');
+                \App\Core\Cache::forget('master_majors_combinations');
+                \App\Core\Cache::forget('master_majors');
                 $_SESSION['success'] = "Xóa ngành thành công";
             }
             $this->redirect(url('/admin/master-data/majors'));
@@ -455,14 +424,12 @@ class MasterDataController extends Controller {
             $action = $_POST['action'] ?? '';
             try {
                 if ($action === 'bulk_delete') {
-                    $ids = $_POST['ids'] ?? []; // IDs here are likely 'ma_nganh' strings based on view
-                    // BUT generic deleteMany uses 'id' by default or specific field?
-                    // View uses `ma_nganh` as ID in single delete. 
-                    // Let's check view: checkboxes value should be `ma_nganh`.
+                    $ids = $_POST['ids'] ?? [];
                     if (!empty($ids)) {
-                        // Delete relationships first
                         $this->masterData->deleteMany('dm_nganh_to_hop', $ids, 'ma_nganh');
-                        $this->masterData->deleteMany('dm_nganh', $ids, 'ma_nganh');
+                        $count = $this->masterData->deleteMany('dm_nganh', $ids, 'ma_nganh');
+                        \App\Core\Cache::forget('master_majors_combinations');
+                        \App\Core\Cache::forget('master_majors');
                         $_SESSION['success'] = "Đã xóa " . count($ids) . " ngành";
                     }
                 } elseif ($action === 'import') {
@@ -681,6 +648,28 @@ class MasterDataController extends Controller {
             $this->redirect(url('/admin/master-data/language-rules'));
         } else {
              $this->redirect(url('/admin/master-data/language-rules'));
+        }
+    }
+
+    public function phuongThuc() {
+        $phuongThucList = $this->masterData->getPhuongThuc();
+        $this->view('admin/master_data/phuong_thuc', ['phuongThucList' => $phuongThucList, 'user' => $this->currentUser]);
+    }
+
+    public function savePhuongThuc() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $ma = $_POST['ma_phuong_thuc'] ?? '';
+            $isActive = isset($_POST['is_active']) ? 1 : 0;
+            
+            if ($ma) {
+                // Update is_active only currently, it's mostly read-only
+                $this->masterData->update('dm_phuong_thuc', $ma, ['is_active' => $isActive], 'ma_phuong_thuc');
+                \App\Core\Cache::forget('master_phuong_thuc_all');
+                \App\Core\Cache::forget('master_phuong_thuc_active');
+                $_SESSION['success'] = "Cập nhật phương thức thành công.";
+            }
+            $this->redirect(url('/admin/master-data/phuong-thuc'));
         }
     }
 

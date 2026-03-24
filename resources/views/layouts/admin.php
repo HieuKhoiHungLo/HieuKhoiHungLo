@@ -293,6 +293,7 @@
                         ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group',   'label' => 'Tổ hợp xét tuyển',   'perm' => 'major.view'],
                         ['url' => '/admin/master-data/subjects',     'icon' => 'fa-book',          'label' => 'Môn học',             'perm' => 'major.view'],
                         ['url' => '/admin/master-data/schools',      'icon' => 'fa-school',        'label' => 'Trường THPT',         'perm' => 'major.view'],
+                        ['url' => '/admin/master-data/phuong-thuc',  'icon' => 'fa-clipboard-list','label' => 'Phương thức TS',      'perm' => 'major.view'],
                     ]
                 ],
                 [

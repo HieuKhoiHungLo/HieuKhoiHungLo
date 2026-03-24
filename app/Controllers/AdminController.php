@@ -317,6 +317,9 @@ class AdminController extends Controller
         $provinces = $this->masterDataRepo->getProvinces();
         $priorityAreas = $this->masterDataRepo->getPriorityAreas();
         $priorityObjects = $this->masterDataRepo->getPriorityObjects();
+        
+        $emailTemplateModel = new \App\Models\EmailTemplate();
+        $emailTemplates = $emailTemplateModel->getAll();
 
         // Adjacent candidates
         $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd);
@@ -399,7 +402,8 @@ class AdminController extends Controller
             'prevCCCD' => $adjacent['prev'],
             'nextCCCD' => $adjacent['next'],
             'navPosition' => $adjacent['position'],
-            'navTotal' => $adjacent['total']
+            'navTotal' => $adjacent['total'],
+            'emailTemplates' => $emailTemplates
         ]);
     }
 

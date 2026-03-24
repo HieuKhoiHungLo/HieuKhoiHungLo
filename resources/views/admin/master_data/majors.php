@@ -196,6 +196,39 @@
                         </div>
                     </section>
 
+                    <!-- Section: Cấu hình xét tuyển đặc thù -->
+                    <section class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5">
+                        <h4 class="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-4 flex items-center">
+                            <span class="bg-indigo-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-indigo-600">3</span>
+                            Xét đặc thù (TS03, TS04, TS05)
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label class="flex items-center space-x-3 bg-white p-3 rounded-xl border border-indigo-200 hover:border-indigo-400 cursor-pointer shadow-sm">
+                                <input type="checkbox" name="co_xet_chung_chi" id="co_xet_chung_chi" value="1" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                <div>
+                                    <span class="block font-bold text-sm text-gray-800">Xét Ngoại ngữ</span>
+                                    <span class="block text-xs text-gray-500">Mở khóa TS03</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center space-x-3 bg-white p-3 rounded-xl border border-indigo-200 hover:border-indigo-400 cursor-pointer shadow-sm">
+                                <input type="checkbox" name="co_diem_nangkhieu_thpt" id="co_diem_nangkhieu_thpt" value="1" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                <div>
+                                    <span class="block font-bold text-sm text-gray-800">Xét THPT + N.khiếu</span>
+                                    <span class="block text-xs text-gray-500">Mở khóa TS04</span>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-center space-x-3 bg-white p-3 rounded-xl border border-indigo-200 hover:border-indigo-400 cursor-pointer shadow-sm">
+                                <input type="checkbox" name="co_diem_nangkhieu_hochba" id="co_diem_nangkhieu_hochba" value="1" class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                <div>
+                                    <span class="block font-bold text-sm text-gray-800">Xét Học bạ + N.khiếu</span>
+                                    <span class="block text-xs text-gray-500">Mở khóa TS05</span>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
                     <!-- Section: Khối xét tuyển -->
                     <section>
                         <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center">
@@ -284,7 +317,7 @@
     </div>
 </div>
 
-<script>
+    <script>
     // Existing modal functions
     function openModal() {
         document.getElementById('modal').classList.remove('hidden');
@@ -300,6 +333,9 @@
         document.getElementById('nhom_nganh').value = 'Khac';
         document.getElementById('nguong_hoc_luc').value = '';
         document.getElementById('nguong_diem_thpt').value = '';
+        document.getElementById('co_xet_chung_chi').checked = false;
+        document.getElementById('co_diem_nangkhieu_thpt').checked = false;
+        document.getElementById('co_diem_nangkhieu_hochba').checked = false;
 
         // Reset checkboxes
         document.querySelectorAll('input[name="combinations[]"]').forEach(cb => cb.checked = false);
@@ -324,6 +360,10 @@
         document.getElementById('nhom_nganh').value = m.nhom_nganh || 'Khac';
         document.getElementById('nguong_hoc_luc').value = m.nguong_hoc_luc || '';
         document.getElementById('nguong_diem_thpt').value = m.nguong_diem_thpt || '';
+        
+        document.getElementById('co_xet_chung_chi').checked = m.co_xet_chung_chi ? true : false;
+        document.getElementById('co_diem_nangkhieu_thpt').checked = m.co_diem_nangkhieu_thpt ? true : false;
+        document.getElementById('co_diem_nangkhieu_hochba').checked = m.co_diem_nangkhieu_hochba ? true : false;
 
         // Check checkboxes based on m.combination_ids
         document.querySelectorAll('input[name="combinations[]"]').forEach(cb => {

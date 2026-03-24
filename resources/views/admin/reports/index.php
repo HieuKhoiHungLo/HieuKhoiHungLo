@@ -244,7 +244,7 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
     <!-- ===== Stats Grid (compact) ===== -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-blue-500">
-            <p class="text-xs font-bold text-gray-400 uppercase">Tổng thí sinh</p>
+            <p class="text-xs font-bold text-gray-400 uppercase">Tổng hồ sơ</p>
             <p class="text-3xl font-black text-gray-800 mt-1"><?= number_format($stats['total_candidates'] ?? 0) ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-green-500">
@@ -277,8 +277,10 @@ const allSessions = <?= $allSessionsJson ?>;
 
 // Trigger export with current session_id and status
 function doExport(baseUrl) {
-    const sessionId = document.getElementById('sel-session').value;
-    const isApprovedOnly = document.getElementById('chk-approved').checked;
+    const selSession = document.getElementById('sel-session');
+    const sessionId = selSession ? selSession.value : '';
+    const chkApproved = document.getElementById('chk-approved');
+    const isApprovedOnly = chkApproved ? chkApproved.checked : false;
     
     if (!sessionId) {
         alert('Vui lòng chọn đợt tuyển sinh trước khi tải xuống.');
