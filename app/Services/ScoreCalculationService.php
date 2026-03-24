@@ -332,6 +332,11 @@ class ScoreCalculationService {
         $subjectIdx = 1;
         foreach ($subjects as $monId) {
             $baseScore = $scores[$monId] ?? 0;
+            
+            // Theo quy định của HVU, điểm học bạ nhận hệ số quy đổi 95%
+            if ($method === 'HOC_BA') {
+                $baseScore = $baseScore * 0.95;
+            }
 
             $certScore = ($allowCert && isset($certs[$monId])) ? $certs[$monId] : 0;
             $aptitudeScore = isset($aptitude[$monId]) ? $aptitude[$monId] : null;
