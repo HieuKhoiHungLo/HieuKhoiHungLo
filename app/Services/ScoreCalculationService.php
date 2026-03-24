@@ -219,6 +219,11 @@ class ScoreCalculationService {
                 // Hỗ trợ cả điểm trung bình bộ môn cả năm nếu có
                 $valCn = isset($r["{$colPrefix}_cn"]) && $r["{$colPrefix}_cn"] !== '' ? (float)$r["{$colPrefix}_cn"] : null;
                 
+                // Fallback cho môn GDKTPL (Kinh tế pháp luật) nếu cột gdcd trống
+                if ($colKey === 'gdcd' && $valCn === null) {
+                    $valCn = isset($r["diem_ktpl_cn"]) && $r["diem_ktpl_cn"] !== '' ? (float)$r["diem_ktpl_cn"] : null;
+                }
+
                 if ($valCn !== null) {
                     if (!isset($sums[$monId])) { $sums[$monId] = 0; $counts[$monId] = 0; }
                     $sums[$monId] += $valCn;
@@ -252,7 +257,8 @@ class ScoreCalculationService {
         $fieldMap = [
             'toan' => 'toan', 'van' => 'van', 'tieng_anh' => 'ngoai_ngu', 
             'ly' => 'ly', 'hoa' => 'hoa', 'sinh' => 'sinh', 
-            'su' => 'su', 'dia' => 'dia', 'gdcd' => 'gdcd', 'tin_hoc' => 'tin_hoc'
+            'su' => 'su', 'dia' => 'dia', 'gdcd' => 'gdcd', 'ktpl' => 'gdcd',
+            'tin_hoc' => 'tin_hoc'
         ];
         
         $aliases = $this->getSubjectAliases();
