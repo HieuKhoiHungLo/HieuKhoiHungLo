@@ -154,4 +154,30 @@ class VirtualFilterController extends Controller {
 
         $this->json($result);
     }
+
+    // API: Render giao diện Bảng Lưới Chi tiết (Wide Data Table)
+    public function loadGrid() {
+        $batchId = $_GET['batch_id'] ?? 0;
+        if (!$batchId) {
+            echo "<div class='text-center text-red-500 py-4'>Thiếu tham số Đợt tuyển sinh.</div>";
+            return;
+        }
+
+        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd 
+                FROM nguyen_vong nv
+                JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                WHERE nv.dot_tuyen_sinh_id = ?
+                ORDER BY nv.ma_nganh, nv.diem_xet_tuyen DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$batchId]);
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $grouped = [];
+        foreach ($results as $r) {
+            $grouped[$r['ma_nganh']][] = $r;
+        }
+
+        extract(['groupedResults' => $grouped]);
+        require __DIR__ . '/../../../resources/views/admin/admission/components/virtual_grid.php';
+    }
 }

@@ -94,6 +94,15 @@
             </table>
         </div>
     </div>
+
+    <!-- Container cho Grid chi tiết Ứng viên -->
+    <div class="mt-8 transition-opacity duration-300" :class="{'opacity-50 pointer-events-none': isLoadingGrid}">
+        <div x-show="isLoadingGrid" class="text-center py-6">
+            <i class="fas fa-circle-notch fa-spin text-indigo-500 text-3xl mb-3"></i>
+            <p class="text-slate-500">Đang khởi tạo dữ liệu ma trận điểm của ứng viên...</p>
+        </div>
+        <div x-html="gridHtml" x-show="!isLoadingGrid"></div>
+    </div>
 </div>
 
 <script>
@@ -102,9 +111,11 @@ function virtualFilterApp() {
         selectedBatch: '',
         majors: [],
         isLoading: false,
+        isLoadingGrid: false,
         isCalculating: false,
         isFiltering: false,
         message: '',
+        gridHtml: '',
         messageType: 'info', // 'success', 'error', 'info'
 
         showMessage(msg, type = 'info') {
@@ -116,12 +127,16 @@ function virtualFilterApp() {
         loadBatchData() {
             if (!this.selectedBatch) {
                 this.majors = [];
+                this.gridHtml = '';
                 return;
             }
             
             this.isLoading = true;
+            this.isLoadingGrid = true;
             this.majors = [];
+            this.gridHtml = '';
             
+            // Load Majors
             fetch('/TS/admin/admission/virtual-filter/api-load?batch_id=' + this.selectedBatch)
                 .then(response => response.json())
                 .then(data => {
@@ -129,12 +144,24 @@ function virtualFilterApp() {
                     if (data.status) {
                         this.majors = data.majors;
                     } else {
-                        this.showMessage(data.message || 'Lỗi tải dữ liệu', 'error');
+                        this.showMessage(data.message || 'Lỗi tải dữ liệu ngành', 'error');
                     }
                 })
                 .catch(error => {
                     this.isLoading = false;
                     this.showMessage('Lỗi kết nối máy chủ', 'error');
+                });
+                
+            // Load Candidate Grid
+            fetch('/TS/admin/admission/virtual-filter/api-grid?batch_id=' + this.selectedBatch)
+                .then(response => response.text())
+                .then(html => {
+                    this.isLoadingGrid = false;
+                    this.gridHtml = html;
+                })
+                .catch(error => {
+                    this.isLoadingGrid = false;
+                    this.gridHtml = '<div class="text-red-500 text-center py-4">Lỗi tải dữ liệu bảng (Quá thời gian hoặc lỗi kết nối).</div>';
                 });
         },
 
@@ -148,7 +175,6 @@ function virtualFilterApp() {
 
             const formData = new FormData();
             formData.append('batch_id', this.selectedBatch);
-            // formData.append('force', '1'); // Uncomment nếu muốn bắt buộc tính lại từ số 0 kể cả ng đã có điểm
 
             fetch('/TS/admin/admission/virtual-filter/api-recalculate', {
                 method: 'POST',
@@ -159,6 +185,7 @@ function virtualFilterApp() {
                 this.isCalculating = false;
                 if (data.status) {
                     this.showMessage(data.message, 'success');
+                    this.loadBatchData(); // Reload grid update
                 } else {
                     this.showMessage(data.message || 'Có lỗi xảy ra', 'error');
                 }
@@ -201,6 +228,7 @@ function virtualFilterApp() {
                            }
                         });
                     }
+                    this.loadBatchData(); // Reload lại bảng chi tiết thí sinh để update trạng thái
                 } else {
                     this.showMessage(data.message || 'Lỗi lọc ảo', 'error');
                 }
