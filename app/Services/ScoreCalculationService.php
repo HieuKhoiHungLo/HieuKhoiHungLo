@@ -392,7 +392,7 @@ class ScoreCalculationService {
         $details['diem_mon_2'] = $monScores['mon_2'] ?? 0;
         $details['diem_mon_3'] = $monScores['mon_3'] ?? 0;
 
-        return ['total' => $totalFinal, 'details' => $details];
+        return ['total' => $totalRaw, 'details' => $details];
     }
     
     protected function updateApplicationScore($cccd, $majorCode, $score, $combo, $method, $details) {
