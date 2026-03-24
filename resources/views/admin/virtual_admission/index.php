@@ -93,25 +93,44 @@ if (!empty($combinations)) {
         <div class="flex-1 min-h-0 relative overflow-auto custom-scrollbar w-full">
             <table id="virtualGrid" class="w-full text-left border-collapse whitespace-nowrap text-sm" style="width:100%">
                 <thead class="sticky top-0 z-10 bg-slate-100">
-                    <tr class="text-slate-600 uppercase tracking-wider text-xs">
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 sticky left-0 z-20">CCCD/CMND</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 sticky left-[120px] z-20">Họ và Tên</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-100">Ngành (Mã)</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 text-center">NV</th>
+                    <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 sticky left-0 z-20">CCCD</th>
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 sticky left-[120px] z-20 min-w-[150px]">Họ tên</th>
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100">Mã ngành</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">NV</th>
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 min-w-[100px]">Tổ hợp</th>
                         
-                        <!-- Dynamic Combo Columns -->
-                        <?php foreach ($comboCols as $col): ?>
-                            <th class="py-2 px-3 border border-slate-200 font-bold bg-amber-50 text-center text-amber-800" title="Học bạ <?= $col ?>">HB <?= $col ?></th>
-                            <th class="py-2 px-3 border border-slate-200 font-bold bg-blue-50 text-center text-blue-800" title="THPT <?= $col ?>">THPT <?= $col ?></th>
-                        <?php endforeach; ?>
-
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-emerald-50 text-emerald-800 text-center">Tổ hợp Max</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-emerald-50 text-emerald-800 text-center">PT Max</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-800 text-white text-center">Tổng Điểm</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-red-50 text-red-800 text-center">Trạng Thái</th>
+                        <th colspan="4" class="py-1 px-2 border border-slate-200 font-bold bg-blue-50 text-blue-800">PT 100</th>
+                        <th colspan="4" class="py-1 px-2 border border-slate-200 font-bold bg-emerald-50 text-emerald-800">PT 200</th>
+                        
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Tổ hợp max</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">PT max</th>
+                        
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M1</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M2</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M3</th>
+                        
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm QĐ</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>gốc</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>QĐ</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-indigo-50 text-indigo-800 text-[11px]">Điểm xét<br>tuyển</th>
+                        
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">ĐK học lực</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">ĐK Ngưỡng</th>
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 min-w-[80px]">Kết quả<br>xét tuyển</th>
+                    </tr>
+                    <tr class="text-slate-500 uppercase tracking-wider text-[9px] text-center bg-slate-50">
+                        <th class="py-1 px-2 border border-slate-200 bg-blue-50/50">TH1</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-blue-50/50">TH2</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-blue-50/50">TH3</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-blue-50/50">TH4</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-emerald-50/50">TH1</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-emerald-50/50">TH2</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-emerald-50/50">TH3</th>
+                        <th class="py-1 px-2 border border-slate-200 bg-emerald-50/50">TH4</th>
                     </tr>
                 </thead>
-                <tbody class="text-slate-700 divide-y divide-slate-100 bg-white">
+                <tbody class="text-slate-700 divide-y divide-slate-100 bg-white text-[11px] font-medium">
                 </tbody>
             </table>
         </div>
@@ -147,67 +166,136 @@ if (!empty($combinations)) {
                 // Build dynamic columns
                 var columns = [
                     { data: 'so_cccd', className: 'font-mono text-indigo-600 font-medium sticky left-0 bg-white shadow-[1px_0_0_#e2e8f0] z-10' },
-                    { data: 'ho_va_ten', className: 'font-semibold text-slate-800 sticky left-[120px] bg-white shadow-[1px_0_0_#e2e8f0] z-10 min-w-[200px]' },
-                    { data: 'ma_nganh', className: 'font-mono text-slate-500' },
+                    { data: 'ho_va_ten', className: 'font-semibold text-slate-800 sticky left-[120px] bg-white shadow-[1px_0_0_#e2e8f0] z-10 min-w-[150px] truncate max-w-[200px]' },
+                    { data: 'ma_nganh', className: 'text-center font-mono text-slate-500 bg-slate-50' },
                     { data: 'thu_tu_nguyen_vong', className: 'text-center font-bold text-slate-600' },
+                    { 
+                        data: 'chi_tiet_diem', 
+                        className: 'text-[9px] text-slate-500 whitespace-normal break-words max-w-[100px]',
+                        render: function(data) {
+                            if (!data) return '-';
+                            try {
+                                let p = JSON.parse(data);
+                                let combs = p.all_combinations || {};
+                                let names = [];
+                                for (let k in combs) {
+                                    let nm = k.replace('THPT_', '').replace('HB_', '');
+                                    if(names.indexOf(nm) === -1) names.push(nm);
+                                }
+                                return names.join(', ');
+                            } catch(e) { return '-'; }
+                        }
+                    }
                 ];
 
-                // Append Combo Columns
-                this.combos.forEach(c => {
-                    // Hoc Ba
+                // PT100 TH1-TH4
+                [0,1,2,3].forEach(i => {
                     columns.push({
                         data: 'chi_tiet_diem',
-                        className: 'text-center text-amber-700 bg-amber-50/30',
+                        className: 'text-center text-slate-700 bg-blue-50/20 font-medium',
                         render: function(data) {
                             if (!data) return '-';
                             try {
-                                let parsed = JSON.parse(data);
-                                let combs = parsed.all_combinations || {};
-                                return combs['HB_' + c] ? parseFloat(combs['HB_' + c]).toFixed(2) : '-';
-                            } catch(e) { return '-'; }
-                        }
-                    });
-                    // THPT
-                    columns.push({
-                        data: 'chi_tiet_diem',
-                        className: 'text-center text-blue-700 bg-blue-50/30',
-                        render: function(data) {
-                            if (!data) return '-';
-                            try {
-                                let parsed = JSON.parse(data);
-                                let combs = parsed.all_combinations || {};
-                                return combs['THPT_' + c] ? parseFloat(combs['THPT_' + c]).toFixed(2) : '-';
+                                let p = JSON.parse(data);
+                                let combs = p.all_combinations || {};
+                                let vals = [];
+                                for (let k in combs) {
+                                    if(k.startsWith('THPT_')) vals.push(combs[k]);
+                                }
+                                return vals[i] !== undefined ? parseFloat(vals[i]).toFixed(2) : '-';
                             } catch(e) { return '-'; }
                         }
                     });
                 });
 
-                // Append other static columns
-                columns.push({ data: 'to_hop_toi_uu', className: 'text-center font-bold text-emerald-700 bg-emerald-50/50' });
+                // PT200 TH1-TH4
+                [0,1,2,3].forEach(i => {
+                    columns.push({
+                        data: 'chi_tiet_diem',
+                        className: 'text-center text-slate-700 bg-emerald-50/20 font-medium',
+                        render: function(data) {
+                            if (!data) return '-';
+                            try {
+                                let p = JSON.parse(data);
+                                let combs = p.all_combinations || {};
+                                let vals = [];
+                                for (let k in combs) {
+                                    if(k.startsWith('HB_')) vals.push(combs[k]);
+                                }
+                                return vals[i] !== undefined ? parseFloat(vals[i]).toFixed(2) : '-';
+                            } catch(e) { return '-'; }
+                        }
+                    });
+                });
+
+                // To Hop Max, PT Max
+                columns.push({ data: 'to_hop_toi_uu', className: 'text-center font-bold text-slate-600 bg-slate-50/50' });
                 columns.push({ 
                     data: 'phuong_thuc_toi_uu', 
-                    className: 'text-center font-bold text-emerald-700 bg-emerald-50/50',
+                    className: 'text-center font-bold text-slate-600 bg-slate-50/50',
                     render: function(data) {
-                        return data == '100' ? 'THPT' : (data == '200' ? 'Học bạ' : data);
+                        return data == '100' ? 'TS01' : (data == '200' ? 'TS02' : data);
                     }
                 });
+
+                // M1, M2, M3
+                columns.push({ data: 'diem_mon_1', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_2', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_3', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
+
+                // QD, UT Goc, UT QD
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-orange-600 font-medium bg-orange-50/20', render: function(data) {
+                    try { let p = JSON.parse(data); return p.total_raw ? parseFloat(p.total_raw).toFixed(2) : '-'; } catch(e){return '-'}
+                }});
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-slate-500', render: function(data) {
+                    try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(2) : '0'; } catch(e){return '-'}
+                }});
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-slate-500', render: function(data) {
+                    try { let p = JSON.parse(data); return p.priority_converted !== undefined ? parseFloat(p.priority_converted).toFixed(2) : '0'; } catch(e){return '-'}
+                }});
 
                 // Final Score
                 columns.push({ 
                     data: 'diem_xet_tuyen', 
-                    className: 'text-center font-black text-slate-800 bg-slate-100',
-                    render: function(data) { return data ? parseFloat(data).toFixed(2) : '-'; }
+                    className: 'text-center font-black text-indigo-700 bg-indigo-50/30 text-[12px]',
+                    render: function(data) { return data > 0 ? parseFloat(data).toFixed(2) : '-'; }
                 });
 
-                // Status Trúng tuyển
+                // DK Hoc Luc
+                columns.push({ 
+                    data: 'chi_tiet_diem', 
+                    className: 'text-center text-[10px]',
+                    render: function(data) {
+                        try {
+                            let p = JSON.parse(data);
+                            if(p.threshold_note && p.threshold_note.indexOf('HỌC LỰC') !== -1) return '<span class="text-rose-500 font-bold" title="Không đủ ĐK"><i class="fas fa-times"></i></span>';
+                            return '<span class="text-emerald-500"><i class="fas fa-check"></i> Đạt</span>';
+                        } catch(e) { return '-'; }
+                    }
+                });
+
+                // DK Nguong
+                columns.push({ 
+                    data: 'chi_tiet_diem', 
+                    className: 'text-center text-[10px]',
+                    render: function(data) {
+                        try {
+                            let p = JSON.parse(data);
+                            if(p.threshold_note && p.threshold_note.indexOf('NGƯỠNG') !== -1) return '<span class="text-rose-500 font-bold" title="Không đủ ĐK"><i class="fas fa-times"></i></span>';
+                            return '<span class="text-emerald-500"><i class="fas fa-check"></i> Đạt</span>';
+                        } catch(e) { return '-'; }
+                    }
+                });
+
+                // Kết quả xét tuyển
                 columns.push({
                     data: 'trang_thai_trung_tuyen',
-                    className: 'text-center',
+                    className: 'text-center uppercase text-[10px] font-bold',
                     render: function(data) {
                         if (data == 1 || data === true || data === '1') {
-                            return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 border border-green-200 shadow-sm"><i class="fas fa-check mr-1"></i> Trúng Tuyển</span>';
+                            return '<span class="text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Đỗ</span>';
                         }
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">Không đạt</span>';
+                        return '<span class="text-rose-600 bg-rose-50 px-2 py-1 rounded">Không đạt</span>';
                     }
                 });
 
