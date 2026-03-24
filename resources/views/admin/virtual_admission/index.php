@@ -107,11 +107,6 @@ if (!empty($combinations)) {
 
                         <th class="py-2 px-3 border border-slate-200 font-bold bg-emerald-50 text-emerald-800 text-center">Tổ hợp Max</th>
                         <th class="py-2 px-3 border border-slate-200 font-bold bg-emerald-50 text-emerald-800 text-center">PT Max</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-indigo-50 text-center text-indigo-800">Điểm M1</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-indigo-50 text-center text-indigo-800">Điểm M2</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-indigo-50 text-center text-indigo-800">Điểm M3</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-indigo-50 text-center text-indigo-800">ƯT Gốc</th>
-                        <th class="py-2 px-3 border border-slate-200 font-bold bg-indigo-50 text-center text-indigo-800">ƯT QĐ</th>
                         <th class="py-2 px-3 border border-slate-200 font-bold bg-slate-800 text-white text-center">Tổng Điểm</th>
                         <th class="py-2 px-3 border border-slate-200 font-bold bg-red-50 text-red-800 text-center">Trạng Thái</th>
                     </tr>
@@ -196,20 +191,6 @@ if (!empty($combinations)) {
                         return data == '100' ? 'THPT' : (data == '200' ? 'Học bạ' : data);
                     }
                 });
-                
-                // M1, M2, M3 from raw columns
-                columns.push({ data: 'diem_mon_1', className: 'text-center bg-indigo-50/30', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_2', className: 'text-center bg-indigo-50/30', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_3', className: 'text-center bg-indigo-50/30', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
-                // Prior
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center bg-indigo-50/30', render: function(data) {
-                    if (!data) return '-';
-                    try { let p = JSON.parse(data); return p.priority_raw ? p.priority_raw : '-'; } catch(e){return '-'}
-                }});
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center bg-indigo-50/30', render: function(data) {
-                    if (!data) return '-';
-                    try { let p = JSON.parse(data); return p.priority_converted ? p.priority_converted : '-'; } catch(e){return '-'}
-                }});
 
                 // Final Score
                 columns.push({ 
