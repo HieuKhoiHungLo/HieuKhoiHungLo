@@ -163,27 +163,34 @@ if (!empty($combinations)) {
             initDataTable() {
                 var self = this;
                 
+                // Hàm helper lấy danh sách tên tổ hợp chuẩn của thí sinh (đã sort)
+                function getComboNames(rowData) {
+                    if (!rowData || !rowData.chi_tiet_diem) return [];
+                    try {
+                        let p = JSON.parse(rowData.chi_tiet_diem);
+                        let combs = p.all_combinations || {};
+                        let names = [];
+                        for (let k in combs) {
+                            let nm = k.replace('THPT_', '').replace('HB_', '');
+                            if(names.indexOf(nm) === -1) names.push(nm);
+                        }
+                        names.sort();
+                        return names;
+                    } catch(e) { return []; }
+                }
+
                 // Build dynamic columns
                 var columns = [
-                    { data: 'so_cccd', className: 'font-mono text-indigo-600 font-medium sticky left-0 bg-white shadow-[1px_0_0_#e2e8f0] z-10' },
-                    { data: 'ho_va_ten', className: 'font-semibold text-slate-800 sticky left-[120px] bg-white shadow-[1px_0_0_#e2e8f0] z-10 min-w-[150px] truncate max-w-[200px]' },
-                    { data: 'ma_nganh', className: 'text-center font-mono text-slate-500 bg-slate-50' },
-                    { data: 'thu_tu_nguyen_vong', className: 'text-center font-bold text-slate-600' },
+                    { data: 'so_cccd', className: 'text-center font-medium sticky left-0 bg-white shadow-[1px_0_0_#e2e8f0] z-10' },
+                    { data: 'ho_va_ten', className: 'text-left font-semibold sticky left-[120px] bg-white shadow-[1px_0_0_#e2e8f0] z-10 min-w-[150px] truncate max-w-[200px]' },
+                    { data: 'ma_nganh', className: 'text-center' },
+                    { data: 'thu_tu_nguyen_vong', className: 'text-center font-bold' },
                     { 
-                        data: 'chi_tiet_diem', 
-                        className: 'text-[9px] text-slate-500 whitespace-normal break-words max-w-[100px]',
-                        render: function(data) {
-                            if (!data) return '-';
-                            try {
-                                let p = JSON.parse(data);
-                                let combs = p.all_combinations || {};
-                                let names = [];
-                                for (let k in combs) {
-                                    let nm = k.replace('THPT_', '').replace('HB_', '');
-                                    if(names.indexOf(nm) === -1) names.push(nm);
-                                }
-                                return names.join(', ');
-                            } catch(e) { return '-'; }
+                        data: null, 
+                        className: 'text-center text-[10px] whitespace-normal break-words max-w-[100px]',
+                        render: function(data, type, row) {
+                            let names = getComboNames(row);
+                            return names.length ? names.join(', ') : '-';
                         }
                     }
                 ];
@@ -191,18 +198,18 @@ if (!empty($combinations)) {
                 // PT100 TH1-TH4
                 [0,1,2,3].forEach(i => {
                     columns.push({
-                        data: 'chi_tiet_diem',
-                        className: 'text-center text-slate-700 bg-blue-50/20 font-medium',
-                        render: function(data) {
-                            if (!data) return '-';
+                        data: null,
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            let names = getComboNames(row);
+                            if (names.length <= i) return '-';
+                            let targetCombo = names[i];
+                            
                             try {
-                                let p = JSON.parse(data);
+                                let p = JSON.parse(row.chi_tiet_diem);
                                 let combs = p.all_combinations || {};
-                                let vals = [];
-                                for (let k in combs) {
-                                    if(k.startsWith('THPT_')) vals.push(combs[k]);
-                                }
-                                return vals[i] !== undefined ? parseFloat(vals[i]).toFixed(2) : '-';
+                                let val = combs['THPT_' + targetCombo];
+                                return val !== undefined && val !== null ? parseFloat(val).toFixed(2) : '-';
                             } catch(e) { return '-'; }
                         }
                     });
@@ -211,53 +218,53 @@ if (!empty($combinations)) {
                 // PT200 TH1-TH4
                 [0,1,2,3].forEach(i => {
                     columns.push({
-                        data: 'chi_tiet_diem',
-                        className: 'text-center text-slate-700 bg-emerald-50/20 font-medium',
-                        render: function(data) {
-                            if (!data) return '-';
+                        data: null,
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            let names = getComboNames(row);
+                            if (names.length <= i) return '-';
+                            let targetCombo = names[i];
+                            
                             try {
-                                let p = JSON.parse(data);
+                                let p = JSON.parse(row.chi_tiet_diem);
                                 let combs = p.all_combinations || {};
-                                let vals = [];
-                                for (let k in combs) {
-                                    if(k.startsWith('HB_')) vals.push(combs[k]);
-                                }
-                                return vals[i] !== undefined ? parseFloat(vals[i]).toFixed(2) : '-';
+                                let val = combs['HB_' + targetCombo];
+                                return val !== undefined && val !== null ? parseFloat(val).toFixed(2) : '-';
                             } catch(e) { return '-'; }
                         }
                     });
                 });
 
                 // To Hop Max, PT Max
-                columns.push({ data: 'to_hop_toi_uu', className: 'text-center font-bold text-slate-600 bg-slate-50/50' });
+                columns.push({ data: 'to_hop_toi_uu', className: 'text-center font-bold' });
                 columns.push({ 
                     data: 'phuong_thuc_toi_uu', 
-                    className: 'text-center font-bold text-slate-600 bg-slate-50/50',
+                    className: 'text-center font-bold',
                     render: function(data) {
                         return data == '100' ? 'TS01' : (data == '200' ? 'TS02' : data);
                     }
                 });
 
                 // M1, M2, M3
-                columns.push({ data: 'diem_mon_1', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_2', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_3', className: 'text-center bg-indigo-50/10', render: function(d) { return d ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_1', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_2', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_3', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
 
                 // QD, UT Goc, UT QD
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-orange-600 font-medium bg-orange-50/20', render: function(data) {
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
                     try { let p = JSON.parse(data); return p.total_raw ? parseFloat(p.total_raw).toFixed(2) : '-'; } catch(e){return '-'}
                 }});
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-slate-500', render: function(data) {
-                    try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(2) : '0'; } catch(e){return '-'}
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
+                    try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(2) : '-'; } catch(e){return '-'}
                 }});
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center text-slate-500', render: function(data) {
-                    try { let p = JSON.parse(data); return p.priority_converted !== undefined ? parseFloat(p.priority_converted).toFixed(2) : '0'; } catch(e){return '-'}
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
+                    try { let p = JSON.parse(data); return p.priority_converted !== undefined ? parseFloat(p.priority_converted).toFixed(2) : '-'; } catch(e){return '-'}
                 }});
 
                 // Final Score
                 columns.push({ 
                     data: 'diem_xet_tuyen', 
-                    className: 'text-center font-black text-indigo-700 bg-indigo-50/30 text-[12px]',
+                    className: 'text-center font-bold',
                     render: function(data) { return data > 0 ? parseFloat(data).toFixed(2) : '-'; }
                 });
 
@@ -268,8 +275,8 @@ if (!empty($combinations)) {
                     render: function(data) {
                         try {
                             let p = JSON.parse(data);
-                            if(p.threshold_note && p.threshold_note.indexOf('HỌC LỰC') !== -1) return '<span class="text-rose-500 font-bold" title="Không đủ ĐK"><i class="fas fa-times"></i></span>';
-                            return '<span class="text-emerald-500"><i class="fas fa-check"></i> Đạt</span>';
+                            if(p.threshold_note && p.threshold_note.indexOf('HỌC LỰC') !== -1) return '<span title="Không đủ ĐK">-</span>';
+                            return '<span>Đạt</span>';
                         } catch(e) { return '-'; }
                     }
                 });
@@ -281,8 +288,8 @@ if (!empty($combinations)) {
                     render: function(data) {
                         try {
                             let p = JSON.parse(data);
-                            if(p.threshold_note && p.threshold_note.indexOf('NGƯỠNG') !== -1) return '<span class="text-rose-500 font-bold" title="Không đủ ĐK"><i class="fas fa-times"></i></span>';
-                            return '<span class="text-emerald-500"><i class="fas fa-check"></i> Đạt</span>';
+                            if(p.threshold_note && p.threshold_note.indexOf('NGƯỠNG') !== -1) return '<span title="Không đủ ĐK">-</span>';
+                            return '<span>Đạt</span>';
                         } catch(e) { return '-'; }
                     }
                 });
