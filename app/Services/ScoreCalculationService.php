@@ -174,15 +174,15 @@ class ScoreCalculationService {
         return [
             'toan' => ['TOAN', 'TO'],
             'van' => ['VAN', 'NGU_VAN', 'VA'],
-            'ngoai_ngu' => ['ANH', 'TIENG_ANH', 'NGOAI_NGU', 'TA', 'NN'],
-            'ly' => ['LY', 'VAT_LY', 'VAT LI'],
+            'ngoai_ngu' => ['ANH', 'TIENG_ANH', 'NGOAI_NGU', 'TA', 'NN', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'],
+            'ly' => ['LY', 'VAT_LY', 'VAT LI', 'LI'],
             'hoa' => ['HOA', 'HOA_HOC', 'HO'],
             'sinh' => ['SINH', 'SINH_HOC', 'SI'],
             'su' => ['SU', 'LICH_SU'],
             'dia' => ['DIA', 'DIA_LY', 'DI'],
-            'gdcd' => ['GDCD', 'GD', 'GDKT_PL', 'KTPL'],
+            'gdcd' => ['GDCD', 'GD', 'GDKT_PL', 'KTPL', 'GDKTPL'],
             'cong_nghe' => ['CONG_NGHE', 'CN'],
-            'tin_hoc' => ['TIN', 'TIN_HOC']
+            'tin_hoc' => ['TIN', 'TIN_HOC', 'TH']
         ];
     }
 
