@@ -96,8 +96,13 @@ class ThiSinh extends Model {
                     $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'nv1') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val));
+                    if ($trimVal === 'chưa đk') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1)";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'gender') {
                     $sql .= " AND t.gioi_tinh LIKE ?";
                     $params[] = "%$val%";
@@ -270,8 +275,13 @@ class ThiSinh extends Model {
                     $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'nv1') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val));
+                    if ($trimVal === 'chưa đk') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1)";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'gender') {
                     $sql .= " AND t.gioi_tinh LIKE ?";
                     $params[] = "%$val%";
