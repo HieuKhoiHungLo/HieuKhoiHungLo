@@ -438,6 +438,50 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 </form>
 
 <script>
+    // Centralized Filter logic for all Candidate related pages
+    window.applyCandidateFilters = function() {
+        const baseUrl = '<?= $baseUrl ?>';
+        // Start with current filters from PHP
+        const f = <?= json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        
+        // 1. Collect from Header Inputs (CCCD, Name, Phone, etc.)
+        document.querySelectorAll('[data-filter-key]').forEach(el => {
+            const key = el.getAttribute('data-filter-key');
+            f[key] = el.value.trim();
+        });
+
+        // 2. Collect from Filters form (Year, Session, Status, etc. if available)
+        const filterForm = document.querySelector('form[action="<?= $baseUrl ?>"]');
+        if (filterForm) {
+            const formData = new FormData(filterForm);
+            formData.forEach((value, key) => {
+                // Only take those not yet in f OR specifically from selects
+                if (!f[key] || filterForm.querySelector(`select[name="${key}"]`)) {
+                    f[key] = value;
+                }
+            });
+        }
+
+        f.page = 1; // Reset to page 1 on new filter
+
+        const params = new URLSearchParams();
+        for (const k in f) {
+            if (f[k] !== '' && f[k] !== null && f[k] !== undefined) {
+                params.set(k, f[k]);
+            }
+        }
+        window.location.href = baseUrl + '?' + params.toString();
+    };
+
+    // Global Keydown Listener for Header Filters
+    document.addEventListener('keydown', function(e) {
+        const target = e.target;
+        if (target.hasAttribute('data-filter-key') && (e.key === 'Enter' || e.keyCode === 13)) {
+            e.preventDefault();
+            window.applyCandidateFilters();
+        }
+    });
+
     // Bulk Action Logic
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('.item-checkbox');

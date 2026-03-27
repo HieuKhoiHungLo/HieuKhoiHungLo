@@ -34,17 +34,31 @@
 
 
     <form action="<?= $baseUrl ?>" method="GET" class="flex flex-wrap gap-3">
-        <!-- Persist Sort Params -->
-        <input type="hidden" name="sort" value="<?= $filters['sort'] ?>">
-        <input type="hidden" name="dir" value="<?= $filters['dir'] ?>">
+        <!-- Persist Sort & Search Params -->
+        <input type="hidden" name="sort" value="<?= $filters['sort'] ?? '' ?>">
+        <input type="hidden" name="dir" value="<?= $filters['dir'] ?? '' ?>">
+        <input type="hidden" name="search" value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+        <input type="hidden" name="status" value="<?= htmlspecialchars($filters['status'] ?? '') ?>">
+        <input type="hidden" name="hoc_ba_status" value="<?= htmlspecialchars($filters['hoc_ba_status'] ?? '') ?>">
+        
+        <?php 
+        // Persist extra filters (f_*)
+        if (isset($filters) && is_array($filters)) {
+            foreach ($filters as $k => $v) {
+                if (str_starts_with($k, 'f_') && !empty($v)) {
+                    echo '<input type="hidden" name="' . htmlspecialchars($k) . '" value="' . htmlspecialchars($v) . '">';
+                }
+            }
+        }
+        ?>
 
-        <select name="year" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer min-w-[100px]">
+        <select name="year" onchange="window.applyCandidateFilters()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer min-w-[100px]">
             <?php foreach ($years as $y): ?>
                 <option value="<?= $y ?>" <?= ($filters['year'] ?? '') == $y ? 'selected' : '' ?>>Khóa <?= $y ?></option>
             <?php endforeach; ?>
         </select>
 
-        <select name="session_id" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer max-w-[250px]">
+        <select name="session_id" onchange="window.applyCandidateFilters()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer max-w-[250px]">
             <option value="">-- Tất cả các đợt --</option>
             <?php foreach ($yearSessions as $s): ?>
                 <option value="<?= $s['id'] ?>" <?= ($filters['session_id'] ?? '') == $s['id'] ? 'selected' : '' ?>>
@@ -57,7 +71,7 @@
         <input type="hidden" name="app_status" value="ghost">
         <?php endif; ?>
 
-        <button type="submit" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-blue-600 hover:border-blue-200 transition shadow-sm">
+        <button type="button" onclick="window.applyCandidateFilters()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-blue-600 hover:border-blue-200 transition shadow-sm">
             <i class="fas fa-sync-alt text-sm"></i>
         </button>
     </form>

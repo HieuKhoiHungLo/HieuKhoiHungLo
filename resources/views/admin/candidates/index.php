@@ -290,28 +290,6 @@
         }
     });
 
-    // Header Search logic
-    document.addEventListener('keydown', function(e) {
-        const target = e.target;
-        if (target.hasAttribute('data-filter-key') && (e.key === 'Enter' || e.keyCode === 13)) {
-            e.preventDefault();
-            const key = target.getAttribute('data-filter-key');
-            const val = target.value.trim();
-
-            const f = Object.assign({}, currentFilters);
-            f[key] = val;
-            f.page = 1;
-
-            const params = new URLSearchParams();
-            for (const k in f) {
-                if (f[k] !== '' && f[k] !== null && f[k] !== undefined) {
-                    params.set(k, f[k]);
-                }
-            }
-            window.location.href = baseUrl + '?' + params.toString();
-        }
-    });
-
     // Modal Functions
     function openBulkPasswordModal() {
         const checked = document.querySelectorAll('.item-checkbox:checked');
