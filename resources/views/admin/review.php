@@ -1046,7 +1046,6 @@ updateActionBarOffset();
     }
 </script>
 
-<?php include __DIR__ . '/partials/_modals.php'; ?>
 
 <?php
 $content = ob_get_clean();

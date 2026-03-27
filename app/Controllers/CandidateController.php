@@ -72,6 +72,7 @@ class CandidateController extends Controller
         return $this->handleCandidateList('review');
     }
 
+
     protected function handleCandidateList($mode = 'dashboard')
     {
         $this->checkPermission('dashboard');
@@ -89,6 +90,8 @@ class CandidateController extends Controller
             $appStatusFilter = 'ghost'; // Force 'chưa nhập hồ sơ' for this view
         } elseif ($mode === 'dashboard' || $mode === 'review') {
             $appStatusFilter = 'submitted'; // Force submitted for these views
+        } elseif ($mode === 'trash') {
+            $appStatusFilter = 'trash';
         }
 
         $sessionModel = new \App\Models\AdmissionSession();
@@ -143,7 +146,7 @@ class CandidateController extends Controller
             $year,
             $sort,
             $dir,
-            false,
+            ($mode !== 'trash'),
             $extraFilters,
             $appStatusFilter
         );
@@ -155,7 +158,7 @@ class CandidateController extends Controller
             $sessionId,
             $editRequest == '1',
             $year,
-            false,
+            ($mode !== 'trash'),
             $extraFilters,
             $appStatusFilter
         );
@@ -171,11 +174,13 @@ class CandidateController extends Controller
             return $model->getAll();
         });
 
-        $viewName = $mode === 'all' ? 'admin/candidates/index' : 'admin/candidates';
-        $baseUrl = url($mode === "review" ? "/admin/review-management" : ($mode === 'all' ? "/admin/candidate-management" : "/admin/candidates"));
+        $viewName = $mode === 'all' ? 'admin/candidates/index' : ($mode === 'trash' ? 'admin/candidates/trash' : 'admin/candidates');
+        $baseUrl = url($mode === "review" ? "/admin/review-management" : ($mode === 'all' ? "/admin/candidate-management" : ($mode === 'trash' ? "/admin/candidates/trash" : "/admin/candidates")));
 
         $this->view($viewName, [
             'total' => $total,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
             'mode' => $mode,
             'baseUrl' => $baseUrl,
             'candidates' => $candidates,
@@ -240,6 +245,13 @@ class CandidateController extends Controller
             case 'delete':
                 $this->checkPermission('candidates.delete');
                 $this->bulkDelete($ids);
+                
+                // Add feedback for bulk delete
+                if (count($ids) === 1) {
+                    $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=deleted";
+                } else {
+                    $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=bulk_success&count=" . count($ids);
+                }
                 break;
 
             case 'send_email':
@@ -251,17 +263,20 @@ class CandidateController extends Controller
 
                 if ($templateId || ($subject && $content)) {
                     $this->bulkSendEmail($ids, $templateId, $subject, $content, $internalNote);
+                    $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=bulk_success&count=" . count($ids);
                 }
                 break;
 
             case 'restore':
                 $this->checkPermission('candidates.delete');
                 $this->bulkRestore($ids);
+                $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=bulk_success&count=" . count($ids);
                 break;
 
             case 'force_delete':
                 $this->checkPermission('candidates.delete'); // Or candidates.force_delete if special
                 $this->bulkForceDelete($ids);
+                $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=deleted";
                 break;
 
             case 'normalize_names':
@@ -278,6 +293,11 @@ class CandidateController extends Controller
                 
                 $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
                 $_POST['redirect_to'] = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("Đã chuẩn hóa họ tên cho $count thí sinh.");
+                break;
+
+            case 'change_password':
+                $this->checkPermission('candidates.edit');
+                $this->bulkResetPassword($ids);
                 break;
 
             default:
@@ -387,7 +407,7 @@ class CandidateController extends Controller
             if ($template) {
                 // Use template only if subject/body not provided (custom wins)
                 if (empty($subject)) $subject = $template['subject'];
-                if (empty($body)) $body = $template['body'];
+                if (empty($body)) $body = $template['body']; // Fix: content -> body
             }
         }
 
@@ -457,6 +477,50 @@ class CandidateController extends Controller
     }
 
     /**
+     * Bulk Reset Password
+     */
+    protected function bulkResetPassword($ids)
+    {
+        $candidates = $this->thiSinhRepo->findManyByCCCD($ids);
+        $count = 0;
+        
+        $manualPassword = $_POST['new_password'] ?? '';
+        
+        foreach ($candidates as $candidate) {
+            // Generate random password if manual password is empty
+            $newPassword = !empty($manualPassword) ? $manualPassword : substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 6);
+            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            
+            if ($this->thiSinhRepo->updatePasswordByCCCD($candidate['so_cccd'], $hashedPassword)) {
+                $count++;
+                
+                // Send Email Notification
+                if (!empty($candidate['email'])) {
+                    $mailer = new \App\Services\MailerService();
+                    $subject = "Thông báo thay đổi mật khẩu - Hệ thống Tuyển sinh";
+                    $body = "Chào bạn <b>{$candidate['ho_va_ten']}</b>,<br><br>
+                            Người quản trị đã thay đổi mật khẩu đăng nhập của bạn trên hệ thống Tuyển sinh.<br>
+                            Mật khẩu mới của bạn là: <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
+                            Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
+                            Trân trọng!";
+                    
+                    $mailer->enqueue($candidate['email'], $subject, $body);
+                }
+
+                $this->auditService->log('RESET_PASSWORD', 'candidates', $candidate['so_cccd'], null, [
+                    'ho_va_ten' => $candidate['ho_va_ten'],
+                    'email_sent' => !empty($candidate['email']),
+                    'bulk' => true
+                ]);
+            }
+        }
+        
+        $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
+        $redirectTo = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("Đã đổi mật khẩu thành công cho $count hồ sơ.");
+        $this->redirect($redirectTo);
+    }
+
+    /**
      * Delete single candidate
      */
     public function delete()
@@ -472,8 +536,36 @@ class CandidateController extends Controller
         }
 
         $this->bulkDelete([$cccd]);
+        
+        // Dynamic redirect back to source
+        $redirectTo = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/candidate-management'));
+        
+        // Add success message
+        $redirectTo .= (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=deleted";
+        
+        $this->redirect($redirectTo);
+    }
 
-        $this->redirect(url('/admin/dashboard?success=deleted'));
+    /**
+     * AJAX fetch email template details
+     */
+    public function getTemplate()
+    {
+        $this->checkPermission('dashboard');
+        
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Missing Template ID']);
+            return;
+        }
+
+        $model = new \App\Models\EmailTemplate();
+        $template = $model->find($id);
+        
+        header('Content-Type: application/json');
+        echo json_encode($template);
+        exit;
     }
 
     /**
@@ -499,49 +591,9 @@ class CandidateController extends Controller
 
     public function trash()
     {
-        $this->checkPermission('candidates.view');
-
-        $page = $_GET['page'] ?? 1;
-        $limit = 20;
-        $offset = ($page - 1) * $limit;
-        $search = $_GET['search'] ?? '';
-
-        // Get Trashed only
-        $candidates = $this->thiSinhRepo->getFiltered(
-            $search,
-            '', // status
-            '', // hocBaStatus
-            $limit,
-            $offset,
-            null, // sessionId
-            false, // onlyEditRequests
-            null, // year
-            'created_at',
-            'desc',
-            true // trashed = true
-        );
-
-        $total = $this->thiSinhRepo->countFiltered(
-            $search,
-            '', // status
-            '', // hocBaStatus
-            null, // sessionId
-            false, // onlyEditRequests
-            null, // year
-            true // trashed = true
-        );
-
-        $totalPages = ceil($total / max($limit, 1));
-
-        $this->view('admin/candidates/trash', [
-            'candidates' => $candidates,
-            'total' => $total,
-            'currentPage' => $page,
-            'totalPages' => $totalPages,
-            'search' => $search,
-            'user' => $this->currentUser
-        ]);
+        return $this->handleCandidateList('trash');
     }
+
 
     public function restore()
     {
@@ -549,9 +601,16 @@ class CandidateController extends Controller
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
+        $cccds = $_POST['cccds'] ?? [];
+
         if ($cccd) {
             $this->thiSinhRepo->restore($cccd);
             $this->redirect(url('/admin/candidates/trash?success=restored'));
+        } elseif (!empty($cccds)) {
+            foreach ($cccds as $id) {
+                $this->thiSinhRepo->restore($id);
+            }
+            $this->redirect(url('/admin/candidates/trash?success=restored&count=' . count($cccds)));
         } else {
             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
         }
@@ -563,9 +622,16 @@ class CandidateController extends Controller
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
+        $cccds = $_POST['cccds'] ?? [];
+
         if ($cccd) {
             $this->thiSinhRepo->forceDelete($cccd);
             $this->redirect(url('/admin/candidates/trash?success=deleted_forever'));
+        } elseif (!empty($cccds)) {
+            foreach ($cccds as $id) {
+                $this->thiSinhRepo->forceDelete($id);
+            }
+            $this->redirect(url('/admin/candidates/trash?success=deleted_forever&count=' . count($cccds)));
         } else {
             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
         }
@@ -1200,6 +1266,30 @@ class CandidateController extends Controller
                         return;
                     }
 
+                    // Resolve the actual dot_tuyen_sinh_id from ho_so_xet_tuyen
+                    // applicationId is ho_so_xet_tuyen.id, NOT the session ID
+                    $stmtSession = $this->thiSinhRepo->getDb()->prepare(
+                        "SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE id = ?"
+                    );
+                    $stmtSession->execute([$applicationId]);
+                    $sessionRow = $stmtSession->fetch(\PDO::FETCH_ASSOC);
+                    $dotTuyenSinhId = $sessionRow ? $sessionRow['dot_tuyen_sinh_id'] : null;
+
+                    // Fallback: try by CCCD if lookup by ID fails
+                    if (!$dotTuyenSinhId) {
+                        $stmtSession2 = $this->thiSinhRepo->getDb()->prepare(
+                            "SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ? ORDER BY id DESC LIMIT 1"
+                        );
+                        $stmtSession2->execute([$cccd]);
+                        $sessionRow2 = $stmtSession2->fetch(\PDO::FETCH_ASSOC);
+                        $dotTuyenSinhId = $sessionRow2 ? $sessionRow2['dot_tuyen_sinh_id'] : null;
+                    }
+
+                    if (!$dotTuyenSinhId) {
+                        $this->json(['success' => false, 'error' => 'Không xác định được đợt tuyển sinh cho hồ sơ này.']);
+                        return;
+                    }
+
                     if (empty($items)) {
                         $this->json(['success' => false, 'error' => 'Vui lòng thêm ít nhất 1 nguyện vọng.']);
                         return;
@@ -1221,7 +1311,7 @@ class CandidateController extends Controller
                     unset($item);
 
                     $nguyenVongRepo = new \App\Repositories\NguyenVongRepository();
-                    if (!$nguyenVongRepo->save($cccd, $applicationId, $items)) {
+                    if (!$nguyenVongRepo->save($cccd, $dotTuyenSinhId, $items)) {
                         $this->json(['success' => false, 'error' => 'Lỗi lưu nguyện vọng vào CSDL.']);
                         return;
                     }
@@ -1268,5 +1358,54 @@ class CandidateController extends Controller
             'year' => $year,
             'session' => $sessionName
         ];
+    }
+
+    public function changePassword()
+    {
+        $this->checkPermission('candidates.edit');
+        $this->validateCsrf();
+
+        $cccd = $_POST['cccd'] ?? '';
+        if (!$cccd) {
+            $this->redirect(url('/admin/candidate-management?error=missing_cccd'));
+        }
+
+        $candidate = $this->thiSinhRepo->findByCCCD($cccd);
+        if (!$candidate) {
+            $this->redirect(url('/admin/candidate-management?error=not_found'));
+        }
+
+        // Use manual password if provided, otherwise generate random (at least 6 characters)
+        $manualPassword = $_POST['new_password'] ?? '';
+        $newPassword = !empty($manualPassword) ? $manualPassword : substr(str_shuffle('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'), 0, 6);
+        $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+
+        if ($this->thiSinhRepo->updatePasswordByCCCD($cccd, $hashedPassword)) {
+            // Send Email
+            if (!empty($candidate['email'])) {
+                $mailer = new \App\Services\MailerService();
+                $subject = "Thông báo thay đổi mật khẩu - Hệ thống Tuyển sinh";
+                $body = "Chào bạn <b>{$candidate['ho_va_ten']}</b>,<br><br>
+                        Người quản trị đã thay đổi mật khẩu đăng nhập của bạn trên hệ thống Tuyển sinh.<br>
+                        Mật khẩu mới của bạn là: <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
+                        Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
+                        Trân trọng!";
+                
+                $mailer->enqueue($candidate['email'], $subject, $body);
+            }
+
+            $this->auditService->log('RESET_PASSWORD', 'candidates', $cccd, null, [
+                'ho_va_ten' => $candidate['ho_va_ten'],
+                'email_sent' => !empty($candidate['email'])
+            ]);
+
+            $redirectTo = $_POST['redirect_to'] ?? url('/admin/candidate-management');
+            $redirectTo .= (strpos($redirectTo, '?') !== false ? '&' : '?') . 'success=password_changed';
+            $this->redirect($redirectTo);
+        } else {
+            $redirectTo = $_POST['redirect_to'] ?? url('/admin/candidate-management');
+            $redirectTo .= (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=update_failed';
+            $this->redirect($redirectTo);
+        }
     }
 }

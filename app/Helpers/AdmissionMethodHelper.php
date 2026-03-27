@@ -9,19 +9,25 @@ class AdmissionMethodHelper {
      * @param array $major Array of major details containing flags
      * @return string Method code TS01-TS05
      */
-    public static function resolvePhuongThuc(string $ma_noi_bo, array $major): string {
-        if ($ma_noi_bo === '100') {
-            return !empty($major['co_diem_nangkhieu_thpt']) ? 'TS04' : 'TS01';
-        }
-        
-        // $ma_noi_bo === '200' or default
+    public static function resolvePhuongThuc(string $ma_hien_tai, array $major): string {
+        // Nếu đã là mã TSxx thì trả về luôn (tránh xử lý lại)
+        if (strpos($ma_hien_tai, 'TS') === 0) return $ma_hien_tai;
+
+        // Ưu tiên TS03: Xét tuyển Chứng chỉ Quốc tế (nếu ngành có cấu hình)
         if (!empty($major['co_xet_chung_chi'])) {
             return 'TS03';
         }
-        if (!empty($major['co_diem_nangkhieu_hochba'])) {
-            return 'TS05';
+
+        if ($ma_hien_tai === '100') {
+            // TS04: THPT + Năng khiếu
+            return !empty($major['co_diem_nangkhieu_thpt']) ? 'TS04' : 'TS01';
         }
         
-        return 'TS02';
+        if ($ma_hien_tai === '200') {
+            // TS05: Học bạ + Năng khiếu
+            return !empty($major['co_diem_nangkhieu_hochba']) ? 'TS05' : 'TS02';
+        }
+        
+        return $ma_hien_tai;
     }
 }

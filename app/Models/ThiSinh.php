@@ -23,9 +23,10 @@ class ThiSinh extends Model {
         $sql = "SELECT t.*, t.ghi_chu as base_ghi_chu FROM {$this->table} t WHERE 1=1";
         $params = [];
 
-        if ($excludeTrash) {
-            // Commenting out missing column logic. The new system handles trash at the 'ho_so_xet_tuyen' level instead of 'thi_sinh'.
-            // $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+        if ($applicationStatus === 'trash') {
+            $sql .= " AND t.deleted_at IS NOT NULL";
+        } elseif ($excludeTrash) {
+            $sql .= " AND t.deleted_at IS NULL";
         }
 
         if (!empty($search)) {
@@ -199,9 +200,10 @@ class ThiSinh extends Model {
         $sql = "SELECT COUNT(*) FROM {$this->table} t WHERE 1=1";
         $params = [];
 
-        if ($excludeTrash) {
-            // Commenting out missing column logic. The new system handles trash at the 'ho_so_xet_tuyen' level instead of 'thi_sinh'.
-            // $sql .= " AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)";
+        if ($applicationStatus === 'trash') {
+            $sql .= " AND t.deleted_at IS NOT NULL";
+        } elseif ($excludeTrash) {
+            $sql .= " AND t.deleted_at IS NULL";
         }
 
         if (!empty($search)) {

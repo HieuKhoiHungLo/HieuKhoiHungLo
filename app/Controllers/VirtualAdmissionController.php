@@ -25,8 +25,15 @@ class VirtualAdmissionController extends Controller {
         // Lấy danh sách năm duy nhất
         $years = $this->db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(PDO::FETCH_COLUMN);
         
-        // Cần truyền thêm danh sách tổ hợp để render table headers (các cột điểm từng tổ hợp)
-        $combinations = $this->db->query("SELECT ma_to_hop FROM dm_to_hop ORDER BY ma_to_hop")->fetchAll(PDO::FETCH_ASSOC);
+        // Cần truyền thêm danh sách tổ hợp để render table headers và hiển thị chi tiết (ví dụ: A00 (TO-LI-HO))
+        $combinations = $this->db->query("
+            SELECT th.ma_to_hop, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
+            FROM dm_to_hop th 
+            LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
+            ORDER BY th.ma_to_hop
+        ")->fetchAll(PDO::FETCH_ASSOC);
         
         $this->view('admin/virtual_admission/index', [
             'title' => 'Xét Tuyển Lọc Ảo',
@@ -60,14 +67,42 @@ class VirtualAdmissionController extends Controller {
                     n.dot_tuyen_sinh_id = ?
                     AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')
                 ORDER BY ts.so_cccd, n.thu_tu_nguyen_vong ASC
-                LIMIT 100
             ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$sessionId]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Grouping logic (optional if frontend handles flat lists)
-            $this->json(['data' => $rows]);
+            // Tính số lượng hồ sơ (thí sinh) duy nhất
+            $uniqueCccd = array_unique(array_column($rows, 'so_cccd'));
+            $candidateCount = count($uniqueCccd);
+
+            // Tìm những thí sinh có ho_so_xet_tuyen 'Đã duyệt' thuộc đợt này nhưng KHÔNG có nguyện vọng trong lọc ảo
+            $sqlMissing = "
+                SELECT ts.ho_va_ten as ho_ten, hs.so_cccd, hs.trang_thai
+                FROM ho_so_xet_tuyen hs
+                JOIN thi_sinh ts ON hs.so_cccd = ts.so_cccd
+                WHERE hs.dot_tuyen_sinh_id = ?
+                AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
+                AND hs.so_cccd NOT IN (
+                    SELECT DISTINCT n.so_cccd 
+                    FROM nguyen_vong n 
+                    WHERE n.dot_tuyen_sinh_id = ? AND n.trang_thai = 'DaDuyet'
+                )
+            ";
+            $stmtMissing = $this->db->prepare($sqlMissing);
+            $stmtMissing->execute([$sessionId, $sessionId]);
+            $missingCandidates = $stmtMissing->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->json([
+                'data' => $rows,
+                'candidate_count' => $candidateCount,
+                'aspiration_count' => count($rows),
+                'missing_candidates' => $missingCandidates,
+                'debug_info' => [
+                    'session_id' => $sessionId,
+                    'total_approved_in_hsxt' => $candidateCount + count($missingCandidates)
+                ]
+            ]);
         } catch (\Exception $e) {
             error_log("loadBatchData Error: " . $e->getMessage());
             $this->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -86,21 +121,9 @@ class VirtualAdmissionController extends Controller {
             exit;
         }
 
-        // Get all approved candidates in this session
-        $sql = "SELECT DISTINCT n.so_cccd 
-                FROM nguyen_vong n 
-                WHERE n.dot_tuyen_sinh_id = ? AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$sessionId]);
-        $candidates = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $successCount = $this->scoreService->recalculateSession($sessionId);
 
-        $success = 0;
-        foreach ($candidates as $cccd) {
-            $this->scoreService->calculate($cccd);
-            $success++;
-        }
-
-        $this->json(['success' => true, 'message' => "Đã tính điểm cho $success thí sinh."]);
+        $this->json(['success' => true, 'message' => "Đã tính điểm cho $successCount thí sinh."]);
     }
 
     public function apiSync() {

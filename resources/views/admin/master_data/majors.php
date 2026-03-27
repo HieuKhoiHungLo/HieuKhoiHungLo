@@ -63,6 +63,7 @@
                         <th class="px-6 py-4 text-center">Chỉ tiêu</th>
                         <th class="px-6 py-4 text-center">KQHT L12</th>
                         <th class="px-6 py-4 text-center">Ngưỡng THPT</th>
+                        <th class="px-6 py-4 text-center w-24">Trạng thái</th>
                         <th class="px-6 py-4 text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -94,6 +95,16 @@
                                 ?>
                             </td>
                             <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] ? number_format($major['nguong_diem_thpt'], 1) : '--' ?></td>
+                            <td class="px-6 py-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" <?= ($major['kich_hoat'] ?? true) ? 'checked' : '' ?> 
+                                           onchange="toggleMajorActive('<?= $major['ma_nganh'] ?>', this)" 
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 rounded-full transition-all peer-checked:bg-green-500 relative peer-focus:ring-2 peer-focus:ring-green-100">
+                                        <div class="absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-all transform peer-checked:translate-x-full peer-checked:border-white"></div>
+                                    </div>
+                                </label>
+                            </td>
                             <td class="px-6 py-3 text-center flex items-center justify-center space-x-2">
                                 <button type="button" onclick='editMajor(<?= json_encode($major) ?>)' class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-[#0066FF] hover:bg-[#0066FF] hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
                                 <button type="button" onclick="deleteSingle('<?= $major['ma_nganh'] ?>')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition" title="Xóa"><i class="fas fa-trash-alt text-xs"></i></button>
@@ -423,12 +434,36 @@
             document.getElementById('single-delete-form').submit();
         }
     }
-</script>
 
-<?php
-$content = ob_get_clean();
-require_once __DIR__ . '/../../layouts/admin.php';
-?>
+    // Toggle active status
+    async function toggleMajorActive(ma, checkbox) {
+        const formData = new FormData();
+        formData.append('ma_nganh', ma);
+        formData.append('csrf_token', '<?= (string) $this->csrfToken() ?>');
+
+        try {
+            const response = await fetch('<?= url('/admin/master-data/majors/toggle-active') ?>', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (result.status) {
+                if (typeof showToast === 'function') {
+                    showToast(result.message, 'success');
+                } else {
+                    console.log(result.message);
+                }
+            } else {
+                alert(result.message || 'Có lỗi xảy ra');
+                checkbox.checked = !checkbox.checked; // Revert
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Lỗi kết nối máy chủ');
+            checkbox.checked = !checkbox.checked; // Revert
+        }
+    }
 </script>
 
 <?php

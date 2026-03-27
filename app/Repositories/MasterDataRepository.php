@@ -76,6 +76,41 @@ class MasterDataRepository
         });
     }
 
+    public function getActiveMajorsWithCombinations()
+    {
+        return Cache::remember('active_majors_with_combinations_v2', 60, function () {
+            $majors = [];
+            try {
+                $db = Database::getInstance()->getConnection();
+
+                $stmt = $db->query("SELECT * FROM dm_nganh WHERE COALESCE(kich_hoat, true) = true ORDER BY ma_nganh ASC");
+                $rawMajors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $comboMap = [];
+                try {
+                    $stmtCombos = $db->query("
+                        SELECT nth.ma_nganh, th.ma_to_hop 
+                        FROM dm_nganh_to_hop nth 
+                        JOIN dm_to_hop th ON nth.to_hop_id = th.id
+                    ");
+                    while ($row = $stmtCombos->fetch(PDO::FETCH_ASSOC)) {
+                        $comboMap[$row['ma_nganh']][] = $row['ma_to_hop'];
+                    }
+                } catch (\Exception $e) {
+                }
+
+                foreach ($rawMajors as $m) {
+                    $combos = $comboMap[$m['ma_nganh']] ?? [];
+                    $m['to_hop_xet_tuyen'] = !empty($combos) ? implode(', ', $combos) : ($m['khoi_xet_tuyen'] ?? '');
+                    $majors[] = $m;
+                }
+            } catch (\Exception $e) {
+                return [];
+            }
+            return $majors;
+        });
+    }
+
     public function getMajorCombinations($majorCode)
     {
         return Cache::remember('major_combinations_' . $majorCode, 60, function () use ($majorCode) {

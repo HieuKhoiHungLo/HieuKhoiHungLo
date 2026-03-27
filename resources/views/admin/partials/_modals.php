@@ -1,107 +1,196 @@
 <!-- Modals -->
+
+<!-- Password Reset Modal -->
+<div id="password-modal" class="fixed inset-0 min-h-screen flex items-center justify-center p-4 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="z-index: 99999 !important;">
+    <!-- Backdrop with blur -->
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeModal('password-modal')"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-100 transform transition-all p-8 md:p-10 pointer-events-auto overflow-hidden">
+        <!-- Close Button -->
+        <button type="button" onclick="closeModal('password-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <form id="password-modal-form" method="POST" action="<?= url('/admin/candidates/change-password') ?>">
+            <?= csrf_field() ?>
+            <input type="hidden" name="cccd" id="pwd-modal-cccd" value="">
+            <input type="hidden" name="redirect_to" value="<?= htmlspecialchars($_SERVER['REQUEST_URI'] ?? url('/admin/candidate-management')) ?>">
+
+            <div class="text-center">
+                <!-- Icon & Title -->
+                <div class="w-16 h-16 bg-blue-50 text-[#0066FF] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                </div>
+                
+                <h3 id="pwd-modal-title" class="text-2xl font-black text-slate-800 tracking-tight mb-2">Đổi mật khẩu</h3>
+                <p id="pwd-modal-desc" class="text-slate-500 text-sm font-medium mb-1">Đang thiết lập cho thí sinh:</p>
+                <div id="pwd-modal-name" class="text-xl font-bold text-[#0066FF] mb-8 truncate uppercase tracking-wide">...</div>
+
+                <!-- Input Field -->
+                <div class="text-left mb-8">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Mật khẩu mới (Để trống để tự động sinh)</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-slate-300 group-focus-within:text-[#0066FF] transition-colors"></i>
+                        </div>
+                        <input type="text" name="new_password" 
+                            class="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-800 font-bold placeholder:text-slate-300 focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 outline-none transition-all text-center"
+                            placeholder="Nhập mật khẩu mới...">
+                    </div>
+                    <div class="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-2.5 text-left">
+                        <i class="fas fa-info-circle text-amber-500 mt-0.5"></i>
+                        <p class="text-[11px] text-amber-800 font-medium leading-relaxed">
+                            Mật khẩu sẽ được <b>gửi tự động qua Email</b> cho thí sinh ngay sau khi bạn xác nhận.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="closeModal('password-modal')" 
+                        class="flex-1 px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all">
+                        Hủy
+                    </button>
+                    <button type="submit" onclick="Loading.show()"
+                        class="flex-[1.5] px-6 py-4 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0 transition-all">
+                        Xác nhận đổi
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Transfer Modal -->
-<div id="transfer-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Chuyển đợt tuyển sinh</h3>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-500 mb-4">Chọn đợt tuyển sinh đích để chuyển <span id="transfer-count" class="font-bold">0</span> hồ sơ đã chọn.</p>
-                    <select id="modal-target-session" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">-- Chọn đợt tuyển sinh --</option>
+<div id="transfer-modal" class="fixed inset-0 min-h-screen flex items-center justify-center p-4 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="z-index: 99999 !important;">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeModal('transfer-modal')"></div>
+    
+    <div class="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-100 transform transition-all p-8 md:p-10 pointer-events-auto overflow-hidden">
+        <button type="button" onclick="closeModal('transfer-modal')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-colors">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <div class="text-center">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <i class="fas fa-exchange-alt text-2xl"></i>
+            </div>
+            
+            <h3 class="text-2xl font-black text-slate-800 mb-2">Chuyển đợt tuyển sinh</h3>
+            <p class="text-sm text-slate-500 mb-6">Chọn đợt đích để chuyển <span id="transfer-count" class="font-bold text-indigo-600">0</span> hồ sơ đã chọn.</p>
+
+            <div class="text-left mb-8">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Đợt tuyển sinh đích</label>
+                <select id="modal-target-session" class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-slate-800 font-bold focus:bg-white focus:border-indigo-500 outline-none transition-all">
+                    <option value="">-- Chọn đợt tuyển sinh --</option>
+                    <?php if (isset($yearSessions)): ?>
                         <?php foreach ($yearSessions as $s): ?>
                             <option value="<?= $s['id'] ?>">
                                 <?= htmlspecialchars(!empty($s['ma_dot']) ? $s['ma_dot'] : $s['ten_dot']) ?> - <?= $s['nam_tuyen_sinh'] ?>
                             </option>
                         <?php endforeach; ?>
-                    </select>
-                </div>
+                    <?php endif; ?>
+                </select>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" onclick="confirmTransfer()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#0066FF] text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Chuyển</button>
-                <button type="button" onclick="closeModal('transfer-modal')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Hủy</button>
+
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="closeModal('transfer-modal')" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl transition-all">Hủy</button>
+                <button type="button" onclick="confirmTransfer()" class="flex-[1.5] px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg transition-all">Chuyển ngay</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Email Modal -->
-<div id="email-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
-        <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-200">
-            <!-- Header -->
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-paper-plane text-blue-600"></i> Gửi Email
-                </h3>
-                <button type="button" onclick="closeModal('email-modal')" class="text-slate-400 hover:text-slate-600 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+<!-- Email Modal (Premium Redesign - Compacted) -->
+<div id="email-modal" class="fixed inset-0 min-h-screen flex items-center justify-center p-4 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="z-index: 99999 !important;">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeModal('email-modal')"></div>
+    
+    <div class="relative w-full max-w-2xl bg-white rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-100 transform transition-all pointer-events-auto overflow-hidden flex flex-col max-h-[95vh]">
+        <!-- Close Button -->
+        <button type="button" onclick="closeModal('email-modal')" class="absolute top-5 right-6 text-slate-400 hover:text-slate-600 transition-colors z-10">
+            <i class="fas fa-times text-xl"></i>
+        </button>
 
-            <div class="px-6 py-6 overflow-y-auto max-h-[70vh]">
-                <div class="space-y-5">
-                    <div class="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm">
+        <form id="email-modal-form" method="POST" class="overflow-y-auto">
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-9 h-9 bg-blue-50 text-[#0066FF] rounded-xl flex items-center justify-center shadow-sm">
+                        <i class="fas fa-paper-plane text-sm"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight">Gửi Email</h3>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Blue Alert Box -->
+                    <div class="p-3 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3">
+                        <div class="w-10 h-10 bg-[#0066FF] text-white rounded-full flex items-center justify-center shadow-md shrink-0">
                             <i class="fas fa-users text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-blue-900">Gửi gửi đến <span id="email-count" class="font-bold">0</span> thí sinh</p>
-                            <p class="text-xs text-blue-700/70">Nội dung sẽ được cá nhân hóa cho từng thí sinh.</p>
+                            <p class="text-[13px] font-bold text-blue-900">Gửi gửi đến <span id="email-target-count">0</span> thí sinh</p>
+                            <p class="text-[10px] text-blue-600 font-medium">Nội dung sẽ được cá nhân hóa cho từng thí sinh.</p>
                         </div>
                     </div>
-                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ghi chú nội bộ (Chỉ quản trị viên thấy)</label>
-                            <input type="text" id="modal-internal-note" value="Gửi mail ngày: <?= date('d/m/Y') ?>" placeholder="Nhập ghi chú cho ban tuyển sinh..." class="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all outline-none text-amber-900 font-medium">
-                        </div>
 
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Chọn mẫu Email nhanh</label>
-                            <select id="modal-email-template" onchange="applyEmailTemplate(this.value)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-700">
-                                <option value="">-- Để trống hoặc tự soạn --</option>
-                                <?php if (!empty($emailTemplates)): ?>
-                                    <?php foreach ($emailTemplates as $tpl): ?>
-                                        <option value="<?= $tpl['id'] ?>" data-subject="<?= htmlspecialchars($tpl['subject']) ?>" data-body="<?= htmlspecialchars($tpl['body']) ?>">
-                                            <?= htmlspecialchars($tpl['subject']) ?> (<?= $tpl['code'] ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tiêu đề Email <span class="text-rose-500">*</span></label>
-                            <input type="text" id="modal-email-subject" placeholder="Nhập tiêu đề email..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-700">
-                        </div>
-                    </div>
-                     
+                    <!-- Internal Note (Yellow Border) -->
                     <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nội dung Email <span class="text-rose-500">*</span></label>
-                            <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-mono italic">Dùng {{name}} để chèn tên</span>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1.5 px-1">GHI CHÚ NỘI BỘ (CHỈ QUẢN TRỊ VIÊN THẤY)</label>
+                        <input type="text" name="internal_note" id="email-modal-internal-note"
+                            class="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl text-amber-900 font-bold placeholder:text-amber-300 focus:bg-white focus:border-amber-400 outline-none transition-all text-sm"
+                            placeholder="Nhập ghi chú hoặc nhật ký công việc...">
+                    </div>
+
+                    <!-- Template Selection -->
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1.5 px-1">CHỌN MẪU EMAIL NHANH</label>
+                        <select name="template_id" id="email-template-select" 
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-bold focus:bg-white focus:border-[#0066FF] outline-none transition-all appearance-none cursor-pointer text-sm">
+                            <option value="">-- Để trống hoặc tự soạn --</option>
+                            <?php if (isset($emailTemplates)): ?>
+                                <?php foreach ($emailTemplates as $t): ?>
+                                    <option value="<?= $t['id'] ?>">
+                                        <?= htmlspecialchars($t['subject'] ?? $t['code'] ?? 'Mẫu thư') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <!-- Subject -->
+                    <div>
+                        <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1.5 px-1">TIÊU ĐỀ EMAIL *</label>
+                        <input type="text" name="subject" id="email-modal-subject"
+                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-800 font-bold placeholder:text-slate-300 focus:bg-white focus:border-[#0066FF] outline-none transition-all text-sm"
+                            placeholder="Nhập tiêu đề email...">
+                    </div>
+
+                    <!-- Content -->
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-1.5 px-1">
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">NỘI DUNG EMAIL *</label>
+                            <span class="text-[8px] font-bold text-slate-400 italic bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                Dùng {{name}} để chèn tên
+                            </span>
                         </div>
-                        <textarea id="modal-email-content" rows="6" placeholder="Nhập nội dung thư gửi cho thí sinh..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-700 min-h-[150px]"></textarea>
+                        <textarea name="content" id="email-editor" 
+                            class="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 font-medium focus:bg-white focus:border-[#0066FF] outline-none transition-all resize-none text-sm" 
+                            placeholder="Nhập nội dung thư gửi cho thí sinh..."></textarea>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100/50">
+                        <button type="button" onclick="closeModal('email-modal')" 
+                            class="px-6 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-500 font-bold rounded-xl transition-all text-sm">
+                            Hủy
+                        </button>
+                        <button type="button" onclick="confirmSendEmail()"
+                            class="px-8 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 transition-all text-sm">
+                            Gửi ngay <i class="fas fa-paper-plane text-[10px]"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <!-- Footer -->
-            <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row-reverse gap-3">
-                <button type="button" onclick="confirmSendEmail()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 group">
-                    <span>Gửi ngay</span>
-                    <i class="fas fa-paper-plane text-xs group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
-                </button>
-                <button type="button" onclick="closeModal('email-modal')" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all">
-                    Hủy
-                </button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>

@@ -117,6 +117,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     // Candidate Management
     $router->get('/admin/candidates/edit', 'CandidateController@edit');
     $router->post('/admin/candidates/edit', 'CandidateController@edit');
+    $router->get('/admin/candidates/get-template', 'CandidateController@getTemplate');
     $router->post('/admin/candidates/delete', 'CandidateController@delete');
     $router->post('/admin/candidates/bulk-action', 'CandidateController@bulkAction');
     $router->post('/admin/candidates/update', 'CandidateController@update');
@@ -124,6 +125,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/candidates/trash', 'CandidateController@trash');
     $router->post('/admin/candidates/restore', 'CandidateController@restore');
     $router->post('/admin/candidates/force-delete', 'CandidateController@forceDelete');
+    $router->post('/admin/candidates/change-password', 'CandidateController@changePassword');
 
     // Admin Accounts (RBAC)
     $router->get('/admin/accounts', 'AdminAccountController@index');
@@ -155,6 +157,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/master-data/majors/actions', 'MajorController@actions');
     $router->get('/admin/master-data/majors/export', 'MajorController@export');
     $router->get('/admin/master-data/majors/template', 'MajorController@template');
+    $router->post('/admin/master-data/majors/toggle-active', 'MajorController@toggleActive');
 
     $router->get('/admin/master-data/schools', 'SchoolController@index');
     $router->post('/admin/master-data/schools', 'SchoolController@save');
@@ -203,6 +206,12 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/virtual-filter/export', 'VirtualAdmissionController@exportExcel');
     $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering');
 
+    // New Admission Management (Year/Session Based)
+    $router->get('/admin/admission/management', 'AdmissionManagementController@index');
+    $router->get('/admin/admission/management/api-sessions', 'AdmissionManagementController@apiGetSessions');
+    $router->get('/admin/admission/management/api-data', 'AdmissionManagementController@apiGetData');
+    $router->post('/admin/admission/management/api-save', 'AdmissionManagementController@apiSave');
+
     // Aptitude Scores
     $router->get('/admin/aptitude-scores', 'AptitudeScoreController@index');
     $router->post('/admin/aptitude-scores/api-list', 'AptitudeScoreController@apiList');
@@ -215,6 +224,12 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/certificate-scores/api-list', 'CertificateScoreController@apiList');
     $router->post('/admin/certificate-scores/import', 'CertificateScoreController@import');
     $router->post('/admin/certificate-scores/delete', 'CertificateScoreController@delete');
+
+    // Certificate Rules (Conversion Table)
+    $router->get('/admin/certificate-rules', 'CertificateRuleController@index');
+    $router->post('/admin/certificate-rules/store', 'CertificateRuleController@store');
+    $router->post('/admin/certificate-rules/update', 'CertificateRuleController@update');
+    $router->post('/admin/certificate-rules/delete', 'CertificateRuleController@delete');
 
     // Email Settings & Templates
     $router->get('/admin/settings/email', 'EmailConfigController@index');

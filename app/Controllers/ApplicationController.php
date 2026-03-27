@@ -210,8 +210,8 @@ class ApplicationController extends Controller
         // Use Repository
         $choices = $this->nguyenVongRepo->getByCCCD($_SESSION['cccd']);
 
-        // Use MasterDataRepository for Majors
-        $majors = $this->masterDataRepo->getMajorsWithCombinations();
+        // Use MasterDataRepository for Majors - Chỉ ngành đang kích hoạt
+        $majors = $this->masterDataRepo->getActiveMajorsWithCombinations();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Block POST if locked

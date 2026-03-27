@@ -120,6 +120,37 @@ class MajorController extends Controller {
         }
     }
 
+    public function toggleActive() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->validateCsrf();
+            $ma = $_POST['ma_nganh'] ?? '';
+            if ($ma) {
+                $db = \App\Core\Database::getInstance()->getConnection();
+                // Đảo trạng thái kich_hoat
+                $stmt = $db->prepare("UPDATE dm_nganh SET kich_hoat = NOT COALESCE(kich_hoat, true) WHERE ma_nganh = ?");
+                $stmt->execute([$ma]);
+                
+                // Xóa cache
+                \App\Core\Cache::forget('master_majors_combinations');
+                \App\Core\Cache::forget('master_active_majors_combinations');
+                \App\Core\Cache::forget('active_majors_with_combinations_v2');
+                
+                // Lấy trạng thái mới
+                $stmt2 = $db->prepare("SELECT COALESCE(kich_hoat, true) as kich_hoat FROM dm_nganh WHERE ma_nganh = ?");
+                $stmt2->execute([$ma]);
+                $result = $stmt2->fetch(\PDO::FETCH_ASSOC);
+                
+                $this->json([
+                    'status' => true, 
+                    'kich_hoat' => ($result['kich_hoat'] === true || $result['kich_hoat'] === 't' || $result['kich_hoat'] === '1'),
+                    'message' => 'Cập nhật trạng thái thành công'
+                ]);
+                return;
+            }
+            $this->json(['status' => false, 'message' => 'Mã ngành không hợp lệ']);
+        }
+    }
+
     public function actions() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();

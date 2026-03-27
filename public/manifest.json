@@ -36,7 +36,7 @@
     "shortcuts": [
         {
             "name": "Đăng nhập",
-            "url": "/login",
+            "url": "login",
             "icons": [
                 {
                     "src": "assets/img/icon-pwa.png",
@@ -46,7 +46,7 @@
         },
         {
             "name": "Tra cứu Kết quả",
-            "url": "/application/results",
+            "url": "application/results",
             "icons": [
                 {
                     "src": "assets/img/icon-pwa.png",

@@ -32,6 +32,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <option value="normalize_names">Chuẩn hóa họ tên</option>
                 <?php endif; ?>
                 <option value="send_email">Gửi thư</option>
+                <option value="change_password">Đổi mật khẩu</option>
                 <option value="delete">Xóa hồ sơ</option>
             </select>
 
@@ -42,7 +43,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                 <option value="Từ chối">Từ chối</option>
             </select>
         </div>
-        <button type="submit" onclick="return confirm('Xác nhận thực hiện hành động này?')" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-indigo-700 shadow-md transition">Áp dụng</button>
+        <button type="button" onclick="handleBulkSubmit()" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-md transition">Áp dụng</button>
     </div>
 
     <!-- Table Container -->
@@ -184,11 +185,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
-                    <?php if ($mode === 'all'): ?>
-                        <th class="w-24 text-center bg-slate-50/10">Thao tác</th>
-                    <?php else: ?>
-                        <th class="bg-slate-50/10"></th>
-                    <?php endif; ?>
+                    <th class="w-24 text-center bg-slate-50/30 border-l border-slate-200 shadow-[-4px_0_8px_rgba(0,0,0,0.02)]">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="text-[12px]">
@@ -347,24 +344,25 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                 <?= nl2br(htmlspecialchars($c['ghi_chu'] ?? '')) ?>
                             </td>
 
-                            <?php if ($mode === 'all'): ?>
-                                <td class="text-center">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" 
-                                            class="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition"
-                                            title="Gửi mail">
-                                            <i class="fas fa-envelope text-[10px]"></i>
-                                        </button>
-                                        <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')"
-                                            class="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition"
-                                            title="Xóa hồ sơ">
-                                            <i class="fas fa-trash-alt text-[10px]"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            <?php else: ?>
-                                <td class="bg-slate-50/10"></td>
-                            <?php endif; ?>
+                            <td class="text-center border-l border-slate-100 bg-slate-50/30">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" 
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition"
+                                        title="Gửi mail">
+                                        <i class="fas fa-envelope text-[10px]"></i>
+                                    </button>
+                                    <button type="button" onclick="openPasswordModal('<?= $c['so_cccd'] ?>', '<?= addslashes($c['ho_va_ten']) ?>')" 
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-50 text-[#0066FF] hover:bg-[#0066FF] hover:text-white transition"
+                                        title="Đổi mật khẩu">
+                                        <i class="fas fa-key text-[10px]"></i>
+                                    </button>
+                                    <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')"
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition"
+                                        title="Xóa hồ sơ">
+                                        <i class="fas fa-trash-alt text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -372,7 +370,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         </table>
     </div>
 
-    <!-- Mobile Card View (Keep similar to before but more compact) -->
+    <!-- Mobile Card View -->
     <div class="block md:hidden space-y-3">
         <?php if (empty($candidates)): ?>
              <div class="bg-white rounded-xl p-6 text-center text-slate-400 italic">Không tìm thấy dữ liệu.</div>
@@ -394,14 +392,11 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                         </div>
                     </div>
                     <div class="flex flex-col items-end gap-2 shrink-0">
-                        <?php if ($mode === 'all'): ?>
-                            <div class="flex gap-2">
-                                <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-envelope scale-90"></i></button>
-                                <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-trash-alt scale-90"></i></button>
-                            </div>
-                        <?php else: ?>
-                            <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-check scale-90"></i></a>
-                        <?php endif; ?>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-envelope scale-90"></i></button>
+                            <button type="button" onclick="openPasswordModal('<?= $c['so_cccd'] ?>', '<?= addslashes($c['ho_va_ten']) ?>')" class="w-8 h-8 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shadow-lg"><i class="fas fa-key scale-90"></i></button>
+                            <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-trash-alt scale-90"></i></button>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -443,57 +438,307 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 </form>
 
 <script>
-    (function() {
-        var baseUrl = '<?= $baseUrl ?>';
-        var currentFilters = <?= json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    // Bulk Action Logic
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    const bulkActionSelect = document.getElementById('bulk-action-select');
+    const bulkStatusOpt = document.getElementById('bulk-status-opt');
+    const bulkForm = document.getElementById('bulk-form');
 
-        // Header Search logic
-        var filterInputs = document.querySelectorAll('[data-filter-key]');
-        filterInputs.forEach(function(input) {
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                    e.preventDefault();
-                    var key = this.getAttribute('data-filter-key');
-                    var val = this.value.trim();
+    function updateBulkUI() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        selectedCount.innerText = checked.length;
+        if (checked.length > 0) {
+            bulkActions.classList.remove('hidden');
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+    }
 
-                    var f = Object.assign({}, currentFilters);
-                    f[key] = val;
-                    f.page = 1;
-
-                    var params = new URLSearchParams();
-                    for (var k in f) {
-                        if (f[k] !== '' && f[k] !== null && f[k] !== undefined) {
-                            params.set(k, f[k]);
-                        }
-                    }
-                    window.location.href = baseUrl + '?' + params.toString();
-                }
-            });
-        });
+    function toggleBulkOptions() {
+        if (!bulkStatusOpt) return;
+        bulkStatusOpt.classList.add('hidden');
+        const action = bulkActionSelect.value;
         
-        // --- Bulk Selection ---
-        var selectAll = document.getElementById('select-all');
-        var bulkActionsBar = document.getElementById('bulk-actions');
-        var selectedCount = document.getElementById('selected-count');
+        if (action === 'update_status') {
+            bulkStatusOpt.classList.remove('hidden');
+        } else if (action === 'transfer') {
+            openTransferModal();
+        } else if (action === 'send_email') {
+            openEmailModal();
+        } else if (action === 'change_password') {
+            openBulkPasswordModal();
+        }
+    }
+    
+    // Checkbox Listeners
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = this.checked);
+            updateBulkUI();
+        });
+    }
 
-        function updateBulkBar() {
-            var checked = document.querySelectorAll('.item-checkbox:checked');
-            if (selectedCount) selectedCount.textContent = checked.length;
-            if (bulkActionsBar) {
-                if (checked.length > 0) bulkActionsBar.classList.remove('hidden');
-                else bulkActionsBar.classList.add('hidden');
-            }
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkUI);
+    });
+
+    // Modal Functions
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.add('hidden');
+        
+        if (id === 'password-modal') {
+            const form = document.getElementById('password-modal-form');
+            if (form) form.onsubmit = null; 
+            const title = document.getElementById('pwd-modal-title');
+            if (title) title.innerText = 'Đổi mật khẩu';
+            const desc = document.getElementById('pwd-modal-desc');
+            if (desc) desc.innerText = 'Đang thiết lập cho thí sinh:';
+        }
+    }
+
+    // Unified Bulk Submission Helper
+    function submitBulk(action, extraData = {}) {
+        // 1. Remove any old dynamic inputs to prevent "forced_action" or stale data leaks
+        const dynamicInputs = bulkForm.querySelectorAll('.dynamic-bulk-input');
+        dynamicInputs.forEach(el => el.remove());
+
+        // 2. Set the main action select value just in case
+        if (action) bulkActionSelect.value = action;
+
+        // 3. Add new extra data as hidden inputs
+        for (const [key, value] of Object.entries(extraData)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            input.classList.add('dynamic-bulk-input');
+            bulkForm.appendChild(input);
         }
 
-        if (selectAll) {
-            selectAll.addEventListener('change', function() {
-                document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = selectAll.checked);
-                updateBulkBar();
+        // 4. Submit
+        Loading.show();
+        bulkForm.submit();
+    }
+
+    function openPasswordModal(cccd, name) {
+        const modal = document.getElementById('password-modal');
+        document.getElementById('pwd-modal-cccd').value = cccd;
+        document.getElementById('pwd-modal-name').innerText = name;
+        
+        document.getElementById('pwd-modal-title').innerText = 'Đổi mật khẩu';
+        document.getElementById('pwd-modal-desc').innerText = 'Đang thiết lập cho thí sinh:';
+        const form = document.getElementById('password-modal-form');
+        form.onsubmit = null; 
+
+        modal.classList.remove('hidden');
+    }
+
+    function openBulkPasswordModal() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        if (checked.length === 0) {
+            if (typeof Toast !== 'undefined') Toast.error('Vui lòng chọn ít nhất 1 hồ sơ');
+            else alert('Vui lòng chọn ít nhất 1 hồ sơ');
+            bulkActionSelect.value = '';
+            return;
+        }
+
+        const modal = document.getElementById('password-modal');
+        document.getElementById('pwd-modal-title').innerText = 'Đổi mật khẩu hàng loạt';
+        document.getElementById('pwd-modal-desc').innerText = 'Đang thiết lập cho:';
+        document.getElementById('pwd-modal-name').innerText = checked.length + ' hồ sơ đã chọn';
+        document.getElementById('pwd-modal-cccd').value = 'BULK'; 
+        
+        const form = document.getElementById('password-modal-form');
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            confirmBulkPassword();
+        };
+
+        modal.classList.remove('hidden');
+    }
+
+    function confirmBulkPassword() {
+        const modalForm = document.getElementById('password-modal-form');
+        const password = modalForm.querySelector('input[name="new_password"]').value;
+        
+        closeModal('password-modal');
+        submitBulk('change_password', { 'new_password': password });
+    }
+
+    function openTransferModal() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        const count = checked.length;
+        document.getElementById('transfer-count').innerText = count;
+
+        const currentSessionIds = new Set();
+        checked.forEach(cb => {
+            const sid = cb.getAttribute('data-session-id');
+            if(sid) currentSessionIds.add(sid);
+        });
+
+        const select = document.getElementById('modal-target-session');
+        if (!select) return;
+        
+        const options = select.options;
+        const shouldFilter = currentSessionIds.size === 1;
+        const filterId = shouldFilter ? currentSessionIds.values().next().value : null;
+
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            opt.style.display = '';
+            opt.disabled = false;
+
+            if (shouldFilter && opt.value && opt.value == filterId) {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            } 
+        }
+        
+        if (select.value && select.options[select.selectedIndex].disabled) {
+             select.value = "";
+        }
+
+        document.getElementById('transfer-modal').classList.remove('hidden');
+    }
+
+    function confirmTransfer() {
+        const targetSessionId = document.getElementById('modal-target-session').value;
+        if (!targetSessionId) return;
+
+        closeModal('transfer-modal');
+        submitBulk('transfer', { 
+            'target_session_id': targetSessionId,
+            'forced_action': 'transfer' 
+        });
+    }
+
+    function openEmailModal() {
+        const count = document.querySelectorAll('.item-checkbox:checked').length;
+        // Fix: Use correct ID from _modals.php
+        const countEl = document.getElementById('email-target-count');
+        if (countEl) countEl.innerText = count;
+
+        // Auto-fill internal note with current date (format: dd/mm/yyyy)
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('vi-VN');
+        const noteEl = document.getElementById('email-modal-internal-note');
+        if (noteEl) noteEl.value = 'Gửi mail ngày: ' + dateStr;
+
+        document.getElementById('email-modal').classList.remove('hidden');
+    }
+
+    function confirmSendEmail() {
+        // Fix: These IDs are in _modals.php
+        const templateId = document.getElementById('email-template-select').value;
+        const subject = document.getElementById('email-modal-subject').value;
+        const content = document.getElementById('email-editor').value;
+        const internalNote = document.getElementById('email-modal-internal-note').value;
+
+        if (!templateId && (!subject || !content)) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng nhập tiêu đề và nội dung');
+            else alert('Vui lòng nhập tiêu đề và nội dung');
+            return;
+        }
+
+        closeModal('email-modal');
+        submitBulk('send_email', {
+            'template_id': templateId,
+            'email_subject': subject,
+            'email_content': content,
+            'internal_note': internalNote
+        });
+    }
+
+    // Auto-populate Subject and Content when Template is selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const templateSelect = document.getElementById('email-template-select');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', function() {
+                const templateId = this.value;
+                const subjectInput = document.getElementById('email-modal-subject');
+                const contentInput = document.getElementById('email-editor');
+
+                if (!templateId) {
+                    subjectInput.value = '';
+                    contentInput.value = '';
+                    return;
+                }
+
+                // Show loading state (optional)
+                subjectInput.placeholder = 'Đang tải mẫu...';
+                contentInput.placeholder = 'Đang tải nội dung mẫu...';
+
+                fetch('<?= url('/admin/candidates/get-template') ?>?id=' + templateId, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && !data.error) {
+                        subjectInput.value = data.subject || '';
+                        contentInput.value = data.body || data.content || ''; // Support both body and content tags
+                    } else {
+                        console.error('Template fetch error:', data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch error:', err);
+                })
+                .finally(() => {
+                    subjectInput.placeholder = 'Nhập tiêu đề email...';
+                    contentInput.placeholder = 'Nhập nội dung thư gửi cho thí sinh...';
+                });
             });
         }
+    });
 
-        document.querySelectorAll('.item-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateBulkBar);
-        });
-    })();
+    function sendSingleEmail(cccd) {
+        const cbs = document.querySelectorAll('.item-checkbox');
+        cbs.forEach(cb => cb.checked = (cb.value === cccd));
+        updateBulkUI();
+        bulkActionSelect.value = 'send_email';
+        openEmailModal();
+    }
+
+    function deleteSingle(cccd) {
+        if (confirm('Bạn có chắc chắn muốn xóa hồ sơ này?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= url('/admin/candidates/delete') ?>';
+            
+            const inputCCCD = document.createElement('input');
+            inputCCCD.type = 'hidden';
+            inputCCCD.name = 'cccd';
+            inputCCCD.value = cccd;
+            form.appendChild(inputCCCD);
+
+            const inputRedirect = document.createElement('input');
+            inputRedirect.type = 'hidden';
+            inputRedirect.name = 'redirect_to';
+            inputRedirect.value = window.location.href; // Preserve filters/sorting
+            form.appendChild(inputRedirect);
+            
+            const inputCSRF = document.createElement('input');
+            inputCSRF.type = 'hidden';
+            inputCSRF.name = 'csrf_token';
+            inputCSRF.value = '<?= csrf_token() ?>';
+            form.appendChild(inputCSRF);
+            
+            document.body.appendChild(form);
+            Loading.show();
+            form.submit();
+        }
+    }
+
+    // Attach sync to modal forms where needed
+    const emailModalForm = document.getElementById('email-modal-form');
+    if (emailModalForm) {
+        emailModalForm.onsubmit = function(e) {
+            e.preventDefault();
+            confirmSendEmail();
+        };
+    }
 </script>

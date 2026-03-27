@@ -104,8 +104,8 @@ class AdmissionController extends Controller {
             $insert = $db->prepare("INSERT INTO admission_benchmarks (session_id, ma_nganh, diem_chuan, tieuchi_phu) VALUES (?, ?, ?, ?)");
             
             foreach ($data as $ma_nganh => $values) {
-                $score = floatval($values['score']);
-                $sub = floatval($values['sub_score'] ?? 0);
+                $score = round(floatval($values['score']), 2);
+                $sub = $values['sub_score'] ?? '';
                 if ($score > 0) {
                     $insert->execute([$sessionId, $ma_nganh, $score, $sub]);
                 }

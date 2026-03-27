@@ -52,63 +52,120 @@ ob_start();
         </form>
     </div>
 
+    <!-- Bulk Actions -->
+    <div class="flex flex-col md:flex-row gap-4 mb-4 items-center justify-between border-b pb-4">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+                <input type="checkbox" id="select-all" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                <label for="select-all" class="text-[10px] font-black text-slate-500 cursor-pointer select-none uppercase tracking-widest">Chọn tất cả</label>
+            </div>
+            
+            <div class="h-6 w-px bg-slate-200"></div>
+
+            <div class="flex items-center gap-2">
+                <select id="bulk-action-select" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+                    <option value="">-- Hành động hàng loạt --</option>
+                    <option value="restore" class="text-green-600">Khôi phục hồ sơ đã chọn</option>
+                    <option value="force_delete" class="text-red-600">Xóa vĩnh viễn hồ sơ đã chọn</option>
+                </select>
+                <button type="button" onclick="executeBulkAction()" 
+                    class="px-6 py-2 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md shadow-blue-100 flex items-center gap-2 active:scale-95 text-xs uppercase tracking-widest min-w-[120px] justify-center">
+                    THỰC HIỆN <i class="fas fa-play text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+
+        <?php if ($totalPages > 1 || !empty($candidates)): ?>
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                Tổng cộng: <?= count($candidates) ?> hồ sơ trong Thùng rác
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Hidden Bulk Form -->
+    <form id="bulk-form" method="POST" action="">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+        <input type="hidden" name="action" id="bulk-action-input">
+        <div id="bulk-candidates-ids"></div>
+    </form>
+
     <!-- Table -->
-    <div class="overflow-x-auto rounded-lg border border-gray-200">
+    <div class="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
         <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+            <thead class="bg-slate-50">
                 <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-16">TT</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Họ và Tên</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">CCCD</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Thời gian xóa</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-40">Thao tác</th>
+                    <th scope="col" class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">
+                        STT
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Họ và Tên
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        CCCD
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Thời gian xóa
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-40">
+                        Thao tác
+                    </th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-gray-100">
                 <?php if (empty($candidates)): ?>
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">
+                        <td colspan="5" class="px-6 py-20 text-center text-gray-400 italic">
                             <div class="flex flex-col items-center">
-                                <i class="fas fa-trash-restore text-4xl text-gray-300 mb-3"></i>
-                                <p>Thùng rác trống!</p>
+                                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                    <i class="fas fa-trash-restore text-4xl text-slate-200"></i>
+                                </div>
+                                <p class="text-sm font-medium">Thùng rác hiện đang trống!</p>
                             </div>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($candidates as $index => $c): ?>
-                        <tr class="hover:bg-red-50 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center font-bold">
-                                <?= ($currentPage - 1) * 20 + $index + 1 ?>
+                        <tr class="hover:bg-red-50/30 transition-colors group">
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-3">
+                                    <input type="checkbox" name="cccds[]" value="<?= $c['so_cccd'] ?>" class="item-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                                    <span class="text-xs font-bold text-slate-400"><?= ($currentPage - 1) * 20 + $index + 1 ?></span>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="font-bold text-gray-900"><?= htmlspecialchars($c['ho_va_ten']) ?></div>
-                                <div class="text-xs text-gray-500"><?= htmlspecialchars($c['email'] ?? '') ?></div>
+                                <div class="font-bold text-slate-800"><?= htmlspecialchars($c['ho_va_ten']) ?></div>
+                                <div class="text-[10px] font-bold text-slate-400 tracking-tight"><?= htmlspecialchars($c['email'] ?? 'Chưa có email') ?></div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600 bg-gray-50 px-2 rounded w-fit">
-                                <?= htmlspecialchars($c['so_cccd']) ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full font-medium">
-                                    <?= date('H:i d/m/Y', strtotime($c['deleted_at'])) ?>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
+                                    <?= htmlspecialchars($c['so_cccd']) ?>
                                 </span>
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="flex items-center gap-2">
+                                    <i class="far fa-clock text-red-300 text-xs"></i>
+                                    <span class="text-xs font-bold text-slate-500 italic">
+                                        <?= date('H:i d/m/Y', strtotime($c['deleted_at'])) ?>
+                                    </span>
+                                </div>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <div class="flex items-center justify-center space-x-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="flex items-center justify-center space-x-2">
                                     <!-- Restore Button -->
-                                    <form action="<?= url('/admin/candidates/restore') ?>" method="POST" class="inline-block">
+                                    <form action="<?= url('/admin/candidates/restore') ?>" method="POST" class="inline-block" onsubmit="return confirm('Bạn có chắc chắn muốn khôi phục hồ sơ này?');">
                                         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <input type="hidden" name="cccd" value="<?= $c['so_cccd'] ?>">
-                                        <button type="submit" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-2 rounded-lg transition-colors" title="Khôi phục" onclick="return confirm('Bạn có chắc chắn muốn khôi phục hồ sơ này?');">
-                                            <i class="fas fa-trash-restore-alt"></i>
+                                        <button type="submit" class="w-9 h-9 flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all shadow-sm border border-green-100" title="Khôi phục">
+                                            <i class="fas fa-trash-restore text-xs"></i>
                                         </button>
                                     </form>
 
                                     <!-- Force Delete Button -->
-                                    <form action="<?= url('/admin/candidates/force-delete') ?>" method="POST" class="inline-block">
+                                    <form action="<?= url('/admin/candidates/force-delete') ?>" method="POST" class="inline-block" onsubmit="return confirm('CẢNH BÁO: Hành động này KHÔNG THỂ hoàn tác! Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này?');">
                                         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <input type="hidden" name="cccd" value="<?= $c['so_cccd'] ?>">
-                                        <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="Xóa vĩnh viễn" onclick="return confirm('CẢNH BÁO: Hành động này KHÔNG THỂ hoàn tác! Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này?');">
-                                            <i class="fas fa-times"></i>
+                                        <button type="submit" class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all shadow-sm border border-red-100" title="Xóa vĩnh viễn">
+                                            <i class="fas fa-times text-xs"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -119,6 +176,57 @@ ob_start();
             </tbody>
         </table>
     </div>
+
+    <!-- Scripts -->
+    <script>
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        function executeBulkAction() {
+            const action = document.getElementById('bulk-action-select').value;
+            const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+            
+            if (!action) {
+                alert('Vui lòng chọn một hành động!');
+                return;
+            }
+            
+            if (checkedBoxes.length === 0) {
+                alert('Vui lòng chọn ít nhất một hồ sơ!');
+                return;
+            }
+
+            const confirmMsg = action === 'restore' 
+                ? `Bạn có chắc chắn muốn khôi phục ${checkedBoxes.length} hồ sơ đã chọn?` 
+                : `CẢNH BÁO: Bạn sắp xóa VĨNH VIỄN ${checkedBoxes.length} hồ sơ. Hành động này không thể hoàn tác! Bạn vẫn muốn tiếp tục?`;
+
+            if (confirm(confirmMsg)) {
+                const bulkForm = document.getElementById('bulk-form');
+                const actionInput = document.getElementById('bulk-action-input');
+                const idsContainer = document.getElementById('bulk-candidates-ids');
+                
+                // Set action URL and action value
+                bulkForm.action = action === 'restore' ? "<?= url('/admin/candidates/restore') ?>" : "<?= url('/admin/candidates/force-delete') ?>";
+                actionInput.value = action;
+                
+                // Clear previous IDs
+                idsContainer.innerHTML = '';
+                
+                // Add selected IDs as hidden inputs
+                checkedBoxes.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'cccds[]';
+                    input.value = cb.value;
+                    idsContainer.appendChild(input);
+                });
+                
+                bulkForm.submit();
+            }
+        }
+    </script>
 
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>

@@ -5,7 +5,7 @@
  */
 ?>
 <div id="form_wishes" class="hidden animate-in fade-in slide-in-from-top-4 duration-500">
-    <form id="editForm_wishes" onsubmit="saveSection('wishes'); return false;">
+    <div id="editForm_wishes">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
             
@@ -96,12 +96,12 @@
                 <div class="flex gap-3 w-full sm:w-auto">
                     <button type="button" onclick="toggleEdit('wishes')" 
                         class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-200 transition-all border border-slate-200 uppercase tracking-widest">Hủy bỏ</button>
-                    <button type="submit" 
+                    <button type="button" onclick="saveSection('wishes')" 
                         class="flex-1 sm:flex-none px-8 py-2.5 bg-[#0066FF] text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all text-sm uppercase tracking-widest">Lưu thay đổi</button>
                 </div>
             </div>
         </div>
-    </form>
+    </div>
 </div>
 
 <!-- Row Template for Admin -->

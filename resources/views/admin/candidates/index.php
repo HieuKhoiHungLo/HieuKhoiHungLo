@@ -108,9 +108,13 @@
     <?php include __DIR__ . '/../partials/_candidates_table.php'; ?>
 </div>
 
-<?php include __DIR__ . '/../partials/_modals.php'; ?>
+
 
 <script>
+    // Configuration from PHP
+    const baseUrl = '<?= $baseUrl ?>';
+    const currentFilters = <?= json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
     // Bulk Action Logic
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('.item-checkbox');
@@ -141,6 +145,39 @@
             openTransferModal();
         } else if (action === 'send_email') {
             openEmailModal();
+        } else if (action === 'change_password') {
+            openBulkPasswordModal();
+        }
+    }
+
+    function handleBulkSubmit() {
+        const action = bulkActionSelect.value;
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+
+        if (!action) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng chọn một hành động');
+            else alert('Vui lòng chọn một hành động');
+            return;
+        }
+
+        if (checked.length === 0) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng chọn ít nhất 1 hồ sơ');
+            else alert('Vui lòng chọn ít nhất 1 hồ sơ');
+            return;
+        }
+
+        // Action is already validated, if it was status update, we submit
+        if (action === 'update_status' || action === 'delete' || action === 'normalize_names') {
+            if (confirm('Xác nhận thực hiện hành động này cho ' + checked.length + ' hồ sơ đã chọn?')) {
+                Loading.show();
+                bulkForm.submit();
+            }
+        } else {
+            // These actions usually open modals via toggleBulkOptions, 
+            // but if user clicks Apply without changing (already selected), we open them here.
+            if (action === 'send_email') openEmailModal();
+            else if (action === 'change_password') openBulkPasswordModal();
+            else if (action === 'transfer') openTransferModal();
         }
     }
 
@@ -167,16 +204,75 @@
             cb.checked = true;
             updateBulkUI();
             
-            // Set action and submit
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'delete';
-            bulkForm.appendChild(actionInput);
+            // Set action as a separate hidden field to be sure
+            let fa = document.getElementById('forced-action');
+            if (!fa) {
+                fa = document.createElement('input');
+                fa.type = 'hidden';
+                fa.id = 'forced-action';
+                fa.name = 'forced_action';
+                bulkForm.appendChild(fa);
+            }
+            fa.value = 'delete';
             
             Loading.show();
             bulkForm.submit();
         }
+    }
+
+    function openPasswordModal(cccd, name) {
+        console.log('Opening Password Modal for:', name, cccd);
+        const modal = document.getElementById('password-modal');
+        const form = document.getElementById('password-modal-form');
+        const inputCccd = document.getElementById('pwd-modal-cccd');
+        const spanName = document.getElementById('pwd-modal-name');
+        const title = document.getElementById('pwd-modal-title');
+        const desc = document.getElementById('pwd-modal-desc');
+        const pwdInput = form.querySelector('[name="new_password"]');
+
+        if (!modal || !form || !spanName) return;
+
+        // Reset previous dynamic fields if any
+        form.querySelectorAll('.dynamic-bulk-field').forEach(el => el.remove());
+        if (pwdInput) pwdInput.value = '';
+
+        if (cccd === 'BULK') {
+            title.innerText = 'Đổi mật khẩu hàng loạt';
+            desc.innerText = 'Thiết lập mật khẩu mới cho:';
+            spanName.innerText = name;
+            form.action = '<?= url('/admin/candidates/bulk-action') ?>';
+            if (inputCccd) inputCccd.disabled = true;
+
+            // Add action hidden field
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'change_password';
+            actionInput.className = 'dynamic-bulk-field';
+            form.appendChild(actionInput);
+
+            // Add selected IDs
+            const checked = document.querySelectorAll('.item-checkbox:checked');
+            checked.forEach(cb => {
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'ids[]';
+                idInput.value = cb.value;
+                idInput.className = 'dynamic-bulk-field';
+                form.appendChild(idInput);
+            });
+        } else {
+            title.innerText = 'Đổi mật khẩu';
+            desc.innerText = 'Thiết lập mật khẩu mới cho:';
+            spanName.innerText = name;
+            form.action = '<?= url('/admin/candidates/change-password') ?>';
+            if (inputCccd) {
+                inputCccd.disabled = false;
+                inputCccd.value = cccd;
+            }
+        }
+
+        modal.classList.remove('hidden');
     }
     
     // Checkbox Listeners
@@ -187,11 +283,44 @@
         });
     }
 
-    document.querySelectorAll('.item-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBulkUI);
+    // Use event delegation for checkboxes to handle dynamic table updates if any
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('item-checkbox')) {
+            updateBulkUI();
+        }
+    });
+
+    // Header Search logic
+    document.addEventListener('keydown', function(e) {
+        const target = e.target;
+        if (target.hasAttribute('data-filter-key') && (e.key === 'Enter' || e.keyCode === 13)) {
+            e.preventDefault();
+            const key = target.getAttribute('data-filter-key');
+            const val = target.value.trim();
+
+            const f = Object.assign({}, currentFilters);
+            f[key] = val;
+            f.page = 1;
+
+            const params = new URLSearchParams();
+            for (const k in f) {
+                if (f[k] !== '' && f[k] !== null && f[k] !== undefined) {
+                    params.set(k, f[k]);
+                }
+            }
+            window.location.href = baseUrl + '?' + params.toString();
+        }
     });
 
     // Modal Functions
+    function openBulkPasswordModal() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        const count = checked.length;
+        if (count === 0) return;
+
+        openPasswordModal('BULK', `${count} thí sinh đã chọn`);
+    }
+
     function closeModal(id) {
         document.getElementById(id).classList.add('hidden');
         bulkActionSelect.value = ''; // Reset select

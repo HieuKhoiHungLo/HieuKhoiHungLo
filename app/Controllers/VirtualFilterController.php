@@ -38,23 +38,26 @@ class VirtualFilterController extends Controller {
             return;
         }
 
-        // Lấy danh sách Ngành có thí sinh đăng ký trong đợt này
+        // Lấy danh sách Ngành được cấu hình tuyển sinh trong đợt này
         $stmtMajors = $this->db->prepare("
-            SELECT DISTINCT n.ma_nganh, m.ten_nganh 
-            FROM nguyen_vong n
-            JOIN dm_nganh m ON n.ma_nganh = m.ma_nganh
-            WHERE n.dot_tuyen_sinh_id = ?
+            SELECT ab.ma_nganh, m.ten_nganh, ab.chi_tieu, ab.diem_chuan
+            FROM admission_benchmarks ab
+            JOIN dm_nganh m ON ab.ma_nganh = m.ma_nganh
+            WHERE ab.session_id = ?
         ");
         $stmtMajors->execute([$batchId]);
         $majors = $stmtMajors->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Lấy lại Điểm chuẩn dự kiến từ lần lưu trước
-        $benchmarksRaw = $this->filterService->getExpectedBenchmarks($batchId);
-        $benchmarks = [];
-        $quotas = [];
-        foreach ($benchmarksRaw as $b) {
-            $benchmarks[$b['ma_nganh']] = $b['diem_chuan'];
-            $quotas[$b['ma_nganh']] = $b['chi_tieu_du_kien'];
+        // Nếu đợt này chưa được cấu hình ngành nào, fallback lấy những ngành có thí sinh đăng ký (để user biết mà cấu hình)
+        if (empty($majors)) {
+            $stmtCount = $this->db->prepare("
+                SELECT DISTINCT n.ma_nganh, m.ten_nganh 
+                FROM nguyen_vong n
+                JOIN dm_nganh m ON n.ma_nganh = m.ma_nganh
+                WHERE n.dot_tuyen_sinh_id = ?
+            ");
+            $stmtCount->execute([$batchId]);
+            $majors = $stmtCount->fetchAll(\PDO::FETCH_ASSOC);
         }
 
         // Lấy số lượng thí sinh đăng ký của mỗi ngành
@@ -67,15 +70,24 @@ class VirtualFilterController extends Controller {
         $stmtCount->execute([$batchId]);
         $counts = $stmtCount->fetchAll(\PDO::FETCH_KEY_PAIR);
 
-        foreach ($majors as &$m) {
-            $mCode = $m['ma_nganh'];
-            $m['diem_chuan_nhap'] = $benchmarks[$mCode] ?? 15.0; // Default 15
-            $m['chi_tieu'] = $quotas[$mCode] ?? 100; // Default 100
-            $m['tong_dang_ky'] = $counts[$mCode] ?? 0;
-            $m['so_luong_dat'] = 0; // Sẽ tính sau khi Run
+        // Lấy điểm chuẩn dự kiến (nháp) nếu có
+        $benchmarksRaw = $this->filterService->getExpectedBenchmarks($batchId);
+        $draftBenchmarks = [];
+        foreach ($benchmarksRaw as $b) {
+            $draftBenchmarks[$b['ma_nganh']] = $b['diem_chuan'];
         }
 
-        // Nếu đã từng lọc ảo thành công, lấy số lượng đạt thật luôn hiển thị
+        foreach ($majors as &$m) {
+            $mCode = $m['ma_nganh'];
+            // Ưu tiên điểm chuẩn nháp (nếu đang trong quá trình thử nghiệm lọc ảo) 
+            // Nếu không có nháp thì lấy điểm chuẩn chính thức đã cấu hình
+            $m['diem_chuan_nhap'] = $draftBenchmarks[$mCode] ?? ($m['diem_chuan'] ?? 15.0);
+            $m['chi_tieu'] = $m['chi_tieu'] ?? 100; 
+            $m['tong_dang_ky'] = $counts[$mCode] ?? 0;
+            $m['so_luong_dat'] = 0;
+        }
+
+        // Cập nhật số lượng đạt thật nếu đã chạy lọc ảo
         $currentStats = $this->filterService->getFilterStats($batchId);
         if ($currentStats['status'] && !empty($currentStats['data'])) {
              foreach ($majors as &$m) {

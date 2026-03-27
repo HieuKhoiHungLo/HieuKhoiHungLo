@@ -255,16 +255,19 @@
                         ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'dashboard'],
                         ['url' => '/admin/review-management',       'icon' => 'fa-user-check',      'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
                         ['url' => '/admin/reports',                 'icon' => 'fa-file-export',     'label' => 'Xuất dữ liệu hồ sơ',  'perm' => 'report.export'],
+                        ['url' => '/admin/candidates/trash',        'icon' => 'fa-trash-alt',       'label' => 'Thùng rác',           'perm' => 'candidates.delete'],
                     ]
                 ],
                 [
                     'group' => 'XÉT TUYỂN LỌC ẢO',
                     'icon'  => 'fa-shield-halved',
                     'items' => [
+                        ['url' => '/admin/admission/management',     'icon' => 'fa-cog',           'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/virtual-filter', 'icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
-                        ['url' => '/admin/admission/results',       'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
-                        ['url' => '/admin/aptitude-scores',         'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
-                        ['url' => '/admin/admission/benchmarks',    'icon' => 'fa-sliders-h',     'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
+                        ['url' => '/admin/admission/results',        'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
+                        ['url' => '/admin/aptitude-scores',          'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
+                        ['url' => '/admin/certificate-scores',       'icon' => 'fa-file-signature', 'label' => 'Điểm chứng chỉ',       'perm' => 'aptitude.view'],
+                        ['url' => '/admin/certificate-rules',        'icon' => 'fa-certificate',   'label' => 'Điểm quy đổi chứng chỉ', 'perm' => 'aptitude.view'],
                     ]
                 ],
                 [
@@ -341,7 +344,11 @@
                 // Check if any item in this group is active
                 $groupActive = false;
                 foreach ($visibleItems as $item) {
-                    if (strpos($currentUri, $item['url']) !== false) {
+                    $itemPath = parse_url($item['url'], PHP_URL_PATH);
+                    $reqPath = parse_url($currentUri, PHP_URL_PATH);
+                    
+                    // Exact match or sub-path with same prefix (but avoid partial matches like /candidates matching /candidates/trash if trash is also an item)
+                    if ($reqPath === $itemPath) {
                         $groupActive = true;
                         break;
                     }
@@ -362,7 +369,9 @@
                     <!-- Group Items -->
                     <div x-show="open" x-collapse x-cloak class="mt-0.5 space-y-0.5 sidebar-text">
                         <?php foreach ($visibleItems as $item):
-                            $isActive = strpos($currentUri, $item['url']) !== false;
+                            $itemPath = parse_url($item['url'], PHP_URL_PATH);
+                            $reqPath = parse_url($currentUri, PHP_URL_PATH);
+                            $isActive = ($reqPath === $itemPath);
                         ?>
                             <a href="<?= url($item['url']) ?>"
                                 class="flex items-center pl-10 pr-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-150
@@ -550,8 +559,13 @@
         // Show toast from URL params
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('msg') === 'saved') showToast('Đã lưu dữ liệu thành công!', 'success');
-        if (urlParams.get('msg') === 'deleted') showToast('Đã xóa dữ liệu thành công!', 'info');
+        if (urlParams.get('msg') === 'deleted') showToast('Đã xóa hồ sơ thành công!', 'info');
         if (urlParams.get('msg') === 'bulk_success') showToast(`Cập nhật thành công ${urlParams.get('count') || ''} hồ sơ!`, 'success');
+        
+        // Handle common success patterns
+        if (urlParams.get('success') === 'password_changed') showToast('Đổi mật khẩu thành công! Thông báo đã được gửi đến email thí sinh.', 'success');
+        else if (urlParams.get('success')) showToast(decodeURIComponent(urlParams.get('success')), 'success');
+        
         if (urlParams.get('error')) {
             showToast(decodeURIComponent(urlParams.get('error')), 'error');
         }
@@ -660,7 +674,8 @@
             }).catch(() => {});
         }, 3000);
     </script>
-
+    <!-- Global Modals -->
+    <?php include __DIR__ . '/../admin/partials/_modals.php'; ?>
 </body>
 <script>
     // Register Service Worker for PWA

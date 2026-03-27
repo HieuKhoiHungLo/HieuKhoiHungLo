@@ -1,9 +1,9 @@
 const CACHE_VERSION = 'hvu-ts-v3';
 const STATIC_ASSETS = [
-    '/',
-    '/assets/css/tailwind.min.css',
-    '/assets/img/Logo.png',
-    '/assets/js/background-particles.js'
+    './',
+    './assets/css/tailwind.min.css',
+    './assets/img/Logo.png',
+    './assets/js/background-particles.js'
 ];
 
 // Install — pre-cache static assets

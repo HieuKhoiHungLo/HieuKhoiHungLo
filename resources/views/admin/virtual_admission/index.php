@@ -2,11 +2,14 @@
 $title = 'Xét tuyển - Lọc ảo';
 ob_start();
 
-// Tính tổng số môn/tổ hợp tối đa để tạo cột. (Tạm thời lấy 6 tổ hợp phổ biến hoặc động)
+// Tính tổng số môn/tổ hợp tối đa để tạo cột.
 $comboCols = [];
 if (!empty($combinations)) {
     foreach ($combinations as $c) {
-        $comboCols[] = $c['ma_to_hop'];
+        $comboCols[] = [
+            'ma' => $c['ma_to_hop'],
+            'desc' => $c['m1'] . '-' . $c['m2'] . '-' . $c['m3']
+        ];
     }
 }
 ?>
@@ -74,10 +77,47 @@ if (!empty($combinations)) {
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden relative">
-        <!-- Overlay Loading -->
-        <div x-show="isLoading" class="absolute inset-x-0 inset-y-0 bg-white/70 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
-            <i class="fas fa-circle-notch fa-spin text-4xl text-indigo-500 mb-4"></i>
-            <p class="text-lg font-semibold text-slate-700" x-text="loadingMessage"></p>
+        <!-- Premium Loading Modal -->
+        <div x-cloak x-show="isLoading" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            
+            <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+                <!-- Decorative background shapes -->
+                <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+                <!-- Animated Icon Container -->
+                <div class="relative w-24 h-24 mx-auto mb-6">
+                    <div class="absolute inset-0 bg-indigo-500/10 rounded-full animate-pulsing-slow"></div>
+                    <div class="absolute inset-2 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
+                    <div class="absolute inset-4 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-200/50">
+                        <i class="fas fa-calculator text-3xl text-white" :class="{'fa-calculator': isCalculating, 'fa-sync-alt fa-spin': isSyncing, 'fa-magic': isFiltering}"></i>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Đang xử lý dữ liệu</h3>
+                <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
+                
+                <!-- Progress container -->
+                <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                    <div class="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
+                         :style="`width: ${progress}%`"
+                         id="loadingProgress">
+                    </div>
+                    <!-- Shimmering overlay -->
+                    <div class="shimmer-glare absolute inset-0"></div>
+                </div>
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                    <span x-text="progress + '%'"></span>
+                    <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
+                </div>
+            </div>
         </div>
 
         <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -85,7 +125,8 @@ if (!empty($combinations)) {
                 <i class="fas fa-list text-slate-400"></i> Bảng Lưới Thí Sinh
             </h2>
             <div class="text-sm font-medium text-slate-500">
-                Hiển thị: <span class="text-indigo-600" id="rowCount">0</span> nguyện vọng
+                Số hồ sơ: <span class="text-indigo-600" id="candidateCount">0</span> - 
+                Số nguyện vọng: <span class="text-indigo-600" id="rowCount">0</span>
             </div>
         </div>
 
@@ -148,8 +189,58 @@ if (!empty($combinations)) {
             isSyncing: false,
             isFiltering: false,
             loadingMessage: 'Đang tải...',
+            currentLoadingMessage: 'Đang tải bản ghi...',
+            progress: 0,
+            progressInterval: null,
+            messageInterval: null,
             dt: null,
             combos: <?= json_encode($comboCols) ?>,
+            
+            statusMessages: [
+                "Đang trích xuất dữ liệu hồ sơ...",
+                "Đang tính toán lại điểm đa tổ hợp học bạ và thi cử...",
+                "Đang phân tích tổ hợp môn tối ưu cho từng nguyện vọng...",
+                "Đang tính điểm ưu tiên khu vực và đối tượng...",
+                "Hệ thống đang kiểm tra điều kiện học lực ngưỡng đầu vào...",
+                "Đang hoàn tất quá trình lưu trữ vào cơ sở dữ liệu...",
+                "Quá trình này có thể tốn 1 vài phút, sắp xong rồi!"
+            ],
+            
+            startLoading(msg) {
+                this.isLoading = true;
+                this.loadingMessage = msg;
+                this.currentLoadingMessage = msg;
+                this.progress = 0;
+                
+                // Start a fake progress animation
+                let target = 0;
+                this.progressInterval = setInterval(() => {
+                    if (this.progress < 95) {
+                        this.progress += Math.random() * 5;
+                        if (this.progress > 95) this.progress = 95;
+                        this.progress = Math.round(this.progress * 10) / 10;
+                    }
+                }, 1500);
+                
+                // Start status message rotation
+                let msgIdx = 0;
+                this.messageInterval = setInterval(() => {
+                    msgIdx = (msgIdx + 1) % this.statusMessages.length;
+                    this.currentLoadingMessage = this.statusMessages[msgIdx];
+                }, 4000);
+            },
+            
+            stopLoading() {
+                this.progress = 100;
+                setTimeout(() => {
+                    this.isLoading = false;
+                    this.isCalculating = false;
+                    this.isSyncing = false;
+                    this.isFiltering = false;
+                    clearInterval(this.progressInterval);
+                    clearInterval(this.messageInterval);
+                }, 500);
+            },
 
             get filteredSessions() {
                 if (!this.selectedYear) return this.allSessions;
@@ -236,12 +327,34 @@ if (!empty($combinations)) {
                 });
 
                 // To Hop Max, PT Max
-                columns.push({ data: 'to_hop_toi_uu', className: 'text-center font-bold' });
+                columns.push({ 
+                    data: 'to_hop_toi_uu', 
+                    className: 'text-center font-bold',
+                    render: function(data) {
+                        if (!data) return '-';
+                        let c = self.combos.find(x => x.ma === data);
+                        return c ? `${data} (${c.desc})` : data;
+                    }
+                });
                 columns.push({ 
                     data: 'phuong_thuc_toi_uu', 
                     className: 'text-center font-bold',
                     render: function(data) {
-                        return data == '100' ? 'TS01' : (data == '200' ? 'TS02' : data);
+                        const labels = {
+                            '100': 'TS01',
+                            '200': 'TS02',
+                            'TS01': 'TS01',
+                            'TS02': 'TS02',
+                            'TS03': 'TS03',
+                            'TS04': 'TS04',
+                            'TS05': 'TS05'
+                        };
+                        let code = labels[data] || data || '-';
+                        let title = '';
+                        if(code === 'TS03') title = 'Xét Chứng chỉ QT';
+                        if(code === 'TS04') title = 'THPT + Năng khiếu';
+                        if(code === 'TS05') title = 'Học bạ + Năng khiếu';
+                        return `<span title="${title}">${code}</span>`;
                     }
                 });
 
@@ -346,17 +459,18 @@ if (!empty($combinations)) {
             loadData() {
                 if (!this.selectedSession) {
                     this.dt.clear().draw();
+                    document.getElementById('candidateCount').textContent = '0';
                     document.getElementById('rowCount').textContent = '0';
                     return;
                 }
                 
-                this.isLoading = true;
-                this.loadingMessage = 'Đang tải danh sách nguyện vọng...';
+                this.startLoading('Đang tải danh sách nguyện vọng...');
                 
                 this.dt.ajax.url('<?= url("/admin/admission/virtual-filter/api-load") ?>?session_id=' + this.selectedSession).load((json) => {
-                    this.isLoading = false;
-                    if (json && json.data) {
-                        document.getElementById('rowCount').textContent = json.data.length;
+                    this.stopLoading();
+                    if (json) {
+                        document.getElementById('candidateCount').textContent = json.candidate_count || 0;
+                        document.getElementById('rowCount').textContent = json.aspiration_count || 0;
                     }
                 }, false);
             },
@@ -364,9 +478,8 @@ if (!empty($combinations)) {
             syncData() {
                 if (!this.selectedSession) return;
                 
-                this.isLoading = true;
                 this.isSyncing = true;
-                this.loadingMessage = 'Đang đồng bộ dữ liệu từ hồ sơ đã duyệt...';
+                this.startLoading('Đang đồng bộ dữ liệu từ hồ sơ đã duyệt...');
                 
                 $.ajax({
                     url: '<?= url("/admin/admission/virtual-filter/api-sync") ?>',
@@ -392,8 +505,7 @@ if (!empty($combinations)) {
                         toast.error(msg);
                     },
                     complete: () => {
-                        this.isLoading = false;
-                        this.isSyncing = false;
+                        this.stopLoading();
                     }
                 });
             },
@@ -401,9 +513,8 @@ if (!empty($combinations)) {
             recalculate() {
                 if (!confirm('Bạn có chắc chắn muốn TÍNH LẠI ĐIỂM cho tất cả thí sinh được xét duyệt trong đợt này? Quá trình này có thể mất vài phút.')) return;
                 
-                this.isLoading = true;
                 this.isCalculating = true;
-                this.loadingMessage = 'Đang tính toán lại điểm đa tổ hợp... Vui lòng không đóng trang.';
+                this.startLoading('Đang tính toán lại điểm đa tổ hợp... Vui lòng không đóng trang.');
                 
                 $.ajax({
                     url: '<?= url("/admin/admission/virtual-filter/api-recalculate") ?>',
@@ -429,8 +540,7 @@ if (!empty($combinations)) {
                         toast.error(msg);
                     },
                     complete: () => {
-                        this.isLoading = false;
-                        this.isCalculating = false;
+                        this.stopLoading();
                     }
                 });
             },
@@ -443,9 +553,8 @@ if (!empty($combinations)) {
                 // Let's implement a basic call that sends current session.
                 if (!confirm('Hệ thống sẽ chạy thuật toán lọc ảo dựa trên điểm chuẩn đã thiết lập. Tiếp tục?')) return;
 
-                this.isLoading = true;
                 this.isFiltering = true;
-                this.loadingMessage = 'Đang chạy thuật toán lọc ảo...';
+                this.startLoading('Đang chạy thuật toán lọc ảo...');
 
                 $.ajax({
                     url: '<?= url("/admin/admission/virtual-filter/api-run") ?>',
@@ -471,8 +580,7 @@ if (!empty($combinations)) {
                         toast.error("Lỗi khi kết nối máy chủ");
                     },
                     complete: () => {
-                        this.isLoading = false;
-                        this.isFiltering = false;
+                        this.stopLoading();
                     }
                 });
             },
@@ -492,6 +600,37 @@ table.dataTable thead tr > .dtfc-fixed-left, table.dataTable tbody tr > .dtfc-fi
 table.dataTable thead tr th.dtfc-fixed-left {
     background-color: #f1f5f9; /* bg-slate-100 */
 }
+
+/* Premium Loading CSS */
+.shimmer-glare {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: loading-shimmer 2s infinite linear;
+}
+
+@keyframes loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes pulsing-slow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulsing-slow {
+    animation: pulsing-slow 3s infinite ease-in-out;
+}
+
+.animate-spin-slow {
+    animation: spin 6s infinite linear;
+}
+
+[x-cloak] { display: none !important; }
 </style>
 <?php
 $content = ob_get_clean();

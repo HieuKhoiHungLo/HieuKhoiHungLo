@@ -117,7 +117,7 @@ class VirtualFilterService {
             
             foreach ($benchmarks as $major => $score) {
                 $quota = intval($quotas[$major] ?? 0);
-                $stmtInsert->execute([$batchId, $major, (float)$score, $quota]);
+                $stmtInsert->execute([$batchId, $major, round((float)$score, 2), $quota]);
             }
             $this->db->commit();
             return true;
@@ -132,7 +132,16 @@ class VirtualFilterService {
      * Lấy lại mốc điểm chuẩn lần cuối cùng Admin kéo thả để hiển thị
      */
     public function getExpectedBenchmarks($batchId) {
-        $stmt = $this->db->prepare("SELECT ma_nganh, diem_chuan, chi_tieu_du_kien FROM diem_chuan_du_kien WHERE dot_tuyen_sinh_id = ?");
+        // Lấy từ bảng nháp (diem_chuan_du_kien) nhưng join với admission_benchmarks để lấy chi_tieu gốc nếu nháp chưa có
+        $stmt = $this->db->prepare("
+            SELECT 
+                COALESCE(dk.ma_nganh, ab.ma_nganh) as ma_nganh,
+                COALESCE(dk.diem_chuan, ab.diem_chuan, 0) as diem_chuan,
+                COALESCE(dk.chi_tieu_du_kien, ab.chi_tieu, 0) as chi_tieu_du_kien
+            FROM admission_benchmarks ab
+            LEFT JOIN diem_chuan_du_kien dk ON ab.ma_nganh = dk.ma_nganh AND ab.session_id = dk.dot_tuyen_sinh_id
+            WHERE ab.session_id = ?
+        ");
         $stmt->execute([$batchId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -163,21 +172,32 @@ class VirtualFilterService {
      */
     public function syncData($batchId) {
         try {
-            // 1. Gán dot_tuyen_sinh_id cho các nguyện vọng đang bị NULL
-            // PostgreSQL syntax: UPDATE ... FROM ...
+            // 1. Gán dot_tuyen_sinh_id cho các nguyện vọng đang bị NULL hoặc bị SAI
+            // (Lỗi lưu nhầm ho_so_id vào dot_tuyen_sinh_id)
+            
+            // Bước 1.1: Gán lại cho các bản ghi bị NULL
             $sqlBackfill = "
                 UPDATE nguyen_vong
                 SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
                 FROM ho_so_xet_tuyen hs
                 WHERE nguyen_vong.so_cccd = hs.so_cccd
-                AND nguyen_vong.dot_tuyen_sinh_id IS NULL
+                AND (nguyen_vong.dot_tuyen_sinh_id IS NULL)
                 AND hs.dot_tuyen_sinh_id = ?
             ";
-            $stmtBackfill = $this->db->prepare($sqlBackfill);
-            $stmtBackfill->execute([(int)$batchId]);
+            $this->db->prepare($sqlBackfill)->execute([(int)$batchId]);
+
+            // Bước 1.2: Gán lại cho các bản ghi bị sai (lưu nhầm id hồ sơ vào id đợt)
+            $sqlFixWrongId = "
+                UPDATE nguyen_vong
+                SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
+                FROM ho_so_xet_tuyen hs
+                WHERE nguyen_vong.so_cccd = hs.so_cccd
+                AND nguyen_vong.dot_tuyen_sinh_id = hs.id
+                AND hs.dot_tuyen_sinh_id = ?
+            ";
+            $this->db->prepare($sqlFixWrongId)->execute([(int)$batchId]);
 
             // 2. Cập nhật trang_thai = 'DaDuyet' cho những thí sinh có ho_so_xet_tuyen trạng thái 'Đã duyệt'
-            // PostgreSQL syntax: UPDATE ... FROM ...
             $sqlSync = "
                 UPDATE nguyen_vong
                 SET trang_thai = 'DaDuyet'
@@ -200,7 +220,7 @@ class VirtualFilterService {
                     SELECT 1 FROM ho_so_xet_tuyen hs 
                     WHERE hs.so_cccd = nguyen_vong.so_cccd 
                     AND hs.dot_tuyen_sinh_id = ?
-                    AND hs.trang_thai LIKE '%Đã duyệt%'
+                    AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
                 )
             ";
             $stmtReset = $this->db->prepare($sqlReset);

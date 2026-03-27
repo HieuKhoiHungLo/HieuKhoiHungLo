@@ -106,7 +106,6 @@
     <?php include __DIR__ . '/partials/_candidates_table.php'; ?>
 </div>
 
-<?php include __DIR__ . '/partials/_modals.php'; ?>
 
 <script>
     // Bulk Action Logic

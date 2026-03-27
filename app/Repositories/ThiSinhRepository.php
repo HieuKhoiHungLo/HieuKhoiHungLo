@@ -18,6 +18,11 @@ class ThiSinhRepository
         $this->model = new ThiSinh();
     }
 
+    public function getDb()
+    {
+        return $this->db;
+    }
+
     public function findByCCCD($cccd)
     {
         return $this->model->findByCCCD($cccd);

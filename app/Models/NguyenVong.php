@@ -36,27 +36,34 @@ class NguyenVong extends Model {
             $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
             $stmt->execute([$cccd]);
 
+            // Look up the current status of the application to keep aspirations in sync
+            $stmtStatus = $this->db->prepare("SELECT trang_thai FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+            $stmtStatus->execute([$cccd, $hoSoId]);
+            $hsStatus = $stmtStatus->fetchColumn();
+            $newStatus = ($hsStatus && (strpos($hsStatus, 'Đã duyệt') !== false || $hsStatus === 'DaDuyet')) ? 'DaDuyet' : 'ChoDuyet';
+
             if (!empty($data)) {
                 $insertValues = [];
                 $insertParams = [];
                 
                 foreach ($data as $index => $item) {
-                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?)";
+                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     array_push($insertParams,
                         $cccd,
-                        $hoSoId, // Use the provided hoSoId (which is the dot_tuyen_sinh_id)
+                        $hoSoId, // This is expected to be the dot_tuyen_sinh_id
                         $index + 1,
                         $item['ma_nganh'], 
                         $item['ten_nganh'] ?? null,
                         $item['ma_phuong_thuc'] ?? '200', 
                         $item['ten_phuong_thuc'] ?? 'Xét học bạ',
-                        $item['to_hop_mon'] ?? 'A00'
+                        $item['to_hop_mon'] ?? 'A00',
+                        $newStatus
                     );
                 }
 
                 $sql = "INSERT INTO {$this->table} (
                     so_cccd, dot_tuyen_sinh_id, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
-                    ma_phuong_thuc, ten_phuong_thuc, to_hop_mon
+                    ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, trang_thai
                 ) VALUES " . implode(', ', $insertValues); 
                 
                 $stmt = $this->db->prepare($sql);

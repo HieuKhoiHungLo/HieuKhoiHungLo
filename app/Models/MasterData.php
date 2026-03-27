@@ -66,7 +66,13 @@ class MasterData extends Model {
     }
 
     public function getMajors() {
-        return $this->getAll('dm_nganh', 'ten_nganh');
+        return $this->getAll('dm_nganh', 'ma_nganh ASC');
+    }
+
+    public function getActiveMajors() {
+        $stmt = $this->db->prepare("SELECT * FROM dm_nganh WHERE COALESCE(kich_hoat, true) = true ORDER BY ma_nganh ASC");
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getWards($provinceId) {
@@ -180,6 +186,25 @@ class MasterData extends Model {
                 return $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\PDOException $e) {
                 return $this->getMajors(); 
+            }
+        });
+    }
+
+    public function getActiveMajorsWithCombinations() {
+        return \App\Core\Cache::remember('master_active_majors_combinations', 60, function() {
+            $sql = "SELECT n.*, 
+                           (SELECT string_agg(ma_to_hop, ', ') 
+                            FROM dm_nganh_to_hop 
+                            WHERE ma_nganh = n.ma_nganh) as combination_list 
+                    FROM dm_nganh n 
+                    WHERE COALESCE(n.kich_hoat, true) = true
+                    ORDER BY n.ma_nganh ASC";
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute();
+                return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                return $this->getActiveMajors(); 
             }
         });
     }

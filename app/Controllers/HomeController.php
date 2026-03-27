@@ -99,9 +99,9 @@ class HomeController extends Controller {
             ];
         }
 
-        // 4. Get Major Info (Optimized with Model and Cache)
+        // 4. Get Major Info - Chỉ lấy ngành đang kích hoạt
         $masterData = new \App\Models\MasterData();
-        $majors = $masterData->getMajorsWithCombinations();
+        $majors = $masterData->getActiveMajorsWithCombinations();
 
         // 5. Get Admission Conditions & Homepage Settings (Optimized with Session Cache)
         if (!isset($_SESSION['cache_home_settings'])) {
