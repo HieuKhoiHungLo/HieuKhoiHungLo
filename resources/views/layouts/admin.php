@@ -344,10 +344,9 @@
                 // Check if any item in this group is active
                 $groupActive = false;
                 foreach ($visibleItems as $item) {
-                    $itemPath = parse_url($item['url'], PHP_URL_PATH);
+                    $itemPath = parse_url(url($item['url']), PHP_URL_PATH);
                     $reqPath = parse_url($currentUri, PHP_URL_PATH);
                     
-                    // Exact match or sub-path with same prefix (but avoid partial matches like /candidates matching /candidates/trash if trash is also an item)
                     if ($reqPath === $itemPath) {
                         $groupActive = true;
                         break;
@@ -358,9 +357,9 @@
                     <!-- Group Header -->
                     <button @click="open = !open"
                         class="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 group
-                                   <?= $groupActive ? 'bg-white/10 text-white' : 'text-sky-300 hover:bg-white/5 hover:text-white' ?>">
+                                   <?= $groupActive ? 'bg-white/10 text-white border-l-4 border-sky-400 pl-3' : 'text-sky-300 hover:bg-white/5 hover:text-white border-l-4 border-transparent' ?>">
                         <div class="flex items-center">
-                            <span class="w-5 text-center"><i class="fas <?= $group['icon'] ?> text-xs <?= $groupActive ? 'text-sky-300' : 'text-sky-400/70 group-hover:text-sky-300' ?> transition-colors"></i></span>
+                            <span class="w-5 text-center"><i class="fas <?= $group['icon'] ?> text-xs <?= $groupActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-sky-400/70 group-hover:text-sky-300' ?> transition-colors"></i></span>
                             <span class="ml-3 sidebar-text"><?= $group['group'] ?></span>
                         </div>
                         <i class="fas fa-chevron-down text-[8px] transition-transform duration-200 sidebar-text <?= $groupActive ? 'text-sky-300' : 'text-sky-400/50' ?>" :class="{'rotate-180': open}"></i>
@@ -369,7 +368,7 @@
                     <!-- Group Items -->
                     <div x-show="open" x-collapse x-cloak class="mt-0.5 space-y-0.5 sidebar-text">
                         <?php foreach ($visibleItems as $item):
-                            $itemPath = parse_url($item['url'], PHP_URL_PATH);
+                            $itemPath = parse_url(url($item['url']), PHP_URL_PATH);
                             $reqPath = parse_url($currentUri, PHP_URL_PATH);
                             $isActive = ($reqPath === $itemPath);
                         ?>
