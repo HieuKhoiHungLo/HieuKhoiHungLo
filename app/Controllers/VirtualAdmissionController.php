@@ -173,13 +173,24 @@ class VirtualAdmissionController extends Controller {
             $force = isset($_POST['force']) && $_POST['force'] == '1';
 
             if (!empty($cccds) && is_array($cccds)) {
-                // High-performance batch calculation
+                // High-performance batch calculation (Still synchronous for small chunks from UI)
                 $successCount = $this->scoreService->recalculateBatch($sessionId, $cccds, $force);
                 $this->json(['success' => true, 'count' => $successCount]);
             } else {
-                // Sequential fallback (Legacy/Full)
-                $successCount = $this->scoreService->recalculateSession($sessionId, $force);
-                $this->json(['success' => true, 'message' => "Đã tính điểm cho $successCount thí sinh."]);
+                // Full Recalculate -> Lead to Queue for true background processing
+                $queue = new \App\Services\QueueService();
+                $queue->enqueue([
+                    'type' => 'recalculate_session',
+                    'session_id' => $sessionId,
+                    'force' => $force,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                $this->json([
+                    'success' => true, 
+                    'queued' => true,
+                    'message' => "Yêu cầu tính toán lại toàn bộ đã được đưa vào hàng đợi. Vui lòng theo dõi tiến độ."
+                ]);
             }
         } catch (\Throwable $e) {
             error_log("Recalculate Error: " . $e->getMessage());

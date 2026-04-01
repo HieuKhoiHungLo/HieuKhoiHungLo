@@ -55,39 +55,58 @@ class ScoreCalculationService {
         $this->thiSinhRepo = new ThiSinhRepository();
         $this->academicModel = new AcademicRecord();
         $this->diemThiModel = new DiemThiTHPT();
-        // Load he so quy doi hoc ba tu cau hinh (mac dinh 0.95)
-        try {
-            $stmt = $this->db->query("SELECT value FROM cau_hinh WHERE key = 'he_so_hoc_ba' LIMIT 1");
-            $val = $stmt ? $stmt->fetchColumn() : null;
-            $this->cachedHeSoHocBa = ($val !== null && $val !== false) ? (float)$val : 0.95;
-        } catch (\Exception $e) {
-            $this->cachedHeSoHocBa = 0.95;
+        
+        // Load he so quy doi hoc ba tu cau hinh (dung cache neu co)
+        $cacheKey = 'conf_he_so_hoc_ba';
+        $val = \App\Services\CacheService::get($cacheKey);
+        
+        if ($val === null) {
+            try {
+                $stmt = $this->db->query("SELECT value FROM cau_hinh WHERE key = 'he_so_hoc_ba' LIMIT 1");
+                $dbVal = $stmt ? $stmt->fetchColumn() : null;
+                $val = ($dbVal !== null && $dbVal !== false) ? (float)$dbVal : 0.95;
+                \App\Services\CacheService::set($cacheKey, $val, 3600); // Cache 1h
+            } catch (\Exception $e) {
+                $val = 0.95;
+            }
         }
+        $this->cachedHeSoHocBa = $val;
         
         // Optimize: Pre-load and cache subject-related mappings
         $this->initializeSubjectCaches();
     }
 
     private function initializeSubjectCaches() {
-        if ($this->cachedSubjects === null) {
-            $this->cachedSubjects = $this->masterDataRepo->getSubjects(); 
+        // Cache Subjects
+        $sKey = 'master_subjects';
+        $subjects = \App\Services\CacheService::get($sKey);
+        if ($subjects === null) {
+            $subjects = $this->masterDataRepo->getSubjects();
+            \App\Services\CacheService::set($sKey, $subjects, 1800);
         }
-        
-        // Cache all dm_to_hop records to prevent N+1 Queries over internet
-        if (empty($this->cachedComboIds)) {
-            $this->cachedComboIds = [];
-            $this->cachedComboSubjects = [];
+        $this->cachedSubjects = $subjects;
+
+        // Cache Combinations
+        $cKey = 'master_combos';
+        $combos = \App\Services\CacheService::get($cKey);
+        if ($combos === null) {
+            $combos = [];
             try {
                 $stmt = $this->db->query("SELECT id, ma_to_hop, mon_1_id, mon_2_id, mon_3_id FROM dm_to_hop");
-                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $this->cachedComboIds[$row['ma_to_hop']] = $row['id'];
-                    $this->cachedComboSubjects[$row['ma_to_hop']] = [
-                        'mon_1_id' => $row['mon_1_id'],
-                        'mon_2_id' => $row['mon_2_id'],
-                        'mon_3_id' => $row['mon_3_id']
-                    ];
-                }
+                $combos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                \App\Services\CacheService::set($cKey, $combos, 1800);
             } catch (\Exception $e) {}
+        }
+        
+        if (empty($this->cachedComboIds)) {
+            foreach ($combos as $row) {
+                $this->cachedComboIds[$row['ma_to_hop']] = $row['id'];
+                $this->cachedComboSubjects[$row['ma_to_hop']] = [
+                    'mon_1_id' => $row['mon_1_id'],
+                    'mon_2_id' => $row['mon_2_id'],
+                    'mon_3_id' => $row['mon_3_id']
+                ];
+            }
         }
         
         $this->cachedSubjectCodeToId = [];
