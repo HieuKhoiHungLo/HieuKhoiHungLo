@@ -23,6 +23,9 @@ class Router {
             $middleware = [$middleware];
         }
 
+        // Normalize path: trim trailing slash except for root
+        $path = ($path !== '/') ? rtrim($path, '/') : $path;
+
         $this->routes[$method][$path] = [
             'callback' => $callback,
             'middleware' => $middleware,
@@ -70,7 +73,10 @@ class Router {
         if (empty($path)) $path = '/';
         if ($path[0] !== '/') $path = '/' . $path;
 
-        $route = $this->routes[$method][$path] ?? false;
+        // Normalize path for matching: trim trailing slash except for root
+        $pathMatch = ($path !== '/') ? rtrim($path, '/') : $path;
+
+        $route = $this->routes[$method][$pathMatch] ?? false;
 
         if ($route === false) {
             http_response_code(404);
