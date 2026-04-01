@@ -39,6 +39,11 @@
     <script defer src="<?= url('/assets/js/alpine-collapse.min.js') ?>"></script>
     <script defer src="<?= url('/assets/js/alpine.min.js') ?>"></script>
 
+    <!-- jQuery & DataTables — Cần cho một số trang quản lý (Năng khiếu, Chứng chỉ) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
     <!-- Design System -->
     <style>
         :root {
@@ -357,7 +362,7 @@
                     <!-- Group Header -->
                     <button @click="open = !open"
                         class="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 group
-                                   <?= $groupActive ? 'bg-white/10 text-white border-l-4 border-sky-400 pl-3' : 'text-sky-300 hover:bg-white/5 hover:text-white border-l-4 border-transparent' ?>">
+                                   <?= $groupActive ? 'bg-white/5 text-white font-bold' : 'text-sky-300 hover:bg-white/5 hover:text-white' ?>">
                         <div class="flex items-center">
                             <span class="w-5 text-center"><i class="fas <?= $group['icon'] ?> text-xs <?= $groupActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-sky-400/70 group-hover:text-sky-300' ?> transition-colors"></i></span>
                             <span class="ml-3 sidebar-text"><?= $group['group'] ?></span>
@@ -375,7 +380,7 @@
                             <a href="<?= url($item['url']) ?>"
                                 class="flex items-center pl-10 pr-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-150
                                       <?= $isActive
-                                            ? 'bg-sky-500 text-white shadow-md shadow-sky-900/40'
+                                            ? 'bg-sky-500/90 text-white font-bold shadow-lg shadow-sky-900/20'
                                             : 'text-sky-100/80 hover:bg-white/5 hover:text-white' ?>">
                                 <span class="w-5 text-center mr-2"><i class="fas <?= $item['icon'] ?> text-[11px] <?= $isActive ? 'text-white' : 'text-sky-400/60' ?>"></i></span>
                                 <?= $item['label'] ?>
