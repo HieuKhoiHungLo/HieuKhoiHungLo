@@ -60,10 +60,18 @@ if (!empty($combinations)) {
                 <span>Đồng bộ dữ liệu</span>
             </button>
             
-            <button @click="recalculate()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
-                <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
-                <span>Tính điểm tất cả</span>
-            </button>
+            <div class="flex items-center gap-2 bg-amber-500/10 p-1 pr-3 rounded-lg border border-amber-500/20">
+                <button @click="recalculate()" 
+                        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" 
+                        :disabled="isLoading || !selectedSession">
+                    <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
+                    <span x-text="forceRecalculate ? 'Tính lại toàn bộ' : 'Tính điểm (Smart)'"></span>
+                </button>
+                <label class="flex items-center gap-1.5 cursor-pointer ml-1 select-none">
+                    <input type="checkbox" x-model="forceRecalculate" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-amber-300">
+                    <span class="text-[10px] font-bold text-amber-700 uppercase">Toàn bộ</span>
+                </label>
+            </div>
             
             <button @click="runVirtualFilter()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
                 <i class="fas fa-magic" :class="{'fa-spin': isFiltering}"></i>
@@ -191,6 +199,10 @@ if (!empty($combinations)) {
             loadingMessage: 'Đang tải...',
             currentLoadingMessage: 'Đang tải bản ghi...',
             progress: 0,
+            batchSize: 250, // Optimal for 15k scaling
+            totalProcessed: 0,
+            totalToProcess: 0,
+            errorCount: 0,
             progressInterval: null,
             messageInterval: null,
             dt: null,
@@ -206,14 +218,24 @@ if (!empty($combinations)) {
                 "Quá trình này có thể tốn 1 vài phút, sắp xong rồi!"
             ],
             
-            startLoading(msg) {
+            startLoading(msg, isRealProgress = false, skipMessageRotation = false) {
                 this.isLoading = true;
                 this.loadingMessage = msg;
                 this.currentLoadingMessage = msg;
                 this.progress = 0;
                 
-                // Start a fake progress animation
-                let target = 0;
+                // Start status message rotation chỉ khi KHÔNG ĐƯỢC skips
+                if (!skipMessageRotation) {
+                    let msgIdx = 0;
+                    this.messageInterval = setInterval(() => {
+                        msgIdx = (msgIdx + 1) % this.statusMessages.length;
+                        this.currentLoadingMessage = this.statusMessages[msgIdx];
+                    }, 4000);
+                }
+
+                if (isRealProgress) return;
+
+                // Start a fake progress animation (only for non-chunked tasks)
                 this.progressInterval = setInterval(() => {
                     if (this.progress < 95) {
                         this.progress += Math.random() * 5;
@@ -221,14 +243,8 @@ if (!empty($combinations)) {
                         this.progress = Math.round(this.progress * 10) / 10;
                     }
                 }, 1500);
-                
-                // Start status message rotation
-                let msgIdx = 0;
-                this.messageInterval = setInterval(() => {
-                    msgIdx = (msgIdx + 1) % this.statusMessages.length;
-                    this.currentLoadingMessage = this.statusMessages[msgIdx];
-                }, 4000);
             },
+
             
             stopLoading() {
                 this.progress = 100;
@@ -249,6 +265,21 @@ if (!empty($combinations)) {
 
             init() {
                 this.initDataTable();
+                
+                // TỰ ĐỘNG CHỌN ĐỢT TUYỂN SINH ĐANG KÍCH HOẠT ĐỂ TIẾT KIỆM THỜI GIAN CO USER
+                let activeSession = this.allSessions.find(s => s.kich_hoat == 1 || s.kich_hoat === true || s.kich_hoat === 't');
+                if (!activeSession && this.allSessions.length > 0) {
+                    activeSession = this.allSessions[0]; // Dự phòng nếu không có đợt nào kích hoạt, chọn đợt mới nhất
+                }
+                
+                if (activeSession) {
+                    this.selectedYear = activeSession.nam_tuyen_sinh;
+                    // Đợi Alpine cập nhật DOM cho select session trước khi gán
+                    setTimeout(() => {
+                        this.selectedSession = activeSession.id;
+                        this.loadData();
+                    }, 50);
+                }
             },
 
             initDataTable() {
@@ -256,6 +287,11 @@ if (!empty($combinations)) {
                 
                 // Hàm helper lấy danh sách tên tổ hợp chuẩn của thí sinh (đã sort)
                 function getComboNames(rowData) {
+                    // Ưu tiên dùng danh sách đầy đủ từ máy chủ để hiển thị đủ 4 tổ hợp
+                    if (rowData && rowData.all_combos) {
+                        return rowData.all_combos.split(', ').map(s => s.trim()).sort();
+                    }
+
                     if (!rowData || !rowData.chi_tiet_diem) return [];
                     try {
                         let p = JSON.parse(rowData.chi_tiet_diem);
@@ -420,12 +456,25 @@ if (!empty($combinations)) {
                 });
 
                 this.dt = $('#virtualGrid').DataTable({
+                    serverSide: true,
+                    processing: true,
+                    deferLoading: 0, // Không tự động kéo data nếu chưa nhận session_id
                     ajax: {
-                        url: '<?= url("/admin/admission/virtual-filter/api-load") ?>?session_id=' + (this.selectedSession || 0),
-                        dataSrc: 'data',
+                        url: '<?= url("/admin/admission/virtual-filter/api-load") ?>',
+                        type: 'POST',
+                        data: function(d) {
+                            d.session_id = self.selectedSession || 0;
+                            d._csrf_token = '<?= csrf_token() ?>';
+                        },
+                        dataSrc: function (json) {
+                            // Cập nhật Số lượng trên UI khi kéo xong trang
+                            document.getElementById('candidateCount').textContent = json.candidate_count || 0;
+                            document.getElementById('rowCount').textContent = json.recordsTotal || 0;
+                            return json.data;
+                        },
                         error: (xhr) => {
-                            this.isLoading = false;
-                            let msg = "Lỗi khi tải dữ liệu";
+                            self.isLoading = false;
+                            let msg = "Lỗi tải dữ liệu. Hãy F5 tải lại trang.";
                             if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
                             toast.error(msg);
                         }
@@ -436,22 +485,23 @@ if (!empty($combinations)) {
                     scrollCollapse: true,
                     paging: true,
                     pageLength: 50,
-                    lengthMenu: [50, 100, 200, 500, 1000],
+                    lengthMenu: [50, 100, 200, 500],
                     language: {
-                        search: 'Tìm kiếm:',
+                        search: 'Tìm thẻ (CCCD, Họ tên, Mã ngành, Tổ hợp):',
                         lengthMenu: 'Hiển thị _MENU_ dòng',
                         info: 'Hiển thị _START_ đến _END_ trong _TOTAL_ dòng',
-                        infoEmpty: 'Không có dữ liệu',
-                        infoFiltered: '(lọc từ _MAX_ dòng)',
-                        zeroRecords: 'Không tìm thấy kết quả',
-                        paginate: { first: 'Đầu', last: 'Cuối', next: 'Sau', previous: 'Trước' }
+                        infoEmpty: 'Không có dữ liệu phù hợp với phân loại',
+                        infoFiltered: '(lọc từ _MAX_ dòng gốc)',
+                        zeroRecords: 'Không có bản ghi phù hợp',
+                        paginate: { first: 'Đầu', last: 'Cuối', next: 'Sau', previous: 'Trước' },
+                        processing: '<div class="absolute inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70"><div class="flex flex-col items-center"><div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div><div class="mt-2 text-xs font-semibold text-indigo-700">Đang tải...</div></div></div>'
                     },
                     dom: '<"flex justify-between items-center p-3 border-b border-slate-200"lf>rt<"flex justify-between items-center p-3"ip>',
                     fixedColumns: {
-                        leftColumns: 2 // stick CCCD + Name
+                        leftColumns: 2
                     },
                     initComplete: function() {
-                         $('.dataTables_filter input').addClass('w-full sm:w-64 pl-3 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500');
+                         $('.dataTables_filter input').addClass('w-full sm:w-80 pl-3 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400').attr('placeholder', 'Nhập bất kỳ từ khóa...');
                     }
                 });
             },
@@ -464,15 +514,8 @@ if (!empty($combinations)) {
                     return;
                 }
                 
-                this.startLoading('Đang tải danh sách nguyện vọng...');
-                
-                this.dt.ajax.url('<?= url("/admin/admission/virtual-filter/api-load") ?>?session_id=' + this.selectedSession).load((json) => {
-                    this.stopLoading();
-                    if (json) {
-                        document.getElementById('candidateCount').textContent = json.candidate_count || 0;
-                        document.getElementById('rowCount').textContent = json.aspiration_count || 0;
-                    }
-                }, false);
+                // Server-Side Processing gánh toàn bộ tải trọng, chỉ cần bắt Ajax gửi lại lệnh Reload mà ko tốn RAM của User
+                this.dt.ajax.reload(null, true);
             },
 
             syncData() {
@@ -510,40 +553,95 @@ if (!empty($combinations)) {
                 });
             },
 
+            forceRecalculate: false,
+            
             recalculate() {
-                if (!confirm('Bạn có chắc chắn muốn TÍNH LẠI ĐIỂM cho tất cả thí sinh được xét duyệt trong đợt này? Quá trình này có thể mất vài phút.')) return;
+                const isFull = this.forceRecalculate;
+                const confirmMsg = isFull 
+                    ? 'Bạn có chắc chắn muốn TÍNH LẠI TOÀN BỘ điểm cho tất cả thí sinh? Quá trình này sẽ tốn nhiều thời gian hơn.' 
+                    : 'Hệ thống sẽ chỉ tính điểm cho những hồ sơ mới hoặc có thay đổi dữ liệu. Bạn có muốn tiếp tục?';
+
+                if (!confirm(confirmMsg)) return;
                 
                 this.isCalculating = true;
-                this.startLoading('Đang tính toán lại điểm đa tổ hợp... Vui lòng không đóng trang.');
+                this.startLoading(isFull ? 'Đăng khởi tạo hàng chờ tính điểm toàn bộ...' : 'Đang kiểm tra hồ sơ cần cập nhật...', true);
                 
+                // 1. Get the list of CCCDs first
+                $.ajax({
+                    url: '<?= url("/admin/admission/virtual-filter/api-get-cccds") ?>',
+                    data: { 
+                        session_id: this.selectedSession,
+                        force: isFull ? 1 : 0
+                    },
+                    success: (res) => {
+                        if (!res.success || !res.cccds.length) {
+                            this.stopLoading();
+                            toast.success("Tất cả hồ sơ đã ở trạng thái mới nhất. Không cần tính toán thêm.");
+                            return;
+                        }
+                        
+                        this.totalToProcess = res.cccds.length;
+                        this.totalProcessed = 0;
+                        this.errorCount = 0;
+                        this.currentLoadingMessage = `Phát hiện ${this.totalToProcess} hồ sơ cần tính toán. Đang bắt đầu...`;
+                        
+                        // 2. Start the recursive chunk processing
+                        this.processNextBatch(res.cccds);
+                    },
+                    error: () => {
+                        this.stopLoading();
+                        toast.error("Không thể kết nối máy chủ để lấy danh sách hồ sơ.");
+                    }
+                });
+            },
+
+            processNextBatch(cccdList) {
+                if (cccdList.length === 0) {
+                    this.stopLoading();
+                    toast.success(`Hoàn tất! Đã tính điểm cho ${this.totalProcessed} hồ sơ. Số lỗi: ${this.errorCount}`);
+                    this.loadData();
+                    return;
+                }
+
+                // Slice the next chunk
+                const chunk = cccdList.slice(0, this.batchSize);
+                const remaining = cccdList.slice(this.batchSize);
+                
+                this.currentLoadingMessage = `Đang xử lý ${this.totalProcessed} - ${Math.min(this.totalProcessed + this.batchSize, this.totalToProcess)} / ${this.totalToProcess} hồ sơ...`;
+
                 $.ajax({
                     url: '<?= url("/admin/admission/virtual-filter/api-recalculate") ?>',
                     type: 'POST',
                     data: { 
                         session_id: this.selectedSession,
+                        cccds: JSON.stringify(chunk),
+                        force: this.forceRecalculate ? '1' : '0',
                         _csrf_token: '<?= csrf_token() ?>'
                     },
                     success: (res) => {
                         let parsed = typeof res === 'string' ? JSON.parse(res) : res;
-                        if(parsed.success) {
-                            toast.success(parsed.message);
-                            this.loadData(); // reload Grid
+                        if (parsed.success) {
+                            this.totalProcessed += chunk.length;
                         } else {
-                            toast.error(parsed.message || parsed.error);
+                            this.errorCount += chunk.length;
+                            console.error("Batch Error:", parsed.message);
                         }
+                        
+                        // Update real progress
+                        this.progress = Math.round((this.totalProcessed / this.totalToProcess) * 100);
+                        
+                        // Recursive call for next batch
+                        this.processNextBatch(remaining);
                     },
                     error: (err) => {
-                        let msg = 'Lỗi khi tính điểm';
-                        if (err.responseJSON && err.responseJSON.error) {
-                            msg = err.responseJSON.error;
-                        }
-                        toast.error(msg);
-                    },
-                    complete: () => {
-                        this.stopLoading();
+                        this.errorCount += chunk.length;
+                        console.error("Critical Network Error in Batch", err);
+                        // Even on network error, try to continue with the next batch to ensure completion
+                        this.processNextBatch(remaining);
                     }
                 });
             },
+
 
             runVirtualFilter() {
                 if (!this.selectedSession) return;
