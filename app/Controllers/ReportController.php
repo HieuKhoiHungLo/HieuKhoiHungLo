@@ -170,4 +170,27 @@ class ReportController extends Controller {
         $data = $this->exportService->exportMoetTranscriptsCsv($filters);
         $this->exportService->toCsv($data, 'moet_diem_hoc_ba_' . date('Ymd') . '.csv');
     }
+
+    public function exportAdmissionReport() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+            'major'      => $_GET['major'] ?? null,
+        ];
+        $data = $this->exportService->exportAdmissionData($filters);
+        $this->exportService->toCsv($data, 'du_lieu_xet_tuyen_' . date('Ymd') . '.csv');
+    }
+
+    public function exportAllAdmittedReport() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+        ];
+        $data = $this->exportService->exportAdmittedByMajor(null, $filters);
+        $this->exportService->toCsv($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.csv');
+    }
 }

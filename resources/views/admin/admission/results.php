@@ -10,20 +10,26 @@ ob_start();
             <p class="text-sm text-slate-500 mt-1">Danh sách thí sinh đủ điều kiện trúng tuyển dựa trên điểm chuẩn đã thiết lập.</p>
         </div>
         
-        <div class="flex flex-wrap gap-3">
-            <a href="<?= url('/admin/import') ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium border border-slate-200 shadow-sm transition-colors flex items-center gap-2">
-                <i class="fas fa-arrow-left text-slate-400"></i>
-                <span>Quay lại Import</span>
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="<?= url('/admin/reports/export-admission?session_id=' . ($activeSession['id'] ?? '')) ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium border border-slate-200 shadow-sm transition-colors flex items-center gap-2">
+                    <i class="fas fa-file-export text-slate-400"></i>
+                    <span>Xuất Dữ liệu Xét tuyển</span>
+                </a>
+                <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . ($activeSession['id'] ?? '')) ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Xuất DS Trúng tuyển (Toàn bộ)</span>
+                </a>
+            </div>
             
-            <form action="<?= url('/admin/admission/process') ?>" method="POST" @submit="confirmRecalculate($event)">
-                <?= csrf_field() ?>
-                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Tính lại Điểm</span>
-                </button>
-            </form>
-        </div>
+            <div class="flex flex-wrap gap-3">
+                <form action="<?= url('/admin/admission/process') ?>" method="POST" @submit="confirmRecalculate($event)">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Tính lại Điểm</span>
+                    </button>
+                </form>
+            </div>
     </div>
 
     <!-- Alert Message -->
@@ -36,8 +42,8 @@ ob_start();
 
     <!-- Filter Bar -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-        <form action="" method="GET" class="flex flex-wrap items-center gap-4">
-            <div class="flex-1 min-w-[300px]">
+        <form action="" method="GET" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[250px]">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Lọc theo Ngành</label>
                 <select name="major" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" onchange="this.form.submit()">
                     <option value="">-- Tất cả các ngành --</option>
@@ -48,7 +54,18 @@ ob_start();
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="flex items-end self-end">
+            
+            <div class="w-48">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Trạng thái</label>
+                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" onchange="this.form.submit()">
+                    <option value="">-- Tất cả --</option>
+                    <option value="Trung tuyen" <?= ($filterStatus == 'Trung tuyen') ? 'selected' : '' ?>>Trúng tuyển</option>
+                    <option value="Truot" <?= ($filterStatus == 'Truot') ? 'selected' : '' ?>>Trượt</option>
+                    <option value="Truot (NV cao hon)" <?= ($filterStatus == 'Truot (NV cao hon)') ? 'selected' : '' ?>>Trượt (NV cao hơn)</option>
+                </select>
+            </div>
+
+            <div>
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all">
                     Lọc dữ liệu
                 </button>
@@ -97,23 +114,29 @@ ob_start();
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-slate-50/30 text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-slate-100">
-                                    <th class="py-3 px-6 w-12 text-center">STT</th>
-                                    <th class="py-3 px-6 w-32">CCCD/CMND</th>
-                                    <th class="py-3 px-6 w-56">Họ và Tên</th>
-                                    <th class="py-3 px-6 text-center">Tổ hợp / Phương thức</th>
-                                    <th class="py-3 px-6">Chi tiết Điểm</th>
-                                    <th class="py-3 px-6 text-center w-28">Tổng điểm</th>
-                                    <th class="py-3 px-6 text-center w-32">Trạng thái</th>
+                            <th class="py-3 px-6 w-12 text-center">STT</th>
+                            <th class="py-3 px-6 w-16 text-center">NV</th>
+                            <th class="py-3 px-6 w-32">CCCD/CMND</th>
+                            <th class="py-3 px-6 w-56">Họ và Tên</th>
+                            <th class="py-3 px-6 text-center">Tổ hợp / Phương thức</th>
+                            <th class="py-3 px-6">Chi tiết Điểm</th>
+                            <th class="py-3 px-6 text-center w-28">Tổng điểm</th>
+                            <th class="py-3 px-6 text-center w-32">Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50">
                                 <?php foreach ($rows as $index => $row): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="py-4 px-6 text-center text-slate-400 font-medium"><?= $index + 1 ?></td>
+                                        <td class="py-4 px-6 text-center">
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                                                <?= $row['thu_tu_nguyen_vong'] ?>
+                                            </span>
+                                        </td>
                                         <td class="py-4 px-6 font-mono text-sm text-indigo-600 font-medium"><?= htmlspecialchars($row['so_cccd']) ?></td>
                                         <td class="py-4 px-6 font-bold text-slate-700"><?= htmlspecialchars($row['ho_va_ten']) ?></td>
                                         <td class="py-4 px-6 text-center">
-                                            <div class="text-sm font-bold text-slate-600"><?= htmlspecialchars($row['to_hop_xet_tuyen_id'] ?? 'N/A') ?></div>
+                                            <div class="text-sm font-bold text-slate-600"><?= htmlspecialchars($row['to_hop_toi_uu'] ?: ($row['to_hop_xet_tuyen_id'] ?? 'N/A')) ?></div>
                                             <div class="text-[10px] text-slate-400 uppercase">
                                                 <?php
                                                     $majorArr = [
@@ -121,7 +144,7 @@ ob_start();
                                                         'co_xet_chung_chi' => $row['co_xet_chung_chi'] ?? false,
                                                         'co_diem_nangkhieu_hochba' => $row['co_diem_nangkhieu_hochba'] ?? false
                                                     ];
-                                                    echo \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($row['phuong_thuc_xet_tuyen'], $majorArr);
+                                                    echo \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($row['phuong_thuc_toi_uu'] ?: $row['phuong_thuc_xet_tuyen'], $majorArr);
                                                 ?>
                                             </div>
                                         </td>
@@ -148,9 +171,19 @@ ob_start();
                                             <span class="text-lg font-black text-indigo-700"><?= number_format($row['diem_xet_tuyen'], 2) ?></span>
                                         </td>
                                         <td class="py-4 px-6 text-center">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm leading-none">
-                                                <i class="fas fa-check-circle mr-1"></i> TRÚNG TUYỂN
-                                            </span>
+                                            <?php if ($row['trang_thai'] == 'Trung tuyen' || $row['trang_thai'] == 'Trúng tuyển'): ?>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm leading-none">
+                                                    <i class="fas fa-check-circle mr-1"></i> TRÚNG TUYỂN
+                                                </span>
+                                            <?php elseif (strpos($row['trang_thai'], 'Truot (NV cao hon)') !== false): ?>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 leading-none">
+                                                    TRƯỢT (NV CAO HƠN)
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-500 border border-rose-100 leading-none">
+                                                    TRƯỢT
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

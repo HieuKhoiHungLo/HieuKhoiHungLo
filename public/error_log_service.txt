@@ -1,0 +1,36 @@
+2026-03-27 10:28:06 - recalculateBatch Error: SQLSTATE[42P01]: Undefined table: 7 ERROR:  relation "temp_calc_results" does not exist
+LINE 1: INSERT INTO temp_calc_results (cccd, ma_nganh, score, combo,...
+                    ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(322): PDOStatement->execute(Array)
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(161): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(133): App\Services\ScoreCalculationService->recalculateBatch('3', Array)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(128): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-03-27 10:28:25 - recalculateBatch Error: SQLSTATE[22P02]: Invalid text representation: 7 ERROR:  invalid input syntax for type double precision: "266/300"
+LINE 3:                     AND muc_diem_tu <= '266/300' 
+                                               ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(671): PDOStatement->execute(Array)
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(51): App\Services\ScoreCalculationService->getCertificates('026308000038')
+#2 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(153): App\Services\ScoreCalculationService->calculate('026308000038', true)
+#3 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(133): App\Services\ScoreCalculationService->recalculateBatch('3', Array)
+#4 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#5 D:\xampp\htdocs\TS\app\Core\Router.php(128): call_user_func(Array)
+#6 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#7 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#8 {main}
+2026-03-28 01:42:43 - recalculateBatch Error: SQLSTATE[HY000]: General error: 7 server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+#0 D:\xampp\htdocs\TS\app\Models\ChungChiThiSinh.php(13): PDOStatement->execute(Array)
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(720): App\Models\ChungChiThiSinh->getByCCCD('100000000019')
+#2 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(91): App\Services\ScoreCalculationService->getCertificates('100000000019')
+#3 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(207): App\Services\ScoreCalculationService->calculate('100000000019', '3', true)
+#4 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(135): App\Services\ScoreCalculationService->recalculateBatch('3', Array)
+#5 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#6 D:\xampp\htdocs\TS\app\Core\Router.php(128): call_user_func(Array)
+#7 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#8 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#9 {main}

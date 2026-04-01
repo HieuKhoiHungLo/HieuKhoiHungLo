@@ -23,8 +23,8 @@ class Router {
             $middleware = [$middleware];
         }
 
-        // Normalize path: trim trailing slash except for root
-        $path = ($path !== '/') ? rtrim($path, '/') : $path;
+        // Normalize path: trim all slashes and ensure exactly one leading slash
+        $path = '/' . trim($path, '/');
 
         $this->routes[$method][$path] = [
             'callback' => $callback,
@@ -66,15 +66,13 @@ class Router {
         $baseUrl = App::getBaseUrl();
         $scriptPath = parse_url($baseUrl, PHP_URL_PATH);
         
+        // Match base URL prefix case-insensitively and strip it
         if (!empty($scriptPath) && stripos($path, $scriptPath) === 0) {
            $path = substr($path, strlen($scriptPath));
         }
         
-        if (empty($path)) $path = '/';
-        if ($path[0] !== '/') $path = '/' . $path;
-
-        // Normalize path for matching: trim trailing slash except for root
-        $pathMatch = ($path !== '/') ? rtrim($path, '/') : $path;
+        // Normalize path for matching: ensure exactly one leading slash, no trailing
+        $pathMatch = '/' . trim($path, '/');
 
         $route = $this->routes[$method][$pathMatch] ?? false;
 
@@ -85,7 +83,8 @@ class Router {
                 require_once $viewPath;
             } else {
                 echo "<h1>404 Not Found</h1>";
-                echo "<p>Đường dẫn: <strong>" . htmlspecialchars($path) . "</strong> không tồn tại.</p>";
+                echo "<p>Đường dẫn: <strong>" . htmlspecialchars($pathMatch) . "</strong> (" . $method . ") không tồn tại.</p>";
+                echo "<p><small>Debug Info: ScriptPath: [" . htmlspecialchars($scriptPath) . "] | RequestURI: [" . htmlspecialchars($_SERVER['REQUEST_URI'] ?? '') . "]</small></p>";
             }
             return;
         }

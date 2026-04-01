@@ -200,11 +200,14 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     // Virtual Filter Dashboard (New Grid UI)
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
-    $router->get('/admin/admission/virtual-filter/api-load', 'VirtualAdmissionController@loadBatchData');
-    $router->post('/admin/admission/virtual-filter/api-recalculate', 'VirtualAdmissionController@recalculateScores');
-    $router->post('/admin/admission/virtual-filter/api-sync', 'VirtualAdmissionController@apiSync');
-    $router->get('/admin/admission/virtual-filter/export', 'VirtualAdmissionController@exportExcel');
-    $router->post('/admin/admission/virtual-filter/api-run', 'VirtualFilterController@runFiltering');
+    $router->get('/admin/api/vf/load', 'VirtualAdmissionController@loadBatchData');
+    $router->post('/admin/api/vf/load', 'VirtualAdmissionController@loadBatchData');
+    $router->get('/admin/api/vf/get-cccds', 'VirtualAdmissionController@apiGetCccds');
+    $router->post('/admin/api/vf/recalculate', 'VirtualAdmissionController@recalculateScores');
+    $router->post('/admin/api/vf/sync', 'VirtualAdmissionController@apiSync');
+    $router->get('/admin/api/vf/run-stress-seeder', 'VirtualAdmissionController@runStressSeeder');
+    $router->get('/admin/api/vf/export', 'VirtualAdmissionController@exportExcel');
+    $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
 
     // New Admission Management (Year/Session Based)
     $router->get('/admin/admission/management', 'AdmissionManagementController@index');
@@ -264,6 +267,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports/export-moet-wishes', 'ReportController@exportMoetWishes');
     $router->get('/admin/reports/export-moet-transcripts', 'ReportController@exportMoetTranscripts');
     $router->get('/admin/reports/export-aptitude-list', 'ReportController@exportAptitudeList');
+
+    // New Admission & Results Exports
+    $router->get('/admin/reports/export-admission', 'ReportController@exportAdmissionReport');
+    $router->get('/admin/reports/export-all-admitted', 'ReportController@exportAllAdmittedReport');
 
     // Rules
     $router->get('/admin/rules', 'RuleController@index');

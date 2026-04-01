@@ -16,10 +16,16 @@
                 <?php endforeach; ?>
             </select>
             
-            <button @click="recalculateScores" :disabled="!selectedBatch || isCalculating" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 active:bg-yellow-800 disabled:opacity-50 transition ease-in-out duration-150">
-                <span x-show="isCalculating"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tính...</span>
-                <span x-show="!isCalculating"><i class="fas fa-calculator mr-2"></i> 1. Chạy Hàm Tính Điểm</span>
-            </button>
+            <div class="flex items-center space-x-2">
+                <button @click="recalculateScores" :disabled="!selectedBatch || isCalculating" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 active:bg-yellow-800 disabled:opacity-50 transition ease-in-out duration-150">
+                    <span x-show="isCalculating"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tính...</span>
+                    <span x-show="!isCalculating"><i class="fas fa-calculator mr-2"></i> 1. Chạy Hàm Tính Điểm</span>
+                </button>
+                <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="checkbox" x-model="forceRecalculate" class="rounded border-gray-300 text-yellow-600 shadow-sm focus:border-yellow-500 focus:ring-yellow-500">
+                    <span class="text-[10px] font-bold text-yellow-700 uppercase">Toàn bộ</span>
+                </label>
+            </div>
             <button @click="runFilter" :disabled="!selectedBatch || isFiltering || majors.length === 0" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-800 disabled:opacity-50 transition ease-in-out duration-150">
                 <span x-show="isFiltering"><i class="fas fa-spinner fa-spin mr-2"></i> Đang lọc ảo...</span>
                 <span x-show="!isFiltering"><i class="fas fa-filter mr-2"></i> 2. Chạy Lọc Ảo Dây Chuyền</span>

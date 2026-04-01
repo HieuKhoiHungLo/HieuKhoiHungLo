@@ -40,7 +40,7 @@ class VirtualFilterController extends Controller {
 
         // Lấy danh sách Ngành được cấu hình tuyển sinh trong đợt này
         $stmtMajors = $this->db->prepare("
-            SELECT ab.ma_nganh, m.ten_nganh, ab.chi_tieu, ab.diem_chuan
+            SELECT ab.ma_nganh, m.ten_nganh, m.chi_tieu, ab.diem_chuan
             FROM admission_benchmarks ab
             JOIN dm_nganh m ON ab.ma_nganh = m.ma_nganh
             WHERE ab.session_id = ?
@@ -109,20 +109,29 @@ class VirtualFilterController extends Controller {
 
         set_time_limit(300); // 5 phút vì chạy nặng
         try {
-            // Lấy danh sách CCCD có đăng ký NV trong đợt này
-            $stmt = $this->db->prepare("SELECT DISTINCT so_cccd FROM nguyen_vong WHERE dot_tuyen_sinh_id = ? AND diem_xet_tuyen IS NULL");
-            // Tối ưu: Chỉ tính cho người chưa có diem_xet_tuyen, HOẶC tính lại hết nếu Request có cờ force
+            // Lấy danh sách CCCD có đăng ký NV trong đợt này nhưng CHƯA có kết quả trong bảng summary
+            $sql = "
+                SELECT DISTINCT nv.so_cccd 
+                FROM nguyen_vong nv
+                WHERE nv.dot_tuyen_sinh_id = ? 
+                AND NOT EXISTS (SELECT 1 FROM v_calc_summary cs WHERE cs.nguyen_vong_id = nv.id)
+            ";
+            
+            // Tối ưu: Tính lại hết nếu Request có cờ force
             if (isset($_POST['force']) && $_POST['force'] == '1') {
-                $stmt = $this->db->prepare("SELECT DISTINCT so_cccd FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
+                $sql = "SELECT DISTINCT so_cccd FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?";
             }
+            
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$batchId]);
             $cccds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
             $count = 0;
-            foreach ($cccds as $cccd) {
-                // Hàm này tự tìm MAX và UPDATE vào DB cho thí sinh
-                $this->scoreService->calculate($cccd);
-                $count++;
+            // TỐI ƯU HÓA: Thay đổi vòng lặp O(N) thành xử lý hàng loạt O(1) database trip
+            $chunks = array_chunk($cccds, 500);
+            foreach ($chunks as $chunk) {
+                $this->scoreService->recalculateBatch($batchId, $chunk);
+                $count += count($chunk);
             }
 
             $this->json(['status' => true, 'message' => "Đã tính điểm thành công cho $count thí sinh."]);

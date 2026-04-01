@@ -529,6 +529,39 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         cb.addEventListener('change', updateBulkUI);
     });
 
+    function handleBulkSubmit() {
+        const action = bulkActionSelect.value;
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+
+        if (!action) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng chọn một hành động');
+            else alert('Vui lòng chọn một hành động');
+            return;
+        }
+
+        if (checked.length === 0) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng chọn ít nhất 1 hồ sơ');
+            else alert('Vui lòng chọn ít nhất 1 hồ sơ');
+            return;
+        }
+
+        if (action === 'update_status' || action === 'delete' || action === 'normalize_names') {
+            const labels = {
+                'update_status': 'cập nhật trạng thái',
+                'delete': 'xóa',
+                'normalize_names': 'chuẩn hóa họ tên'
+            };
+            if (confirm('Xác nhận thực hiện hành động ' + (labels[action] || action) + ' cho ' + checked.length + ' hồ sơ đã chọn?')) {
+                submitBulk(action);
+            }
+        } else {
+            // These usually open on change, but handle here if user clicked Apply on already selected action
+            if (action === 'transfer') openTransferModal();
+            else if (action === 'send_email') openEmailModal();
+            else if (action === 'change_password') openBulkPasswordModal();
+        }
+    }
+
     // Modal Functions
     function closeModal(id) {
         const modal = document.getElementById(id);

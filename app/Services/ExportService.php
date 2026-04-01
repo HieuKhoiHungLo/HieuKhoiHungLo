@@ -118,15 +118,24 @@ class ExportService {
                 LEFT JOIN dm_tinh tinh ON t.ma_tinh_thuong_tru = tinh.ma_tinh
                 LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
-                WHERE nv.ma_nganh = ?
-                  AND (nv.trang_thai_trung_tuyen = TRUE OR nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
+                WHERE 1=1 AND (nv.trang_thai_trung_tuyen = TRUE OR nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
 
-        $params = [$maNganh];
+        $params = [];
+        if (!empty($maNganh)) {
+            $sql .= " AND nv.ma_nganh = ?";
+            $params[] = $maNganh;
+        }
+
+        if (!empty($filters['session_id'])) {
+            $sql .= " AND nv.dot_tuyen_sinh_id = ?";
+            $params[] = $filters['session_id'];
+        }
+
         if (!empty($filters['status'])) {
             $sql .= " AND h.trang_thai = ?";
             $params[] = $filters['status'];
         }
-        $sql .= " ORDER BY nv.diem_xet_tuyen DESC";
+        $sql .= " ORDER BY nv.ma_nganh, nv.diem_xet_tuyen DESC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -147,13 +156,57 @@ class ExportService {
     }
 
     /**
+     * Xuất toàn bộ dữ liệu xét tuyển (nguyện vọng) trong đợt.
+     */
+    public function exportAdmissionData($filters = []) {
+        $sql = "SELECT t.so_cccd AS \"Số CCCD\",
+                       t.ho_va_ten AS \"Họ và Tên\",
+                       t.ngay_sinh AS \"Ngày Sinh\",
+                       t.gioi_tinh AS \"Giới tính\",
+                       t.dien_thoai AS \"Điện thoại\",
+                       nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
+                       nv.ma_nganh AS \"Mã Ngành\",
+                       n.ten_nganh AS \"Tên Ngành\",
+                       nv.to_hop_toi_uu AS \"Tổ hợp\",
+                       nv.diem_xet_tuyen AS \"Điểm xét tuyển\",
+                       nv.trang_thai AS \"Trạng thái xét tuyển\"
+                FROM nguyen_vong nv
+                JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                WHERE 1=1";
+
+        $params = [];
+        if (!empty($filters['session_id'])) {
+            $sql .= " AND nv.dot_tuyen_sinh_id = ?";
+            $params[] = $filters['session_id'];
+        }
+        if (!empty($filters['major'])) {
+            $sql .= " AND nv.ma_nganh = ?";
+            $params[] = $filters['major'];
+        }
+        
+        $sql .= " ORDER BY t.ho_va_ten, nv.thu_tu_nguyen_vong";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$r) {
+            $r["Số CCCD"]   = $this->textCell($r["Số CCCD"]);
+            $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
+            $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
+            $r["Điểm xét tuyển"] = $this->formatDecimal($r["Điểm xét tuyển"]);
+        }
+        return $rows;
+    }
+
+    /**
      * Danh sách thí sinh có chứng chỉ ngoại ngữ, filtered by session.
      */
     public function exportCertificatesFiltered($filters = []) {
         $sql = "SELECT t.so_cccd AS \"Số CCCD\",
                        t.ho_va_ten AS \"Họ và Tên\",
                        t.ngay_sinh AS \"Ngày Sinh\",
-                       t.dien_thoai AS \"Điện thoại\",
                        cc.loai_chung_chi AS \"Loại chứng chỉ\",
                        cc.diem_chung_chi AS \"Điểm/Xếp loại\"
                 FROM chung_chi_thi_sinh cc

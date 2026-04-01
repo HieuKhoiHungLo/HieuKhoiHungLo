@@ -460,7 +460,7 @@ if (!empty($combinations)) {
                     processing: true,
                     deferLoading: 0, // Không tự động kéo data nếu chưa nhận session_id
                     ajax: {
-                        url: '<?= url("/admin/admission/virtual-filter/api-load") ?>',
+                        url: '<?= url("/admin/api/vf/load") ?>',
                         type: 'POST',
                         data: function(d) {
                             d.session_id = self.selectedSession || 0;
@@ -525,7 +525,7 @@ if (!empty($combinations)) {
                 this.startLoading('Đang đồng bộ dữ liệu từ hồ sơ đã duyệt...');
                 
                 $.ajax({
-                    url: '<?= url("/admin/admission/virtual-filter/api-sync") ?>',
+                    url: '<?= url("/admin/api/vf/sync") ?>',
                     type: 'POST',
                     data: { 
                         session_id: this.selectedSession,
@@ -568,7 +568,7 @@ if (!empty($combinations)) {
                 
                 // 1. Get the list of CCCDs first
                 $.ajax({
-                    url: '<?= url("/admin/admission/virtual-filter/api-get-cccds") ?>',
+                    url: '<?= url("/admin/api/vf/get-cccds") ?>',
                     data: { 
                         session_id: this.selectedSession,
                         force: isFull ? 1 : 0
@@ -610,7 +610,7 @@ if (!empty($combinations)) {
                 this.currentLoadingMessage = `Đang xử lý ${this.totalProcessed} - ${Math.min(this.totalProcessed + this.batchSize, this.totalToProcess)} / ${this.totalToProcess} hồ sơ...`;
 
                 $.ajax({
-                    url: '<?= url("/admin/admission/virtual-filter/api-recalculate") ?>',
+                    url: '<?= url("/admin/api/vf/recalculate") ?>',
                     type: 'POST',
                     data: { 
                         session_id: this.selectedSession,
@@ -655,7 +655,7 @@ if (!empty($combinations)) {
                 this.startLoading('Đang chạy thuật toán lọc ảo...');
 
                 $.ajax({
-                    url: '<?= url("/admin/admission/virtual-filter/api-run") ?>',
+                    url: '<?= url("/admin/api/vf/run") ?>',
                     type: 'POST',
                     data: {
                         session_id: this.selectedSession,
@@ -685,7 +685,7 @@ if (!empty($combinations)) {
             
             exportData() {
                 if (!this.selectedSession) return;
-                window.location.href = '<?= url("/admin/admission/virtual-filter/export") ?>?session_id=' + this.selectedSession;
+                window.location.href = '<?= url("/admin/api/vf/export") ?>?session_id=' + this.selectedSession;
             }
         }
     }

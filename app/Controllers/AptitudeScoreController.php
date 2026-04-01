@@ -33,7 +33,7 @@ class AptitudeScoreController extends Controller {
         $query = "SELECT d.id, d.so_cccd, d.sbd, d.diem, d.ghi_chu, d.ma_mon, ts.ho_va_ten, m.ten_mon 
                   FROM diem_nang_khieu d
                   LEFT JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
-                  LEFT JOIN dm_mon m ON d.ma_mon = m.ma_mon
+                  LEFT JOIN dm_mon m ON UPPER(d.ma_mon) = UPPER(m.ma_mon)
                   WHERE 1=1";
         $params = [];
 
@@ -49,7 +49,7 @@ class AptitudeScoreController extends Controller {
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Filtered count
-        $countQuery = preg_replace('/SELECT .* FROM/', 'SELECT COUNT(*) FROM', $query);
+        $countQuery = preg_replace('/SELECT .* FROM/s', 'SELECT COUNT(*) FROM', $query);
         $stmtFiltered = $db->prepare($countQuery);
         $stmtFiltered->execute($params);
         $recordsFiltered = $stmtFiltered->fetchColumn();
@@ -60,13 +60,53 @@ class AptitudeScoreController extends Controller {
         $stmtData->execute($params);
         $data = $stmtData->fetchAll(\PDO::FETCH_ASSOC);
 
-        echo json_encode([
+        $this->json([
             "draw" => intval($draw),
             "recordsTotal" => intval($recordsTotal),
             "recordsFiltered" => intval($recordsFiltered),
             "data" => $data
         ]);
-        exit;
+    }
+
+    public function apiSave() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid method']);
+            return;
+        }
+
+        $id = $_POST['id'] ?? null;
+        $cccd = $_POST['so_cccd'] ?? '';
+        $sbd = $_POST['sbd'] ?? '';
+        $maMon = $_POST['ma_mon'] ?? '';
+        $diem = $_POST['diem'] ?? 0;
+        $ghiChu = $_POST['ghi_chu'] ?? '';
+
+        if (empty($cccd) || empty($maMon)) {
+            $this->json(['success' => false, 'message' => 'Thiếu thông tin bắt buộc (CCCD, Môn)']);
+            return;
+        }
+
+        $db = $this->model->getDb();
+        try {
+            if ($id) {
+                $stmt = $db->prepare("UPDATE diem_nang_khieu SET so_cccd = ?, sbd = ?, ma_mon = ?, diem = ?, ghi_chu = ? WHERE id = ?");
+                $stmt->execute([$cccd, $sbd, $maMon, $diem, $ghiChu, $id]);
+            } else {
+                // Check if already exists for this cccd and maMon
+                $stmtCheck = $db->prepare("SELECT id FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ?");
+                $stmtCheck->execute([$cccd, $maMon]);
+                if ($stmtCheck->fetch()) {
+                    $this->json(['success' => false, 'message' => 'Thí sinh đã có điểm cho môn này. Vui lòng cập nhật bản ghi cũ.']);
+                    return;
+                }
+
+                $stmt = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$cccd, $sbd, $maMon, $diem, $ghiChu]);
+            }
+            $this->json(['success' => true]);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+        }
     }
 
     public function import() {
@@ -142,11 +182,22 @@ class AptitudeScoreController extends Controller {
             if ($id) {
                 $stmt = $this->model->getDb()->prepare("DELETE FROM diem_nang_khieu WHERE id = ?");
                 if ($stmt->execute([$id])) {
-                    echo json_encode(['success' => true]);
-                    exit;
+                    $this->json(['success' => true]);
+                    return;
                 }
             }
         }
-        echo json_encode(['success' => false]);
+        $this->json(['success' => false]);
+    }
+
+    public function template() {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=mau_diem_nang_khieu.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
+        fputcsv($output, ['CCCD (Bat buoc)', 'SBD', 'Ma mon (NK1, NK2, NK3, NK4)', 'Diem (Bat buoc)', 'Ghi chu']);
+        fputcsv($output, ['012345678901', 'HVU001', 'NK1', '8.5', 'Diem thi tai truong']);
+        fclose($output);
+        exit;
     }
 }

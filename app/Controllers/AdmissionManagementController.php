@@ -100,7 +100,7 @@ class AdmissionManagementController extends Controller {
                 $chiTieuMap[$r['ma_nganh']] = (int)$r['chi_tieu'];
             }
 
-            $stmtIns = $this->db->prepare("INSERT INTO admission_benchmarks (session_id, ma_nganh, chi_tieu, diem_chuan, tieuchi_phu) VALUES (?, ?, ?, ?, ?)");
+            $stmtIns = $this->db->prepare("INSERT INTO admission_benchmarks (session_id, ma_nganh, diem_chuan, tieuchi_phu) VALUES (?, ?, ?, ?)");
             
             foreach ($data as $item) {
                 if (isset($item['has_benchmark']) && ($item['has_benchmark'] == 'true' || $item['has_benchmark'] === true || $item['has_benchmark'] == 1)) {
@@ -111,7 +111,6 @@ class AdmissionManagementController extends Controller {
                     $stmtIns->execute([
                         $sessionId,
                         $maNganh,
-                        $chiTieuMap[$maNganh] ?? 0,
                         round($diemChuan, 2),
                         $tieuchiPhu
                     ]);

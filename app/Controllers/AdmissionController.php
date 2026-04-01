@@ -152,12 +152,14 @@ class AdmissionController extends Controller {
         $sessionModel = new AdmissionSession();
         $activeSession = $sessionModel->getActiveSession();
         
-        // Filter by Major if requested
+        // Filters
         $filterMajor = $_GET['major'] ?? '';
+        $filterStatus = $_GET['status'] ?? ''; // 'Trung tuyen', 'Truot', etc.
         
-        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd 
+        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd, n.ten_nganh 
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 WHERE nv.dot_tuyen_sinh_id = ?";
         
         $params = [$activeSession['id'] ?? 0];
@@ -167,7 +169,16 @@ class AdmissionController extends Controller {
             $params[] = $filterMajor;
         }
 
-        $sql .= " ORDER BY nv.ma_nganh, nv.diem_xet_tuyen DESC";
+        if ($filterStatus) {
+            if ($filterStatus === 'Trung tuyen') {
+                $sql .= " AND (nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
+            } else {
+                $sql .= " AND nv.trang_thai = ?";
+                $params[] = $filterStatus;
+            }
+        }
+
+        $sql .= " ORDER BY nv.ma_nganh, nv.diem_xet_tuyen DESC, nv.thu_tu_nguyen_vong ASC";
         
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -182,7 +193,9 @@ class AdmissionController extends Controller {
         $this->view('admin/admission/results', [
             'groupedResults' => $grouped, 
             'majors' => $this->masterData->getMajors(),
-            'filterMajor' => $filterMajor
+            'filterMajor' => $filterMajor,
+            'filterStatus' => $filterStatus,
+            'activeSession' => $activeSession
         ]);
     }
     public function finalize() {

@@ -44,67 +44,109 @@ class VirtualAdmissionController extends Controller {
     }
 
     public function loadBatchData() {
-        $sessionId = $_GET['session_id'] ?? null;
+        $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? null;
         if (!$sessionId) {
-            echo json_encode(['data' => []]);
-            exit;
+            $this->json(['draw' => intval($_POST['draw'] ?? 1), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
+            return;
         }
 
-        // Fetch candidates and their aspirations (only approved NV for the chosen session)
-        // Note: Joining thi_sinh, nguyen_vong, and dm_nganh
-        // We only care about n.khao_sat = 1 (Da duyet)
         try {
-            $sql = "
+            ini_set('memory_limit', '1024M');
+
+            // 1. Nhận tham số cấu hình Server-Side Processing từ DataTables
+            $draw = $_POST['draw'] ?? 1;
+            $start = $_POST['start'] ?? 0;
+            $length = $_POST['length'] ?? 50;
+            $search = $_POST['search']['value'] ?? '';
+
+            if ($length < 1) $length = 50;
+
+            // 2. Base Query và mệnh đề Tìm kiếm
+            $baseFrom = "FROM thi_sinh ts 
+                         JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
+                         LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id 
+                         WHERE nv.dot_tuyen_sinh_id = ?
+                         AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')";
+            
+            $searchSql = "";
+            $params = [$sessionId];
+            
+            if (!empty($search)) {
+                // Postgres hỗ trợ ILIKE để tìm kiếm không phân biệt hoa thường
+                $searchSql = " AND (ts.ho_va_ten ILIKE ? OR ts.so_cccd ILIKE ? OR nv.ma_nganh ILIKE ? OR cs.to_hop_toi_uu ILIKE ?)";
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+            }
+
+            // 3. Đếm tổng số lượng bản ghi (trước khi tìm kiếm)
+            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtTotal->execute([$sessionId]);
+            $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
+
+            // 4. Đếm tổng số lượng bản ghi (SAU khi tìm kiếm)
+            if (!empty($search)) {
+                $stmtFiltered = $this->db->prepare("SELECT COUNT(*) $baseFrom $searchSql");
+                $stmtFiltered->execute($params);
+                $recordsFiltered = $stmtFiltered->fetchColumn() ?: 0;
+            } else {
+                $recordsFiltered = $recordsTotal;
+            }
+
+            // 5. Tính tổng số thí sinh duy nhất (Candidate Count) - Độc lập tìm kiếm
+            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtC->execute([$sessionId]);
+            $candidateCount = $stmtC->fetchColumn() ?: 0;
+
+            // 6. Truy vấn Dữ liệu Phân trang (OFFSET & LIMIT) trực tiếp trên Database
+            // Cố định Order By cấu trúc để đảm bảo DataTables luôn hiện đúng
+            $dataSql = "
                 SELECT 
                     ts.id, ts.so_cccd, ts.ho_va_ten, ts.gioi_tinh, ts.nam_tot_nghiep, 
                     ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien,
-                    n.ma_nganh, n.thu_tu_nguyen_vong, n.diem_xet_tuyen, n.to_hop_toi_uu, n.phuong_thuc_toi_uu,
-                    n.chi_tiet_diem, n.trang_thai_trung_tuyen,
-                    n.diem_mon_1, n.diem_mon_2, n.diem_mon_3
-                FROM thi_sinh ts
-                JOIN nguyen_vong n ON ts.so_cccd = n.so_cccd
-                WHERE 
-                    n.dot_tuyen_sinh_id = ?
-                    AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')
-                ORDER BY ts.so_cccd, n.thu_tu_nguyen_vong ASC
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$sessionId]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    nv.ma_nganh, nv.thu_tu_nguyen_vong,
+                    cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu,
+                    cs.chi_tiet_diem, cs.trang_thai_trung_tuyen,
+                    cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3,
+                    (SELECT string_agg(ma_to_hop, ', ' ORDER BY ma_to_hop) 
+                     FROM dm_nganh_to_hop nth 
+                     WHERE nth.ma_nganh = nv.ma_nganh) as all_combos
+                $baseFrom $searchSql 
+                ORDER BY ts.so_cccd, nv.thu_tu_nguyen_vong ASC 
+                LIMIT " . (int)$length . " OFFSET " . (int)$start;
+            
+            $stmt = $this->db->prepare($dataSql);
+            $stmt->execute($params);
 
-            // Tính số lượng hồ sơ (thí sinh) duy nhất
-            $uniqueCccd = array_unique(array_column($rows, 'so_cccd'));
-            $candidateCount = count($uniqueCccd);
+            $rows = [];
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                if (!empty($row['chi_tiet_diem'])) {
+                    $p = json_decode($row['chi_tiet_diem'], true);
+                    if ($p && is_array($p)) {
+                        $row['chi_tiet_diem'] = json_encode([
+                            'all_combinations' => $p['all_combinations'] ?? [],
+                            'total_raw' => $p['total_raw'] ?? 0,
+                            'priority_raw' => $p['priority_raw'] ?? 0,
+                            'priority_converted' => $p['priority_converted'] ?? 0,
+                            'threshold_note' => $p['threshold_note'] ?? ''
+                        ], JSON_UNESCAPED_UNICODE);
+                    }
+                }
+                $rows[] = $row;
+            }
 
-            // Tìm những thí sinh có ho_so_xet_tuyen 'Đã duyệt' thuộc đợt này nhưng KHÔNG có nguyện vọng trong lọc ảo
-            $sqlMissing = "
-                SELECT ts.ho_va_ten as ho_ten, hs.so_cccd, hs.trang_thai
-                FROM ho_so_xet_tuyen hs
-                JOIN thi_sinh ts ON hs.so_cccd = ts.so_cccd
-                WHERE hs.dot_tuyen_sinh_id = ?
-                AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
-                AND hs.so_cccd NOT IN (
-                    SELECT DISTINCT n.so_cccd 
-                    FROM nguyen_vong n 
-                    WHERE n.dot_tuyen_sinh_id = ? AND n.trang_thai = 'DaDuyet'
-                )
-            ";
-            $stmtMissing = $this->db->prepare($sqlMissing);
-            $stmtMissing->execute([$sessionId, $sessionId]);
-            $missingCandidates = $stmtMissing->fetchAll(PDO::FETCH_ASSOC);
-
+            // 7. Gói dữ liệu chuẩn JSON cho DataTables SSP
             $this->json([
+                'draw' => intval($draw),
+                'recordsTotal' => intval($recordsTotal),
+                'recordsFiltered' => intval($recordsFiltered),
                 'data' => $rows,
                 'candidate_count' => $candidateCount,
-                'aspiration_count' => count($rows),
-                'missing_candidates' => $missingCandidates,
-                'debug_info' => [
-                    'session_id' => $sessionId,
-                    'total_approved_in_hsxt' => $candidateCount + count($missingCandidates)
-                ]
+                'aspiration_count' => $recordsTotal
             ]);
         } catch (\Exception $e) {
-            error_log("loadBatchData Error: " . $e->getMessage());
+            error_log("loadBatchData SSP Error: " . $e->getMessage());
             $this->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -121,9 +163,118 @@ class VirtualAdmissionController extends Controller {
             exit;
         }
 
-        $successCount = $this->scoreService->recalculateSession($sessionId);
+        try {
+            // Support Chunked Processing: Check if specific CCCDs were sent
+            $cccds = $_POST['cccds'] ?? null;
+            if ($cccds && is_string($cccds)) {
+                $cccds = json_decode($cccds, true);
+            }
 
-        $this->json(['success' => true, 'message' => "Đã tính điểm cho $successCount thí sinh."]);
+            $force = isset($_POST['force']) && $_POST['force'] == '1';
+
+            if (!empty($cccds) && is_array($cccds)) {
+                // High-performance batch calculation
+                $successCount = $this->scoreService->recalculateBatch($sessionId, $cccds, $force);
+                $this->json(['success' => true, 'count' => $successCount]);
+            } else {
+                // Sequential fallback (Legacy/Full)
+                $successCount = $this->scoreService->recalculateSession($sessionId, $force);
+                $this->json(['success' => true, 'message' => "Đã tính điểm cho $successCount thí sinh."]);
+            }
+        } catch (\Throwable $e) {
+            error_log("Recalculate Error: " . $e->getMessage());
+            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * API: Get all candidate IDs to process (for frontend progress bar)
+     */
+    public function apiGetCccds() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) {
+            $this->json(['success' => false, 'message' => 'Missing session ID'], 400);
+            return;
+        }
+
+        $force = ($_GET['force'] ?? 0) == 1;
+        $cccds = $this->scoreService->getCandidateIds($sessionId, $force);
+        $this->json([
+            'success' => true,
+            'cccds' => $cccds,
+            'total' => count($cccds)
+        ]);
+    }
+
+    /**
+     * Tạm thời để tạo dữ liệu test 15.000 hồ sơ
+     */
+    public function runStressSeeder() {
+        set_time_limit(900); 
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $targetSessionId = 3; 
+
+        $totalCandidates = 15000;
+        $chunkSize = 500;
+
+        $majors = $db->query("SELECT ma_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_COLUMN);
+
+        for ($i = 0; $i < $totalCandidates; $i += $chunkSize) {
+            $batchCccds = [];
+            for ($j = 0; $j < min($chunkSize, $totalCandidates - $i); $j++) {
+                $batchCccds[] = sprintf("%012d", $i + $j + 100000000000);
+            }
+
+            $db->beginTransaction();
+            try {
+                $tsValues = [];
+                foreach ($batchCccds as $cccd) {
+                    $tsValues[] = "('$cccd', 'Candidate $cccd', '2008-01-01', 'Nam', 'KV" . rand(1, 3) . "', '0" . rand(1, 7) . "')";
+                }
+                $db->exec("INSERT INTO thi_sinh (so_cccd, ho_va_ten, ngay_sinh, gioi_tinh, khu_vuc_uu_tien, doi_tuong_uu_tien) VALUES " . implode(',', $tsValues));
+
+                $hsValues = [];
+                foreach ($batchCccds as $cccd) {
+                    $hsValues[] = "('$cccd', $targetSessionId, 'Đã duyệt')";
+                }
+                $db->exec("INSERT INTO ho_so_xet_tuyen (so_cccd, dot_tuyen_sinh_id, trang_thai) VALUES " . implode(',', $hsValues));
+
+                $nvValues = [];
+                foreach ($batchCccds as $cccd) {
+                    $numNv = rand(1, 4);
+                    $randKeys = (array)array_rand($majors, $numNv);
+                    foreach ($randKeys as $idx => $key) {
+                        $m = $majors[$key];
+                        $nvValues[] = "('$cccd', $targetSessionId, '$m', " . ($idx + 1) . ", 'DaDuyet')";
+                    }
+                }
+                $db->exec("INSERT INTO nguyen_vong (so_cccd, dot_tuyen_sinh_id, ma_nganh, thu_tu_nguyen_vong, trang_thai) VALUES " . implode(',', $nvValues));
+
+                $kqhtValues = [];
+                foreach ($batchCccds as $cccd) {
+                    for ($lop = 10; $lop <= 12; $lop++) {
+                        $v = array_map(fn() => rand(50, 95) / 10, range(1, 9));
+                        $kqhtValues[] = "('$cccd', $lop, " . implode(',', $v) . ")";
+                    }
+                }
+                $db->exec("INSERT INTO ket_qua_hoc_tap (so_cccd, lop, diem_toan_cn, diem_van_cn, diem_ngoai_ngu_cn, diem_ly_cn, diem_hoa_cn, diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn) VALUES " . implode(',', $kqhtValues));
+
+                $thptValues = [];
+                foreach ($batchCccds as $cccd) {
+                    $v = array_map(fn() => rand(50, 95) / 10, range(1, 9));
+                    $thptValues[] = "('$cccd', " . implode(',', $v) . ")";
+                }
+                $db->exec("INSERT INTO diem_thi_thpt (so_cccd, toan, van, tieng_anh, ly, hoa, sinh, su, dia, gdcd) VALUES " . implode(',', $thptValues));
+
+                $db->commit();
+            } catch (\Exception $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                echo "Error at $i: " . $e->getMessage();
+                exit;
+            }
+        }
+        echo "SUCCESS: Generated 15,000 records.";
+        exit;
     }
 
     public function apiSync() {
@@ -162,11 +313,13 @@ class VirtualAdmissionController extends Controller {
         // Header
         fputcsv($output, ['CCCD', 'Họ tên', 'Ngành', 'NV', 'Điểm M1', 'Điểm M2', 'Điểm M3', 'Tổng Điểm', 'Trạng Thái']);
 
-        $sql = "SELECT n.so_cccd, ts.ho_va_ten, n.ma_nganh, n.thu_tu_nguyen_vong, n.diem_mon_1, n.diem_mon_2, n.diem_mon_3, n.diem_xet_tuyen, n.trang_thai_trung_tuyen
-                FROM nguyen_vong n
-                JOIN thi_sinh ts ON n.so_cccd = ts.so_cccd
-                WHERE n.dot_tuyen_sinh_id = ? AND (n.trang_thai = 'DaDuyet' OR n.trang_thai LIKE '%Đã duyệt%')
-                ORDER BY n.so_cccd, n.thu_tu_nguyen_vong ASC";
+        $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
+                       cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen
+                FROM nguyen_vong nv
+                JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')
+                ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);
         
