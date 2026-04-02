@@ -128,13 +128,15 @@ class VirtualFilterService {
      * Lấy lại mốc điểm chuẩn lần cuối cùng Admin kéo thả để hiển thị
      */
     public function getExpectedBenchmarks($batchId) {
-        // Lấy từ bảng nháp (diem_chuan_du_kien) nhưng join với admission_benchmarks để lấy chi_tieu gốc nếu nháp chưa có
+        // Lấy từ bảng nháp (diem_chuan_du_kien) join với admission_benchmarks 
+        // và join với dm_nganh để lấy chi_tieu gốc (do ab không có cột chi_tieu)
         $stmt = $this->db->prepare("
             SELECT 
                 COALESCE(dk.ma_nganh, ab.ma_nganh) as ma_nganh,
                 COALESCE(dk.diem_chuan, ab.diem_chuan, 0) as diem_chuan,
-                COALESCE(dk.chi_tieu_du_kien, ab.chi_tieu, 0) as chi_tieu_du_kien
+                COALESCE(dk.chi_tieu_du_kien, n.chi_tieu, 0) as chi_tieu_du_kien
             FROM admission_benchmarks ab
+            LEFT JOIN dm_nganh n ON ab.ma_nganh = n.ma_nganh
             LEFT JOIN diem_chuan_du_kien dk ON ab.ma_nganh = dk.ma_nganh AND ab.session_id = dk.dot_tuyen_sinh_id
             WHERE ab.session_id = ?
         ");
