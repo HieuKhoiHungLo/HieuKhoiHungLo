@@ -89,9 +89,9 @@ class VirtualFilterService {
                 'successful_count' => count($successfulNvIds)
             ];
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
-            error_log("VirtualFilter Error: " . $e->getMessage());
+            error_log("VirtualFilter Error (Throwable): " . $e->getMessage());
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }

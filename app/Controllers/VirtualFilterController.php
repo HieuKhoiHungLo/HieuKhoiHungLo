@@ -135,7 +135,7 @@ class VirtualFilterController extends Controller {
             }
 
             $this->json(['status' => true, 'message' => "Đã tính điểm thành công cho $count thí sinh."]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->json(['status' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
         }
     }
@@ -143,6 +143,7 @@ class VirtualFilterController extends Controller {
     // API: Thực hiện thuật toán Lọc Ảo ưu tiên (Trượt dây chuyền)
     public function runFiltering() {
         @ini_set('display_errors', '0'); // Suppress warnings that might break JSON
+        @error_reporting(0);
         ob_start(); // Buffer to catch any accidental output
 
         $batchId = $_POST['session_id'] ?? ($_POST['batch_id'] ?? 0);
@@ -185,9 +186,9 @@ class VirtualFilterController extends Controller {
             if (ob_get_length() > 0) ob_clean();
             
             $this->json($result);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (ob_get_length() > 0) ob_clean();
-            $this->json(['status' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+            $this->json(['status' => false, 'message' => 'Lỗi hệ thống (Throwable): ' . $e->getMessage()]);
         }
     }
 }
