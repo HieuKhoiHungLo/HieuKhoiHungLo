@@ -142,16 +142,23 @@ class VirtualFilterController extends Controller {
 
     // API: Thực hiện thuật toán Lọc Ảo ưu tiên (Trượt dây chuyền)
     public function runFiltering() {
+        @ini_set('display_errors', '0'); // Suppress warnings that might break JSON
+        ob_start(); // Buffer to catch any accidental output
+
         $batchId = $_POST['session_id'] ?? ($_POST['batch_id'] ?? 0);
-        $benchmarks = $_POST['benchmarks'] ?? []; // ['CNTT' => 24.5, 'QTKD' => 20]
-        $quotas = $_POST['quotas'] ?? []; // ['CNTT' => 100]
+        $benchmarks = $_POST['benchmarks'] ?? []; 
+        $quotas = $_POST['quotas'] ?? []; 
+
+        if (is_string($benchmarks)) {
+            $benchmarks = json_decode($benchmarks, true) ?? [];
+        }
 
         if (!$batchId) {
             $this->json(['status' => false, 'message' => 'Thiếu ID đợt tuyển sinh (session_id)']);
             return;
         }
 
-        // Nếu không truyền benchmarks từ UI, thử lấy từ DB đã lưu trước đó
+        // Automatic benchmark retrieval if not provided
         if (empty($benchmarks)) {
             $saved = $this->filterService->getExpectedBenchmarks($batchId);
             foreach ($saved as $s) {
@@ -161,18 +168,26 @@ class VirtualFilterController extends Controller {
         }
 
         if (empty($benchmarks)) {
-            $this->json(['status' => false, 'message' => 'Chưa thiết lập điểm chuẩn dự kiến cho đợt này.']);
+            $this->json(['status' => false, 'message' => 'Chưa thiết lập điểm chuẩn. Hãy nhập điểm chuẩn dự kiến cho các ngành.']);
             return;
         }
 
-        // Lưu lại mốc điểm chuẩn BGH vừa thiết lập (nếu có truyền lên mới)
+        // Save benchmarks if provided
         if (!empty($_POST['benchmarks'])) {
             $this->filterService->saveExpectedBenchmarks($batchId, $benchmarks, $quotas);
         }
 
-        // Chạy lọc ảo dây chuyền
-        $result = $this->filterService->runVirtualFilter($batchId, $benchmarks);
-
-        $this->json($result);
+        // Execute algorithm
+        try {
+            $result = $this->filterService->runVirtualFilter($batchId, $benchmarks);
+            
+            // Clean anything was output by accident
+            if (ob_get_length() > 0) ob_clean();
+            
+            $this->json($result);
+        } catch (\Exception $e) {
+            if (ob_get_length() > 0) ob_clean();
+            $this->json(['status' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+        }
     }
 }

@@ -33,7 +33,7 @@ class VirtualFilterService {
 
             if (empty($benchmarks)) {
                  $this->db->commit();
-                 return ['status' => true, 'data' => []];
+                 return ['status' => true, 'data' => [], 'message' => 'Không có điểm chuẩn để lọc.'];
             }
 
             // Bước 2: Lấy tất cả nguyện vọng CỦA ĐỢT NÀY kèm điểm từ bảng summary
@@ -80,7 +80,14 @@ class VirtualFilterService {
             }
 
             $this->db->commit();
-            return $this->getFilterStats($batchId);
+            
+            $stats = $this->getFilterStats($batchId);
+            return [
+                'status' => true, 
+                'data' => $stats,
+                'candidate_count' => count($processedCandidates),
+                'successful_count' => count($successfulNvIds)
+            ];
 
         } catch (\Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();

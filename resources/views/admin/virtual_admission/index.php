@@ -646,9 +646,6 @@ if (!empty($combinations)) {
             runVirtualFilter() {
                 if (!this.selectedSession) return;
                 
-                // Simple Prompt for now, or we could build a full modal.
-                // For a proper implementation, we'd need a list of majors and their benchmarks.
-                // Let's implement a basic call that sends current session.
                 if (!confirm('Hệ thống sẽ chạy thuật toán lọc ảo dựa trên điểm chuẩn đã thiết lập. Tiếp tục?')) return;
 
                 this.isFiltering = true;
@@ -659,23 +656,38 @@ if (!empty($combinations)) {
                     type: 'POST',
                     data: {
                         session_id: this.selectedSession,
-                        _csrf_token: '<?= csrf_token() ?>',
-                        // Note: api-run expects benchmarks array. 
-                        // In a real scenario, this would come from a modal.
-                        // For now, we'll let the controller handle defaults if empty, 
-                        // or we can pass some dummy data if we want to test.
+                        _csrf_token: '<?= csrf_token() ?>'
                     },
                     success: (res) => {
-                        let parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                        let parsed;
+                        try {
+                            parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                        } catch (e) {
+                            console.error("Malformed JSON response:", res);
+                            toast.error("Lỗi phản hồi từ máy chủ (Malformed JSON).");
+                            return;
+                        }
+
                         if (parsed.status) {
-                            toast.success("Lọc ảo hoàn tất!");
+                            let msg = "Lọc ảo hoàn tất!";
+                            if (parsed.candidate_count) {
+                                msg += ` (Đã xét ${parsed.candidate_count} hồ sơ, đỗ ${parsed.successful_count})`;
+                            }
+                            toast.success(msg);
                             this.loadData();
                         } else {
                             toast.error(parsed.message || "Lỗi khi lọc ảo");
                         }
                     },
-                    error: () => {
-                        toast.error("Lỗi khi kết nối máy chủ");
+                    error: (xhr) => {
+                        let msg = "Lỗi khi kết nối máy chủ";
+                        try {
+                            if (xhr.responseText && xhr.responseText.includes('{')) {
+                                let err = JSON.parse(xhr.responseText);
+                                msg = err.message || msg;
+                            }
+                        } catch(e) {}
+                        toast.error(msg);
                     },
                     complete: () => {
                         this.stopLoading();
