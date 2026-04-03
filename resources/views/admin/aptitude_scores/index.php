@@ -6,7 +6,15 @@ ob_start();
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Cập nhật Điểm năng khiếu</h1>
-            <p class="text-slate-500 text-sm mt-1">Tổng cộng: <?= number_format($stats['total']) ?> bản ghi</p>
+            <div class="flex items-center gap-2 mt-1">
+                <p class="text-slate-500 text-sm">Tổng cộng: <?= number_format($stats['total']) ?> bản ghi</p>
+                <?php if ($activeSession): ?>
+                    <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold uppercase border border-indigo-100">
+                        Đợt: <?= htmlspecialchars($activeSession['ten_dot']) ?>
+                    </span>
+                <?php endif; ?>
+            </div>
         </div>
         <div class="flex gap-2">
             <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
@@ -17,8 +25,12 @@ ob_start();
                 <i class="fas fa-file-excel"></i>
                 <span>Import Excel</span>
             </button>
-            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center gap-2">
+            <button @click="exportData()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-medium transition-colors border border-indigo-200 flex items-center gap-2">
                 <i class="fas fa-download"></i>
+                <span>Xuất dữ liệu</span>
+            </button>
+            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center gap-2">
+                <i class="fas fa-file-csv"></i>
                 <span>Mẫu Import</span>
             </a>
         </div>
@@ -134,6 +146,7 @@ ob_start();
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
                 <form action="<?= url('/admin/aptitude-scores/import') ?>" method="POST" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -190,6 +203,10 @@ ob_start();
                 this.editMode = false;
                 this.formData = { id: null, so_cccd: '', sbd: '', ma_mon: 'NK1', diem: 0, ghi_chu: '' };
                 this.showEditModal = true;
+            },
+            exportData() {
+                const search = $('#aptitudeTable').DataTable().search();
+                window.location.href = '<?= url("/admin/aptitude-scores/export") ?>?search=' + encodeURIComponent(search);
             },
             editScore(row) {
                 this.editMode = true;

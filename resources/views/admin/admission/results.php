@@ -1,211 +1,275 @@
 <?php
-$title = "Kết quả Xét tuyển";
+// results.php - Danh sách kết quả trúng tuyển chính thức (Grid View v2)
+$title = "Danh sách Trúng tuyển";
 ob_start();
+
+$totalCandidates = $stats['total_candidates'] ?? 0;
+$totalAdmitted = $stats['total_admitted'] ?? 0;
+$nv1 = $stats['nv1_admit'] ?? 0;
+$nv2 = $stats['nv2_admit'] ?? 0;
+$nv3 = $stats['nv3_admit'] ?? 0;
+$others = $totalAdmitted - ($nv1 + $nv2 + $nv3);
+$admitRate = $totalCandidates > 0 ? round(($totalAdmitted / $totalCandidates) * 100, 1) : 0;
 ?>
 
-<div class="h-full flex flex-col p-6 bg-slate-50" x-data="resultsApp()">
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-800">Kết quả Xét tuyển Dự kiến</h1>
-            <p class="text-sm text-slate-500 mt-1">Danh sách thí sinh đủ điều kiện trúng tuyển dựa trên điểm chuẩn đã thiết lập.</p>
+<!-- Tailwind & Assets -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="h-full flex flex-col p-4 lg:p-8 bg-slate-50/50" x-data="resultsApp()">
+    
+    <!-- Top Progress/Action Bar -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+        <div class="flex items-center gap-5">
+            <div class="w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-200">
+                <i class="fas fa-file-invoice text-white text-3xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight leading-tight uppercase">DANH SÁCH TRÚNG TUYỂN</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase leading-none border border-emerald-200">GRID VIEW V2</span>
+                    <p class="text-xs text-slate-400 font-medium tracking-wide">Báo cáo tổng hợp kết quả trúng tuyển chính thức.</p>
+                </div>
+            </div>
         </div>
         
-            <div class="flex flex-wrap gap-2">
-                <a href="<?= url('/admin/reports/export-admission?session_id=' . ($activeSession['id'] ?? '')) ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium border border-slate-200 shadow-sm transition-colors flex items-center gap-2">
-                    <i class="fas fa-file-export text-slate-400"></i>
-                    <span>Xuất Dữ liệu Xét tuyển</span>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+                <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . ($activeSession['id'] ?? '')) ?>" 
+                   class="px-4 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex items-center gap-2 group">
+                    <i class="fas fa-file-excel"></i> Xuất Excel Trúng Tuyển
                 </a>
-                <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . ($activeSession['id'] ?? '')) ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
-                    <i class="fas fa-file-excel"></i>
-                    <span>Xuất DS Trúng tuyển (Toàn bộ)</span>
-                </a>
-            </div>
-            
-            <div class="flex flex-wrap gap-3">
-                <form action="<?= url('/admin/admission/process') ?>" method="POST" @submit="confirmRecalculate($event)">
+                <div class="w-px h-6 bg-slate-200 my-auto"></div>
+                <form action="<?= url('/admin/admission/notify') ?>" method="POST" @submit="confirmNotifyAll($event)">
                     <?= csrf_field() ?>
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
-                        <i class="fas fa-sync-alt"></i>
-                        <span>Tính lại Điểm</span>
+                    <input type="hidden" name="major" value="<?= htmlspecialchars($filterMajor) ?>">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($filterStatus) ?>">
+                    <input type="hidden" name="show_all" value="<?= $showAll ? '1' : '0' ?>">
+                    <button type="submit" class="px-4 py-2.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-2 group">
+                        <i class="fas fa-paper-plane"></i> Gửi Thông Báo (Danh sách hiện tại)
                     </button>
                 </form>
             </div>
+            
+            <a href="<?= url('/admin/admission/virtual-filter') ?>" 
+               class="bg-slate-800 hover:bg-black text-white px-6 py-3 rounded-2xl font-black shadow-xl transition-all flex items-center gap-3 group">
+                <i class="fas fa-filter"></i>
+                <span class="tracking-wide uppercase">Lọc Ảo</span>
+            </a>
+        </div>
     </div>
 
-    <!-- Alert Message -->
-    <?php if (isset($_GET['message'])): ?>
-        <div class="mb-6 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 p-4 rounded-r-lg shadow-sm flex items-center gap-3 animate-fade-in-down">
-            <i class="fas fa-check-circle text-emerald-500 text-xl"></i>
-            <p class="font-medium"><?= htmlspecialchars($_GET['message']) ?></p>
+    <!-- Premium Stats Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Card 1: Total -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+            <div class="relative">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-3">Thí sinh xét tuyển</p>
+                <div class="flex items-end gap-2">
+                    <h3 class="text-3xl font-black text-slate-800 leading-none"><?= number_format($totalCandidates) ?></h3>
+                    <span class="text-xs font-bold text-blue-600 mb-1">Hồ sơ</span>
+                </div>
+            </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Filter Bar -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-        <form action="" method="GET" class="flex flex-wrap items-end gap-4">
-            <div class="flex-1 min-w-[250px]">
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Lọc theo Ngành</label>
-                <select name="major" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" onchange="this.form.submit()">
-                    <option value="">-- Tất cả các ngành --</option>
+        <!-- Card 2: Admitted -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+            <div class="relative">
+                <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-3">Thí sinh trúng tuyển</p>
+                <div class="flex items-end gap-2 text-emerald-700">
+                    <h3 class="text-3xl font-black leading-none"><?= number_format($totalAdmitted) ?></h3>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-black leading-none mb-0.5">Tỉ lệ đạt</span>
+                        <span class="text-xs font-bold"><?= $admitRate ?>%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: NV1 -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+            <div class="relative">
+                <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none mb-3">Trúng tuyển NV1</p>
+                <div class="flex items-end gap-2 text-indigo-700">
+                    <h3 class="text-3xl font-black leading-none"><?= number_format($nv1) ?></h3>
+                    <span class="text-xs font-bold mb-1">Ưu tiên 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Other NV -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+            <div class="relative">
+                <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-3">NV2, NV3 & Khác</p>
+                <div class="flex items-center gap-4">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 block uppercase">NV2/3</span>
+                        <span class="text-lg font-black text-amber-600"><?= $nv2 + $nv3 ?></span>
+                    </div>
+                    <div class="w-px h-6 bg-slate-100"></div>
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 block uppercase">Còn lại</span>
+                        <span class="text-lg font-black text-slate-600"><?= $others ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Grid Toolbar -->
+    <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-200 p-2 mb-8 flex flex-col lg:flex-row items-center gap-4">
+        <form action="" method="GET" class="flex-grow flex flex-col lg:flex-row items-center gap-3 w-full">
+            <!-- Major Filter -->
+            <div class="relative flex-grow group w-full lg:w-auto">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <i class="fas fa-university text-xs"></i>
+                </div>
+                <select name="major" class="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-4 text-xs font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none" onchange="this.form.submit()">
+                    <option value="">TẤT CẢ NGÀNH</option>
                     <?php foreach ($majors as $m): ?>
                         <option value="<?= $m['ma_nganh'] ?>" <?= ($filterMajor == $m['ma_nganh']) ? 'selected' : '' ?>>
-                             <?= htmlspecialchars($m['ma_nganh'] . ' - ' . $m['ten_nganh']) ?>
+                             <?= strtoupper(htmlspecialchars($m['ma_nganh'] . ' - ' . $m['ten_nganh'])) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] pointer-events-none"></i>
             </div>
             
-            <div class="w-48">
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Trạng thái</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" onchange="this.form.submit()">
-                    <option value="">-- Tất cả --</option>
-                    <option value="Trung tuyen" <?= ($filterStatus == 'Trung tuyen') ? 'selected' : '' ?>>Trúng tuyển</option>
-                    <option value="Truot" <?= ($filterStatus == 'Truot') ? 'selected' : '' ?>>Trượt</option>
-                    <option value="Truot (NV cao hon)" <?= ($filterStatus == 'Truot (NV cao hon)') ? 'selected' : '' ?>>Trượt (NV cao hơn)</option>
+            <!-- Status Filter -->
+            <div class="relative w-full lg:w-64 group">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <i class="fas fa-tag text-xs"></i>
+                </div>
+                <select name="status" class="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-4 text-xs font-black text-slate-700 focus:ring-2 focus:ring-indigo-500 appearance-none" onchange="this.form.submit()">
+                    <option value="">LỌC TRẠNG THÁI</option>
+                    <option value="Trung tuyen" <?= ($filterStatus == 'Trung tuyen') ? 'selected' : '' ?>>TRÚNG TUYỂN</option>
+                    <option value="Truot" <?= ($filterStatus == 'Truot') ? 'selected' : '' ?>>KHÔNG ĐẠT</option>
                 </select>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] pointer-events-none"></i>
             </div>
 
-            <div>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all">
-                    Lọc dữ liệu
-                </button>
-            </div>
+            <!-- Show All Checkbox -->
+            <label class="flex items-center gap-3 px-4 py-2 border-r border-slate-100 cursor-pointer select-none">
+                <input type="checkbox" name="show_all" value="1" <?= $showAll ? 'checked' : '' ?> onchange="this.form.submit()" class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                <span class="text-[11px] font-black text-slate-500 uppercase tracking-tight">Hiện cả thí sinh không đạt</span>
+            </label>
+
+            <button type="submit" class="bg-black text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest shadow-lg flex items-center justify-center gap-2 group">
+                <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform"></i> TẢI LẠI
+            </button>
         </form>
     </div>
 
-    <?php if (empty($groupedResults)): ?>
-        <div class="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                <i class="fas fa-folder-open text-slate-300 text-3xl"></i>
-            </div>
-            <h3 class="text-xl font-bold text-slate-700 mb-2">Chưa có dữ liệu xét tuyển</h3>
-            <p class="text-slate-500 max-w-sm mb-6">Hệ thống chưa tìm thấy kết quả trúng tuyển nào. Vui lòng thiết lập điểm chuẩn và bấm "Tính lại điểm".</p>
+    <!-- The Unified Grid (Candidate Table) -->
+    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-200 overflow-hidden flex flex-col flex-1">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black border-b border-slate-200 sticky top-0 z-10">
+                        <th class="py-5 px-6 text-center w-16">STT</th>
+                        <th class="py-5 px-6">MÃ NGÀNH</th>
+                        <th class="py-5 px-6 text-center w-16">NV</th>
+                        <th class="py-5 px-6">CCCD / CMND</th>
+                        <th class="py-5 px-6">HỌ VÀ TÊN</th>
+                        <th class="py-5 px-6">TỔ HỢP / PHƯƠNG THỨC</th>
+                        <th class="py-5 px-6">ĐIỂM CHI TIẾT (M1-M2-M3)</th>
+                        <th class="py-5 px-6 text-center">ĐIỂM XT</th>
+                        <th class="py-5 px-6 text-center">TRẠNG THÁI</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-[11px]">
+                    <?php if (empty($results)): ?>
+                        <tr>
+                            <td colspan="9" class="py-32 text-center">
+                                <i class="fas fa-inbox text-slate-200 text-5xl block mb-4"></i>
+                                <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">Không có dữ liệu phù hợp</p>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($results as $index => $row): 
+                            $details = json_decode($row['chi_tiet_diem'], true);
+                            $isPass = ($row['trang_thai'] == 'Trung tuyen' || $row['trang_thai'] == 'Trúng tuyển' || ($row['trang_thai_trung_tuyen'] ?? false));
+                        ?>
+                            <tr class="hover:bg-indigo-50/30 transition-all group">
+                                <td class="py-4 px-6 text-center text-slate-300 font-black"><?= $index + 1 ?></td>
+                                <td class="py-4 px-6">
+                                    <span class="text-indigo-600 font-black tracking-tight" title="<?= htmlspecialchars($row['ten_nganh']) ?>"><?= $row['ma_nganh'] ?></span>
+                                </td>
+                                <td class="py-4 px-6 text-center">
+                                    <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-black border border-slate-200">
+                                        <?= $row['thu_tu_nguyen_vong'] ?>
+                                    </span>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <span class="font-mono text-slate-500 font-bold"><?= htmlspecialchars($row['so_cccd']) ?></span>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <p class="font-black text-slate-800 uppercase tracking-tight group-hover:text-indigo-600 transition-colors"><?= htmlspecialchars($row['ho_va_ten']) ?></p>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="flex flex-col">
+                                        <span class="font-black text-slate-700"><?= htmlspecialchars($row['cs_to_hop'] ?: '-') ?></span>
+                                        <span class="text-[9px] font-bold text-slate-400 uppercase">
+                                            <?php
+                                                $majorArr = [
+                                                    'co_diem_nangkhieu_thpt' => $row['co_diem_nangkhieu_thpt'] ?? false,
+                                                    'co_xet_chung_chi' => $row['co_xet_chung_chi'] ?? false,
+                                                    'co_diem_nangkhieu_hochba' => $row['co_diem_nangkhieu_hochba'] ?? false
+                                                ];
+                                                $methodCode = (string)($row['cs_phuong_thuc'] ?: $row['phuong_thuc_xet_tuyen'] ?: '');
+                                                echo \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($methodCode, $majorArr);
+                                            ?>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_1'] ?? 0, 2) ?></span>
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_2'] ?? 0, 2) ?></span>
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_3'] ?? 0, 2) ?></span>
+                                        <?php if (($details['priority_raw'] ?? 0) > 0): ?>
+                                            <span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 text-[9px]">+<?= number_format($details['priority_converted'] ?? 0, 2) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-center">
+                                    <span class="text-lg font-black text-indigo-700"><?= $row['cs_diem_xet_tuyen'] !== null ? number_format($row['cs_diem_xet_tuyen'], 2) : '-' ?></span>
+                                </td>
+                                <td class="py-4 px-6 text-center">
+                                    <?php if ($isPass): ?>
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
+                                            <i class="fas fa-check-circle mr-1.5"></i> ĐỖ
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-[9px] font-black bg-rose-50 text-rose-500 border border-rose-200 uppercase opacity-60">
+                                            <i class="fas fa-times-circle mr-1.5"></i> KHÔNG ĐẠT
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
-    <?php else: ?>
-        <div class="space-y-8">
-            <?php foreach ($groupedResults as $ma_nganh => $rows): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2">
-                                <span class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded uppercase"><?= htmlspecialchars($ma_nganh) ?></span>
-                                <?= htmlspecialchars($rows[0]['ten_nganh'] ?? 'Ngành ' . $ma_nganh) ?>
-                            </h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Số lượng: <span class="font-bold text-indigo-600"><?= count($rows) ?></span> thí sinh trúng tuyển</p>
-                        </div>
-                        
-                        <div class="flex gap-2">
-                            <a href="<?= url('/admin/reports/export-admitted?ma_nganh=' . $ma_nganh) ?>" 
-                               class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-100 transition-colors flex items-center gap-2">
-                                <i class="fas fa-file-excel"></i> Xuất Excel (Mail Merge)
-                            </a>
-                            
-                            <form action="<?= url('/admin/admission/notify') ?>" method="POST" @submit="confirmNotify($event, '<?= htmlspecialchars($ma_nganh) ?>')">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="ma_nganh" value="<?= htmlspecialchars($ma_nganh) ?>">
-                                <button type="submit" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-100 transition-colors flex items-center gap-2">
-                                    <i class="fas fa-paper-plane"></i> Gửi Email thông báo
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto custom-scrollbar">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50/30 text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-slate-100">
-                            <th class="py-3 px-6 w-12 text-center">STT</th>
-                            <th class="py-3 px-6 w-16 text-center">NV</th>
-                            <th class="py-3 px-6 w-32">CCCD/CMND</th>
-                            <th class="py-3 px-6 w-56">Họ và Tên</th>
-                            <th class="py-3 px-6 text-center">Tổ hợp / Phương thức</th>
-                            <th class="py-3 px-6">Chi tiết Điểm</th>
-                            <th class="py-3 px-6 text-center w-28">Tổng điểm</th>
-                            <th class="py-3 px-6 text-center w-32">Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-50">
-                                <?php foreach ($rows as $index => $row): ?>
-                                    <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="py-4 px-6 text-center text-slate-400 font-medium"><?= $index + 1 ?></td>
-                                        <td class="py-4 px-6 text-center">
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
-                                                <?= $row['thu_tu_nguyen_vong'] ?>
-                                            </span>
-                                        </td>
-                                        <td class="py-4 px-6 font-mono text-sm text-indigo-600 font-medium"><?= htmlspecialchars($row['so_cccd']) ?></td>
-                                        <td class="py-4 px-6 font-bold text-slate-700"><?= htmlspecialchars($row['ho_va_ten']) ?></td>
-                                        <td class="py-4 px-6 text-center">
-                                            <div class="text-sm font-bold text-slate-600"><?= htmlspecialchars($row['to_hop_toi_uu'] ?: ($row['to_hop_xet_tuyen_id'] ?? 'N/A')) ?></div>
-                                            <div class="text-[10px] text-slate-400 uppercase">
-                                                <?php
-                                                    $majorArr = [
-                                                        'co_diem_nangkhieu_thpt' => $row['co_diem_nangkhieu_thpt'] ?? false,
-                                                        'co_xet_chung_chi' => $row['co_xet_chung_chi'] ?? false,
-                                                        'co_diem_nangkhieu_hochba' => $row['co_diem_nangkhieu_hochba'] ?? false
-                                                    ];
-                                                    echo \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($row['phuong_thuc_toi_uu'] ?: $row['phuong_thuc_xet_tuyen'], $majorArr);
-                                                ?>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-6">
-                                            <div class="flex flex-wrap gap-1.5">
-                                                <?php 
-                                                $details = json_decode($row['chi_tiet_diem'], true);
-                                                if ($details) {
-                                                    foreach ($details as $k => $v) {
-                                                        if (in_array($k, ['details', 'total_raw', 'all_combinations', 'combinations', 'priority_raw', 'priority_converted', 'diem_mon_1', 'diem_mon_2', 'diem_mon_3'])) continue;
-                                                        $val = is_array($v) ? ($v['final'] ?? $v['raw'] ?? '-') : $v;
-                                                        if ($val === '-') continue;
-                                                        ?>
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-medium border border-slate-200">
-                                                            <span class="font-bold mr-1"><?= strtoupper($k) ?>:</span> <?= $val ?>
-                                                        </span>
-                                                        <?php
-                                                    }
-                                                }
-                                                ?>
-                                            </div>
-                                        </td>
-                                        <td class="py-4 px-6 text-center">
-                                            <span class="text-lg font-black text-indigo-700"><?= number_format($row['diem_xet_tuyen'], 2) ?></span>
-                                        </td>
-                                        <td class="py-4 px-6 text-center">
-                                            <?php if ($row['trang_thai'] == 'Trung tuyen' || $row['trang_thai'] == 'Trúng tuyển'): ?>
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm leading-none">
-                                                    <i class="fas fa-check-circle mr-1"></i> TRÚNG TUYỂN
-                                                </span>
-                                            <?php elseif (strpos($row['trang_thai'], 'Truot (NV cao hon)') !== false): ?>
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 leading-none">
-                                                    TRƯỢT (NV CAO HƠN)
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-500 border border-rose-100 leading-none">
-                                                    TRƯỢT
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+    </div>
 </div>
 
 <script>
 function resultsApp() {
     return {
-        confirmRecalculate(e) {
-            if (!confirm('Bạn có chắc chắn muốn TÍNH LẠI ĐIỂM cho toàn bộ hệ thống?\nHành động này sẽ xóa các kết quả trúng tuyển hiện tại và chạy lại logic dựa trên Điểm chuẩn mới nhất.')) {
+        confirmNotifyAll(e) {
+            const count = <?= count($results) ?>;
+            if (count === 0) {
+                alert("Danh sách hiện tại trống, không có gì để gửi.");
                 e.preventDefault();
+                return;
             }
-        },
-        confirmNotify(e, major) {
-            if (!confirm(`Gửi email thông báo trúng tuyển cho tất cả thí sinh ngành [${major}]?\nQuá trình này có thể mất vài phút tuỳ thuộc vào số lượng hồ sơ.`)) {
+            if (!confirm(`Hệ thống sẽ gửi EMAIL THÔNG BÁO cho tất cả ${count} thí sinh trong danh sách đang hiển thị. Bạn có chắc chắn?`)) {
                 e.preventDefault();
             }
         }
@@ -214,16 +278,23 @@ function resultsApp() {
 </script>
 
 <style>
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in-down {
-    animation: fadeInDown 0.4s ease-out;
-}
+.custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.font-black { font-weight: 900 !important; }
 </style>
 
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/../../layouts/admin.php';
+$layoutPath = realpath(__DIR__ . '/../../layouts/admin.php');
+if ($layoutPath && file_exists($layoutPath)) {
+    require_once $layoutPath;
+} else {
+    ?>
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head><meta charset="UTF-8"><title>Results Grid Fallback</title><script src="https://cdn.tailwindcss.com"></script></head>
+    <body class="bg-slate-50"><?= $content ?></body>
+    </html>
+    <?php
+}
 ?>

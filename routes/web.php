@@ -220,12 +220,15 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/aptitude-scores/api-list', 'AptitudeScoreController@apiList');
     $router->post('/admin/aptitude-scores/import', 'AptitudeScoreController@import');
     $router->get('/admin/aptitude-scores/template', 'AptitudeScoreController@template');
+    $router->get('/admin/aptitude-scores/export', 'AptitudeScoreController@export');
     $router->post('/admin/aptitude-scores/delete', 'AptitudeScoreController@delete');
 
     // Certificate Scores
     $router->get('/admin/certificate-scores', 'CertificateScoreController@index');
     $router->post('/admin/certificate-scores/api-list', 'CertificateScoreController@apiList');
     $router->post('/admin/certificate-scores/import', 'CertificateScoreController@import');
+    $router->get('/admin/certificate-scores/template', 'CertificateScoreController@template');
+    $router->get('/admin/certificate-scores/export', 'CertificateScoreController@export');
     $router->post('/admin/certificate-scores/delete', 'CertificateScoreController@delete');
 
     // Certificate Rules (Conversion Table)

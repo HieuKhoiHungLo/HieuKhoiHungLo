@@ -18,10 +18,17 @@ class CertificateScoreController extends Controller {
     }
 
     public function index() {
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        
         $stats = [
-            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_chung_chi")->fetchColumn(),
+            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_chung_chi" . ($activeSession ? " WHERE dot_tuyen_sinh_id = " . $activeSession['id'] : ""))->fetchColumn(),
         ];
-        $this->view('admin/certificate_scores/index', ['title' => 'Quản lý Điểm Chứng chỉ', 'stats' => $stats]);
+        $this->view('admin/certificate_scores/index', [
+            'title' => 'Quản lý Điểm Chứng chỉ', 
+            'stats' => $stats,
+            'activeSession' => $activeSession
+        ]);
     }
 
     public function apiList() {
@@ -31,11 +38,15 @@ class CertificateScoreController extends Controller {
         $length = $_POST['length'] ?? 10;
         $searchValue = $_POST['search']['value'] ?? '';
 
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : 0;
+
         $query = "SELECT c.id, c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
                   FROM diem_chung_chi c
                   LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd
-                  WHERE 1=1";
-        $params = [];
+                  WHERE c.dot_tuyen_sinh_id = ?";
+        $params = [$sessionId];
 
         if (!empty($searchValue)) {
             $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
@@ -44,7 +55,8 @@ class CertificateScoreController extends Controller {
         }
 
         // Total count
-        $stmtTotal = $db->query("SELECT COUNT(*) FROM diem_chung_chi");
+        $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
+        $stmtTotal->execute([$sessionId]);
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Filtered count
@@ -98,8 +110,12 @@ class CertificateScoreController extends Controller {
                     return;
                 }
 
-                $stmt = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$cccd, $maMon, $diem, $ghiChu]);
+                $sessionModel = new \App\Models\AdmissionSession();
+                $activeSession = $sessionModel->getActiveSession();
+                $sessionId = $activeSession ? $activeSession['id'] : null;
+
+                $stmt = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$cccd, $maMon, $diem, $ghiChu, $sessionId]);
             }
             $this->json(['success' => true]);
         } catch (\Exception $e) {
@@ -116,6 +132,10 @@ class CertificateScoreController extends Controller {
             $_SESSION['flash_error'] = "Vui lòng chọn file hợp lệ.";
             $this->redirect(url('/admin/certificate-scores'));
         }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : null;
 
         $file = $_FILES['csv_file']['tmp_name'];
         $extension = pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION);
@@ -152,13 +172,13 @@ class CertificateScoreController extends Controller {
                     $note = trim($row[3] ?? '');
 
                     if ($cccd && is_numeric($score)) {
-                        // Delete old entry for this student and subject
-                        $stmtDel = $db->prepare("DELETE FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ?");
-                        $stmtDel->execute([$cccd, $maMon]);
+                        // Delete old entry for this student and subject in THIS session
+                        $stmtDel = $db->prepare("DELETE FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
+                        $stmtDel->execute([$cccd, $maMon, $sessionId]);
                         
                         // Insert new
-                        $stmtIns = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu) VALUES (?, ?, ?, ?)");
-                        $stmtIns->execute([$cccd, $maMon, $score, $note]);
+                        $stmtIns = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
+                        $stmtIns->execute([$cccd, $maMon, $score, $note, $sessionId]);
                         
                         $successCount++;
                     } else {
@@ -194,13 +214,55 @@ class CertificateScoreController extends Controller {
         $this->json(['success' => false]);
     }
 
+    public function export() {
+        $searchValue = $_GET['search'] ?? '';
+        $db = $this->model->getDb();
+
+        $query = "SELECT c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
+                  FROM diem_chung_chi c
+                  LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd
+                  WHERE 1=1";
+        $params = [];
+
+        if (!empty($searchValue)) {
+            $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
+            $params[] = "%$searchValue%";
+            $params[] = "%$searchValue%";
+        }
+
+        $query .= " ORDER BY c.id DESC";
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=danh_sach_diem_chung_chi.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
+
+        // Headers matching the template exactly for easy re-import
+        fputcsv($output, ['CCCD (Bat buoc)', 'Ma mon (N1, N2, N3...)', 'Diem quy doi (Bat buoc)', 'Ghi chu']);
+
+        foreach ($data as $row) {
+            fputcsv($output, [
+                $row['so_cccd'],
+                $row['ma_mon'],
+                $row['diem'],
+                $row['ghi_chu']
+            ]);
+        }
+
+        fclose($output);
+        exit;
+    }
+
     public function template() {
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_diem_quy_doi_chung_chi.csv');
+        header('Content-Disposition: attachment; filename=mau_import_diem_chung_chi.csv');
         $output = fopen('php://output', 'w');
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
         fputcsv($output, ['CCCD (Bat buoc)', 'Ma mon (N1, N2, N3...)', 'Diem quy doi (Bat buoc)', 'Ghi chu']);
-        fputcsv($output, ['012345678901', 'N1', '10.0', 'Quy doi IELTS 6.5']);
+        fputcsv($output, ['123456789', 'N1', '10.0', 'Vi du mau']);
         fclose($output);
         exit;
     }

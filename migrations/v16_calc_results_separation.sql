@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.v_calc_summary (
     
     -- Kết quả Lọc ảo (Trúng tuyển dự kiến)
     trang_thai_trung_tuyen BOOLEAN DEFAULT FALSE,
+    trang_thai_do BOOLEAN DEFAULT TRUE, -- Kết quả đạt ngưỡng/học lực ban đầu
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

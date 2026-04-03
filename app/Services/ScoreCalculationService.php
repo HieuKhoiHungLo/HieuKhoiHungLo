@@ -197,7 +197,8 @@ class ScoreCalculationService {
             $applicationData = json_encode($this->getApplications($cccd));
         }
 
-        return md5($transcriptData . $thptData . $applicationData);
+        // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
+        return md5($transcriptData . $thptData . $applicationData . "v2");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -274,18 +275,20 @@ class ScoreCalculationService {
 
             // 4. Check Threshold (TT06/2026) and Update Summary Result
             $thresholdResult = null;
-            if (!empty($majorDetails['nguong_hoc_luc']) || !empty($majorDetails['nguong_diem_thpt'])) {
+            // Cho phép chạy kiểm tra nếu có cấu hình trong CSDL HOẶC là khối ngành Sư phạm (71)
+            $isPedagogy = (strpos((string)$majorCode, '71') === 0);
+            if (!empty($majorDetails['nguong_hoc_luc']) || !empty($majorDetails['nguong_diem_thpt']) || $isPedagogy) {
                 $thresholdResult = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $bestScore);
             }
-            
-            if ($thresholdResult && !$thresholdResult['passed']) {
-                $bestScore = 0;
-            }
+            // KHÔNG đưa bestScore về 0 nữa để hiển thị điểm thực tế trên Grid cho Admin đối soát
             
             $details = $bestDetails;
             $details['all_combinations'] = $allCombinationsParams;
+            
+            $admitted = true;
             if ($thresholdResult && !$thresholdResult['passed']) {
-                $details['threshold_note'] = 'KHÔNG ĐẠT NGƯỠNG: ' . implode('; ', $thresholdResult['errors']);
+                $details['threshold_note'] = implode('; ', $thresholdResult['errors']);
+                $admitted = false;
             }
             
             $finalMethodCode = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($bestMethod ?? '', $majorDetails);
@@ -298,13 +301,14 @@ class ScoreCalculationService {
                 'combo' => $bestCombo,
                 'method' => $finalMethodCode,
                 'details' => $details,
-                'data_hash' => $currentHash
+                'data_hash' => $currentHash,
+                'admitted' => $admitted
             ];
 
             if ($returnOnly) {
                 $results[] = $resultItem;
             } else {
-                $this->updateApplicationScore($nvId, $bestScore, $bestCombo, $finalMethodCode, $details, $currentHash);
+                $this->updateApplicationScore($nvId, $bestScore, $bestCombo, $finalMethodCode, $details, $currentHash, $admitted);
             }
         }
         return $results;
@@ -465,10 +469,11 @@ class ScoreCalculationService {
                 m3 DECIMAL(10,2),
                 prio_raw DECIMAL(10,2),
                 prio_qd DECIMAL(10,2),
+                is_passed BOOLEAN,
                 d_hash VARCHAR(64)
             ) ON COMMIT DROP");
 
-            $sql = "INSERT INTO temp_calc_results (nv_id, score, combo, combo_id, method, details, m1, m2, m3, prio_raw, prio_qd, d_hash) VALUES ";
+            $sql = "INSERT INTO temp_calc_results (nv_id, score, combo, combo_id, method, details, m1, m2, m3, prio_raw, prio_qd, is_passed, d_hash) VALUES ";
             $placeholders = [];
             $values = [];
             
@@ -484,7 +489,7 @@ class ScoreCalculationService {
                     $comboId = $this->cachedComboIds[$combo];
                 }
                 
-                $placeholders[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $placeholders[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $values[] = $r['nv_id'];
                 $values[] = $r['score'];
                 $values[] = $combo;
@@ -496,6 +501,7 @@ class ScoreCalculationService {
                 $values[] = $r['details']['diem_mon_3'] ?? 0;
                 $values[] = $r['details']['priority_raw'] ?? 0;
                 $values[] = $r['details']['priority_converted'] ?? 0;
+                $values[] = $r['admitted'] ? 1 : 0;
                 $values[] = $r['data_hash'];
 
                 if (count($placeholders) >= 100) {
@@ -516,12 +522,12 @@ class ScoreCalculationService {
                 INSERT INTO v_calc_summary (
                     nguyen_vong_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
                     chi_tiet_diem, data_hash, diem_mon_1, diem_mon_2, diem_mon_3,
-                    diem_uu_tien_goc, diem_uu_tien_qd, updated_at
+                    diem_uu_tien_goc, diem_uu_tien_qd, trang_thai_do, updated_at
                 )
                 SELECT 
                     tmp.nv_id, tmp.score, tmp.combo, tmp.method,
                     CAST(tmp.details AS JSONB), tmp.d_hash, tmp.m1, tmp.m2, tmp.m3,
-                    tmp.prio_raw, tmp.prio_qd, CURRENT_TIMESTAMP
+                    tmp.prio_raw, tmp.prio_qd, tmp.is_passed, CURRENT_TIMESTAMP
                 FROM temp_calc_results tmp
                 ON CONFLICT (nguyen_vong_id) DO UPDATE SET
                     diem_xet_tuyen = EXCLUDED.diem_xet_tuyen,
@@ -534,6 +540,7 @@ class ScoreCalculationService {
                     diem_mon_3 = EXCLUDED.diem_mon_3,
                     diem_uu_tien_goc = EXCLUDED.diem_uu_tien_goc,
                     diem_uu_tien_qd = EXCLUDED.diem_uu_tien_qd,
+                    trang_thai_do = EXCLUDED.trang_thai_do,
                     updated_at = CURRENT_TIMESTAMP
             ";
             $count = $this->db->exec($upsertSql);
@@ -602,9 +609,9 @@ class ScoreCalculationService {
             SELECT d.so_cccd, m.id as mon_id, d.diem 
             FROM diem_chung_chi d
             JOIN dm_mon m ON d.ma_mon = m.ma_mon
-            WHERE d.so_cccd IN ($placeholders)
+            WHERE d.so_cccd IN ($placeholders) AND d.dot_tuyen_sinh_id = ?
         ");
-        $stmt->execute($candidates);
+        $stmt->execute(array_merge($candidates, [$sessionId]));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['certs'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
@@ -614,9 +621,9 @@ class ScoreCalculationService {
             SELECT d.so_cccd, m.id as mon_id, d.diem 
             FROM diem_nang_khieu d
             JOIN dm_mon m ON d.ma_mon = m.ma_mon
-            WHERE d.so_cccd IN ($placeholders)
+            WHERE d.so_cccd IN ($placeholders) AND d.dot_tuyen_sinh_id = ?
         ");
-        $stmt->execute($candidates);
+        $stmt->execute(array_merge($candidates, [$sessionId]));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['aptitude'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
@@ -964,15 +971,23 @@ class ScoreCalculationService {
         $nhomNganh = $majorDetails['nhom_nganh'] ?? 'Khac';
         $nguongHocLuc = $majorDetails['nguong_hoc_luc'] ?? null;
         $nguongDiemTHPT = $majorDetails['nguong_diem_thpt'] ?? null;
-        
-        // No threshold for regular majors
-        if ($nhomNganh === 'Khac' && !$nguongHocLuc && !$nguongDiemTHPT) {
-            return $result;
+
+        // TỰ ĐỘNG HÓA QUY CHẾ BỘ GD&ĐT CHO KHỐI NGÀNH SƯ PHẠM (PEDAGOGY)
+        // Ép kiểu (string) để đảm bảo nhận diện đúng mã ngành bắt đầu bằng 71
+        if (strpos((string)$ma_nganh, '71') === 0 && !$nguongHocLuc) {
+             // Mặc định là GIỎI (Bộ quy định Sư phạm xét học bạ phải Giỏi)
+             $nguongHocLuc = 'Gioi';
+             
+             // Các ngành đặc thù (Âm nhạc, Mỹ thuật, TDTT) - Cho phép mức KHÁ
+             $specificMajors = ['7140206', '7140221', '7140222'];
+             if (in_array($ma_nganh, $specificMajors)) {
+                 $nguongHocLuc = 'Kha';
+             }
         }
-        
+
         // 1. Check Học lực lớp 12
         if ($nguongHocLuc) {
-            $hocLuc12 = null;
+             $hocLuc12 = null;
             
             // Extract from bulkData if available to avoid DB hit (Fix N+1 query)
             if ($this->bulkData && isset($this->bulkData['transcripts'][$cccd])) {
@@ -988,9 +1003,19 @@ class ScoreCalculationService {
             }
             
             if ($hocLuc12) {
-                $hocLucRank = ['Gioi' => 4, 'Kha' => 3, 'TrungBinh' => 2, 'Yeu' => 1];
-                $requiredRank = $hocLucRank[$nguongHocLuc] ?? 0;
-                $actualRank = $hocLucRank[$hocLuc12] ?? 0;
+                // Chuyển tất cả về chữ thường và cắt khoảng trắng để so sánh chính xác tuyệt đối
+                $hocLucRank = [
+                    'gioi' => 4, 'giỏi' => 4, 'tốt' => 4, 'tot' => 4,
+                    'kha' => 3, 'khá' => 3,
+                    'trungbinh' => 2, 'trung bình' => 2, 'tb' => 2,
+                    'yeu' => 1, 'yếu' => 1
+                ];
+                
+                $searchRank = mb_strtolower(trim($hocLuc12), 'UTF-8');
+                $searchRequired = mb_strtolower(trim($nguongHocLuc), 'UTF-8');
+                
+                $requiredRank = $hocLucRank[$searchRequired] ?? 0;
+                $actualRank = $hocLucRank[$searchRank] ?? 0;
                 
                 if ($actualRank < $requiredRank) {
                     $result['passed'] = false;
@@ -1015,7 +1040,7 @@ class ScoreCalculationService {
         return $result;
     }
 
-    protected function updateApplicationScore($nvId, $score, $combo, $method, $details, $dataHash) {
+    protected function updateApplicationScore($nvId, $score, $combo, $method, $details, $dataHash, $admitted = true) {
         try {
             $diem_mon_1 = $details['diem_mon_1'] ?? 0;
             $diem_mon_2 = $details['diem_mon_2'] ?? 0;
@@ -1026,8 +1051,8 @@ class ScoreCalculationService {
             $sql = "INSERT INTO v_calc_summary (
                         nguyen_vong_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
                         chi_tiet_diem, data_hash, diem_mon_1, diem_mon_2, diem_mon_3,
-                        diem_uu_tien_goc, diem_uu_tien_qd, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        diem_uu_tien_goc, diem_uu_tien_qd, trang_thai_do, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT (nguyen_vong_id) DO UPDATE SET
                         diem_xet_tuyen = EXCLUDED.diem_xet_tuyen,
                         to_hop_toi_uu = EXCLUDED.to_hop_toi_uu,
@@ -1039,6 +1064,7 @@ class ScoreCalculationService {
                         diem_mon_3 = EXCLUDED.diem_mon_3,
                         diem_uu_tien_goc = EXCLUDED.diem_uu_tien_goc,
                         diem_uu_tien_qd = EXCLUDED.diem_uu_tien_qd,
+                        trang_thai_do = EXCLUDED.trang_thai_do,
                         updated_at = CURRENT_TIMESTAMP";
 
             $stmt = $this->db->prepare($sql);
@@ -1050,7 +1076,8 @@ class ScoreCalculationService {
                 json_encode($details, JSON_UNESCAPED_UNICODE),
                 $dataHash,
                 $diem_mon_1, $diem_mon_2, $diem_mon_3,
-                $priority_raw, $priority_converted
+                $priority_raw, $priority_converted,
+                $admitted ? 1 : 0
             ]);
         } catch (\PDOException $e) {
             $msg = "SQL Error in updateApplicationScore: " . $e->getMessage() . "\n";

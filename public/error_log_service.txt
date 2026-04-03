@@ -34,3 +34,2016 @@ LINE 3:                     AND muc_diem_tu <= '266/300'
 #7 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
 #8 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
 #9 {main}
+2026-04-02 11:45:10 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(542): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(336): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-02 12:27:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(542): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(336): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-02 12:40:13 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(542): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(336): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:06 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:08 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:10 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:12 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:14 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:16 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:18 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:21 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:23 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:25 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:27 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:29 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:31 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:32 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:34 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:36 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:38 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:40 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:42 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:44 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:46 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:48 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:50 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:52 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:54 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:56 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:12:58 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:00 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:06 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:08 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:11 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:12 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:15 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:17 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:22 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:24 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:26 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:28 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:30 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:32 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:34 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:36 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:38 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:40 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:42 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:44 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:46 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:48 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:50 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:13:52 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:27:56 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:27:58 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:00 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:06 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:08 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:10 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:12 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:14 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:16 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:18 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:22 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:24 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:26 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:29 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:30 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:32 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:34 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:36 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:38 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:40 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:41 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:48 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:52 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:55 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:28:59 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:06 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:09 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:11 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:13 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:14 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:16 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:18 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:22 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:24 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:25 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:27 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:29 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:31 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:33 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:35 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:37 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:39 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:41 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:43 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:46 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:47 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:50 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:51 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:53 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:55 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:58 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:29:59 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:01 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:09 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:11 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:13 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:50 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:52 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:54 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:56 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:30:58 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:00 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:06 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:08 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:10 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:11 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:13 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:15 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:17 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:18 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:22 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:24 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:26 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:28 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:30 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:32 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:34 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:35 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:37 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:39 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:41 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:44 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:46 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:48 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:50 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:52 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:54 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:31:57 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:00 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:02 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:04 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:07 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:09 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:11 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:13 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:15 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:18 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:20 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:22 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:23 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:25 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:27 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:29 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:31 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:33 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:35 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:37 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:39 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:41 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:43 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:45 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:47 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:49 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:51 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}
+2026-04-03 08:32:53 - recalculateBatch Error: SQLSTATE[42703]: Undefined column: 7 ERROR:  column "trang_thai_do" of relation "v_calc_summary" does not exist
+LINE 5: ...               diem_uu_tien_goc, diem_uu_tien_qd, trang_thai...
+                                                             ^
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(546): PDO->exec('\r\n             ...')
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(340): App\Services\ScoreCalculationService->saveScoresBulk('3', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(177): App\Services\ScoreCalculationService->recalculateBatch('3', Array, true)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(68): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(124): App\Core\App->run()
+#7 {main}

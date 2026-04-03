@@ -17,10 +17,17 @@ class AptitudeScoreController extends Controller {
 
     public function index() {
         // We'll use DataTables logic to render server-side
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        
         $stats = [
-            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_nang_khieu")->fetchColumn(),
+            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_nang_khieu" . ($activeSession ? " WHERE dot_tuyen_sinh_id = " . $activeSession['id'] : ""))->fetchColumn(),
         ];
-        $this->view('admin/aptitude_scores/index', ['title' => 'Điểm Năng Khiếu', 'stats' => $stats]);
+        $this->view('admin/aptitude_scores/index', [
+            'title' => 'Điểm Năng Khiếu', 
+            'stats' => $stats,
+            'activeSession' => $activeSession
+        ]);
     }
 
     public function apiList() {
@@ -30,12 +37,16 @@ class AptitudeScoreController extends Controller {
         $length = $_POST['length'] ?? 10;
         $searchValue = $_POST['search']['value'] ?? '';
 
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : 0;
+
         $query = "SELECT d.id, d.so_cccd, d.sbd, d.diem, d.ghi_chu, d.ma_mon, ts.ho_va_ten, m.ten_mon 
                   FROM diem_nang_khieu d
                   LEFT JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
                   LEFT JOIN dm_mon m ON UPPER(d.ma_mon) = UPPER(m.ma_mon)
-                  WHERE 1=1";
-        $params = [];
+                  WHERE d.dot_tuyen_sinh_id = ?";
+        $params = [$sessionId];
 
         if (!empty($searchValue)) {
             $query .= " AND (d.so_cccd LIKE ? OR d.sbd LIKE ? OR ts.ho_va_ten LIKE ?)";
@@ -45,7 +56,8 @@ class AptitudeScoreController extends Controller {
         }
 
         // Total count
-        $stmtTotal = $db->query("SELECT COUNT(*) FROM diem_nang_khieu");
+        $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu WHERE dot_tuyen_sinh_id = ?");
+        $stmtTotal->execute([$sessionId]);
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Filtered count
@@ -100,8 +112,12 @@ class AptitudeScoreController extends Controller {
                     return;
                 }
 
-                $stmt = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$cccd, $sbd, $maMon, $diem, $ghiChu]);
+                $sessionModel = new \App\Models\AdmissionSession();
+                $activeSession = $sessionModel->getActiveSession();
+                $sessionId = $activeSession ? $activeSession['id'] : null;
+
+                $stmt = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$cccd, $sbd, $maMon, $diem, $ghiChu, $sessionId]);
             }
             $this->json(['success' => true]);
         } catch (\Exception $e) {
@@ -118,6 +134,10 @@ class AptitudeScoreController extends Controller {
             $_SESSION['flash_error'] = "Vui lòng chọn file hợp lệ.";
             $this->redirect('/admin/aptitude-scores');
         }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : null;
 
         $file = $_FILES['excel_file']['tmp_name'];
         $extension = pathinfo($_FILES['excel_file']['name'], PATHINFO_EXTENSION);
@@ -150,11 +170,11 @@ class AptitudeScoreController extends Controller {
                     $note = trim($row[4] ?? '');
 
                     if ($cccd && is_numeric($score)) {
-                        $stmtDel = $db->prepare("DELETE FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ?");
-                        $stmtDel->execute([$cccd, $maMon]);
+                        $stmtDel = $db->prepare("DELETE FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
+                        $stmtDel->execute([$cccd, $maMon, $sessionId]);
                         
-                        $stmtIns = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu) VALUES (?, ?, ?, ?, ?)");
-                        $stmtIns->execute([$cccd, $sbd, $maMon, $score, $note]);
+                        $stmtIns = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmtIns->execute([$cccd, $sbd, $maMon, $score, $note, $sessionId]);
                         
                         $successCount++;
                     } else {
@@ -190,13 +210,57 @@ class AptitudeScoreController extends Controller {
         $this->json(['success' => false]);
     }
 
+    public function export() {
+        $searchValue = $_GET['search'] ?? '';
+        $db = $this->model->getDb();
+
+        $query = "SELECT d.so_cccd, d.sbd, d.ma_mon, d.diem, d.ghi_chu, ts.ho_va_ten 
+                  FROM diem_nang_khieu d
+                  LEFT JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
+                  WHERE 1=1";
+        $params = [];
+
+        if (!empty($searchValue)) {
+            $query .= " AND (d.so_cccd LIKE ? OR d.sbd LIKE ? OR ts.ho_va_ten LIKE ?)";
+            $params[] = "%$searchValue%";
+            $params[] = "%$searchValue%";
+            $params[] = "%$searchValue%";
+        }
+
+        $query .= " ORDER BY d.id DESC";
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=danh_sach_diem_nang_khieu.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
+
+        // Headers matching the template exactly for easy re-import
+        fputcsv($output, ['CCCD (Bat buoc)', 'SBD', 'Ma mon (NK1, NK2, NK3, NK4)', 'Diem (Bat buoc)', 'Ghi chu']);
+
+        foreach ($data as $row) {
+            fputcsv($output, [
+                $row['so_cccd'],
+                $row['sbd'],
+                $row['ma_mon'],
+                $row['diem'],
+                $row['ghi_chu']
+            ]);
+        }
+
+        fclose($output);
+        exit;
+    }
+
     public function template() {
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_diem_nang_khieu.csv');
+        header('Content-Disposition: attachment; filename=mau_import_diem_nang_khieu.csv');
         $output = fopen('php://output', 'w');
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
         fputcsv($output, ['CCCD (Bat buoc)', 'SBD', 'Ma mon (NK1, NK2, NK3, NK4)', 'Diem (Bat buoc)', 'Ghi chu']);
-        fputcsv($output, ['012345678901', 'HVU001', 'NK1', '8.5', 'Diem thi tai truong']);
+        fputcsv($output, ['123456789', 'NK2024001', 'NK1', '9.5', 'Vi du mau']);
         fclose($output);
         exit;
     }

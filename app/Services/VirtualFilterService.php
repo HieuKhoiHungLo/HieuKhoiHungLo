@@ -37,9 +37,9 @@ class VirtualFilterService {
             }
 
             // Bước 2: Lấy tất cả nguyện vọng CỦA ĐỢT NÀY kèm điểm từ bảng summary
-            // Sắp xếp theo thí sinh và ƯU TIÊN (ASC) để lọc ảo dây chuyền
+            // Sửa lỗi: Cần lấy thêm `trang_thai_do` để loại bỏ thí sinh không đạt ngưỡng học lực/ngành (SP)
             $stmtGetAll = $this->db->prepare("
-                SELECT nv.id as nv_id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, cs.diem_xet_tuyen 
+                SELECT nv.id as nv_id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, cs.diem_xet_tuyen, cs.trang_thai_do 
                 FROM nguyen_vong nv
                 JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 WHERE nv.dot_tuyen_sinh_id = ?
@@ -57,13 +57,20 @@ class VirtualFilterService {
                 $major = $choice['ma_nganh'];
                 $score = (float) ($choice['diem_xet_tuyen'] ?? 0);
                 $nvId = $choice['nv_id'];
+                
+                // Nới lỏng logic: Chỉ đánh trượt nếu trạng thái bị ghi nhận ĐÍCH DANH là FALSE/0.
+                // Các trường hợp NULL (chưa tính lại) hoặc TRUE đều được phép xét tuyển.
+                $passedVal = $choice['trang_thai_do'];
+                $passedThreshold = ($passedVal === false || $passedVal === 0 || $passedVal === 'f' || $passedVal === '0') ? 0 : 1;
 
                 if (isset($processedCandidates[$cccd])) continue;
-                if (!isset($benchmarks[$major])) continue;
-
+                
+                // ĐIỀU KIỆN ĐẠT: Điểm >= Điểm chuẩn VÀ Trạng thái đạt ngưỡng (Học lực/Ngành)
+                if (!isset($benchmarks[$major])) continue; // Nếu ngành chưa có điểm chuẩn thì bỏ qua
+                
                 $benchmarkScore = (float) $benchmarks[$major];
 
-                if ($score >= $benchmarkScore) {
+                if ($score >= $benchmarkScore && $passedThreshold === 1) {
                     $processedCandidates[$cccd] = true;
                     $successfulNvIds[] = $nvId;
                 }

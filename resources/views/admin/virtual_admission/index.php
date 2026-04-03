@@ -158,7 +158,7 @@ if (!empty($combinations)) {
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M1</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M2</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M3</th>
-                        
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-indigo-50 text-indigo-800 text-[11px] uppercase tracking-tighter">Điểm tổ hợp</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm QĐ</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>gốc</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>QĐ</th>
@@ -398,6 +398,19 @@ if (!empty($combinations)) {
                 columns.push({ data: 'diem_mon_1', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
                 columns.push({ data: 'diem_mon_2', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
                 columns.push({ data: 'diem_mon_3', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
+                
+                // Điểm Tổ Hợp (M1 + M2 + M3)
+                columns.push({ 
+                    data: null, 
+                    className: 'text-center bg-indigo-50 font-bold text-indigo-700',
+                    render: function(data, type, row) {
+                        let m1 = parseFloat(row.diem_mon_1 || 0);
+                        let m2 = parseFloat(row.diem_mon_2 || 0);
+                        let m3 = parseFloat(row.diem_mon_3 || 0);
+                        let sum = m1 + m2 + m3;
+                        return sum > 0 ? sum.toFixed(2) : '-';
+                    }
+                });
 
                 // QD, UT Goc, UT QD
                 columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
@@ -424,8 +437,11 @@ if (!empty($combinations)) {
                     render: function(data) {
                         try {
                             let p = JSON.parse(data);
-                            if(p.threshold_note && p.threshold_note.indexOf('HỌC LỰC') !== -1) return '<span title="Không đủ ĐK">-</span>';
-                            return '<span>Đạt</span>';
+                            let note = (p.threshold_note || "").toUpperCase();
+                            if(note.indexOf('HỌC LỰC') !== -1) {
+                                return `<span class="text-red-600 font-bold" title="${p.threshold_note}">K.ĐẠT</span>`;
+                            }
+                            return '<span class="text-green-600 font-bold">ĐẠT</span>';
                         } catch(e) { return '-'; }
                     }
                 });
@@ -437,8 +453,11 @@ if (!empty($combinations)) {
                     render: function(data) {
                         try {
                             let p = JSON.parse(data);
-                            if(p.threshold_note && p.threshold_note.indexOf('NGƯỠNG') !== -1) return '<span title="Không đủ ĐK">-</span>';
-                            return '<span>Đạt</span>';
+                            let note = (p.threshold_note || "").toUpperCase();
+                            if(note.indexOf('NGƯỠNG') !== -1) {
+                                return `<span class="text-red-600 font-bold" title="${p.threshold_note}">K.ĐẠT</span>`;
+                            }
+                            return '<span class="text-green-600 font-bold">ĐẠT</span>';
                         } catch(e) { return '-'; }
                     }
                 });

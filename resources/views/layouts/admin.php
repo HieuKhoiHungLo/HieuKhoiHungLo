@@ -272,7 +272,6 @@
                         ['url' => '/admin/admission/results',        'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
                         ['url' => '/admin/aptitude-scores',          'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
                         ['url' => '/admin/certificate-scores',       'icon' => 'fa-file-signature', 'label' => 'Điểm chứng chỉ',       'perm' => 'aptitude.view'],
-                        ['url' => '/admin/certificate-rules',        'icon' => 'fa-certificate',   'label' => 'Điểm quy đổi chứng chỉ', 'perm' => 'aptitude.view'],
                     ]
                 ],
                 [

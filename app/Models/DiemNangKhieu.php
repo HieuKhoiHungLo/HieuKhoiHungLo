@@ -8,14 +8,20 @@ class DiemNangKhieu extends Model {
     protected $table = 'diem_nang_khieu';
     protected $primaryKey = 'id';
 
-    public function getByCCCD($cccd) {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd = ?");
-        $stmt->execute([$cccd]);
+    public function getByCCCD($cccd, $sessionId = null) {
+        $sql = "SELECT * FROM {$this->table} WHERE so_cccd = ?";
+        $params = [$cccd];
+        if ($sessionId) {
+            $sql .= " AND dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
     public function create($data) {
-        $sql = "INSERT INTO {$this->table} (so_cccd, sbd, diem, ghi_chu, ma_mon) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO {$this->table} (so_cccd, sbd, diem, ghi_chu, ma_mon, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
         try {
             return $stmt->execute([
@@ -23,7 +29,8 @@ class DiemNangKhieu extends Model {
                 $data['sbd'],
                 $data['diem'],
                 $data['ghi_chu'] ?? '',
-                $data['ma_mon'] ?? 'NK1'
+                $data['ma_mon'] ?? 'NK1',
+                $data['dot_tuyen_sinh_id'] ?? null
             ]);
         } catch (\PDOException $e) {
             echo "SQL Error: " . $e->getMessage() . "\n";
@@ -45,8 +52,8 @@ class DiemNangKhieu extends Model {
         ]);
     }
     
-    public function saveScore($cccd, $sbd, $score, $note = '', $maMon = 'NK1') {
-        $existing = $this->getByCCCD($cccd);
+    public function saveScore($cccd, $sbd, $score, $note = '', $maMon = 'NK1', $sessionId = null) {
+        $existing = $this->getByCCCD($cccd, $sessionId);
         
         // Prepare Data
         $data = [
@@ -54,7 +61,8 @@ class DiemNangKhieu extends Model {
             'sbd' => $sbd,
             'diem' => $score,
             'ghi_chu' => $note,
-            'ma_mon' => $maMon
+            'ma_mon' => $maMon,
+            'dot_tuyen_sinh_id' => $sessionId
         ];
 
         if ($existing) {

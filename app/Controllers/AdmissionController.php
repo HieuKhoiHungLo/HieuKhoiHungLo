@@ -154,12 +154,33 @@ class AdmissionController extends Controller {
         
         // Filters
         $filterMajor = $_GET['major'] ?? '';
-        $filterStatus = $_GET['status'] ?? ''; // 'Trung tuyen', 'Truot', etc.
+        $filterStatus = $_GET['status'] ?? ''; 
+        $showAll = isset($_GET['show_all']) && $_GET['show_all'] == '1';
+
+        // 1. Calculate Stats for the Dashboard
+        $statsSql = "SELECT 
+                        COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                        COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as total_admitted,
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 1) as nv1_admit,
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 2) as nv2_admit,
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 3) as nv3_admit
+                     FROM nguyen_vong nv
+                     LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                     WHERE nv.dot_tuyen_sinh_id = ?";
         
-        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd, n.ten_nganh 
+        $statsStmt = $db->prepare($statsSql);
+        $statsStmt->execute([$activeSession['id'] ?? 0]);
+        $stats = $statsStmt->fetch(\PDO::FETCH_ASSOC);
+
+        // 2. Fetch Results Query
+        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd, n.ten_nganh,
+                       cs.diem_xet_tuyen as cs_diem_xet_tuyen, cs.to_hop_toi_uu as cs_to_hop, 
+                       cs.phuong_thuc_toi_uu as cs_phuong_thuc, cs.chi_tiet_diem,
+                       cs.trang_thai_trung_tuyen
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 WHERE nv.dot_tuyen_sinh_id = ?";
         
         $params = [$activeSession['id'] ?? 0];
@@ -171,14 +192,17 @@ class AdmissionController extends Controller {
 
         if ($filterStatus) {
             if ($filterStatus === 'Trung tuyen') {
-                $sql .= " AND (nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
+                $sql .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
             } else {
                 $sql .= " AND nv.trang_thai = ?";
                 $params[] = $filterStatus;
             }
+        } elseif (!$showAll) {
+            // Default: Only show admitted if no specific status or show_all is requested
+            $sql .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
         }
 
-        $sql .= " ORDER BY nv.ma_nganh, nv.diem_xet_tuyen DESC, nv.thu_tu_nguyen_vong ASC";
+        $sql .= " ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, nv.thu_tu_nguyen_vong ASC";
         
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -191,10 +215,12 @@ class AdmissionController extends Controller {
         }
 
         $this->view('admin/admission/results', [
-            'groupedResults' => $grouped, 
+            'results' => $results, 
+            'stats' => $stats,
             'majors' => $this->masterData->getMajors(),
             'filterMajor' => $filterMajor,
             'filterStatus' => $filterStatus,
+            'showAll' => $showAll,
             'activeSession' => $activeSession
         ]);
     }
@@ -275,18 +301,21 @@ class AdmissionController extends Controller {
             $this->redirect(url('/admin/admission/benchmarks?status=error'));
         }
     }
-    public function notifyAdmitted() {
+    public function notify() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
         
-        $maNganh = $_POST['ma_nganh'] ?? '';
+        $maNganh = $_POST['major'] ?? $_POST['ma_nganh'] ?? '';
+        $statusFilter = $_POST['status'] ?? '';
+        $showAll = isset($_POST['show_all']) && $_POST['show_all'] == '1';
         
         $db = \App\Core\Database::getInstance()->getConnection();
         
-        // Query Admitted Candidates
-        $sql = "SELECT t.so_cccd, t.ho_va_ten, t.email, nv.ma_nganh, n.ten_nganh, nv.diem_xet_tuyen 
+        // 1. Build Query for filtered list
+        $sql = "SELECT t.so_cccd, t.ho_va_ten, t.email, nv.ma_nganh, n.ten_nganh, nv.trang_thai, cs.diem_xet_tuyen 
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 WHERE (nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
                 
         $params = [];
@@ -294,6 +323,9 @@ class AdmissionController extends Controller {
             $sql .= " AND nv.ma_nganh = ?";
             $params[] = $maNganh;
         }
+
+        // Note: Even if showAll is true, we ONLY notify those who PASS for now
+        // since the template is 'admission_success'.
         
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -328,7 +360,10 @@ class AdmissionController extends Controller {
         $msg = "Đã gửi email trúng tuyển cho $count thí sinh.";
         if ($errors > 0) $msg .= " ($errors thất bại. Kiểm tra log).";
         
-        $redirectUrl = '/admin/admission/results' . ($maNganh ? '?major=' . $maNganh : '');
-        $this->redirect(url($redirectUrl . '&message=' . urlencode($msg)));
+        $redirectUrl = '/admin/admission/results?message=' . urlencode($msg);
+        if ($maNganh) $redirectUrl .= '&major=' . $maNganh;
+        if ($showAll) $redirectUrl .= '&show_all=1';
+        
+        $this->redirect(url($redirectUrl));
     }
 }
