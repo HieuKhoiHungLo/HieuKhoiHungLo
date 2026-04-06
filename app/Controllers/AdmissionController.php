@@ -161,9 +161,9 @@ class AdmissionController extends Controller {
         $statsSql = "SELECT 
                         COUNT(DISTINCT nv.so_cccd) as total_candidates,
                         COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as total_admitted,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 1) as nv1_admit,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 2) as nv2_admit,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND nv.thu_tu_nguyen_vong = 3) as nv3_admit
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 1) as nv1_admit,
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 2) as nv2_admit,
+                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 3) as nv3_admit
                      FROM nguyen_vong nv
                      LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                      WHERE nv.dot_tuyen_sinh_id = ?";
@@ -202,7 +202,7 @@ class AdmissionController extends Controller {
             $sql .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
         }
 
-        $sql .= " ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, nv.thu_tu_nguyen_vong ASC";
+        $sql .= " ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC";
         
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -247,7 +247,7 @@ class AdmissionController extends Controller {
         // 2. Get Candidates with Aspirations
         // We need to process candidate by candidate.
         // Fetch ordered by CCCD, NV_Order
-        $sql = "SELECT * FROM nguyen_vong WHERE dot_tuyen_sinh_id = ? ORDER BY so_cccd, thu_tu_nguyen_vong ASC";
+        $sql = "SELECT * FROM nguyen_vong WHERE dot_tuyen_sinh_id = ? ORDER BY so_cccd, COALESCE(thu_tu_nv_bo, thu_tu_nguyen_vong) ASC";
         $stmt = $db->prepare($sql);
         $stmt->execute([$activeSession['id']]);
         $allAspirations = $stmt->fetchAll(\PDO::FETCH_ASSOC);

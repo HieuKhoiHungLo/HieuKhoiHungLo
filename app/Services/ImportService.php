@@ -241,6 +241,7 @@ class ImportService {
                     'ma_nganh' => $majorCode,
                     'ma_to_hop' => $comboCode, 
                     'thu_tu_nguyen_vong' => $priority,
+                    'thu_tu_nv_bo' => $priority,
                     'dot_tuyen_sinh_id' => $batchId,
                     'nguon_du_lieu' => 'bo_gddt',
                     'trang_thai' => 'DaNop' 
@@ -382,9 +383,9 @@ class ImportService {
         // Simple Insert for now. Update if logic changes.
         // Columns: so_cccd, ma_nganh, ma_to_hop, thu_tu_nguyen_vong, dot_tuyen_sinh_id, nguon_du_lieu
         
-        // Remove old app with same priority for this batch?
-        $sql = "DELETE FROM nguyen_vong WHERE so_cccd = ? AND dot_tuyen_sinh_id = ? AND thu_tu_nguyen_vong = ?";
-        $this->db->prepare($sql)->execute([$data['so_cccd'], $data['dot_tuyen_sinh_id'], $data['thu_tu_nguyen_vong']]);
+        // Xóa nguyện vọng cũ dựa trên CCCD, Đợt và Thứ tự NV (để ghi đè bản cập nhật mới nhất từ Bộ)
+        $sql = "DELETE FROM nguyen_vong WHERE so_cccd = ? AND dot_tuyen_sinh_id = ? AND (thu_tu_nguyen_vong = ? OR thu_tu_nv_bo = ?)";
+        $this->db->prepare($sql)->execute([$data['so_cccd'], $data['dot_tuyen_sinh_id'], $data['thu_tu_nguyen_vong'] ?? 0, $data['thu_tu_nv_bo'] ?? 0]);
 
         $cols = array_keys($data);
         $vals = array_values($data);
@@ -393,5 +394,11 @@ class ImportService {
         
         $sql = "INSERT INTO nguyen_vong ($colNames) VALUES ($placeholders)";
         $this->db->prepare($sql)->execute($vals);
+    }
+
+    private function parseFloat($str) {
+        if ($str === null || $str === '') return null;
+        $val = str_replace(',', '.', trim($str));
+        return is_numeric($val) ? (float)$val : null;
     }
 }

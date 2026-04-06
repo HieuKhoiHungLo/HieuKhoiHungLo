@@ -21,8 +21,12 @@ class NguyenVong extends Model {
     }
 
     public function add($data) {
-        $sql = "INSERT INTO {$this->table} (so_cccd, ho_so_id, thu_tu_nguyen_vong, ma_truong, ma_nganh, ten_nganh, ma_phuong_thuc, ten_phuong_thuc, to_hop_mon) 
-                VALUES (:so_cccd, :ho_so_id, :thu_tu_nguyen_vong, :ma_truong, :ma_nganh, :ten_nganh, :ma_phuong_thuc, :ten_phuong_thuc, :to_hop_mon)";
+        // Đảm bảo tương thích ngược: nếu thiếu thu_tu_nv_bo thì mặc định là null
+        if (!isset($data['thu_tu_nv_bo'])) {
+            $data['thu_tu_nv_bo'] = null;
+        }
+        $sql = "INSERT INTO {$this->table} (so_cccd, ho_so_id, thu_tu_nguyen_vong, thu_tu_nv_bo, ma_truong, ma_nganh, ten_nganh, ma_phuong_thuc, ten_phuong_thuc, to_hop_mon) 
+                VALUES (:so_cccd, :ho_so_id, :thu_tu_nguyen_vong, :thu_tu_nv_bo, :ma_truong, :ma_nganh, :ten_nganh, :ma_phuong_thuc, :ten_phuong_thuc, :to_hop_mon)";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($data);
     }
@@ -61,11 +65,12 @@ class NguyenVong extends Model {
                 $insertParams = [];
                 
                 foreach ($data as $index => $item) {
-                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     array_push($insertParams,
                         $cccd,
                         $dotTuyenSinhId,
                         $index + 1,
+                        null, // thu_tu_nv_bo (mặc định null khi đăng ký nội bộ)
                         $item['ma_nganh'], 
                         $item['ten_nganh'] ?? null,
                         $item['ma_phuong_thuc'] ?? '200', 
@@ -76,7 +81,7 @@ class NguyenVong extends Model {
                 }
 
                 $sql = "INSERT INTO {$this->table} (
-                    so_cccd, dot_tuyen_sinh_id, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                    so_cccd, dot_tuyen_sinh_id, thu_tu_nguyen_vong, thu_tu_nv_bo, ma_nganh, ten_nganh, 
                     ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, trang_thai
                 ) VALUES " . implode(', ', $insertValues); 
                 
@@ -126,9 +131,6 @@ class NguyenVong extends Model {
     }
 
     public function getDetailedMajorStats($startDate = null, $endDate = null, $sessionId = null) {
-        // Query to get detailed stats per major (Total, NV1, NV2, Others)
-        // We join dm_nganh to ensure we get all majors and their quota (chỉ tiêu)
-        
         $params = [];
         $hsFilter = "";
         
@@ -143,18 +145,28 @@ class NguyenVong extends Model {
              $params[] = $sessionId;
         }
 
+        // Optimized Query using Subquery for Aggregation
         $sql = "SELECT 
                     n.ma_nganh, 
                     n.ten_nganh, 
                     n.chi_tieu,
-                    COUNT(hs.so_cccd) as tong_nv,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
-                    SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
+                    COALESCE(stats.tong_nv, 0) as tong_nv,
+                    COALESCE(stats.nv1, 0) as nv1,
+                    COALESCE(stats.nv2, 0) as nv2,
+                    COALESCE(stats.nv_con_lai, 0) as nv_con_lai
                 FROM dm_nganh n
-                LEFT JOIN nguyen_vong nv ON n.ma_nganh = nv.ma_nganh
-                LEFT JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd $hsFilter
-                GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
+                LEFT JOIN (
+                    SELECT 
+                        nv.ma_nganh,
+                        COUNT(hs.so_cccd) as tong_nv,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
+                    FROM nguyen_vong nv
+                    JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
+                    WHERE 1=1 $hsFilter
+                    GROUP BY nv.ma_nganh
+                ) stats ON n.ma_nganh = stats.ma_nganh
                 ORDER BY n.ma_nganh ASC";
 
         $stmt = $this->db->prepare($sql);

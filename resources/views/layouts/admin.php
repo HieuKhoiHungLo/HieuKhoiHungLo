@@ -257,7 +257,7 @@
                     'group' => 'QUẢN LÝ HỒ SƠ',
                     'icon'  => 'fa-clipboard-check',
                     'items' => [
-                        ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'dashboard'],
+                        ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'candidate.view'],
                         ['url' => '/admin/review-management',       'icon' => 'fa-user-check',      'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
                         ['url' => '/admin/reports',                 'icon' => 'fa-file-export',     'label' => 'Xuất dữ liệu hồ sơ',  'perm' => 'report.export'],
                         ['url' => '/admin/candidates/trash',        'icon' => 'fa-trash-alt',       'label' => 'Thùng rác',           'perm' => 'candidates.delete'],

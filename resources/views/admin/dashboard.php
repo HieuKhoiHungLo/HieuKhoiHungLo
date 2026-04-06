@@ -107,6 +107,10 @@
                             <span class="text-blue-100 uppercase tracking-tighter">Trong tuần:</span>
                             <span id="recentWeek" class="bg-white/20 text-white px-2 py-0.5 rounded-lg font-black backdrop-blur-sm">0</span>
                         </div>
+                        <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span class="text-blue-100 uppercase tracking-tighter">Chưa nộp hồ sơ:</span>
+                            <span id="statGhostCard" class="bg-white/20 text-white px-2 py-0.5 rounded-lg font-black backdrop-blur-sm"><?= $stats['ghost'] ?? 0 ?></span>
+                        </div>
                     </div>
                 </div>
                 <!-- Brand Accent Decoration -->
@@ -709,7 +713,8 @@
                 'statTotal': ov.total,
                 'statApproved': ov.approved,
                 'statPending': ov.pending,
-                'statRequireEdit': ov.require_edit
+                'statRequireEdit': ov.require_edit,
+                'statGhostCard': ov.ghost
             };
             for (const [id, val] of Object.entries(map)) {
                 const el = document.getElementById(id);

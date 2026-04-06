@@ -312,50 +312,64 @@ class ThiSinh extends Model {
             'pending' => 0,
             'approved' => 0,
             'require_edit' => 0,
-            'edit_requests' => 0
+            'edit_requests' => 0,
+            'ghost' => 0
         ];
 
-        // Base Query
-        $sessionFilter = "";
+        // 1. Get Application Related Stats (total, pending, approved, etc.)
+        $hsWhere = " WHERE 1=1";
+        $params = [];
         if ($sessionId) {
-            $sessionFilter = " AND hs.dot_tuyen_sinh_id = " . (int)$sessionId;
+            $hsWhere .= " AND dot_tuyen_sinh_id = " . (int)$sessionId;
         } elseif ($year) {
-            $sessionFilter = " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE dt.id = hs.dot_tuyen_sinh_id AND dt.dm_nam_tuyen_sinh_nam = " . (int)$year . ")";
+            $hsWhere .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE dt.id = dot_tuyen_sinh_id AND dt.dm_nam_tuyen_sinh_nam = " . (int)$year . ")";
         }
 
-        $sql = "SELECT 
-            COUNT(DISTINCT CASE WHEN hs.so_cccd IS NOT NULL $sessionFilter THEN t.so_cccd END) as total,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Chờ duyệt%' $sessionFilter THEN t.so_cccd END) as pending,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Đã duyệt%' $sessionFilter THEN t.so_cccd END) as approved,
-            COUNT(DISTINCT CASE WHEN hs.trang_thai ILIKE '%Yêu cầu sửa%' $sessionFilter THEN t.so_cccd END) as require_edit,
-            COUNT(DISTINCT CASE WHEN hs.yeu_cau_chinh_sua = TRUE $sessionFilter THEN t.so_cccd END) as edit_requests
-                FROM {$this->table} t
-                LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
-                WHERE 1=1";
-        
-        $params = [];
-        
-        // Date filters still restrict the entire set if provided
         if ($startDate && $endDate) {
-            $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
+            $hsWhere .= " AND created_at >= ? AND created_at <= ?";
             $params[] = $startDate . ' 00:00:00';
             $params[] = $endDate . ' 23:59:59';
         }
 
+        $sqlHS = "SELECT 
+            COUNT(DISTINCT so_cccd) as total,
+            COUNT(DISTINCT CASE WHEN trang_thai ILIKE '%Đã duyệt%' THEN so_cccd END) as approved,
+            COUNT(DISTINCT CASE WHEN trang_thai ILIKE '%Yêu cầu sửa%' THEN so_cccd END) as require_edit,
+            COUNT(DISTINCT CASE WHEN yeu_cau_chinh_sua = TRUE THEN so_cccd END) as edit_requests
+            FROM ho_so_xet_tuyen $hsWhere";
+
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->db->prepare($sqlHS);
             $stmt->execute($params);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
             if ($result) {
                 $stats['total'] = (int)$result['total'];
-                $stats['pending'] = (int)$result['pending'];
                 $stats['approved'] = (int)$result['approved'];
                 $stats['require_edit'] = (int)$result['require_edit'];
                 $stats['edit_requests'] = (int)$result['edit_requests'];
+                // Pending = everything that is NOT approved and NOT require_edit
+                $stats['pending'] = $stats['total'] - $stats['approved'] - $stats['require_edit'];
             }
         } catch (\PDOException $e) {
-            error_log("Error in getStats: " . $e->getMessage());
+            error_log("Error in getStats (Application query): " . $e->getMessage());
+        }
+
+        // 2. Get Ghost Candidates (Accounts without applications)
+        $ghostWhere = " WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd) AND t.deleted_at IS NULL";
+        $ghostParams = [];
+        if ($year) {
+            $ghostWhere .= " AND EXTRACT(YEAR FROM t.ngay_tao) = ?";
+            $ghostParams[] = (int)$year;
+        }
+
+        $sqlGhost = "SELECT COUNT(*) FROM {$this->table} t $ghostWhere";
+
+        try {
+            $stmt = $this->db->prepare($sqlGhost);
+            $stmt->execute($ghostParams);
+            $stats['ghost'] = (int)$stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log("Error in getStats (Ghost query): " . $e->getMessage());
         }
 
         return $stats;

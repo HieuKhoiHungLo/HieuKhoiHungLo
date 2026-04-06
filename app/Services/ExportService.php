@@ -164,7 +164,7 @@ class ExportService {
                        t.ngay_sinh AS \"Ngày Sinh\",
                        t.gioi_tinh AS \"Giới tính\",
                        t.dien_thoai AS \"Điện thoại\",
-                       nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
+                       COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) AS \"Thứ tự NV\",
                        nv.ma_nganh AS \"Mã Ngành\",
                        n.ten_nganh AS \"Tên Ngành\",
                        nv.to_hop_toi_uu AS \"Tổ hợp\",
@@ -185,7 +185,7 @@ class ExportService {
             $params[] = $filters['major'];
         }
         
-        $sql .= " ORDER BY t.ho_va_ten, nv.thu_tu_nguyen_vong";
+        $sql .= " ORDER BY t.ho_va_ten, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong)";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -424,7 +424,7 @@ class ExportService {
             $sql .= " AND hs.trang_thai = ?";
             $params[] = $filters['status'];
         }
-        $sql .= " ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong";
+        $sql .= " ORDER BY nv.so_cccd, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong)";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -446,7 +446,7 @@ class ExportService {
             $data[] = [
                 'STT'                   => $stt++,
                 'Số ĐDCN'               => "\t" . ($w['so_cccd'] ?? ''),
-                'Thứ tự nguyện vọng'    => $w['thu_tu_nguyen_vong'],
+                'Thứ tự nguyện vọng'    => $w['thu_tu_nv_bo'] ?? $w['thu_tu_nguyen_vong'],
                 'Mã trường'             => 'THV',
                 'Tên trường'            => 'Trường Đại học Hùng Vương',
                 'Mã xét tuyển'          => $w['ma_nganh'],

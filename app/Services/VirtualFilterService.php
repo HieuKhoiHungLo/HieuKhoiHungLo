@@ -39,11 +39,11 @@ class VirtualFilterService {
             // Bước 2: Lấy tất cả nguyện vọng CỦA ĐỢT NÀY kèm điểm từ bảng summary
             // Sửa lỗi: Cần lấy thêm `trang_thai_do` để loại bỏ thí sinh không đạt ngưỡng học lực/ngành (SP)
             $stmtGetAll = $this->db->prepare("
-                SELECT nv.id as nv_id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, cs.diem_xet_tuyen, cs.trang_thai_do 
+                SELECT nv.id as nv_id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, cs.diem_xet_tuyen, cs.trang_thai_do 
                 FROM nguyen_vong nv
                 JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 WHERE nv.dot_tuyen_sinh_id = ?
-                ORDER BY nv.so_cccd ASC, nv.thu_tu_nguyen_vong ASC
+                ORDER BY nv.so_cccd ASC, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC
             ");
             $stmtGetAll->execute([$batchId]);
             $allChoices = $stmtGetAll->fetchAll(PDO::FETCH_ASSOC);

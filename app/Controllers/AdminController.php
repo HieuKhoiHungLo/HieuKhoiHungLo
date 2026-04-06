@@ -535,7 +535,7 @@ class AdminController extends Controller
             'years'           => $years,
             'selectedYear'    => $selectedYear,
             'currentSessionId' => $sessionId,
-            'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'require_edit' => 0],
+            'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'require_edit' => 0, 'ghost' => 0],
             'user'            => $this->currentUser
         ]);
     }
@@ -603,7 +603,7 @@ class AdminController extends Controller
         // Fetch Data — cached per unique filter combo (30 min TTL)
         $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate|$type");
         try {
-            $result = \App\Core\Cache::remember($cacheKey, 30, function () use ($startDate, $endDate, $sessionId, $selectedYear, $type) {
+            $result = \App\Core\Cache::remember($cacheKey, 2, function () use ($startDate, $endDate, $sessionId, $selectedYear, $type) {
                 $data = [];
 
                 if ($type === 'overview' || $type === 'all') {

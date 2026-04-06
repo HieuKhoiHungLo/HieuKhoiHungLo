@@ -173,6 +173,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalAdmitted / $totalCandidates) * 
                         <th class="py-5 px-6 text-center w-16">STT</th>
                         <th class="py-5 px-6">MÃ NGÀNH</th>
                         <th class="py-5 px-6 text-center w-16">NV</th>
+                        <th class="py-5 px-6 text-center w-16">NV BỘ</th>
                         <th class="py-5 px-6">CCCD / CMND</th>
                         <th class="py-5 px-6">HỌ VÀ TÊN</th>
                         <th class="py-5 px-6">TỔ HỢP / PHƯƠNG THỨC</th>
@@ -199,10 +200,18 @@ $admitRate = $totalCandidates > 0 ? round(($totalAdmitted / $totalCandidates) * 
                                 <td class="py-4 px-6">
                                     <span class="text-indigo-600 font-black tracking-tight" title="<?= htmlspecialchars($row['ten_nganh']) ?>"><?= $row['ma_nganh'] ?></span>
                                 </td>
-                                <td class="py-4 px-6 text-center">
-                                    <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-black border border-slate-200">
+                                    <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-black border border-slate-200" title="Thứ tự nguyện vọng nội bộ">
                                         <?= $row['thu_tu_nguyen_vong'] ?>
                                     </span>
+                                </td>
+                                <td class="py-4 px-6 text-center">
+                                    <?php if ($row['thu_tu_nv_bo']): ?>
+                                        <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-black border border-indigo-100" title="Thứ tự nguyện vọng của Bộ GD">
+                                            <?= $row['thu_tu_nv_bo'] ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-slate-300">-</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="py-4 px-6">
                                     <span class="font-mono text-slate-500 font-bold"><?= htmlspecialchars($row['so_cccd']) ?></span>
