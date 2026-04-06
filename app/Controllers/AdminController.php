@@ -599,11 +599,14 @@ class AdminController extends Controller
         }
 
         $type = $_GET['type'] ?? 'all';
+        $forceRefresh = isset($_GET['refresh']) && $_GET['refresh'] == '1';
 
-        // Fetch Data — cached per unique filter combo (30 min TTL)
+        // Fetch Data — cached per unique filter combo (2 min TTL)
         $cacheKey = 'stats_api_' . md5("$selectedYear|$sessionId|$startDate|$endDate|$type");
+        
         try {
-            $result = \App\Core\Cache::remember($cacheKey, 2, function () use ($startDate, $endDate, $sessionId, $selectedYear, $type) {
+            // Function to fetch fresh data
+            $fetchData = function () use ($startDate, $endDate, $sessionId, $selectedYear, $type) {
                 $data = [];
 
                 if ($type === 'overview' || $type === 'all') {
@@ -632,7 +635,15 @@ class AdminController extends Controller
                 }
 
                 return $data;
-            });
+            };
+
+            if ($forceRefresh) {
+                $result = $fetchData();
+                \App\Core\Cache::put($cacheKey, $result, 2);
+                $result['refreshed'] = true;
+            } else {
+                $result = \App\Core\Cache::remember($cacheKey, 2, $fetchData);
+            }
 
             // Real-time Online Stats (Always fetch, never cache)
             if ($type === 'overview' || $type === 'all') {
@@ -641,11 +652,12 @@ class AdminController extends Controller
             }
 
             $result['meta'] = [
-                'type'       => $type,
-                'year'       => $selectedYear,
-                'session_id' => $sessionId,
-                'start'      => $startDate,
-                'end'        => $endDate
+                'type'          => $type,
+                'version_debug' => '1.0.7-SUBTRACTION-LOGIC',
+                'year'          => $selectedYear,
+                'session_id'    => $sessionId,
+                'start'         => $startDate,
+                'end'           => $endDate
             ];
 
             header('Content-Type: application/json');
