@@ -152,7 +152,7 @@
                 </div>
                 <div class="mt-4">
                     <span class="inline-flex items-center px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-wider border border-amber-200/50">
-                        <i class="fas fa-bolt mr-1.5 opacity-70"></i> Cần xử lý ngay
+                        <i class="fas fa-bolt mr-1.5 opacity-70"></i> <span id="statEditRequests">0</span> Cần xử lý ngay
                     </span>
                 </div>
             </div>
@@ -714,7 +714,8 @@
                 'statApproved': ov.approved,
                 'statPending': ov.pending,
                 'statRequireEdit': ov.require_edit,
-                'statGhostCard': ov.ghost
+                'statGhostCard': ov.ghost,
+                'statEditRequests': ov.edit_requests
             };
             for (const [id, val] of Object.entries(map)) {
                 const el = document.getElementById(id);
