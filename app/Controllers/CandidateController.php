@@ -18,6 +18,8 @@ class CandidateController extends Controller
     protected $masterData;
     protected $auditService;
     protected $currentUser;
+    protected $uploadPathInfoCache = [];
+    protected $db;
 
     public function __construct()
     {
@@ -26,8 +28,19 @@ class CandidateController extends Controller
         $this->masterData = new MasterData();
         $this->auditService = new AuditService();
 
-        $adminModel = new \App\Models\QuanTriVien();
-        $this->currentUser = $adminModel->find($_SESSION['admin_id'] ?? 0);
+        // Session-cached user lookup — avoids a DB query on every page load
+        $adminId = $_SESSION['admin_id'] ?? 0;
+        $sessionKey = '_cached_admin_user_' . $adminId;
+        if (isset($_SESSION[$sessionKey])) {
+            $this->currentUser = $_SESSION[$sessionKey];
+        } else {
+            $adminModel = new \App\Models\QuanTriVien();
+            $this->currentUser = $adminModel->find($adminId);
+            if ($this->currentUser) {
+                $_SESSION[$sessionKey] = $this->currentUser;
+            }
+        }
+        $this->db = \App\Core\Database::getInstance()->getConnection();
     }
 
     protected function checkPermission($permission)
@@ -35,9 +48,9 @@ class CandidateController extends Controller
         if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, $permission)) {
             if ($this->isAjax()) {
                 http_response_code(403);
-                die(json_encode(['error' => 'Không có quyền truy cập']));
+                die(json_encode(['error' => 'KhÃ´ng cÃ³ quyá»n truy cáº­p']));
             } else {
-                echo "<script>alert('Bạn không có quyền truy cập chức năng này!'); window.location.href='" . url('/admin/dashboard') . "';</script>";
+                echo "<script>alert('Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p chá»©c nÄƒng nÃ y!'); window.location.href='" . url('/admin/dashboard') . "';</script>";
                 exit;
             }
         }
@@ -87,7 +100,7 @@ class CandidateController extends Controller
 
         // Custom logic for Modes
         if ($mode === 'all') {
-            $appStatusFilter = 'ghost'; // Force 'chưa nhập hồ sơ' for this view
+            $appStatusFilter = 'ghost'; // Force 'chÆ°a nháº­p há»“ sÆ¡' for this view
         } elseif ($mode === 'dashboard' || $mode === 'review') {
             $appStatusFilter = 'submitted'; // Force submitted for these views
         } elseif ($mode === 'trash') {
@@ -117,23 +130,34 @@ class CandidateController extends Controller
         });
 
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $defaultLimit = ($mode === 'review') ? 8 : 10;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : $defaultLimit;
+        // Clamp to valid options
+        $limit = in_array($limit, [10, 15, 20, 50, 100]) ? $limit : $defaultLimit;
         $offset = ($page - 1) * $limit;
         $sort = $_GET['sort'] ?? 'ngay_tao';
         $dir = $_GET['dir'] ?? 'DESC';
 
         $extraFilters = [
-            'phone'     => $_GET['f_phone'] ?? '',
-            'dob'       => $_GET['f_dob'] ?? '',
-            'province'  => $_GET['f_province'] ?? '',
-            'school'    => $_GET['f_school'] ?? '',
-            'nv1'       => $_GET['f_nv1'] ?? '',
-            'gender'    => $_GET['f_gender'] ?? '',
-            'ethnicity' => $_GET['f_ethnicity'] ?? '',
-            'area'      => $_GET['f_area'] ?? '',
-            'object'    => $_GET['f_object'] ?? '',
-            'grad_year' => $_GET['f_grad_year'] ?? '',
+            'f_phone'     => $_GET['f_phone'] ?? '',
+            'f_dob'       => $_GET['f_dob'] ?? '',
+            'f_province'  => $_GET['f_province'] ?? '',
+            'f_school'    => $_GET['f_school'] ?? '',
+            'f_nv1'       => $_GET['f_nv1'] ?? '',
+            'f_gender'    => $_GET['f_gender'] ?? '',
+            'f_ethnicity' => $_GET['f_ethnicity'] ?? '',
+            'f_area'      => $_GET['f_area'] ?? '',
+            'f_object'    => $_GET['f_object'] ?? '',
+            'f_grad_year' => $_GET['f_grad_year'] ?? '',
+            'f_email'     => $_GET['f_email'] ?? '',
+            'f_note'      => $_GET['f_note'] ?? '',
         ];
+
+        // Clean extraFilters for SQL mapping (remove f_ prefix for Model)
+        $sqlExtraFilters = [];
+        foreach ($extraFilters as $k => $v) {
+            $sqlExtraFilters[substr($k, 2)] = $v;
+        }
 
         $candidates = $this->thiSinhRepo->getFiltered(
             $search,
@@ -147,27 +171,46 @@ class CandidateController extends Controller
             $sort,
             $dir,
             ($mode !== 'trash'),
-            $extraFilters,
+            $sqlExtraFilters,
             $appStatusFilter
         );
 
-        $total = $this->thiSinhRepo->countFiltered(
-            $search,
-            $status,
-            $hocBaStatus,
-            $sessionId,
-            $editRequest == '1',
-            $year,
-            ($mode !== 'trash'),
-            $extraFilters,
-            $appStatusFilter
-        );
+        // Cache key covers all filter params — different filters = different cache entries
+        // countFiltered and stats don't change when only the page number changes
+        $cacheKey = 'candidates_meta_' . md5(serialize([
+            $search, $status, $hocBaStatus, $editRequest,
+            $sessionId, $year, $appStatusFilter,
+            $extraFilters, $mode, $limit
+        ]));
+
+        $total = \App\Core\Cache::remember($cacheKey . '_count', 3, function () use (
+            $search, $status, $hocBaStatus, $sessionId, $editRequest, $year, $mode, $sqlExtraFilters, $appStatusFilter
+        ) {
+            return $this->thiSinhRepo->countFiltered(
+                $search,
+                $status,
+                $hocBaStatus,
+                $sessionId,
+                $editRequest == '1',
+                $year,
+                ($mode !== 'trash'),
+                $sqlExtraFilters,
+                $appStatusFilter
+            );
+        });
+
         $totalPages = ceil($total / max($limit, 1));
 
-        $stats = $this->thiSinhRepo->getStats($sessionId, $year);
-        $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
-        $stats['today'] = $recent['today'] ?? 0;
-        $stats['this_week'] = $recent['this_week'] ?? 0;
+        // Decouple stats cache from search/filter cache. Stats are same for all users in the same session/year.
+        $statsCacheKey = 'dashboard_stats_global_' . ($sessionId ?? 'all') . '_' . ($year ?? 'all');
+        $statsData = \App\Core\Cache::remember($statsCacheKey, 600, function () use ($sessionId, $year) {
+            $s = $this->thiSinhRepo->getStats($sessionId, $year);
+            $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
+            $s['today'] = $recent['today'] ?? 0;
+            $s['this_week'] = $recent['this_week'] ?? 0;
+            return $s;
+        });
+        $stats = $statsData;
         
         $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function () {
             $model = new \App\Models\EmailTemplate();
@@ -191,15 +234,16 @@ class CandidateController extends Controller
             'sort' => $sort,
             'dir' => $dir,
             'filters' => array_merge([
-                'search' => $search,
-                'status' => $status,
-                'hoc_ba_status' => $hocBaStatus,
+                'search'       => $search,
+                'status'       => $status,
+                'hoc_ba_status'=> $hocBaStatus,
                 'edit_request' => $editRequest,
-                'session_id' => $sessionId,
-                'year' => $year,
-                'app_status' => $appStatusFilter,
-                'sort' => $sort,
-                'dir' => $dir,
+                'session_id'   => $sessionId,
+                'year'         => $year,
+                'app_status'   => $appStatusFilter,
+                'sort'         => $sort,
+                'dir'          => $dir,
+                'limit'        => $limit,
             ], $extraFilters),
             'pagination' => ['current_page' => $page, 'total_pages' => $totalPages, 'total_items' => $total],
             'emailTemplates' => $emailTemplates
@@ -225,14 +269,14 @@ class CandidateController extends Controller
 
         switch ($action) {
             case 'update_status':
-                $this->checkPermission('candidates.edit');
-                $status = $_POST['status'] ?? 'Chờ duyệt';
+                $this->checkPermission('candidate.edit');
+                $status = $_POST['status'] ?? 'Chá» duyá»‡t';
                 $this->bulkUpdateStatus($ids, $status);
                 break;
 
             case 'transfer': // Added alias
             case 'transfer_session':
-                $this->checkPermission('candidates.edit');
+                $this->checkPermission('candidate.edit');
                 $sessionId = $_POST['target_session_id'] ?? $_POST['session_id'] ?? null;
                 if ($sessionId) {
                     $this->bulkTransferSession($ids, (int)$sessionId);
@@ -243,7 +287,7 @@ class CandidateController extends Controller
                 break;
 
             case 'delete':
-                $this->checkPermission('candidates.delete');
+                $this->checkPermission('candidate.delete');
                 $this->bulkDelete($ids);
                 
                 // Add feedback for bulk delete
@@ -255,7 +299,7 @@ class CandidateController extends Controller
                 break;
 
             case 'send_email':
-                $this->checkPermission('candidates.view');
+                $this->checkPermission('candidate.view');
                 $templateId = $_POST['template_id'] ?? null;
                 $subject = $_POST['email_subject'] ?? null;
                 $content = $_POST['email_content'] ?? null;
@@ -268,19 +312,19 @@ class CandidateController extends Controller
                 break;
 
             case 'restore':
-                $this->checkPermission('candidates.delete');
+                $this->checkPermission('candidate.delete');
                 $this->bulkRestore($ids);
                 $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=bulk_success&count=" . count($ids);
                 break;
 
             case 'force_delete':
-                $this->checkPermission('candidates.delete'); // Or candidates.force_delete if special
+                $this->checkPermission('candidate.delete'); // Or candidates.force_delete if special
                 $this->bulkForceDelete($ids);
                 $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=deleted";
                 break;
 
             case 'normalize_names':
-                $this->checkPermission('candidates.edit');
+                $this->checkPermission('candidate.edit');
                 $candidates = $this->thiSinhRepo->findManyByCCCD($ids);
                 $count = 0;
                 foreach ($candidates as $candidate) {
@@ -292,11 +336,11 @@ class CandidateController extends Controller
                 }
                 
                 $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
-                $_POST['redirect_to'] = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("Đã chuẩn hóa họ tên cho $count thí sinh.");
+                $_POST['redirect_to'] = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("ÄÃ£ chuáº©n hÃ³a há» tÃªn cho $count thÃ­ sinh.");
                 break;
 
             case 'change_password':
-                $this->checkPermission('candidates.edit');
+                $this->checkPermission('candidate.edit');
                 $this->bulkResetPassword($ids);
                 break;
 
@@ -342,10 +386,10 @@ class CandidateController extends Controller
     {
         // Use Repositories
         $this->thiSinhRepo->bulkTransferSession($ids, $sessionId);
-        // Original code also updated nguyen_vong status to 'Chờ duyệt'.
+        // Original code also updated nguyen_vong status to 'Chá» duyá»‡t'.
         // My bulkTransferSession in ThiSinhRepo only updates ho_so_xet_tuyen.
         // I need to update nguyen_vong too.
-        $this->nguyenVongRepo->bulkUpdateStatus($ids, 'Chờ duyệt');
+        $this->nguyenVongRepo->bulkUpdateStatus($ids, 'Chá» duyá»‡t');
 
         $this->auditService->log('BULK_TRANSFER_SESSION', 'candidates', null, null, [
             'count' => count($ids),
@@ -469,7 +513,7 @@ class CandidateController extends Controller
         $notificationModel = new \App\Models\Notification();
         $notificationModel->create([
             'title' => "[Email] " . mb_substr($subject, 0, 50),
-            'content' => "Hệ thống đã gửi email đến " . count($ids) . " thí sinh. Nội dung: " . mb_substr(strip_tags($body), 0, 200) . "...",
+            'content' => "Há»‡ thá»‘ng Ä‘Ã£ gá»­i email Ä‘áº¿n " . count($ids) . " thÃ­ sinh. Ná»™i dung: " . mb_substr(strip_tags($body), 0, 200) . "...",
             'type' => 'info',
             'target_type' => 'all',
             'created_by' => $_SESSION['admin_id'] ?? null
@@ -497,12 +541,12 @@ class CandidateController extends Controller
                 // Send Email Notification
                 if (!empty($candidate['email'])) {
                     $mailer = new \App\Services\MailerService();
-                    $subject = "Thông báo thay đổi mật khẩu - Hệ thống Tuyển sinh";
-                    $body = "Chào bạn <b>{$candidate['ho_va_ten']}</b>,<br><br>
-                            Người quản trị đã thay đổi mật khẩu đăng nhập của bạn trên hệ thống Tuyển sinh.<br>
-                            Mật khẩu mới của bạn là: <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
-                            Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
-                            Trân trọng!";
+                    $subject = "ThÃ´ng bÃ¡o thay Ä‘á»•i máº­t kháº©u - Há»‡ thá»‘ng Tuyá»ƒn sinh";
+                    $body = "ChÃ o báº¡n <b>{$candidate['ho_va_ten']}</b>,<br><br>
+                            NgÆ°á»i quáº£n trá»‹ Ä‘Ã£ thay Ä‘á»•i máº­t kháº©u Ä‘Äƒng nháº­p cá»§a báº¡n trÃªn há»‡ thá»‘ng Tuyá»ƒn sinh.<br>
+                            Máº­t kháº©u má»›i cá»§a báº¡n lÃ : <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
+                            Vui lÃ²ng sá»­ dá»¥ng máº­t kháº©u nÃ y Ä‘á»ƒ Ä‘Äƒng nháº­p vÃ  Ä‘á»•i láº¡i máº­t kháº©u cÃ¡ nhÃ¢n sau khi truy cáº­p.<br>
+                            TrÃ¢n trá»ng!";
                     
                     $mailer->enqueue($candidate['email'], $subject, $body);
                 }
@@ -516,7 +560,7 @@ class CandidateController extends Controller
         }
         
         $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
-        $redirectTo = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("Đã đổi mật khẩu thành công cho $count hồ sơ.");
+        $redirectTo = $baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "success=" . urlencode("ÄÃ£ Ä‘á»•i máº­t kháº©u thÃ nh cÃ´ng cho $count há»“ sÆ¡.");
         $this->redirect($redirectTo);
     }
 
@@ -525,7 +569,7 @@ class CandidateController extends Controller
      */
     public function delete()
     {
-        $this->checkPermission('candidates.delete');
+        $this->checkPermission('candidate.delete');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? $_GET['cccd'] ?? '';
@@ -573,7 +617,7 @@ class CandidateController extends Controller
      */
     public function transfer()
     {
-        $this->checkPermission('candidates.edit');
+        $this->checkPermission('candidate.edit');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
@@ -597,7 +641,7 @@ class CandidateController extends Controller
 
     public function restore()
     {
-        $this->checkPermission('candidates.delete');
+        $this->checkPermission('candidate.delete');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
@@ -618,7 +662,7 @@ class CandidateController extends Controller
 
     public function forceDelete()
     {
-        $this->checkPermission('candidates.delete');
+        $this->checkPermission('candidate.delete');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
@@ -639,7 +683,7 @@ class CandidateController extends Controller
 
     public function edit()
     {
-        $this->checkPermission('candidates.edit');
+        $this->checkPermission('candidate.edit');
 
         $cccd = $_GET['cccd'] ?? $_POST['cccd'] ?? '';
         if (!$cccd) {
@@ -850,7 +894,7 @@ class CandidateController extends Controller
 
     public function update()
     {
-        $this->checkPermission('candidates.edit');
+        $this->checkPermission('candidate.edit');
         // $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
@@ -859,48 +903,51 @@ class CandidateController extends Controller
         // error_log("DEBUG_UPDATE: CCCD=$cccd, Section=$section");
 
         if (!$cccd || !$section) {
-            $this->json(['success' => false, 'error' => 'Thiếu dữ liệu CCCD hoặc Section. Debug: ' . print_r($_POST, true)]);
+            $this->json(['success' => false, 'error' => 'Thiáº¿u dá»¯ liá»‡u CCCD hoáº·c Section. Debug: ' . print_r($_POST, true)]);
             return;
         }
 
         try {
+            $this->db->beginTransaction();
             switch ($section) {
                 case 'personal':
                     // Personal Info (Updated fields only)
                     // Use '' for text fields if empty, null for IDs if empty
                     $data = [
-                        'ho_va_ten' => normalize_name($_POST['ho_va_ten']),
-                        'ngay_sinh' => $_POST['ngay_sinh'],
-                        'gioi_tinh' => $_POST['gioi_tinh'],
+                        'ho_va_ten' => normalize_name($_POST['ho_va_ten'] ?? ''),
+                        'ngay_sinh' => $_POST['ngay_sinh'] ?? '',
+                        'gioi_tinh' => $_POST['gioi_tinh'] ?? '',
                         'dan_toc'   => $_POST['dan_toc'] ?? '',
-                        'dien_thoai' => $_POST['dien_thoai'],
-                        'email'     => $_POST['email'],
-                        'nam_tot_nghiep'    => $_POST['nam_tot_nghiep'] ?? null,
-                        'ma_tinh_lop_12'    => !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null,
-                        'ma_truong_lop_12'  => !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null,
-                        'khu_vuc_uu_tien'   => $_POST['kv_uu_tien'] ?? null,
-                        'is_custom_kv'      => (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1'),
-                        'doi_tuong_uu_tien' => $_POST['dt_uu_tien'] ?? null,
-                        'is_custom_dt'      => (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1'),
+                        'dien_thoai' => $_POST['dien_thoai'] ?? '',
+                        'email'     => $_POST['email'] ?? '',
                         'dia_chi_chi_tiet'   => $_POST['dia_chi_chi_tiet'] ?? '',
                         'ma_tinh_ho_khau'    => !empty($_POST['ma_tinh_ho_khau']) ? $_POST['ma_tinh_ho_khau'] : null,
                         'ma_tinh_thuong_tru' => !empty($_POST['ma_tinh_thuong_tru']) ? $_POST['ma_tinh_thuong_tru'] : null,
                         'ma_xa_thuong_tru'   => !empty($_POST['ma_xa_thuong_tru']) ? $_POST['ma_xa_thuong_tru'] : null,
                     ];
 
-                    // Xử lý đổi Số CCCD nếu có
+                    // Only update demographic fields if they are actually included in the POST request (prevents wiping when saving from tabs that lack these inputs)
+                    if (isset($_POST['nam_tot_nghiep'])) $data['nam_tot_nghiep'] = trim($_POST['nam_tot_nghiep']) !== '' ? trim($_POST['nam_tot_nghiep']) : null;
+                    if (isset($_POST['ma_tinh_lop_12'])) $data['ma_tinh_lop_12'] = trim($_POST['ma_tinh_lop_12']) !== '' ? trim($_POST['ma_tinh_lop_12']) : null;
+                    if (isset($_POST['ma_truong_lop_12'])) $data['ma_truong_lop_12'] = trim($_POST['ma_truong_lop_12']) !== '' ? trim($_POST['ma_truong_lop_12']) : null;
+                    if (isset($_POST['kv_uu_tien'])) $data['khu_vuc_uu_tien'] = trim($_POST['kv_uu_tien']) !== '' ? trim($_POST['kv_uu_tien']) : null;
+                    if (isset($_POST['is_custom_kv'])) $data['is_custom_kv'] = ($_POST['is_custom_kv'] ?? '0') == '1';
+                    if (isset($_POST['dt_uu_tien'])) $data['doi_tuong_uu_tien'] = trim($_POST['dt_uu_tien']) !== '' ? trim($_POST['dt_uu_tien']) : null;
+                    if (isset($_POST['is_custom_dt'])) $data['is_custom_dt'] = ($_POST['is_custom_dt'] ?? '0') == '1';
+
+                    // Xá»­ lÃ½ Ä‘á»•i Sá»‘ CCCD náº¿u cÃ³
                     if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
                         $newCccd = trim($_POST['so_cccd']);
-                        // Kiểm tra trùng lặp CCCD
+                        // Kiá»ƒm tra trÃ¹ng láº·p CCCD
                         $existing = $this->thiSinhRepo->findByCCCD($newCccd);
                         if ($existing) {
-                            $this->json(['success' => false, 'error' => 'Số CCCD mới đã tồn tại trong hệ thống. Vui lòng kiểm tra lại.']);
+                            $this->json(['success' => false, 'error' => 'Sá»‘ CCCD má»›i Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng. Vui lÃ²ng kiá»ƒm tra láº¡i.']);
                             return;
                         }
                         $data['so_cccd'] = $newCccd;
                     }
 
-                    // Handle File Uploads — only if files are actually attached
+                    // Handle File Uploads â€” only if files are actually attached
                     $fileMap = [
                         'avatar' => 'anh_dai_dien',
                         'cccd_front' => 'anh_cccd_truoc',
@@ -974,155 +1021,142 @@ class CandidateController extends Controller
                     $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
 
                     if ($res) {
-                        $this->json(['success' => true, 'message' => 'Lưu thành công', 'new_cccd' => $data['so_cccd'] ?? $cccd, 'debug_data' => $data]);
+                        $msg = 'Lưu thành công';
+                        break;
                     } else {
-                        $this->json(['success' => false, 'error' => 'Lỗi DB Update (0 rows affected or fail)', 'debug_data' => $data]);
+                        throw new \Exception('Lỗi cập nhật thông tin cá nhân');
                     }
-                    return;
-
 
                 case 'academic':
                     $academicRepo = new \App\Repositories\AcademicRepository();
-
-                    // Setup Uploader (check if any transcript files exist)
                     $hasAcademicFiles = false;
-                    foreach ([10, 11, 12] as $_g) {
-                        if (!empty($_FILES["transcripts_$_g"]['name'][0])) {
+                    foreach ($_FILES as $key => $file) {
+                        if (strpos($key, 'transcripts_') === 0 && !empty($file['name'])) {
                             $hasAcademicFiles = true;
                             break;
                         }
                     }
 
                     $pathInfo = null;
-                    $uploadDriver = 'local';
+                    $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                     $uploader = null;
                     if ($hasAcademicFiles) {
                         $pathInfo = $this->getUploadPathInfo($cccd);
-                        $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                         $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-
                         if ($uploadDriver === 'google') {
                             $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
                             $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
                             $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
                             $driveService = new \App\Services\DriveService($uploader);
                             $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                            if ($targetFolderId) {
-                                $uploader->setTargetFolderId($targetFolderId);
-                            }
+                            if ($targetFolderId) $uploader->setTargetFolderId($targetFolderId);
                         }
                     }
 
-                    $grades = [10, 11, 12];
-                    $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tin_hoc', 'cong_nghe'];
-
-                    foreach ($grades as $g) {
-                        $record = [];
-
+                    $batchData = [];
+                    foreach ([10, 11, 12] as $g) {
                         if (isset($_POST['scores'][$g]) && is_array($_POST['scores'][$g])) {
                             $gradeInputs = $_POST['scores'][$g];
+                            $record = [
+                                'diem_tb' => $gradeInputs['diem_tb_ca_nam'] ?? null,
+                                'hoc_luc' => $gradeInputs['hoc_luc_ca_nam'] ?? null,
+                                'hanh_kiem' => $gradeInputs['hanh_kiem_ca_nam'] ?? null,
+                                'file_hoc_ba' => $gradeInputs['existing_files'] ?? null
+                            ];
 
-                            // Collect Scores (column names use _cn suffix)
+                            // Map subjects
+                            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tin_hoc', 'cong_nghe'];
                             foreach ($subjects as $s) {
                                 if (isset($gradeInputs["diem_{$s}_cn"])) {
-                                    $record["diem_{$s}_cn"] = $gradeInputs["diem_{$s}_cn"] !== '' ? (float)$gradeInputs["diem_{$s}_cn"] : null;
+                                    $record[$s] = $gradeInputs["diem_{$s}_cn"] !== '' ? (float)$gradeInputs["diem_{$s}_cn"] : null;
                                 }
                             }
 
-                            // Collect Rank & Conduct & GPA (column names use _ca_nam suffix)
-                            if (isset($gradeInputs["hoc_luc_ca_nam"]))   $record['hoc_luc_ca_nam']   = $gradeInputs["hoc_luc_ca_nam"] ?: null;
-                            if (isset($gradeInputs["hanh_kiem_ca_nam"])) $record['hanh_kiem_ca_nam'] = $gradeInputs["hanh_kiem_ca_nam"] ?: null;
-                            if (isset($gradeInputs["diem_tb_ca_nam"]))   $record['diem_tb_ca_nam']   = $gradeInputs["diem_tb_ca_nam"] !== '' ? (float)$gradeInputs["diem_tb_ca_nam"] : null;
+                            // Handle Academic File Uploads (Partial replacements preferred)
+                            $existingFilesStr = $gradeInputs['existing_files'] ?? '';
+                            $currentFileList = !empty($existingFilesStr) ? explode(',', $existingFilesStr) : [];
+                            $hasFilesChange = false;
 
-                            // Handle file uploads (multiple files per grade possible)
-                            if (!empty($_FILES["transcripts_$g"]['name'][0])) {
-                                $uploadedFiles = [];
-                                foreach ($_FILES["transcripts_$g"]['name'] as $i => $name) {
-                                    if (!empty($name)) {
-                                        $fileToUpload = [
-                                            'name' => $_FILES["transcripts_$g"]['name'][$i],
-                                            'type' => $_FILES["transcripts_$g"]['type'][$i],
-                                            'tmp_name' => $_FILES["transcripts_$g"]['tmp_name'][$i],
-                                            'error' => $_FILES["transcripts_$g"]['error'][$i],
-                                            'size' => $_FILES["transcripts_$g"]['size'][$i]
-                                        ];
-                                        $prefix = $cccd . "_transcript_grade{$g}_" . time() . "_" . $i;
-                                        $uploader->clearErrors();
-                                        $fileName = $uploader->upload($fileToUpload, $prefix);
-                                        if ($fileName) {
-                                            $uploadedFiles[] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                                        }
+                            // 1. Check for specific replace inputs (Admin dashboard pattern)
+                            foreach ([1 => 0, 2 => 1] as $suffix => $idx) {
+                                $fKey = "transcripts_{$g}_replace_{$suffix}";
+                                if (!empty($_FILES[$fKey]['name'])) {
+                                    $uploader->clearErrors();
+                                    $fName = $uploader->upload($_FILES[$fKey], "{$cccd}_transcript_G{$g}_idx{$idx}_" . time());
+                                    if ($fName) {
+                                        $currentFileList[$idx] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fName : $fName;
+                                        $hasFilesChange = true;
                                     }
                                 }
-                                if (!empty($uploadedFiles)) {
-                                    $record['file_hoc_ba'] = implode(',', $uploadedFiles);
-                                }
-                            } else {
-                                // Keep existing if no new ones
-                                if (isset($gradeInputs['existing_files'])) {
-                                    $record['file_hoc_ba'] = $gradeInputs['existing_files'];
+                            }
+
+                            // 2. Check for indexed array inputs (Legacy/Frontend pattern)
+                            if (isset($_FILES["transcripts_$g"]['name']) && is_array($_FILES["transcripts_$g"]['name'])) {
+                                foreach ($_FILES["transcripts_$g"]['name'] as $i => $name) {
+                                    if (empty($name)) continue;
+                                    $fileToUpload = [
+                                        'name' => $name,
+                                        'type' => $_FILES["transcripts_$g"]['type'][$i],
+                                        'tmp_name' => $_FILES["transcripts_$g"]['tmp_name'][$i],
+                                        'error' => $_FILES["transcripts_$g"]['error'][$i],
+                                        'size' => $_FILES["transcripts_$g"]['size'][$i]
+                                    ];
+                                    $uploader->clearErrors();
+                                    $fName = $uploader->upload($fileToUpload, "{$cccd}_transcript_G{$g}_arr{$i}_" . time());
+                                    if ($fName) {
+                                        $currentFileList[] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fName : $fName;
+                                        $hasFilesChange = true;
+                                    }
                                 }
                             }
 
-                            // SAVE the record for this grade
-                            $academicRepo->createOrUpdate($cccd, $g, $record);
+                            if ($hasFilesChange) {
+                                $record['file_hoc_ba'] = implode(',', array_filter($currentFileList));
+                            }
+                            
+                            $batchData[$g] = $record;
                         }
                     }
 
-                    // Save School & Priority fields (now submitted from academic form)
-                    $personalData = [];
-                    if (isset($_POST['ma_tinh_lop_12']))    $personalData['ma_tinh_lop_12']    = !empty($_POST['ma_tinh_lop_12']) ? $_POST['ma_tinh_lop_12'] : null;
-                    if (isset($_POST['ma_truong_lop_12']))   $personalData['ma_truong_lop_12']  = !empty($_POST['ma_truong_lop_12']) ? $_POST['ma_truong_lop_12'] : null;
-                    if (isset($_POST['nam_tot_nghiep']))     $personalData['nam_tot_nghiep']    = $_POST['nam_tot_nghiep'] ?? null;
-                    if (isset($_POST['kv_uu_tien']))         $personalData['khu_vuc_uu_tien']   = $_POST['kv_uu_tien'] ?? null;
-                    $personalData['is_custom_kv'] = (isset($_POST['is_custom_kv']) && $_POST['is_custom_kv'] == '1');
-                    if (isset($_POST['dt_uu_tien']))         $personalData['doi_tuong_uu_tien'] = $_POST['dt_uu_tien'] ?? null;
-                    $personalData['is_custom_dt'] = (isset($_POST['is_custom_dt']) && $_POST['is_custom_dt'] == '1');
+                    if (!empty($batchData)) {
+                        $academicRepo->saveBatch($cccd, $batchData);
+                    }
 
-                    // Handle KV/DT evidence file uploads
-                    $evidenceFileMap = ['kv_file' => 'file_minh_chung_kv', 'dt_file' => 'file_minh_chung_dt'];
-                    foreach ($evidenceFileMap as $field => $dbCol) {
-                        if (!empty($_FILES[$field]['name'])) {
+                    // Priority & School sync (Only update fields if they were actively submitted in the form)
+                    $personalData = [];
+                    if (isset($_POST['ma_tinh_lop_12'])) $personalData['ma_tinh_lop_12'] = $_POST['ma_tinh_lop_12'] ?: null;
+                    if (isset($_POST['ma_truong_lop_12'])) $personalData['ma_truong_lop_12'] = $_POST['ma_truong_lop_12'] ?: null;
+                    if (isset($_POST['nam_tot_nghiep'])) $personalData['nam_tot_nghiep'] = $_POST['nam_tot_nghiep'] ?: null;
+                    if (isset($_POST['kv_uu_tien'])) $personalData['khu_vuc_uu_tien'] = $_POST['kv_uu_tien'] ?: null;
+                    if (isset($_POST['is_custom_kv'])) $personalData['is_custom_kv'] = ($_POST['is_custom_kv'] ?? '0') == '1';
+                    if (isset($_POST['dt_uu_tien'])) $personalData['doi_tuong_uu_tien'] = $_POST['dt_uu_tien'] ?: null;
+                    if (isset($_POST['is_custom_dt'])) $personalData['is_custom_dt'] = ($_POST['is_custom_dt'] ?? '0') == '1';
+
+                    foreach (['kv_file' => 'file_minh_chung_kv', 'dt_file' => 'file_minh_chung_dt'] as $f => $col) {
+                        if (!empty($_FILES[$f]['name'])) {
                             if (!isset($uploader)) {
                                 $pathInfo = $this->getUploadPathInfo($cccd);
-                                $uploadDriver = $_ENV['UPLOAD_DRIVER'] ?? 'local';
                                 $uploader = new \App\Core\FileUploader($pathInfo['absolute'], $uploadDriver);
-                                if ($uploadDriver === 'google') {
-                                    $clientSecretPath = self::resolveConfigPath($_ENV['GOOGLE_CLIENT_SECRET'] ?? '', 'client_secret.json');
-                                    $tokenPath = self::resolveConfigPath($_ENV['GOOGLE_TOKEN_FILE'] ?? '', 'token.json');
-                                    $uploader->setGoogleConfig($clientSecretPath, $tokenPath, $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '');
-                                    $driveService = new \App\Services\DriveService($uploader);
-                                    $targetFolderId = $driveService->resolveCandidateFolder($pathInfo['year'], $pathInfo['session'], $cccd);
-                                    if ($targetFolderId) {
-                                        $uploader->setTargetFolderId($targetFolderId);
-                                    }
-                                }
                             }
-                            $prefix = $cccd . '_' . ($field === 'kv_file' ? 'kv_evidence' : 'dt_evidence') . '_' . time();
                             $uploader->clearErrors();
-                            $fileName = $uploader->upload($_FILES[$field], $prefix);
-                            if ($fileName) {
-                                $personalData[$dbCol] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fileName : $fileName;
-                            }
+                            $fName = $uploader->upload($_FILES[$f], "{$cccd}_{$f}_" . time());
+                            if ($fName) $personalData[$col] = ($uploadDriver === 'local') ? $pathInfo['relative'] . '/' . $fName : $fName;
                         }
                     }
-
                     if (!empty($personalData)) {
                         $this->thiSinhRepo->updateFullProfile($cccd, $personalData);
                     }
 
-                    // Update Status & Note
-                    $applicationRepo = new \App\Repositories\ApplicationRepository();
-                    $applicationId = $_POST['application_id'] ?? null;
-                    if ($applicationId) {
-                        $appUpdate = [];
-                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
+                    // Sync Status
+                    $appId = $_POST['application_id'] ?? null;
+                    if ($appId) {
+                        $upd = [];
+                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
+                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
                     }
-
-                    $this->json(['success' => true, 'message' => 'Đã lưu kết quả học tập thành công']);
-                    return;
+                    $msg = 'Đã lưu kết quả học tập thành công';
+                    break;
 
                 case 'thpt':
                     // THPT Scores Update
@@ -1162,26 +1196,21 @@ class CandidateController extends Controller
                         }
                     }
 
-                    // Update Status & Note
-                    $applicationRepo = new \App\Repositories\ApplicationRepository();
-                    $applicationId = $_POST['application_id'] ?? null;
-                    if ($applicationId) {
-                        $appUpdate = [];
-                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
-                    }
-
                     if (!empty($scores)) {
                         $scores['nam_thi'] = date('Y');
-                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
+                        $this->thiSinhRepo->saveDiemThiTHPT($cccd, $scores);
                     }
 
-                    $this->thiSinhRepo->saveDiemThiTHPT($cccd, $scores);
-
-                    $this->json(['success' => true, 'message' => 'Đã lưu điểm thi THPT thành công']);
-                    return;
+                    // Optional: Update application status/note if ID is present
+                    $appId = $_POST['application_id'] ?? null;
+                    if ($appId) {
+                        $upd = [];
+                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
+                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
+                    }
+                    $msg = 'Đã lưu điểm thi THPT thành công';
+                    break;
 
                 case 'certs':
                     $certsArr = $_POST['certs'] ?? [];
@@ -1232,20 +1261,17 @@ class CandidateController extends Controller
                         $certsData[] = $item;
                     }
 
-                    // Update Status & Note
-                    $applicationRepo = new \App\Repositories\ApplicationRepository();
-                    $applicationId = $_POST['application_id'] ?? null;
-                    if ($applicationId) {
-                        $appUpdate = [];
-                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-                        if (!empty($appUpdate)) $applicationRepo->update($applicationId, $appUpdate);
-                    }
-
                     $this->thiSinhRepo->saveCertifications($cccd, $certsData);
 
-                    $this->json(['success' => true, 'message' => 'Đã lưu chứng chỉ thành công']);
-                    return;
+                    $appId = $_POST['application_id'] ?? null;
+                    if ($appId) {
+                        $upd = [];
+                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
+                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
+                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
+                    }
+                    $msg = 'Đã lưu chứng chỉ thành công';
+                    break;
 
                 case 'wishes':
                     $applicationId = $_POST['application_id'] ?? null;
@@ -1262,7 +1288,7 @@ class CandidateController extends Controller
                     }
 
                     if (!$applicationId) {
-                        $this->json(['success' => false, 'error' => 'Không tìm thấy hồ sơ để lưu nguyện vọng.']);
+                        $this->json(['success' => false, 'error' => 'KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ Ä‘á»ƒ lÆ°u nguyá»‡n vá» ng.']);
                         return;
                     }
 
@@ -1286,12 +1312,12 @@ class CandidateController extends Controller
                     }
 
                     if (!$dotTuyenSinhId) {
-                        $this->json(['success' => false, 'error' => 'Không xác định được đợt tuyển sinh cho hồ sơ này.']);
+                        $this->json(['success' => false, 'error' => 'KhÃ´ng xÃ¡c Ä‘á»‹nh Ä‘Æ°á»£c Ä‘á»£t tuyá»ƒn sinh cho há»“ sÆ¡ nÃ y.']);
                         return;
                     }
 
                     if (empty($items)) {
-                        $this->json(['success' => false, 'error' => 'Vui lòng thêm ít nhất 1 nguyện vọng.']);
+                        $this->json(['success' => false, 'error' => 'Vui lÃ²ng thÃªm Ã­t nháº¥t 1 nguyá»‡n vá» ng.']);
                         return;
                     }
 
@@ -1312,28 +1338,47 @@ class CandidateController extends Controller
 
                     $nguyenVongRepo = new \App\Repositories\NguyenVongRepository();
                     if (!$nguyenVongRepo->save($cccd, $dotTuyenSinhId, $items)) {
-                        $this->json(['success' => false, 'error' => 'Lỗi lưu nguyện vọng vào CSDL.']);
+                        $this->json(['success' => false, 'error' => 'Lá»—i lÆ°u nguyá»‡n vá»ng vÃ o CSDL.']);
                         return;
                     }
                     break;
             }
 
-            // Audit log (non-critical: failures here should not break the JSON response)
+            $this->db->commit();
+
+            // Return success response to the user immediately
+            $this->json([
+                'success' => true, 
+                'message' => $msg ?? 'Đã lưu thông tin thành công',
+                'new_cccd' => $data['so_cccd'] ?? $cccd // in case of CCCD update in personal tab
+            ]);
+
+            // Non-critical tasks after connection is closed
+            if (function_exists('fastcgi_finish_request')) {
+                fastcgi_finish_request();
+            }
+
+            // Audit log (post-response)
             try {
                 $this->auditService->log('UPDATE_CANDIDATE', 'candidates', $cccd, null, ['section' => $section]);
             } catch (\Exception $auditEx) {
                 error_log("Audit log failed: " . $auditEx->getMessage());
             }
-            $this->json(['success' => true]);
         } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("UPDATE CANDIDATE ERROR: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
             $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 
-
     private function getUploadPathInfo($cccd)
     {
+        if (isset($this->uploadPathInfoCache[$cccd])) {
+            return $this->uploadPathInfoCache[$cccd];
+        }
+
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
 
@@ -1342,27 +1387,26 @@ class CandidateController extends Controller
 
         if ($activeSession) {
             $year = $activeSession['nam_tuyen_sinh'] ?? date('Y');
-            // Use 'ma_dot' (e.g. 'Dot_1') instead of 'ten_dot' (e.g. 'Đợt 1 năm 2026') to avoid nested years
             $sessionName = $activeSession['ma_dot'] ?? ('Dot_' . ($activeSession['id'] ?? '1'));
-            // Slugify to be safe
             $sessionName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $sessionName);
         }
 
-        // Standard Path: uploads/YEAR/SESSION/CCCD
         $relativePath = "/uploads/{$year}/{$sessionName}/{$cccd}";
         $absolutePath = __DIR__ . '/../../public' . $relativePath;
 
-        return [
+        $this->uploadPathInfoCache[$cccd] = [
             'relative' => $relativePath,
             'absolute' => $absolutePath,
             'year' => $year,
             'session' => $sessionName
         ];
+
+        return $this->uploadPathInfoCache[$cccd];
     }
 
     public function changePassword()
     {
-        $this->checkPermission('candidates.edit');
+        $this->checkPermission('candidate.edit');
         $this->validateCsrf();
 
         $cccd = $_POST['cccd'] ?? '';
@@ -1384,12 +1428,12 @@ class CandidateController extends Controller
             // Send Email
             if (!empty($candidate['email'])) {
                 $mailer = new \App\Services\MailerService();
-                $subject = "Thông báo thay đổi mật khẩu - Hệ thống Tuyển sinh";
-                $body = "Chào bạn <b>{$candidate['ho_va_ten']}</b>,<br><br>
-                        Người quản trị đã thay đổi mật khẩu đăng nhập của bạn trên hệ thống Tuyển sinh.<br>
-                        Mật khẩu mới của bạn là: <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
-                        Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
-                        Trân trọng!";
+                $subject = "ThÃ´ng bÃ¡o thay Ä‘á»•i máº­t kháº©u - Há»‡ thá»‘ng Tuyá»ƒn sinh";
+                $body = "ChÃ o báº¡n <b>{$candidate['ho_va_ten']}</b>,<br><br>
+                        NgÆ°á»i quáº£n trá»‹ Ä‘Ã£ thay Ä‘á»•i máº­t kháº©u Ä‘Äƒng nháº­p cá»§a báº¡n trÃªn há»‡ thá»‘ng Tuyá»ƒn sinh.<br>
+                        Máº­t kháº©u má»›i cá»§a báº¡n lÃ : <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
+                        Vui lÃ²ng sá»­ dá»¥ng máº­t kháº©u nÃ y Ä‘á»ƒ Ä‘Äƒng nháº­p vÃ  Ä‘á»•i láº¡i máº­t kháº©u cÃ¡ nhÃ¢n sau khi truy cáº­p.<br>
+                        TrÃ¢n trá»ng!";
                 
                 $mailer->enqueue($candidate['email'], $subject, $body);
             }

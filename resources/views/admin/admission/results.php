@@ -237,16 +237,16 @@ $admitRate = $totalCandidates > 0 ? round(($totalAdmitted / $totalCandidates) * 
                                 </td>
                                 <td class="py-4 px-6">
                                     <div class="flex items-center gap-1.5 font-bold">
-                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_1'] ?? 0, 2) ?></span>
-                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_2'] ?? 0, 2) ?></span>
-                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_3'] ?? 0, 2) ?></span>
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_1'] ?? 0, 3) ?></span>
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_2'] ?? 0, 3) ?></span>
+                                        <span class="w-9 text-center py-0.5 bg-slate-50 rounded text-slate-500"><?= number_format($details['diem_mon_3'] ?? 0, 3) ?></span>
                                         <?php if (($details['priority_raw'] ?? 0) > 0): ?>
-                                            <span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 text-[9px]">+<?= number_format($details['priority_converted'] ?? 0, 2) ?></span>
+                                            <span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 text-[9px]">+<?= number_format($details['priority_converted'] ?? 0, 3) ?></span>
                                         <?php endif; ?>
                                     </div>
                                 </td>
                                 <td class="py-4 px-6 text-center">
-                                    <span class="text-lg font-black text-indigo-700"><?= $row['cs_diem_xet_tuyen'] !== null ? number_format($row['cs_diem_xet_tuyen'], 2) : '-' ?></span>
+                                    <span class="text-lg font-black text-indigo-700"><?= $row['cs_diem_xet_tuyen'] !== null ? number_format($row['cs_diem_xet_tuyen'], 3) : '-' ?></span>
                                 </td>
                                 <td class="py-4 px-6 text-center">
                                     <?php if ($isPass): ?>

@@ -663,8 +663,10 @@ include __DIR__ . '/../layouts/header.php'; ?>
         // Lắng nghe sự kiện từ Alpine School Search
         window.addEventListener('school-selected-alpine', function(e) {
             if (isCustomKv.checked) return;
-            const kv = e.detail.khu_vuc;
-            if (displayKV) displayKV.textContent = kv || '--';
+            const raw = e.detail.khu_vuc ? e.detail.khu_vuc.trim() : '';
+            const map = {'KV1':'1','KV2':'2','KV2-NT':'2NT','KV3':'3'};
+            const kv = map[raw] || raw;
+            if (displayKV) displayKV.textContent = raw || '--';
             if (inputKV) inputKV.value = kv || '';
         });
 

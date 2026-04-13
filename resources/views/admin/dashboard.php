@@ -1,4 +1,48 @@
 <?php ob_start(); ?>
+<style>
+    .premium-table {
+        border-collapse: separate !important;
+        border-spacing: 0;
+        width: 100%;
+        table-layout: fixed;
+    }
+    .premium-table th, .premium-table td {
+        padding: 0.75rem 1rem;
+        border: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        vertical-align: middle;
+        font-size: 13px;
+        color: #334155;
+        background-clip: padding-box;
+    }
+    .premium-table th {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        text-align: left;
+    }
+    .premium-table th:first-child, .premium-table td:first-child {
+        border-left: 1px solid #e2e8f0 !important;
+    }
+    .premium-table thead tr:first-child th {
+        border-top: 1px solid #e2e8f0 !important;
+    }
+    .premium-table thead tr:first-child th:first-child {
+        border-top-left-radius: 1rem;
+    }
+    .premium-table thead tr:first-child th:last-child {
+        border-top-right-radius: 1rem;
+    }
+    .premium-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 1rem;
+    }
+    .premium-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 1rem;
+    }
+</style>
 <div id="dashboardRoot" x-data="{
     activeTab: 'overview',
     loadedTabs: [],
@@ -189,13 +233,13 @@
 
                 <!-- Desktop Table View -->
                 <div class="hidden md:block overflow-x-auto">
-                    <table class="w-full text-left text-sm">
+                    <table class="premium-table">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-50">
-                                <th class="pb-3 px-4 font-bold uppercase tracking-wider text-[11px]">Thí sinh</th>
-                                <th class="pb-3 px-4 font-bold uppercase tracking-wider text-[11px]">CCCD</th>
-                                <th class="pb-3 px-4 font-bold uppercase tracking-wider text-[11px]">Thời gian</th>
-                                <th class="pb-3 px-4 font-bold uppercase tracking-wider text-[11px] text-right">Trạng thái</th>
+                            <tr>
+                                <th style="width: 40%">Thí sinh</th>
+                                <th style="width: 25%">CCCD</th>
+                                <th style="width: 15%">Thời gian</th>
+                                <th style="width: 20%" class="text-right">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody id="latestCandidatesBody">
@@ -252,19 +296,19 @@
                     </h3>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-xs lg:text-sm border-collapse min-w-[600px] lg:min-w-full">
+                    <table class="premium-table min-w-[600px] lg:min-w-full">
                         <thead>
-                            <tr class="text-slate-500 border-b-2 border-slate-100 bg-slate-50/50">
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider whitespace-nowrap" rowspan="2">Mã ngành</th>
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider whitespace-nowrap" rowspan="2">Tên ngành</th>
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider text-center whitespace-nowrap" rowspan="2">Chỉ tiêu</th>
-                                <th class="py-2 px-4 font-bold uppercase tracking-wider text-center border-b border-slate-200" colspan="4">Thống kê NV</th>
+                            <tr>
+                                <th style="width: 120px" rowspan="2">Mã ngành</th>
+                                <th rowspan="2">Tên ngành</th>
+                                <th style="width: 100px" class="text-center" rowspan="2">Chỉ tiêu</th>
+                                <th class="text-center" colspan="4">Thống kê NV</th>
                             </tr>
-                            <tr class="text-slate-500 border-b-2 border-slate-100 bg-slate-50/50">
-                                <th class="py-2 px-4 font-bold text-center border-l border-slate-200">Tổng</th>
-                                <th class="py-2 px-4 font-bold text-center border-l border-slate-200">NV1</th>
-                                <th class="py-2 px-4 font-bold text-center border-l border-slate-200">NV2</th>
-                                <th class="py-2 px-4 font-bold text-center border-l border-slate-200">C.Lại</th>
+                            <tr>
+                                <th style="width: 80px" class="text-center">Tổng</th>
+                                <th style="width: 80px" class="text-center">NV1</th>
+                                <th style="width: 80px" class="text-center">NV2</th>
+                                <th style="width: 80px" class="text-center">C.Lại</th>
                             </tr>
                         </thead>
                         <tbody id="detailedMajorStatsBody">
@@ -352,12 +396,12 @@
                     </h3>
                 </div>
                 <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left text-xs lg:text-sm border-collapse min-w-[500px] lg:min-w-full">
+                    <table class="premium-table min-w-[500px] lg:min-w-full">
                         <thead>
-                            <tr class="text-slate-500 border-b-2 border-slate-100 bg-slate-50/50">
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider">Họ tên cán bộ</th>
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider">Tên đăng nhập</th>
-                                <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Đã duyệt</th>
+                            <tr>
+                                <th>Họ tên cán bộ</th>
+                                <th>Tên đăng nhập</th>
+                                <th style="width: 150px" class="text-right">Đã duyệt</th>
                             </tr>
                         </thead>
                         <tbody id="reviewerTableBody">
@@ -371,7 +415,7 @@
         </div>
     </div>
 </div> <!-- End x-data -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
 <script>
     // Initialize global chart management
     window.lastStatsData = {};
@@ -773,8 +817,8 @@
 
                         if (body) {
                             const tr = document.createElement('tr');
-                            tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
-                            tr.innerHTML = `<td class="py-3 px-4 font-bold text-slate-700">${c.ho_ten}</td><td class="py-3 px-4 text-slate-500 font-mono text-xs">${c.so_cccd}</td><td class="py-3 px-4 text-slate-500 text-xs">${fDate}</td><td class="py-3 px-4 text-right">${stHtml}</td>`;
+                            tr.className = 'hover:bg-slate-50/50 transition';
+                            tr.innerHTML = `<td class="font-bold text-slate-700">${c.ho_ten}</td><td class="text-slate-500 font-mono text-xs">${c.so_cccd}</td><td class="text-slate-500 text-xs">${fDate}</td><td class="text-right">${stHtml}</td>`;
                             body.appendChild(tr);
                         }
                         if (cards) {
@@ -816,11 +860,11 @@
                         n1 += nv1;
                         n2 += nv2;
                         cl += c;
-                        r.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
-                        r.innerHTML = `<td class="py-3 px-4 text-slate-800">${m.ma_nganh}</td><td class="py-3 px-4 text-slate-800">${m.ten_nganh}</td><td class="py-3 px-4 text-center text-slate-800">${t>0?t:'-'}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${tn}</td><td class="py-3 px-4 text-center text-red-600 border-l border-slate-100">${nv1}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${nv2}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-100">${c}</td>`;
+                        r.className = 'hover:bg-slate-50/50 transition';
+                        r.innerHTML = `<td class="text-slate-800">${m.ma_nganh}</td><td class="text-slate-800">${m.ten_nganh}</td><td class="text-center text-slate-800">${t>0?t:'-'}</td><td class="text-center text-slate-800">${tn}</td><td class="text-center text-red-600 font-bold">${nv1}</td><td class="text-center text-slate-800">${nv2}</td><td class="text-center text-slate-800">${c}</td>`;
                         db.appendChild(r);
                     });
-                    df.innerHTML = `<tr><td class="py-3 px-4 text-right" colspan="2">TỔNG CỘNG</td><td class="py-3 px-4 text-center text-slate-800">${tt>0?tt:'-'}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${ta}</td><td class="py-3 px-4 text-center text-red-600 border-l border-slate-200">${n1}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${n2}</td><td class="py-3 px-4 text-center text-slate-800 border-l border-slate-200">${cl}</td></tr>`;
+                    df.innerHTML = `<tr><td class="text-right font-black" colspan="2">TỔNG CỘNG</td><td class="text-center text-slate-800 font-black">${tt>0?tt:'-'}</td><td class="text-center text-slate-800 font-black">${ta}</td><td class="text-center text-red-600 font-black">${n1}</td><td class="text-center text-slate-800 font-black">${n2}</td><td class="text-center text-slate-800 font-black">${cl}</td></tr>`;
                 } else {
                     db.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Chưa có dữ liệu.</td></tr>';
                     df.innerHTML = '';
@@ -836,11 +880,11 @@
                 if (data.reviewers.length > 0) {
                     data.reviewers.forEach(v => {
                         const r = document.createElement('tr');
-                        r.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                        r.className = 'hover:bg-slate-50/50 transition';
                         r.innerHTML = `
-                        <td class="py-3 px-4 text-slate-800 font-medium">${v.ho_ten}</td>
-                        <td class="py-3 px-4 text-slate-500 font-mono text-xs">${v.ten_dang_nhap}</td>
-                        <td class="py-3 px-4 text-right font-bold text-indigo-600">${v.review_count}</td>
+                        <td class="text-slate-800 font-medium">${v.ho_ten}</td>
+                        <td class="text-slate-500 font-mono text-xs">${v.ten_dang_nhap}</td>
+                        <td class="text-right font-bold text-indigo-600">${v.review_count}</td>
                     `;
                         rb.appendChild(r);
                     });
@@ -880,7 +924,7 @@
                     window.fetchStats('overview');
                 }
             }
-        }, 30000);
+        }, 60000); // Refresh every 60s (was 30s) to reduce Supabase load
     });
 </script>
 

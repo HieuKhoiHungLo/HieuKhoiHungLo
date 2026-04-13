@@ -32,33 +32,30 @@ class NguyenVong extends Model {
     }
 
     public function save($cccd, $batchOrAppId, $data) { 
-        $this->db->beginTransaction();
         try {
             // 1. Resolve actual recruitment batch ID (dot_tuyen_sinh_id)
-            // If batchId is actually ho_so_xet_tuyen.id, look up its batch!
             $dotTuyenSinhId = (int)$batchOrAppId;
             
             // Check if this ID belongs to ho_so_xet_tuyen or dot_tuyen_sinh
-            // Typically, dot_tuyen_sinh IDs are small (1, 2, 3), 
-            // while application IDs are large (e.g. 100+).
-            // But let's be explicitly safe by checking the ho_so_xet_tuyen table.
-            $stmtCheck = $this->db->prepare("SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE id = ?");
+            $stmtCheck = $this->db->prepare("SELECT dot_tuyen_sinh_id, trang_thai FROM ho_so_xet_tuyen WHERE id = ?");
             $stmtCheck->execute([$batchOrAppId]);
-            $row = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            if ($row) {
-                $dotTuyenSinhId = (int)$row['dot_tuyen_sinh_id'];
+            $rowHS = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            if ($rowHS) {
+                $dotTuyenSinhId = (int)$rowHS['dot_tuyen_sinh_id'];
+                $hsStatus = $rowHS['trang_thai'];
+            } else {
+                // Pre-fetch status if we only have batchId
+                $stmtStatus = $this->db->prepare("SELECT trang_thai FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+                $stmtStatus->execute([$cccd, $dotTuyenSinhId]);
+                $hsStatus = $stmtStatus->fetchColumn();
             }
 
             // 2. Delete old choices ONLY FOR THIS RECRUITMENT BATCH
-            // This prevents candidates from losing aspirations in other sessions.
             $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
             $stmt->execute([$cccd, $dotTuyenSinhId]);
 
-            // 3. Determine status (sync with application status)
-            $stmtStatus = $this->db->prepare("SELECT trang_thai FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-            $stmtStatus->execute([$cccd, $dotTuyenSinhId]);
-            $hsStatus = $stmtStatus->fetchColumn();
-            $newStatus = ($hsStatus && (strpos($hsStatus, 'Đã duyệt') !== false || $hsStatus === 'DaDuyet')) ? 'DaDuyet' : 'ChoDuyet';
+            // 3. Determine status
+            $newStatus = ($hsStatus && (stripos($hsStatus, 'Đã duyệt') !== false || $hsStatus === 'DaDuyet')) ? 'DaDuyet' : 'ChoDuyet';
 
             if (!empty($data)) {
                 $insertValues = [];
@@ -70,7 +67,7 @@ class NguyenVong extends Model {
                         $cccd,
                         $dotTuyenSinhId,
                         $index + 1,
-                        null, // thu_tu_nv_bo (mặc định null khi đăng ký nội bộ)
+                        null, 
                         $item['ma_nganh'], 
                         $item['ten_nganh'] ?? null,
                         $item['ma_phuong_thuc'] ?? '200', 
@@ -89,10 +86,8 @@ class NguyenVong extends Model {
                 $stmt->execute($insertParams);
             }
 
-            $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("SAVE NGUYEN VONG ERROR: " . $e->getMessage());
             return false;
         }

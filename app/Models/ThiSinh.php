@@ -20,63 +20,72 @@ class ThiSinh extends Model {
     }
 
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
-        $sql = "SELECT t.*, t.ghi_chu as base_ghi_chu FROM {$this->table} t WHERE 1=1";
         $params = [];
+        
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, nv_first.ten_nganh as nv1";
+        $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
+                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                       LEFT JOIN nguyen_vong nv_first ON t.so_cccd = nv_first.so_cccd AND nv_first.thu_tu_nguyen_vong = 1";
 
-        if ($applicationStatus === 'trash') {
-            $sql .= " AND t.deleted_at IS NOT NULL";
-        } elseif ($excludeTrash) {
-            $sql .= " AND t.deleted_at IS NULL";
+        // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
+        if ($applicationStatus === 'submitted') {
+            $sql = "SELECT $baseSelect FROM {$this->table} t 
+                    INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
+                    $baseJoins
+                    WHERE 1=1";
+            
+            if ($sessionId) {
+                $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                $sql .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE hs.dot_tuyen_sinh_id = dt.id AND dt.dm_nam_tuyen_sinh_nam = ?)";
+                $params[] = $year;
+            }
+
+            if ($onlyEditRequests) {
+                $sql .= " AND hs.yeu_cau_chinh_sua = TRUE";
+            }
+        } else {
+            $sql = "SELECT $baseSelect FROM {$this->table} t $baseJoins WHERE 1=1";
+            
+            if ($applicationStatus === 'trash') {
+                $sql .= " AND t.deleted_at IS NOT NULL";
+            } elseif ($excludeTrash) {
+                $sql .= " AND t.deleted_at IS NULL";
+            }
+
+            if ($applicationStatus === 'all') {
+                if ($sessionId) {
+                    $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                    $params[] = $sessionId;
+                } elseif ($year) {
+                    $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                    $params[] = $year;
+                }
+            } elseif ($applicationStatus === 'ghost') {
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+            }
+
+            if ($onlyEditRequests) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
+            }
         }
 
         if (!empty($search)) {
-            $sql .= " AND (ho_va_ten LIKE ? OR so_cccd LIKE ? OR email LIKE ?)";
+            $sql .= " AND (t.ho_va_ten LIKE ? OR t.so_cccd LIKE ? OR t.email LIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.trang_thai ILIKE ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
             $params[] = "%$status%";
         }
 
         if ($hocBaStatus !== '') {
             $sql .= " AND t.da_du_6_ky = ?";
             $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
-        }
-        
-        // Session and Year filtering: 
-        // If applicationStatus is 'submitted', we strictly filter by session/year.
-        // If applicationStatus is 'all' or 'ghost', we only filter by session/year for candidates WHO HAVE an application.
-        // Candidates who have NO application (ghosts) should still show up in 'all' or 'ghost' mode.
-        if ($applicationStatus === 'submitted') {
-            if ($sessionId) {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
-                $params[] = $sessionId;
-            } elseif ($year) {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
-                $params[] = $year;
-            }
-        } elseif ($applicationStatus === 'all') {
-            if ($sessionId) {
-                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
-                $params[] = $sessionId;
-            } elseif ($year) {
-                // If year is specified, we check if application matches year OR if ghost matches year via created_at
-                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
-                $params[] = $year;
-            }
-        }
-
-        if ($onlyEditRequests) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
-        }
-
-        if ($applicationStatus === 'submitted') {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
-        } elseif ($applicationStatus === 'ghost') {
-            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
         }
 
         // Extra column-specific filters
@@ -118,16 +127,28 @@ class ThiSinh extends Model {
                 } elseif ($field === 'grad_year') {
                     $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
                     $params[] = "%$val%";
+                } elseif ($field === 'email') {
+                    $sql .= " AND t.email LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'note') {
+                    $trimVal = trim(mb_strtolower($val));
+                    if ($trimVal === 'trống') {
+                        $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                    } else {
+                        $sql .= " AND (t.ghi_chu LIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu LIKE ?))";
+                        $params[] = "%$val%";
+                        $params[] = "%$val%";
+                    }
                 }
             }
         }
 
         // Validate sort field
-        $allowedSort = ['ho_va_ten', 'so_cccd', 'ngay_sinh', 'dien_thoai', 'ngay_tao'];
+        $allowedSort = ['ho_va_ten', 'so_cccd', 'ngay_sinh', 'dien_thoai', 'ngay_tao', 'ghi_chu'];
         if (!in_array($sort, $allowedSort)) $sort = 'ngay_tao';
         $dir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
 
-        $sql .= " ORDER BY $sort $dir LIMIT ? OFFSET ?";
+        $sql .= " ORDER BY t.$sort $dir LIMIT ? OFFSET ?";
         $params[] = (int)$limit;
         $params[] = (int)$offset;
 
@@ -164,19 +185,8 @@ class ThiSinh extends Model {
             $noteMap[$ms['so_cccd']] = $ms['ghi_chu'];
         }
 
-        // Fetch display names for province and school
-        $infoSql = "SELECT t.so_cccd, p.ten_tinh as province_name, s.ten_truong as school_name, nv.ten_nganh as nv1
-                    FROM {$this->table} t
-                    LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
-                    LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
-                    LEFT JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND nv.thu_tu_nguyen_vong = 1
-                    WHERE t.so_cccd IN ($placeholders)";
-        $stmtInfo = $this->db->prepare($infoSql);
-        $stmtInfo->execute($cccds);
-        $infoMap = [];
-        while($r = $stmtInfo->fetch(PDO::FETCH_ASSOC)) {
-            $infoMap[$r['so_cccd']] = $r;
-        }
+        // Metadata (Province, School, NV1) is now fetched via LEFT JOINs in the primary query.
+        // Secondary mapping queries for statuses and edit requests remain separate for group-by efficiency.
 
         foreach ($candidates as &$candidate) {
             $cccd = $candidate['so_cccd'];
@@ -193,69 +203,72 @@ class ThiSinh extends Model {
             
             $candidate['ghi_chu'] = implode("\n", array_unique($combinedNotes));
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
-            $candidate['province_name'] = $infoMap[$cccd]['province_name'] ?? '';
-            $candidate['school_name'] = $infoMap[$cccd]['school_name'] ?? '';
-            $candidate['nv1'] = $infoMap[$cccd]['nv1'] ?? '';
         }
 
         return $candidates;
     }
 
     public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
-        $sql = "SELECT COUNT(*) FROM {$this->table} t WHERE 1=1";
         $params = [];
+        
+        // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
+        if ($applicationStatus === 'submitted') {
+            $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t 
+                    INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
+                    WHERE 1=1";
+            
+            if ($sessionId) {
+                $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            } elseif ($year) {
+                $sql .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE hs.dot_tuyen_sinh_id = dt.id AND dt.dm_nam_tuyen_sinh_nam = ?)";
+                $params[] = $year;
+            }
+            
+            if ($onlyEditRequests) {
+                $sql .= " AND hs.yeu_cau_chinh_sua = TRUE";
+            }
+        } else {
+            $sql = "SELECT COUNT(*) FROM {$this->table} t WHERE 1=1";
+            
+            if ($applicationStatus === 'trash') {
+                $sql .= " AND t.deleted_at IS NOT NULL";
+            } elseif ($excludeTrash) {
+                $sql .= " AND t.deleted_at IS NULL";
+            }
 
-        if ($applicationStatus === 'trash') {
-            $sql .= " AND t.deleted_at IS NOT NULL";
-        } elseif ($excludeTrash) {
-            $sql .= " AND t.deleted_at IS NULL";
+            if ($applicationStatus === 'all') {
+                if ($sessionId) {
+                    $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                    $params[] = $sessionId;
+                } elseif ($year) {
+                    $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
+                    $params[] = $year;
+                }
+            } elseif ($applicationStatus === 'ghost') {
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+            }
+
+            if ($onlyEditRequests) {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
+            }
         }
 
         if (!empty($search)) {
-            $sql .= " AND (ho_va_ten LIKE ? OR so_cccd LIKE ? OR email LIKE ?)";
+            $sql .= " AND (t.ho_va_ten LIKE ? OR t.so_cccd LIKE ? OR t.email LIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.trang_thai ILIKE ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
             $params[] = "%$status%";
         }
 
         if ($hocBaStatus !== '') {
             $sql .= " AND t.da_du_6_ky = ?";
             $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
-        }
-        
-        if ($applicationStatus === 'submitted') {
-            if ($sessionId) {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
-                $params[] = $sessionId;
-            } elseif ($year) {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?)";
-                $params[] = $year;
-            }
-        } elseif ($applicationStatus === 'all') {
-            if ($sessionId) {
-                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
-                $params[] = $sessionId;
-            } elseif ($year) {
-                $sql .= " AND (EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id WHERE hs.so_cccd = t.so_cccd AND dt.dm_nam_tuyen_sinh_nam = ?) OR NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd))";
-                $params[] = $year;
-            }
-        }
-        // If applicationStatus === 'ghost', we ignore session/year filters because ghosts have none.
-        // Unless we want ghost matching year of registration? For now, keep it simple.
-
-        if ($onlyEditRequests) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.yeu_cau_chinh_sua = TRUE)";
-        }
-
-        if ($applicationStatus === 'submitted') {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
-        } elseif ($applicationStatus === 'ghost') {
-            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
         }
 
         // Extra column-specific filters
@@ -297,6 +310,18 @@ class ThiSinh extends Model {
                 } elseif ($field === 'grad_year') {
                     $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
                     $params[] = "%$val%";
+                } elseif ($field === 'email') {
+                    $sql .= " AND t.email LIKE ?";
+                    $params[] = "%$val%";
+                } elseif ($field === 'note') {
+                    $trimVal = trim(mb_strtolower($val));
+                    if ($trimVal === 'trống') {
+                        $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                    } else {
+                        $sql .= " AND (t.ghi_chu LIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu LIKE ?))";
+                        $params[] = "%$val%";
+                        $params[] = "%$val%";
+                    }
                 }
             }
         }
@@ -332,10 +357,10 @@ class ThiSinh extends Model {
         }
 
         $sqlHS = "SELECT 
-            COUNT(DISTINCT so_cccd) as total,
-            COUNT(DISTINCT CASE WHEN trang_thai ILIKE '%Đã duyệt%' THEN so_cccd END) as approved,
-            COUNT(DISTINCT CASE WHEN trang_thai ILIKE '%Yêu cầu sửa%' THEN so_cccd END) as require_edit,
-            COUNT(DISTINCT CASE WHEN yeu_cau_chinh_sua = TRUE THEN so_cccd END) as edit_requests
+            COUNT(*) as total,
+            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Đã duyệt%') as approved,
+            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Yêu cầu sửa%') as require_edit,
+            COUNT(*) FILTER (WHERE yeu_cau_chinh_sua = TRUE) as edit_requests
             FROM ho_so_xet_tuyen $hsWhere";
 
         try {
@@ -479,40 +504,40 @@ class ThiSinh extends Model {
 
     public function saveCertifications($cccd, $certs) {
         try {
-            $this->db->beginTransaction();
-            
             // Delete old certs
             $stmt = $this->db->prepare("DELETE FROM chung_chi_thi_sinh WHERE so_cccd = ?");
             $stmt->execute([$cccd]);
 
-            // Track if user has any cert for the flag in thi_sinh
             $hasCert = false;
 
-            // Insert new certs
+            // Bulk Insert new certs
             if (!empty($certs)) {
-                $stmt = $this->db->prepare("INSERT INTO chung_chi_thi_sinh (so_cccd, loai_chung_chi, diem_chung_chi, file_minh_chung_cc) VALUES (?, ?, ?, ?)");
+                $insertValues = [];
+                $params = [];
                 foreach ($certs as $cert) {
                     if (!empty($cert['loai_chung_chi'])) {
-                        $stmt->execute([
-                            $cccd, 
-                            $cert['loai_chung_chi'], 
-                            $cert['diem_chung_chi'] ?? null, 
-                            $cert['file_minh_chung_cc'] ?? null
-                        ]);
+                        $insertValues[] = "(?, ?, ?, ?)";
+                        $params[] = $cccd;
+                        $params[] = $cert['loai_chung_chi'];
+                        $params[] = $cert['diem_chung_chi'] ?? null;
+                        $params[] = $cert['file_minh_chung_cc'] ?? null;
                         $hasCert = true;
                     }
                 }
+
+                if ($hasCert) {
+                    $sql = "INSERT INTO chung_chi_thi_sinh (so_cccd, loai_chung_chi, diem_chung_chi, file_minh_chung_cc) VALUES " . implode(', ', $insertValues);
+                    $this->db->prepare($sql)->execute($params);
+                }
             }
 
-            // Sync flag in thi_sinh for backward compatibility/quick filter
+            // Sync flag in thi_sinh
             $stmt = $this->db->prepare("UPDATE {$this->table} SET co_chung_chi_qt = ? WHERE so_cccd = ?");
             $stmt->execute([$hasCert ? 'true' : 'false', $cccd]);
 
-            $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
-            error_log($e->getMessage());
+            error_log("SAVE CERTS ERROR: " . $e->getMessage());
             return false;
         }
     }

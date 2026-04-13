@@ -92,16 +92,17 @@ class AcademicRecord extends \App\Core\Model
      */
     public function saveBatch($cccd, $items)
     {
-        $this->db->beginTransaction();
         try {
+            // Pre-fetch all existing records for this candidate to avoid redundant queries in the loop
+            $existingRecords = $this->getByCCCDIndexed($cccd);
+
             foreach ($items as $grade => $gradeData) {
                 if (!in_array($grade, [10, 11, 12])) continue;
                 if (empty($gradeData)) continue;
 
                 $saveData = [];
-
-                // Subject scores (annual average per subject)
                 $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'cong_nghe', 'tin_hoc'];
+                
                 foreach ($subjects as $sub) {
                     $val = $gradeData[$sub] ?? null;
                     if ($val !== '' && $val !== null) {
@@ -112,7 +113,6 @@ class AcademicRecord extends \App\Core\Model
                     }
                 }
 
-                // Summary fields (annual)
                 if (isset($gradeData['diem_tb']) && $gradeData['diem_tb'] !== '') {
                     $saveData['diem_tb_ca_nam'] = (float)$gradeData['diem_tb'];
                 }
@@ -122,26 +122,40 @@ class AcademicRecord extends \App\Core\Model
                 if (isset($gradeData['hanh_kiem']) && $gradeData['hanh_kiem'] !== '') {
                     $saveData['hanh_kiem_ca_nam'] = $gradeData['hanh_kiem'];
                 }
-
-                // Handle Transcript Files
                 if (isset($gradeData['file_hoc_ba']) && !empty($gradeData['file_hoc_ba'])) {
                     $saveData['file_hoc_ba'] = $gradeData['file_hoc_ba'];
                 }
 
                 if (!empty($saveData)) {
-                    $this->save($cccd, $grade, $saveData);
+                    // Decide between INSERT and UPDATE using pre-fetched data
+                    $record = $existingRecords[$grade] ?? null;
+                    if ($record && !empty($record)) {
+                        $fields = [];
+                        $params = ['cccd' => $cccd, 'grade' => $grade];
+                        foreach ($saveData as $key => $value) {
+                            $fields[] = "$key = :$key";
+                            $params[$key] = $value;
+                        }
+                        $sql = "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE so_cccd = :cccd AND lop = :grade";
+                    } else {
+                        $saveData['so_cccd'] = $cccd;
+                        $saveData['lop'] = $grade;
+                        $cols = implode(', ', array_keys($saveData));
+                        $vals = ':' . implode(', :', array_keys($saveData));
+                        $sql = "INSERT INTO {$this->table} ($cols) VALUES ($vals)";
+                        $params = $saveData;
+                    }
+                    $this->db->prepare($sql)->execute($params);
                 }
             }
 
-            // Sync to normalized diem_chi_tiet table for score calculation
+            // Sync to normalized diem_chi_tiet table
             $this->syncToNormalizedTable($cccd);
 
-            $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            $this->db->rollBack();
             error_log("saveBatch error: " . $e->getMessage());
-            return false;
+            throw $e; // Rethrow to let controller handle rollback
         }
     }
 

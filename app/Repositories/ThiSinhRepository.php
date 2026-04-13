@@ -422,34 +422,35 @@ class ThiSinhRepository
 
     public function getAdjacentCandidates($currentCCCD)
     {
-        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ?");
-        $stmt->execute([$currentCCCD]);
-        $sessionId = $stmt->fetchColumn();
+        // Combined query: fetch session ID, prev/next CCCD, current position, and total count in one go
+        $sql = "WITH session_info AS (
+            SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ?
+        ),
+        ordered AS (
+            SELECT 
+                so_cccd,
+                LAG(so_cccd) OVER (ORDER BY created_at ASC) as prev_cccd,
+                LEAD(so_cccd) OVER (ORDER BY created_at ASC) as next_cccd,
+                ROW_NUMBER() OVER (ORDER BY created_at ASC) as pos,
+                COUNT(*) OVER () as total_count
+            FROM ho_so_xet_tuyen
+            WHERE dot_tuyen_sinh_id = (SELECT dot_tuyen_sinh_id FROM session_info)
+        )
+        SELECT prev_cccd, next_cccd, pos, total_count FROM ordered WHERE so_cccd = ?";
 
-        $sql = "SELECT hs.so_cccd 
-                FROM ho_so_xet_tuyen hs
-                WHERE hs.dot_tuyen_sinh_id = ?
-                ORDER BY hs.created_at ASC";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$sessionId]);
-        $allCCCDs = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute([$currentCCCD, $currentCCCD]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $currentIndex = array_search($currentCCCD, $allCCCDs);
-
-        if ($currentIndex === false) {
-            return [
-                'prev' => null,
-                'next' => !empty($allCCCDs) ? $allCCCDs[0] : null,
-                'position' => 0,
-                'total' => count($allCCCDs)
-            ];
+        if (!$row) {
+            return ['prev' => null, 'next' => null, 'position' => 0, 'total' => 0];
         }
 
         return [
-            'prev' => $currentIndex > 0 ? $allCCCDs[$currentIndex - 1] : null,
-            'next' => $currentIndex < count($allCCCDs) - 1 ? $allCCCDs[$currentIndex + 1] : null,
-            'position' => $currentIndex + 1,
-            'total' => count($allCCCDs)
+            'prev' => $row['prev_cccd'],
+            'next' => $row['next_cccd'],
+            'position' => (int) $row['pos'],
+            'total' => (int) $row['total_count']
         ];
     }
 

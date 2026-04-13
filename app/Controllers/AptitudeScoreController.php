@@ -26,7 +26,8 @@ class AptitudeScoreController extends Controller {
         $this->view('admin/aptitude_scores/index', [
             'title' => 'Điểm Năng Khiếu', 
             'stats' => $stats,
-            'activeSession' => $activeSession
+            'activeSession' => $activeSession,
+            'needsDataTables' => true
         ]);
     }
 

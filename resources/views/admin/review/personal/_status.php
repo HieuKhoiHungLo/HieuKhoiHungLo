@@ -5,10 +5,18 @@
     $checkApproved = ($currentStatus !== 'Từ chối') ? 'checked' : '';
     $checkRejected = ($currentStatus === 'Từ chối') ? 'checked' : '';
     ?>
-    <div class="bg-slate-50 rounded-[2rem] p-4 border border-slate-200 mt-6">
+    <div class="bg-slate-50 rounded-[2rem] p-4 border border-slate-200 mt-6 relative">
         <div class="flex items-center justify-between mb-3">
-                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Tình trạng kiểm duyệt</h4>
-                <div class="h-px flex-1 bg-slate-100 mx-4"></div>
+            <div class="flex items-center gap-3">
+                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Tình trạng kiểm duyệt</h4>
+                <div id="btn_group_personal_bottom" class="flex items-center">
+                    <button type="button" onclick="toggleEdit('personal')" 
+                        class="px-3 py-1 bg-white text-[#0066FF] border border-slate-200 rounded-lg shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+                        <i class="fas fa-edit text-[10px]"></i> Sửa thông tin
+                    </button>
+                </div>
+            </div>
+            <div class="h-px flex-1 bg-slate-100 mx-4"></div>
         </div>
         <div class="flex items-center gap-6 mb-3">
             <label class="flex items-center cursor-pointer">

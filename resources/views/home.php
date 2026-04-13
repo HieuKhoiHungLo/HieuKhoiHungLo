@@ -1,6 +1,7 @@
 <?php
 $title = 'Tuyển sinh Đại học Hùng Vương 2026 - Khởi đầu vững chắc';
 include __DIR__ . '/layouts/header.php';
+$homeSettings = $homeSettings ?? [];
 ?>
 
 <!-- Scrolling Announcement Bar -->
@@ -141,15 +142,15 @@ if (isset($stepStatus)) {
                 <!-- Quick Stats (Always horizontal) -->
                 <div class="grid grid-cols-3 gap-2 sm:gap-6 pt-6 sm:pt-8 border-t border-white/10 mt-6 sm:mt-8">
                     <div class="text-center sm:text-left">
-                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_majors'] ?></p>
+                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_majors'] ?? '0' ?></p>
                         <p class="text-[10px] sm:text-xs uppercase tracking-wider opacity-80">Ngành đào tạo</p>
                     </div>
                     <div class="text-center sm:text-left">
-                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_quota'] ?></p>
+                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_quota'] ?? '0' ?></p>
                         <p class="text-[10px] sm:text-xs uppercase tracking-wider opacity-80">Chỉ tiêu</p>
                     </div>
                     <div class="text-center sm:text-left">
-                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_employ'] ?></p>
+                        <p class="text-xl sm:text-2xl font-black text-hvu-gold"><?= $homeSettings['stats_employ'] ?? '0' ?></p>
                         <p class="text-[10px] sm:text-xs uppercase tracking-wider opacity-80">Sinh viên có việc</p>
                     </div>
                 </div>

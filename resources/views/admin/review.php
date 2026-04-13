@@ -18,18 +18,17 @@
     }
 </style>
 
-<div class="mb-6">
-    <a href="<?= url('/admin/dashboard') ?>" class="inline-flex items-center text-xs font-bold text-slate-500 hover:text-[#0066FF] uppercase tracking-wider mb-2 transition">
-        <i class="fas fa-arrow-left mr-2"></i> Quay lại Dashboard
-    </a>
-
+<div class="-mt-4 mb-2">
     <!-- Global Hidden Inputs for JS Save -->
     <input type="hidden" name="cccd" value="<?= $user['so_cccd'] ?>">
     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-3xl font-black text-slate-800 font-heading uppercase tracking-tight">DUYỆT HỒ SƠ THÍ SINH</h2>
+            <h2 class="text-lg font-bold text-slate-800 uppercase flex items-center gap-2">
+                <i class="fas fa-user-edit text-[#0066FF]"></i>
+                <?= htmlspecialchars($user['ho_va_ten'] ?? 'Chưa có tên') ?>
+            </h2>
             <?php
             // Map English statuses from legacy data to Vietnamese
             $statusMap = [
@@ -117,86 +116,66 @@
     $provinceMap = [];
     foreach ($provinces as $p) $provinceMap[$p['ma_tinh']] = $p['ten_tinh'];
 
-    // Helper function for consistent evidence rendering
-    if (!function_exists('render_evidence_item')) {
-        function render_evidence_item($path, $label, $imgId)
-        {
-            ob_start(); ?>
-            <div class="relative group w-full">
-                <?php if (!empty($path)): ?>
-                    <?php
-                    $src = strpos($path, 'http') === 0 ? google_drive_thumbnail_url($path, 'w400') : asset($path);
-                    $link = strpos($path, 'http') === 0 ? $path : asset($path);
-                    ?>
-                    <div class="relative w-full cursor-pointer transition-transform duration-300 hover:scale-[1.3] hover:z-50 z-10 group">
-                        <img id="<?= $imgId ?>" loading="lazy" src="<?= $src ?>"
-                            class="w-full h-full object-contain relative rounded-xl border-2 border-slate-200 shadow-sm bg-slate-50"
-                            style="min-height: 150px; max-height: 500px;"
-                            title="Double click to view full size">
-
-                        <a href="<?= $link ?>" target="_blank" class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 transition-opacity rounded-xl" ondblclick="window.open('<?= $link ?>', '_blank')">
-                            <div class="w-12 h-12 rounded-full bg-slate-800/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
-                                <i class="fas fa-external-link-alt text-lg"></i>
-                            </div>
-                        </a>
-
-                        <button type="button" onclick="rotateEvidenceImage('<?= $path ?>', '<?= $imgId ?>', this)"
-                            class="absolute top-2 right-2 z-50 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                            title="Xoay ảnh 90 độ">
-                            <i class="fas fa-redo-alt text-sm"></i>
-                        </button>
-                    </div>
-                <?php else: ?>
-                    <div class="flex flex-col items-center justify-center aspect-[3/4] text-slate-300 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                        <i class="fas fa-image text-4xl mb-2"></i>
-                        <span class="text-[10px] uppercase font-bold tracking-wider">Không có ảnh minh chứng</span>
-                        <img id="<?= $imgId ?>" loading="lazy" class="hidden w-full h-full object-cover absolute inset-0">
-                    </div>
-                <?php endif; ?>
-                <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-[70] pointer-events-none rounded-b-xl overflow-hidden">
-                    <span class="text-[10px] font-black text-white uppercase tracking-widest drop-shadow-sm"><?= $label ?></span>
-                </div>
-            </div>
-    <?php return ob_get_clean();
-        }
-    }
+    // Standardize helpers (shared across review tabs and main page)
+    include_once __DIR__ . '/review/_helpers.php';
     ?>
 
     <!-- TABS NAVIGATION -->
     <div class="bg-white rounded-t-2xl shadow-sm border-b border-slate-200">
         <div class="flex overflow-x-auto gap-1 p-2" id="reviewTabs">
-            <button type="button" onclick="switchTab('personal')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
-                <i class="fas fa-user mr-2"></i> 1. Thông tin cá nhân
+            <button type="button" onclick="switchTab('personal')" class="tab-btn px-3 py-1.5 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap bg-[#0066FF] text-white shadow-md shadow-blue-200/50" data-tab="personal">
+                <i class="fas fa-user mr-1"></i> 1. Thông tin cá nhân
             </button>
-            <button type="button" onclick="switchTab('academic')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
-                <i class="fas fa-graduation-cap mr-2"></i> 2. Học bạ
+            <button type="button" onclick="switchTab('academic')" class="tab-btn px-3 py-1.5 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="academic">
+                <i class="fas fa-graduation-cap mr-1"></i> 2. Học bạ
             </button>
-            <button type="button" onclick="switchTab('certs')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
-                <i class="fas fa-certificate mr-2"></i> 3. Chứng chỉ
+            <button type="button" onclick="switchTab('certs')" class="tab-btn px-3 py-1.5 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="certs">
+                <i class="fas fa-certificate mr-1"></i> 3. Chứng chỉ
             </button>
-            <button type="button" onclick="switchTab('thpt')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
-                <i class="fas fa-poll-h mr-2"></i> 4. Điểm THPT
+            <button type="button" onclick="switchTab('thpt')" class="tab-btn px-3 py-1.5 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="thpt">
+                <i class="fas fa-poll-h mr-1"></i> 4. Điểm THPT
             </button>
-            <button type="button" onclick="switchTab('wishes')" class="tab-btn px-5 py-3 font-black text-sm uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
-                <i class="fas fa-list-ol mr-2"></i> 5. Nguyện vọng
+            <button type="button" onclick="switchTab('wishes')" class="tab-btn px-3 py-1.5 font-black text-xs uppercase tracking-widest rounded-xl transition-all duration-200 whitespace-nowrap text-slate-500 hover:bg-slate-100 hover:text-slate-700" data-tab="wishes">
+                <i class="fas fa-list-ol mr-1"></i> 5. Nguyện vọng
             </button>
         </div>
     </div>
 
     <!-- TABS CONTENT AREA -->
-    <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-slate-200 px-6 pb-6 pt-2 min-h-[500px]">
+    <div class="bg-white rounded-b-2xl shadow-sm border border-t-0 border-slate-200 px-2 pb-2 pt-1" id="reviewTabContent">
+        <?php include __DIR__ . '/review/_helpers.php'; ?>
 
-        <?php include __DIR__ . '/review/_tab_personal.php'; ?>
+        <div id="tab_personal" class="tab-content transition-all duration-300">
+            <?php include __DIR__ . '/review/_tab_personal.php'; ?>
+        </div>
 
-        <?php include __DIR__ . '/review/_tab_academic.php'; ?>
+        <div id="tab_academic" class="tab-content hidden transition-all duration-300">
+            <div class="p-20 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                <p class="text-slate-500 font-bold">Đang tải học bạ...</p>
+            </div>
+        </div>
 
-        <?php include __DIR__ . '/review/_tab_certs.php'; ?>
+        <div id="tab_certs" class="tab-content hidden transition-all duration-300">
+            <div class="p-20 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                <p class="text-slate-500 font-bold">Đang tải chứng chỉ...</p>
+            </div>
+        </div>
 
-        <?php include __DIR__ . '/review/_tab_thpt.php'; ?>
+        <div id="tab_thpt" class="tab-content hidden transition-all duration-300">
+            <div class="p-20 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                <p class="text-slate-500 font-bold">Đang tải điểm THPT...</p>
+            </div>
+        </div>
 
-        <?php include __DIR__ . '/review/_tab_wishes.php'; ?>
-
-
+        <div id="tab_wishes" class="tab-content hidden transition-all duration-300">
+            <div class="p-20 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                <p class="text-slate-500 font-bold">Đang tải nguyện vọng...</p>
+            </div>
+        </div>
     </div>
 </form>
 
@@ -233,11 +212,14 @@
 
     <!-- Submit -->
     <div class="flex items-center gap-3">
-        <button type="button" onclick="openReviewModal()" class="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-xl hover:bg-emerald-700 hover:-translate-y-0.5 transition-all flex items-center text-base whitespace-nowrap">
-            <i class="fas fa-paper-plane mr-3"></i> DUYỆT HỒ SƠ & GỬI EMAIL
+        <button type="button" onclick="openReviewModal()" class="px-8 py-3.5 bg-emerald-600 text-white font-medium rounded-xl shadow-xl hover:bg-emerald-700 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap ring-4 ring-emerald-500/10">
+            Duyệt hồ sơ
         </button>
-        <button type="button" onclick="openEmailModal()" class="px-6 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl shadow-md hover:bg-slate-50 hover:border-[#0066FF] hover:text-[#0066FF] hover:-translate-y-0.5 transition-all flex items-center text-base whitespace-nowrap">
-            <i class="fas fa-envelope mr-3 text-[#0066FF]"></i> GỬI EMAIL
+        <button type="button" onclick="openEmailModal()" class="px-8 py-3.5 bg-[#0066FF] text-white font-medium rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap">
+            Gửi email
+        </button>
+        <button type="button" onclick="confirmResetReviewStatus()" class="px-8 py-3.5 bg-[#0066FF] text-white font-medium rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap">
+            Hủy duyệt
         </button>
     </div>
 
@@ -385,9 +367,9 @@ updateActionBarOffset();
             }
         }));
 
-        Alpine.data('schoolSearch', (initialProvince, initialSchool) => ({
+        Alpine.data('schoolSearch', (initialProvince, initialSchool, initialText = '') => ({
             open: false,
-            search: '',
+            search: initialText,
             selectedCode: initialSchool,
             provinceId: initialProvince,
             schools: [],
@@ -435,7 +417,7 @@ updateActionBarOffset();
                 window.dispatchEvent(new CustomEvent('school-selected', {
                     detail: {
                         ma_truong: school.ma_truong,
-                        ma_kv: school.ma_kv
+                        ma_kv: school.khu_vuc
                     }
                 }));
             },
@@ -449,7 +431,46 @@ updateActionBarOffset();
     });
 
     // TABS LOGIC
-    function switchTab(tabName) {
+    let currentActiveTab = 'personal'; 
+    const tabCache = { personal: true };
+
+    async function loadTab(tabName) {
+        if (tabCache[tabName]) return true;
+        const container = document.getElementById('tab_' + tabName);
+        if (!container) return false;
+
+        try {
+            const url = `<?= url('/admin/review/tab') ?>?cccd=<?= $user['so_cccd'] ?>&tab=${tabName}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const html = await res.text();
+            
+            // Inject HTML
+            container.innerHTML = html;
+            tabCache[tabName] = true;
+
+            // Re-init Alpine for the new content
+            if (window.Alpine) {
+                window.Alpine.initTree(container);
+            }
+            return true;
+        } catch (e) {
+            console.error('Error loading tab ' + tabName + ':', e);
+            // If it failed during a background preload, we'll let the user retry on click
+            // But we don't overwrite the spinner unless it's an active switch (handled in switchTab)
+            return false;
+        }
+    }
+
+    async function switchTab(tabName) {
+        currentActiveTab = tabName;
+        
+        // Update URL without reload (optional but useful for manual refresh)
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url);
+
+        // UI: Tab Buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.remove('bg-[#0066FF]', 'text-white', 'shadow-md', 'shadow-blue-200/50');
             btn.classList.add('text-slate-500', 'hover:bg-slate-100', 'hover:text-slate-700');
@@ -459,11 +480,69 @@ updateActionBarOffset();
             }
         });
 
+        // Toggle Content Panes
+        const container = document.getElementById('tab_' + tabName);
+        if (!container) return;
+
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.add('hidden');
         });
-        document.getElementById('tab_' + tabName).classList.remove('hidden');
+        container.classList.remove('hidden');
+
+        // Load if not cached (active request)
+        if (!tabCache[tabName]) {
+            const success = await loadTab(tabName);
+            if (!success) {
+                container.innerHTML = `<div class="p-20 text-center text-rose-500">
+                    <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                    <p class="font-bold">Lỗi tải dữ liệu. Vui lòng thử lại.</p>
+                    <button type="button" onclick="switchTab('${tabName}')" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-700 font-bold transition-all">
+                        Thử lại
+                    </button>
+                </div>`;
+            }
+        }
     }
+
+    // Eager Pre-loader: Load remaining tabs when idle
+    window.addEventListener('load', () => {
+        const preloadTabs = async () => {
+            // Check for initial tab from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialTab = urlParams.get('tab');
+            if (initialTab && initialTab !== 'personal' && ['personal', 'academic', 'certs', 'thpt', 'wishes'].includes(initialTab)) {
+                switchTab(initialTab);
+            }
+
+            try {
+                const url = `<?= url('/admin/review/batch-tabs') ?>?cccd=<?= $user['so_cccd'] ?>`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Batch fetch failed');
+                
+                const data = await res.json();
+                if (data.success && data.tabs) {
+                    Object.keys(data.tabs).forEach(tab => {
+                        if (!tabCache[tab]) {
+                            const container = document.getElementById('tab_' + tab);
+                            if (container) {
+                                container.innerHTML = data.tabs[tab];
+                                tabCache[tab] = true;
+                                if (window.Alpine) window.Alpine.initTree(container);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Batch preload failed:', e);
+            }
+        };
+
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(preloadTabs);
+        } else {
+            setTimeout(preloadTabs, 2000);
+        }
+    });
 
     // TOGGLE REASON INPUTS
     const sections = ['personal', 'academic', 'certs', 'thpt', 'wishes'];
@@ -578,8 +657,8 @@ updateActionBarOffset();
             fields.forEach(f => f.classList.toggle('hidden'));
         }
 
-        if (section === 'academic') {
-            const fields = document.querySelectorAll('.academic-edit-field');
+        if (section === 'academic' || section === 'thpt') {
+            const fields = document.querySelectorAll(`.${section}-edit-field, .${section}-view-field`);
             fields.forEach(f => f.classList.toggle('hidden'));
         }
     }
@@ -723,13 +802,23 @@ updateActionBarOffset();
             }
 
 
-            // For 'academic' section, collect evidence file inputs from outside the form container
-            if (section === 'academic') {
-                const fileInputs = document.querySelectorAll('.academic-edit-field input[type="file"]');
-                fileInputs.forEach(input => {
-                    if (input.files.length > 0) {
-                        formData.append(input.name, input.files[0]);
-                        console.log('Appended Academic File:', input.name);
+            // For 'academic' and 'thpt' sections, collect outer inputs (like evidence in sidebar)
+            if (section === 'academic' || section === 'thpt') {
+                const outerInputs = document.querySelectorAll(`.${section}-edit-field input, .${section}-edit-field select`);
+                outerInputs.forEach(input => {
+                    if (!input.name) return;
+                    if (input.type === 'file') {
+                        if (input.files && input.files.length > 0) {
+                            formData.append(input.name, input.files[0]);
+                        }
+                    } else if (input.type === 'checkbox' || input.type === 'radio') {
+                        if (input.checked) formData.append(input.name, input.value);
+                    } else {
+                        if (!formData.has(input.name)) {
+                            formData.append(input.name, input.value);
+                        } else {
+                            formData.set(input.name, input.value);
+                        }
                     }
                 });
             }
@@ -744,6 +833,9 @@ updateActionBarOffset();
 
             const res = await fetch(url, {
                 method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: formData
             });
 
@@ -753,13 +845,10 @@ updateActionBarOffset();
                 if (data.success) {
                     showToast('Đã lưu dữ liệu thành công!', 'success');
                     setTimeout(() => {
-                        if (data.new_cccd) {
-                            const url = new URL(window.location.href);
-                            url.searchParams.set('cccd', data.new_cccd);
-                            window.location.href = url.toString();
-                        } else {
-                            location.reload();
-                        }
+                        const url = new URL(window.location.href);
+                        if (data.new_cccd) url.searchParams.set('cccd', data.new_cccd);
+                        url.searchParams.set('tab', currentActiveTab);
+                        window.location.href = url.toString();
                     }, 1000);
                 } else {
                     showToast('Lỗi: ' + (data.error || 'Có lỗi xảy ra'), 'error');
@@ -884,6 +973,18 @@ updateActionBarOffset();
 
     async function rotateEvidenceImage(path, imgId, btn) {
         if (!path) return;
+        const img = document.getElementById(imgId);
+        if (!img) return;
+
+        // Visual Feedback: Immediate CSS Rotation
+        // Initialize or increment rotation state
+        let currentRotation = parseInt(img.dataset.rotation || 0);
+        currentRotation = (currentRotation + 90) % 360;
+        img.dataset.rotation = currentRotation;
+
+        // Apply transform.
+        img.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        img.style.transform = `rotate(${currentRotation}deg)`;
 
         try {
             const originalHtml = btn.innerHTML;
@@ -893,7 +994,6 @@ updateActionBarOffset();
             const formData = new FormData();
             formData.append('path', path);
 
-            // Xử lý đính kèm CSRF Token chống lỗi 403 (Phiên làm việc hết hạn)
             const csrfInput = document.querySelector('input[name="csrf_token"]');
             if (csrfInput) {
                 formData.append('csrf_token', csrfInput.value);
@@ -909,21 +1009,21 @@ updateActionBarOffset();
 
             const data = await res.json();
             if (data.success) {
-                // Force reload image by appending timestamp
-                const img = document.getElementById(imgId);
-                if (img) {
-                    const currentSrc = img.src;
-                    const url = new URL(currentSrc);
+                // Background update: Refresh src to get potentially updated GDrive thumbnail eventually
+                // But CSS rotation keeps it looking right NOW.
+                setTimeout(() => {
+                    const url = new URL(img.src);
                     url.searchParams.set('t', new Date().getTime());
                     img.src = url.toString();
-                }
-                showToast('Đã xoay ảnh thành công', 'success');
+                }, 2000); // Small delay to let GDrive process
+                
+                if (typeof showToast === 'function') showToast('Đã xoay ảnh thành công', 'success');
+                else if (typeof Toast !== 'undefined') Toast.success('Đã xoay ảnh thành công');
             } else {
-                showToast(data.error || 'Lỗi khi xoay ảnh', 'error');
+                if (typeof showToast === 'function') showToast(data.error || 'Lỗi khi xoay ảnh', 'error');
             }
         } catch (e) {
             console.error(e);
-            showToast('Lỗi kết nối khi xoay ảnh', 'error');
         } finally {
             btn.innerHTML = '<i class="fas fa-redo-alt"></i>';
             btn.disabled = false;
@@ -970,16 +1070,16 @@ updateActionBarOffset();
         }
         var subject = opt.getAttribute('data-subject') || '';
         var body = opt.getAttribute('data-body') || '';
-        document.getElementById('modal-email-subject').value = subject;
-        document.getElementById('modal-email-content').value = body;
+        document.getElementById('email-modal-subject').value = subject;
+        document.getElementById('email-editor').innerHTML = body;
     }
 
     function confirmSendEmail() {
-        const subject = document.getElementById('modal-email-subject').value;
-        const content = document.getElementById('modal-email-content').value;
-        const templateId = document.getElementById('modal-email-template').value;
+        const subject = document.getElementById('email-modal-subject').value;
+        const content = document.getElementById('email-editor').innerHTML;
+        const templateId = document.getElementById('email-template-select').value;
 
-        if (!subject || !content) {
+        if (!subject || !content || content.trim() === '') {
             showToast('Vui lòng nhập tiêu đề và nội dung', 'warning');
             return;
         }
@@ -1044,6 +1144,221 @@ updateActionBarOffset();
         Loading.show();
         form.submit();
     }
+    // --- SECTION: CERTIFICATES (TAB 3) GLOBAL HANDLING ---
+    // Moved here because innerHTML tab-swapping prevents script execution in sub-views.
+    
+    function updateTab3Indices() {
+        const tbody = document.getElementById('tab3_cert_list_tbody');
+        if (!tbody) return;
+        const rows = tbody.querySelectorAll('.cert-item');
+        rows.forEach((row, i) => {
+            const indexCell = row.querySelector('.index-cell');
+            if (indexCell) indexCell.textContent = i + 1;
+        });
+    }
+
+    function removeAdminCert(btn) {
+        const row = btn.closest('.cert-item');
+        if (!row) return;
+        
+        row.style.opacity = '0';
+        row.style.transform = 'scale(0.95)';
+        row.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            row.remove();
+            updateTab3Indices();
+            
+            const tbody = document.getElementById('tab3_cert_list_tbody');
+            if (tbody && tbody.querySelectorAll('.cert-item').length === 0) {
+                tbody.innerHTML = `<tr id="no_tab3_certs_row"><td colspan="4" style="padding: 20px; text-align: center; color: #94a3b8; font-style: italic;">Chưa có chứng chỉ ngoại ngữ / tin học</td></tr>`;
+            }
+        }, 300);
+    }
+
+    function handleTab3AddRow() {
+        const tbody = document.getElementById('tab3_cert_list_tbody');
+        if (!tbody) return;
+
+        const noRow = document.getElementById('no_tab3_certs_row');
+        if (noRow) noRow.remove();
+
+        const nextIndex = Date.now(); 
+
+        const rowHtml = `
+            <tr class="cert-item bg-white border-b border-slate-100 transition-all duration-300 animate-in fade-in slide-in-from-left-2 transition-all duration-300 hover:bg-blue-50/10">
+                <td style="padding: 20px !important; text-align: center; border-right: 1px solid #e2e8f0; color: #000; font-weight: 500;" class="index-cell">0</td>
+                <td style="padding: 10px 12px !important; border-right: 1px solid #e2e8f0; color: #000;">
+                    <div class="relative">
+                        <select name="certs[${nextIndex}][type]" 
+                            style="width: 100%; height: 40px; padding: 0 8px; border: 1px solid transparent; background: transparent; font-size: 12px; font-weight: 500; color: #000; outline: none; appearance: none; cursor: pointer; display: block;"
+                            class="hover:border-slate-200 focus:border-[#0066FF] focus:bg-white focus:ring-0" required>
+                            <option value="">-- Chọn --</option>
+                            <optgroup label="Tiếng Anh"><option value="IELTS">IELTS</option><option value="TOEFL iBT">TOEFL iBT</option><option value="TOEIC">TOEIC</option></optgroup>
+                            <optgroup label="Ngoại ngữ khác"><option value="HSK">HSK (Tiếng Trung)</option><option value="JLPT">JLPT (Tiếng Nhật)</option></optgroup>
+                            <optgroup label="Tin học"><option value="IC3">IC3</option><option value="MOS">MOS</option></optgroup>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 text-[8px] pointer-events-none"></i>
+                    </div>
+                </td>
+                <td style="padding: 10px 12px !important; border-right: 1px solid #e2e8f0; color: #000;">
+                    <input type="text" name="certs[${nextIndex}][score]" placeholder="—" 
+                        style="width: 100%; height: 40px; padding: 0; text-align: center; border: 1px solid transparent; background: transparent; font-size: 12px; font-weight: 500; color: #000; outline: none;"
+                        class="hover:border-slate-200 focus:border-[#0066FF] focus:bg-white focus:ring-0 placeholder-slate-300 font-medium">
+                </td>
+                <td style="padding: 20px !important; text-align: center; color: #000;">
+                    <div class="flex items-center justify-center gap-2">
+                        <label class="cursor-pointer group/upload">
+                            <i class="fas fa-camera text-blue-600 group-hover/upload:text-blue-700 transition-colors text-xs"></i>
+                            <input type="file" name="cert_files[${nextIndex}]" accept="image/*" class="hidden" onchange="window.previewAdminCert(this)">
+                        </label>
+                        <button type="button" onclick="window.removeAdminCert(this)" class="text-red-500 hover:text-red-600 transition-colors p-1">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+
+        tbody.insertAdjacentHTML('beforeend', rowHtml);
+        updateTab3Indices();
+    }
+
+    function previewAdminCert(input) {
+        if (!input.files || !input.files[0]) return;
+        const icon = input.closest('label').querySelector('.fa-camera');
+        if (icon) {
+            icon.classList.remove('text-blue-600');
+            icon.classList.add('text-emerald-500');
+            icon.style.filter = 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.4))';
+        }
+    }
+
+    // Force global visibility
+    window.v5_row_add = v5_row_add;
+    window.v5_row_remove = v5_row_remove;
+    window.v5_update_combo = v5_update_combo;
+</script>
+
+<!-- ASPIRATIONS (TAB 5) GLOBAL HANDLING -->
+<script>
+    var v5_combos = <?= json_encode(array_column($majors ?? [], 'to_hop_xet_tuyen', 'ma_nganh')) ?>;
+
+    function v5_update_combo(select, index) {
+        if (!select) return;
+        var majorId = select.value;
+        var div = document.getElementById('v5-combo-' + index);
+        if (!div) return;
+        
+        if (majorId && v5_combos[majorId]) {
+            div.textContent = v5_combos[majorId]; // Hiển thị chữ thuần ngăn cách bằng dấu phẩy
+        } else {
+            div.innerHTML = '<span class="text-[10px] text-slate-300 italic">N/A</span>';
+        }
+    }
+
+    function v5_refresh_orders() {
+        var table = document.getElementById('adminChoicesTable');
+        if (!table) return;
+        var rows = table.querySelectorAll('.choice-row');
+        rows.forEach(function(row, index) {
+            var stt = index + 1;
+            var sttCell = row.querySelector('td:first-child');
+            if (sttCell) sttCell.textContent = stt;
+            
+            var hidden = row.querySelector('input[type="hidden"]');
+            if (hidden) {
+                hidden.value = stt;
+                hidden.name = 'choices[' + index + '][thu_tu]';
+            }
+            
+            var select = row.querySelector('select');
+            if (select) {
+                select.name = 'choices[' + index + '][nganh_id]';
+                select.setAttribute('onchange', 'v5_update_combo(this, ' + index + ')');
+            }
+            
+            var combo = row.querySelector('.admin-combo-display');
+            if (combo) combo.id = 'v5-combo-' + index;
+        });
+    }
+
+    function v5_row_add() {
+        var tbody = document.querySelector('#adminChoicesTable tbody');
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('.choice-row');
+        if (rows.length >= 6) { alert('Tối đa 06 nguyện vọng'); return; }
+        
+        var empty = tbody.querySelector('.empty-row');
+        if (empty) empty.remove();
+        
+        var templateEl = document.getElementById('v5RowTemplate');
+        if (!templateEl) {
+            console.error('v5RowTemplate not found');
+            return;
+        }
+        var template = templateEl.innerHTML;
+        var nIdx = rows.length;
+        var nSTT = nIdx + 1;
+        
+        var html = template.replace(/INDEX_VAL/g, nIdx).replace(/STT_VAL/g, nSTT);
+        tbody.insertAdjacentHTML('beforeend', html);
+        v5_refresh_orders();
+    }
+
+    function v5_row_remove(btn) {
+        var row = btn.closest('tr');
+        if (row) {
+            row.remove();
+            v5_refresh_orders();
+            
+            var tbody = document.querySelector('#adminChoicesTable tbody');
+            if (tbody && tbody.querySelectorAll('.choice-row').length === 0) {
+                tbody.innerHTML = '<tr class="empty-row border-b border-slate-50"><td colspan="4" class="py-16 text-center text-slate-400 font-medium italic">Chưa có nguyện vọng nào. Bấm "Thêm nguyện vọng" bên dưới.</td></tr>';
+            }
+        }
+    }
+
+    // Logic Hủy duyệt: Đưa trạng thái về Chờ duyệt
+    async function confirmResetReviewStatus() {
+        if (!confirm('Bạn có chắc chắn muốn hủy trạng thái duyệt và đưa hồ sơ này về trạng thái "Chờ duyệt"?')) return;
+        
+        Loading.show();
+        const form = document.getElementById('reviewForm');
+        const formData = new FormData(form);
+        
+        formData.append('master_status', 'Chờ duyệt');
+        formData.append('master_note', 'Hủy duyệt bởi quản trị viên');
+
+        try {
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                if (typeof Toast !== 'undefined') Toast.success('Đã đưa hồ sơ về trạng thái Chờ duyệt');
+                setTimeout(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', currentActiveTab);
+                    window.location.href = url.toString();
+                }, 800);
+            } else {
+                Loading.hide();
+                alert('Lỗi: ' + (data.error || 'Không thể cập nhật trạng thái'));
+            }
+        } catch (e) {
+            Loading.hide();
+            console.error(e);
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    // Explicitly expose to window
+    window.v5_row_add = v5_row_add;
+    window.v5_row_remove = v5_row_remove;
+    window.v5_update_combo = v5_update_combo;
+    window.v5_refresh_orders = v5_refresh_orders;
+    window.confirmResetReviewStatus = confirmResetReviewStatus;
 </script>
 
 

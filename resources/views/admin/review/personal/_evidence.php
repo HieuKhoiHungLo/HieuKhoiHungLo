@@ -1,3 +1,29 @@
+<style>
+    .evidence-card {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, z-index 0s;
+        z-index: 1;
+        position: relative;
+    }
+    .evidence-card .evidence-img {
+        transition: brightness 0.4s ease;
+    }
+    .evidence-card:hover {
+        transform: scale(1.3); /* Phóng to cả khung hình lên 30% */
+        z-index: 50;
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+    .evidence-card:hover .evidence-img {
+        filter: brightness(0.9);
+    }
+    .evidence-card .hover-overlay {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .evidence-card:hover .hover-overlay {
+        opacity: 1;
+    }
+</style>
+
 <?php
 // Helper macro: render a single evidence image card with hover overlay
 function render_admin_img_card($imgPath, $label, $imgId, $fileInputName, $previewId, $rotateEnable = true, $aspect = '3/2')
@@ -11,58 +37,62 @@ function render_admin_img_card($imgPath, $label, $imgId, $fileInputName, $previe
     $hasImg = !empty($imgPath);
     $uid = 'img_upload_' . $imgId;
     $previewTriggerId = $previewId;
-?>
-    <div class="space-y-0">
-        <!-- Image with hover overlay -->
-        <div class="relative group w-full" style="aspect-ratio:<?= $aspect ?>">
-            <?php if ($hasImg): ?>
-                <!-- Image -->
+    ?>
+    <div class="relative group w-full border-2 border-slate-200 rounded-2xl overflow-hidden bg-slate-900 shadow-sm transition-all" style="aspect-ratio:<?= $aspect ?>;">
+        <?php if ($hasImg): ?>
+            <!-- IMAGE (Always zoomed behind toolbar) -->
+            <div class="w-full h-full cursor-pointer transition-transform duration-500 hover:scale-[1.3] z-10">
                 <img id="<?= $imgId ?>" loading="lazy" src="<?= $src ?>"
-                    class="w-full h-full object-cover rounded-2xl border-2 border-slate-200 shadow-sm transition-all duration-300 group-hover:brightness-75">
+                    class="w-full h-full object-contain relative transition-all duration-500"
+                    title="Di chuột để phóng to, nhấn nút xoay phía trên để xoay ảnh">
+            </div>
 
-                <!-- Overlay: Đổi ảnh (always visible on hover) -->
-                <label for="<?= $uid ?>" class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer rounded-2xl">
-                    <div class="bg-white/90 text-slate-800 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 font-black text-xs uppercase tracking-wider hover:bg-[#0066FF] hover:text-white transition-all">
-                        <i class="fas fa-camera"></i> Đổi ảnh
-                    </div>
-                </label>
-
-                <!-- Rotate button (top right) -->
-                <?php if ($rotateEnable): ?>
-                    <button type="button"
-                        onclick="rotateEvidenceImage('<?= $imgPath ?>', '<?= $imgId ?>', this)"
-                        class="absolute top-2 right-2 z-30 w-8 h-8 bg-white hover:bg-[#0066FF] text-slate-700 hover:text-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                        title="Xoay ảnh 90 độ">
-                        <i class="fas fa-redo-alt text-xs"></i>
-                    </button>
-                <?php endif; ?>
-
-                <!-- Label bottom -->
-                <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl pointer-events-none flex justify-center">
-                    <span class="text-white text-[10px] font-black uppercase tracking-wider"><?= $label ?></span>
+            <!-- STABLE TOOLBAR (Always on Top) -->
+            <div class="absolute top-0 left-0 right-0 h-9 bg-white/95 backdrop-blur-md border-b border-slate-200 z-[100] flex items-center justify-between px-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-auto">
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate mr-2"><?= $label ?></span>
+                <div class="flex items-center gap-1.5">
+                    <?php if ($rotateEnable): ?>
+                        <button type="button"
+                            onclick="rotateEvidenceImage('<?= $imgPath ?>', '<?= $imgId ?>', this)"
+                            class="w-7 h-7 bg-slate-50 hover:bg-[#0066FF] text-slate-600 hover:text-white rounded-lg flex items-center justify-center transition-all shadow-sm"
+                            title="Xoay ảnh 90 độ">
+                            <i class="fas fa-redo-alt text-[10px]"></i>
+                        </button>
+                    <?php endif; ?>
+                    <a href="<?= $rawSrc ?>" target="_blank"
+                        class="w-7 h-7 bg-slate-50 hover:bg-[#0066FF] text-slate-600 hover:text-white rounded-lg flex items-center justify-center transition-all shadow-sm"
+                        title="Xem ảnh gốc">
+                        <i class="fas fa-external-link-alt text-[10px]"></i>
+                    </a>
                 </div>
+            </div>
 
-            <?php else: ?>
-                <!-- Empty state — also clickable to upload -->
-                <label for="<?= $uid ?>" class="flex flex-col items-center justify-center w-full h-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 cursor-pointer hover:border-[#0066FF] hover:bg-blue-50/30 transition-all group/empty">
-                    <i class="fas fa-camera text-2xl mb-2 group-hover/empty:text-[#0066FF] transition-colors"></i>
-                    <span class="text-[10px] font-black uppercase tracking-widest"><?= $label ?></span>
-                    <span class="text-[9px] text-slate-300 mt-1">Nhấn để tải ảnh lên</span>
-                </label>
-            <?php endif; ?>
+            <!-- Label bottom (Overlay) -->
+            <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent z-[20] pointer-events-none flex justify-center">
+                <span class="text-white text-[9px] font-black uppercase tracking-widest drop-shadow-sm"><?= $label ?></span>
+            </div>
 
-            <!-- Hidden file input (shared between modes) -->
-            <input type="file"
-                id="<?= $uid ?>"
-                name="<?= $fileInputName ?>"
-                accept="image/*"
-                class="hidden personal-edit-file-trigger"
-                onchange="handleAdminImgChange(this, '<?= $imgId ?>', '<?= $previewTriggerId ?>')">
-        </div>
+        <?php else: ?>
+            <!-- Empty state -->
+            <label for="<?= $uid ?>" class="flex flex-col items-center justify-center w-full h-full bg-slate-50 text-slate-400 cursor-pointer hover:border-[#0066FF] hover:bg-blue-50/30 transition-all group/empty">
+                <i class="fas fa-camera text-2xl mb-2 group-hover/empty:text-[#0066FF] transition-colors"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest"><?= $label ?></span>
+                <span class="text-[9px] text-slate-300 mt-1">Nhấn để tải ảnh lên</span>
+            </label>
+        <?php endif; ?>
 
-        <!-- Preview of newly chosen image -->
-        <img id="<?= $previewTriggerId ?>" class="hidden mt-2 w-full rounded-xl border border-slate-200 shadow-sm">
+        <!-- Hidden file inputs & Logic -->
+        <input type="file" id="<?= $uid ?>" name="<?= $fileInputName ?>" accept="image/*" class="hidden personal-edit-file-trigger" onchange="handleAdminImgChange(this, '<?= $imgId ?>', '<?= $previewId ?>')">
     </div>
+
+    <!-- Edit Button (Always outside the card) -->
+    <div class="personal-edit-field hidden mt-2">
+        <input type="file" id="<?= $uid ?>_btn" name="<?= $fileInputName ?>" accept="image/*" 
+            class="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-[#0066FF] hover:file:bg-blue-100 transition-all cursor-pointer"
+            onchange="handleAdminImgChange(this, '<?= $imgId ?>', '<?= $previewId ?>')">
+    </div>
+
+    <img id="<?= $previewId ?>" class="hidden mt-2 w-full rounded-xl border border-slate-200 shadow-sm">
 <?php
 }
 ?>
@@ -70,16 +100,11 @@ function render_admin_img_card($imgPath, $label, $imgId, $fileInputName, $previe
 <!-- Right: Avatar & CCCD Evidence Panel -->
 <div class="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/50 sticky top-24">
 
-    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-50">
-        <i class="fas fa-camera text-slate-400 text-sm"></i>
-        <h4 class="font-black text-slate-600 text-xs uppercase tracking-widest">Ảnh hồ sơ</h4>
-    </div>
-
-    <!-- Avatar -->
-    <div class="w-1/2 mx-auto mb-4">
+    <!-- Avatar (Small, 1/4 width) -->
+    <div style="width: 25%; margin: 0 auto 1rem auto;">
         <?php render_admin_img_card(
             $user['anh_dai_dien'] ?? '',
-            'Ảnh thẻ 3x4',
+            'Ảnh thẻ',
             'current_avatar',
             'avatar',
             'preview_avatar',
@@ -88,48 +113,33 @@ function render_admin_img_card($imgPath, $label, $imgId, $fileInputName, $previe
         ); ?>
     </div>
 
-    <!-- CCCD Front -->
-    <div class="mb-3">
-        <?php render_admin_img_card(
-            $user['anh_cccd_truoc'] ?? '',
-            'CCCD Mặt trước',
-            'current_cccd_front',
-            'cccd_front',
-            'preview_cccd_front',
-            true,
-            '3/2'
-        ); ?>
-    </div>
+    <!-- CCCD Evidence (Focus on Front) -->
+    <div class="w-full space-y-3 mb-3">
+        <!-- CCCD Front (100% width) -->
+        <div class="w-full">
+            <?php render_admin_img_card(
+                $user['anh_cccd_truoc'] ?? '',
+                'CCCD Mặt trước',
+                'current_cccd_front',
+                'cccd_front',
+                'preview_cccd_front',
+                true,
+                '3/2'
+            ); ?>
+        </div>
 
-    <!-- CCCD Back -->
-    <div class="mb-3">
-        <?php render_admin_img_card(
-            $user['anh_cccd_sau'] ?? '',
-            'CCCD Mặt sau',
-            'current_cccd_back',
-            'cccd_back',
-            'preview_cccd_back',
-            true,
-            '3/2'
-        ); ?>
-    </div>
-
-    <!-- Minh chứng KV Ưu tiên -->
-    <div class="mt-4 pt-4 border-t border-slate-100 personal-edit-field hidden">
-        <label class="block text-[10px] font-black text-[#ff8800] uppercase tracking-widest mb-2">Minh chứng Khu vực</label>
-        <?php if (!empty($user['file_minh_chung_kv'])): ?>
-            <div class="text-[10px] text-slate-400 mb-2 truncate">Hiện có: <?= basename($user['file_minh_chung_kv']) ?></div>
-        <?php endif; ?>
-        <input type="file" name="kv_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 transition-all cursor-pointer">
-    </div>
-
-    <!-- Minh chứng ĐT Ưu tiên -->
-    <div class="mt-4 personal-edit-field hidden">
-        <label class="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Minh chứng Đối tượng</label>
-        <?php if (!empty($user['file_minh_chung_dt'])): ?>
-            <div class="text-[10px] text-slate-400 mb-2 truncate">Hiện có: <?= basename($user['file_minh_chung_dt']) ?></div>
-        <?php endif; ?>
-        <input type="file" name="dt_file" accept=".pdf,image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 transition-all cursor-pointer">
+        <!-- CCCD Back (Hidden per user request) -->
+        <div class="hidden">
+            <?php render_admin_img_card(
+                $user['anh_cccd_sau'] ?? '',
+                'CCCD Mặt sau',
+                'current_cccd_back',
+                'cccd_back',
+                'preview_cccd_back',
+                true,
+                '3/2'
+            ); ?>
+        </div>
     </div>
 
 </div>

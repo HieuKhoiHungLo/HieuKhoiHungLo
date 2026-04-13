@@ -39,10 +39,17 @@
     <script defer src="<?= url('/assets/js/alpine-collapse.min.js') ?>"></script>
     <script defer src="<?= url('/assets/js/alpine.min.js') ?>"></script>
 
-    <!-- jQuery & DataTables — Cần cho một số trang quản lý (Năng khiếu, Chứng chỉ) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- jQuery & DataTables — Chỉ load khi view yêu cầu (giảm tải cho trang review, dashboard) -->
+    <?php if (isset($needsDataTables) && $needsDataTables === true): ?>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <?php endif; ?>
+
+    <!-- Prefetch next candidate for instant navigation -->
+    <?php if (isset($nextCCCD) && !empty($nextCCCD)): ?>
+        <link rel="prefetch" href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>">
+    <?php endif; ?>
 
     <!-- Design System -->
     <style>
@@ -338,10 +345,24 @@
             };
 
             foreach ($menuGroups as $gi => $group):
+                // Admin request: Hide "Xét tuyển lọc ảo" menu for "Cán bộ xét tuyển" (Role ID 2)
+                $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
+                $userRoleId = $_SESSION['admin_role_id'] ?? 0;
+                
+                if (($userRoleId == 2 || in_array($userRole, ['cán bộ xét tuyển', 'can bo xet tuyen'])) && $group['group'] === 'XÉT TUYỂN LỌC ẢO') {
+                    continue;
+                }
+
                 // Filter items by permission
-                $visibleItems = array_filter($group['items'], function ($item) use ($canSee) {
+                $visibleItems = array_filter($group['items'], function ($item) use ($canSee, $userRole, $userRoleId) {
                     $perm = $item['perm'] ?? null;
-                    return $perm === null || $canSee($perm);
+                    $isVisible = $perm === null || $canSee($perm);
+                    
+                    if (($userRoleId == 2 || in_array($userRole, ['cán bộ xét tuyển', 'can bo xet tuyen'])) && isset($item['label']) && $item['label'] === 'Xét tuyển Lọc ảo') {
+                        return false;
+                    }
+                    
+                    return $isVisible;
                 });
                 if (empty($visibleItems)) continue;
 
@@ -484,7 +505,7 @@
         </header>
 
         <!-- Dynamic Content -->
-        <main class="flex-grow p-8 relative z-0">
+        <main class="flex-grow <?= (isset($mode) && $mode === 'review') ? 'p-4 pt-1' : 'p-8' ?> relative z-0">
             <?= $content ?? '' ?>
         </main>
 

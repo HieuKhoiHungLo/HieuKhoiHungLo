@@ -17,30 +17,20 @@ class AdminController extends Controller
 
     protected $currentUser;
     protected ThiSinhRepository $thiSinhRepo;
-    protected NguyenVongRepository $nguyenVongRepo;
-    protected \App\Repositories\MasterDataRepository $masterDataRepo;
-    protected \App\Repositories\AcademicRepository $academicRepo;
-    protected \App\Repositories\ApplicationRepository $applicationRepo;
-    protected \App\Services\MailerService $mailerService;
-    protected \App\Services\EmailTemplateService $emailTemplateService;
-    protected \App\Services\AuditService $auditService;
-    protected \App\Services\ScoreCalculationService $scoreService;
-    protected \App\Models\DiemThiTHPT $diemThiModel;
+    protected ?NguyenVongRepository $nguyenVongRepo = null;
+    protected ?\App\Repositories\MasterDataRepository $masterDataRepo = null;
+    protected ?\App\Repositories\AcademicRepository $academicRepo = null;
+    protected ?\App\Repositories\ApplicationRepository $applicationRepo = null;
+    protected ?\App\Services\MailerService $mailerService = null;
+    protected ?\App\Services\EmailTemplateService $emailTemplateService = null;
+    protected ?\App\Services\AuditService $auditService = null;
+    protected ?\App\Services\ScoreCalculationService $scoreService = null;
+    protected ?\App\Models\DiemThiTHPT $diemThiModel = null;
 
     public function __construct()
     {
-        // Repositories
+        // Only initialize the essential repository used by nearly every action
         $this->thiSinhRepo = new ThiSinhRepository();
-        $this->nguyenVongRepo = new NguyenVongRepository();
-        $this->masterDataRepo = new \App\Repositories\MasterDataRepository();
-        $this->academicRepo = new \App\Repositories\AcademicRepository();
-        $this->applicationRepo = new \App\Repositories\ApplicationRepository();
-
-        // Services
-        $this->mailerService = new \App\Services\MailerService();
-        $this->emailTemplateService = new \App\Services\EmailTemplateService();
-        $this->auditService = new \App\Services\AuditService();
-        $this->scoreService = new \App\Services\ScoreCalculationService();
 
         // Load current user for permission checking - Use Cache
         if (isset($_SESSION['admin_id'])) {
@@ -65,9 +55,44 @@ class AdminController extends Controller
             session_destroy();
             $this->redirect(url('/admin/login'));
         }
+    }
 
-        // Models
-        $this->diemThiModel = new \App\Models\DiemThiTHPT();
+    // --- Lazy Getters: Services & Repositories initialized on first use ---
+    protected function getNguyenVongRepo(): NguyenVongRepository {
+        if (!$this->nguyenVongRepo) $this->nguyenVongRepo = new NguyenVongRepository();
+        return $this->nguyenVongRepo;
+    }
+    protected function getMasterDataRepo(): \App\Repositories\MasterDataRepository {
+        if (!$this->masterDataRepo) $this->masterDataRepo = new \App\Repositories\MasterDataRepository();
+        return $this->masterDataRepo;
+    }
+    protected function getAcademicRepo(): \App\Repositories\AcademicRepository {
+        if (!$this->academicRepo) $this->academicRepo = new \App\Repositories\AcademicRepository();
+        return $this->academicRepo;
+    }
+    protected function getApplicationRepo(): \App\Repositories\ApplicationRepository {
+        if (!$this->applicationRepo) $this->applicationRepo = new \App\Repositories\ApplicationRepository();
+        return $this->applicationRepo;
+    }
+    protected function getMailerService(): \App\Services\MailerService {
+        if (!$this->mailerService) $this->mailerService = new \App\Services\MailerService();
+        return $this->mailerService;
+    }
+    protected function getEmailTemplateService(): \App\Services\EmailTemplateService {
+        if (!$this->emailTemplateService) $this->emailTemplateService = new \App\Services\EmailTemplateService();
+        return $this->emailTemplateService;
+    }
+    protected function getAuditService(): \App\Services\AuditService {
+        if (!$this->auditService) $this->auditService = new \App\Services\AuditService();
+        return $this->auditService;
+    }
+    protected function getScoreService(): \App\Services\ScoreCalculationService {
+        if (!$this->scoreService) $this->scoreService = new \App\Services\ScoreCalculationService();
+        return $this->scoreService;
+    }
+    protected function getDiemThiModel(): \App\Models\DiemThiTHPT {
+        if (!$this->diemThiModel) $this->diemThiModel = new \App\Models\DiemThiTHPT();
+        return $this->diemThiModel;
     }
 
     // ... (existing methods)
@@ -293,15 +318,87 @@ class AdminController extends Controller
     public function review()
     {
         $this->checkPermission('review');
-        $cccd = $_GET['cccd'] ?? null;
+        $cccd = $_GET['cccd'] ?? '';
         if (empty($cccd)) {
             $this->redirect(url('/admin/dashboard'));
         }
 
+        $data = $this->prepareReviewData($cccd);
+        if (!$data) {
+            $this->redirect(url('/admin/dashboard'));
+        }
+
+        $this->view('admin/review', $data);
+    }
+
+    /**
+     * AJAX Endpoint for lazy loading review tabs
+     */
+    public function reviewTab()
+    {
+        $this->checkPermission('review');
+        $cccd = $_GET['cccd'] ?? '';
+        $tab = $_GET['tab'] ?? '';
+
+        if (empty($cccd) || empty($tab)) {
+            return $this->json(['success' => false, 'error' => 'Missing params']);
+        }
+
+        $data = $this->prepareReviewData($cccd);
+        if (!$data) {
+            return $this->json(['success' => false, 'error' => 'Candidate not found']);
+        }
+
+        // Include view helpers for things like render_evidence_item
+        include __DIR__ . '/../../resources/views/admin/review/_helpers.php';
+
+        // Render just the specific tab partial
+        $viewPath = "admin/review/_tab_{$tab}";
+        $this->view($viewPath, $data);
+        exit;
+    }
+
+    /**
+     * Optimized AJAX Endpoint for batch loading all remaining review tabs in one request
+     */
+    public function reviewBatchTabs()
+    {
+        $this->checkPermission('review');
+        $cccd = $_GET['cccd'] ?? '';
+
+        if (empty($cccd)) {
+            return $this->json(['success' => false, 'error' => 'Missing CCCD']);
+        }
+
+        $data = $this->prepareReviewData($cccd);
+        if (!$data) {
+            return $this->json(['success' => false, 'error' => 'Candidate not found']);
+        }
+
+        // Include view helpers for things like render_evidence_item
+        include __DIR__ . '/../../resources/views/admin/review/_helpers.php';
+
+        $tabs = ['academic', 'certs', 'thpt', 'wishes'];
+        $rendered = [];
+
+        foreach ($tabs as $tab) {
+            ob_start();
+            $this->view("admin/review/_tab_{$tab}", $data);
+            $rendered[$tab] = ob_get_clean();
+        }
+
+        return $this->json([
+            'success' => true,
+            'tabs' => $rendered
+        ]);
+    }
+
+    private function prepareReviewData($cccd)
+    {
         // SINGLE query: candidate + academic + nguyen_vong + certificates + diemThi
         $bundle = $this->thiSinhRepo->getReviewBundle($cccd);
         if (!$bundle) {
-            $this->redirect(url('/admin/dashboard'));
+            return null;
         }
 
         $user = $bundle['user'];
@@ -311,15 +408,17 @@ class AdminController extends Controller
         $diemThi = $bundle['diemThi'];
 
         // Fetch majors with combinations for the wishes tab display
-        $majors = $this->masterDataRepo->getMajorsWithCombinations();
+        $majors = $this->getMasterDataRepo()->getMajorsWithCombinations();
 
         // Province list (file-cached — no DB hit after first call)  
-        $provinces = $this->masterDataRepo->getProvinces();
-        $priorityAreas = $this->masterDataRepo->getPriorityAreas();
-        $priorityObjects = $this->masterDataRepo->getPriorityObjects();
+        $provinces = $this->getMasterDataRepo()->getProvinces();
+        $priorityAreas = $this->getMasterDataRepo()->getPriorityAreas();
+        $priorityObjects = $this->getMasterDataRepo()->getPriorityObjects();
         
-        $emailTemplateModel = new \App\Models\EmailTemplate();
-        $emailTemplates = $emailTemplateModel->getAll();
+        $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function () {
+            $model = new \App\Models\EmailTemplate();
+            return $model->getAll();
+        });
 
         // Adjacent candidates
         $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd);
@@ -339,20 +438,11 @@ class AdminController extends Controller
             'ngoai_ngu' => 'Ngoại ngữ'
         ];
 
-        // Process certificates to add converted score
+        // Process certificates (Use existing data without adding new DB dependencies)
         if (!empty($certificates)) {
-            $scoreConvModel = new \App\Models\ScoreConversion();
             foreach ($certificates as &$cert) {
-                $type = $cert['loai_chung_chi'] ?? '';
-                $score = (float)($cert['diem_chung_chi'] ?? 0);
-                $cert['diem_quy_doi'] = 0;
-
-                // Ensure type matches DB exactly (trim spaces)
-                $type = trim($type);
-
-                if (!empty($type) && $score > 0) {
-                    $cert['diem_quy_doi'] = $scoreConvModel->getConvertedScore($type, $score);
-                }
+                // Keep existing fields, don't try to resolve rules from missing tables
+                $cert['diem_quy_doi'] = $cert['diem_quy_doi'] ?? 0;
             }
             unset($cert);
         }
@@ -381,7 +471,7 @@ class AdminController extends Controller
         $schoolName = $user['ten_truong_lop_12'] ?? '';
         $hasEditRequest = !empty($user['yeu_cau_chinh_sua']);
 
-        $this->view('admin/review', [
+        return [
             'user' => $user,
             'wardName' => $wardName,
             'schoolName' => $schoolName,
@@ -404,7 +494,7 @@ class AdminController extends Controller
             'navPosition' => $adjacent['position'],
             'navTotal' => $adjacent['total'],
             'emailTemplates' => $emailTemplates
-        ]);
+        ];
     }
 
     public function updateStatus()
@@ -435,9 +525,9 @@ class AdminController extends Controller
                             $sections[] = ['name' => 'Ảnh chân dung', 'status' => 'missing', 'note' => 'Chưa upload'];
                         }
 
-                        $resultHtml = $this->emailTemplateService->buildReviewResultHtml($sections);
+                        $resultHtml = $this->getEmailTemplateService()->buildReviewResultHtml($sections);
 
-                        $this->emailTemplateService->queueWithTemplate($candidate['email'], 'application_reviewed', [
+                        $this->getEmailTemplateService()->queueWithTemplate($candidate['email'], 'application_reviewed', [
                             'ho_ten' => $candidate['ho_va_ten'],
                             'ket_qua_chi_tiet' => $resultHtml,
                             'ghi_chu' => $note ?: 'Không có ghi chú.'
@@ -611,15 +701,15 @@ class AdminController extends Controller
 
                 if ($type === 'overview' || $type === 'all') {
                     $data['overview'] = $this->thiSinhRepo->getStats($sessionId, $selectedYear, $startDate, $endDate);
-                    $data['daily']    = $this->applicationRepo->getDailyStats($startDate, $endDate, $sessionId);
+                    $data['daily']    = $this->getApplicationRepo()->getDailyStats($startDate, $endDate, $sessionId);
                     $data['recent']   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
                     $data['latest']   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
-                    $data['major']    = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
+                    $data['major']    = $this->getNguyenVongRepo()->getMajorStats(30, $startDate, $endDate, $sessionId);
                 }
 
                 if ($type === 'majors' || $type === 'all') {
-                    $data['major']                = $this->nguyenVongRepo->getMajorStats(30, $startDate, $endDate, $sessionId);
-                    $data['detailed_major_stats'] = $this->nguyenVongRepo->getDetailedMajorStats($startDate, $endDate, $sessionId);
+                    $data['major']                = $this->getNguyenVongRepo()->getMajorStats(30, $startDate, $endDate, $sessionId);
+                    $data['detailed_major_stats'] = $this->getNguyenVongRepo()->getDetailedMajorStats($startDate, $endDate, $sessionId);
                 }
 
                 if ($type === 'demographics' || $type === 'all') {
@@ -639,10 +729,10 @@ class AdminController extends Controller
 
             if ($forceRefresh) {
                 $result = $fetchData();
-                \App\Core\Cache::put($cacheKey, $result, 2);
+                \App\Core\Cache::put($cacheKey, $result, 10);
                 $result['refreshed'] = true;
             } else {
-                $result = \App\Core\Cache::remember($cacheKey, 2, $fetchData);
+                $result = \App\Core\Cache::remember($cacheKey, 10, $fetchData);
             }
 
             // Real-time Online Stats (Always fetch, never cache)
@@ -653,7 +743,7 @@ class AdminController extends Controller
 
             $result['meta'] = [
                 'type'          => $type,
-                'version_debug' => '1.0.7-SUBTRACTION-LOGIC',
+                'version_debug' => '1.0.8-PRECISION-LOGIC',
                 'year'          => $selectedYear,
                 'session_id'    => $sessionId,
                 'start'         => $startDate,
@@ -803,7 +893,7 @@ class AdminController extends Controller
                 // We should only calculate for those with completed profile?
                 // Or just all. Safe to calculate all.
                 try {
-                    $this->scoreService->calculate($c['so_cccd']);
+                    $this->getScoreService()->calculate($c['so_cccd']);
                     $count++;
                 } catch (\Exception $e) {
                     error_log("Calculation error for " . $c['so_cccd'] . ": " . $e->getMessage());

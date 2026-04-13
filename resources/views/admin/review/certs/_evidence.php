@@ -1,10 +1,6 @@
 <!-- Evidence Preview Sticky Sidebar -->
 <div class="bg-white rounded-[2rem] border border-blue-100 p-6 shadow-sm sticky top-24">
-    <div class="flex items-center justify-between mb-6 pb-2 border-b border-slate-50">
-        <h4 class="font-black text-slate-800 text-sm uppercase tracking-widest flex items-center">
-            <i class="fas fa-eye mr-2 text-sky-500"></i> Minh chứng Chứng chỉ
-        </h4>
-    </div>
+
 
     <div class="space-y-6" id="cert_evidence_container">
         <?php if(empty($certificates)): ?>

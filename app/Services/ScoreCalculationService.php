@@ -459,16 +459,16 @@ class ScoreCalculationService {
         try {
             $this->db->exec("CREATE TEMPORARY TABLE temp_calc_results (
                 nv_id BIGINT,
-                score DECIMAL(10,2),
+                score DECIMAL(10,3),
                 combo VARCHAR(20),
                 combo_id INT,
                 method VARCHAR(50),
                 details TEXT,
-                m1 DECIMAL(10,2),
-                m2 DECIMAL(10,2),
-                m3 DECIMAL(10,2),
-                prio_raw DECIMAL(10,2),
-                prio_qd DECIMAL(10,2),
+                m1 DECIMAL(10,3),
+                m2 DECIMAL(10,3),
+                m3 DECIMAL(10,3),
+                prio_raw DECIMAL(10,3),
+                prio_qd DECIMAL(10,3),
                 is_passed BOOLEAN,
                 d_hash VARCHAR(64)
             ) ON COMMIT DROP");
@@ -789,7 +789,7 @@ class ScoreCalculationService {
         
         $averages = [];
         foreach ($sums as $id => $total) {
-            if ($counts[$id] > 0) $averages[$id] = round($total / $counts[$id], 2);
+            if ($counts[$id] > 0) $averages[$id] = round($total / $counts[$id], 3);
         }
         return $averages;
     }
@@ -947,7 +947,7 @@ class ScoreCalculationService {
         if ($totalRaw >= 22.5) {
             $priorityConverted = ((30 - $totalRaw) / 7.5) * $priorityPointsRaw;
         }
-        $priorityConverted = round($priorityConverted, 2);
+        $priorityConverted = round($priorityConverted, 3);
 
         $totalFinal = $totalRaw + $priorityConverted;
         

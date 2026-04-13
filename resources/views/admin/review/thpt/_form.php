@@ -1,94 +1,85 @@
-<!-- Edit Form (Redesigned Grid) -->
+<style>
+    /* Hide spin buttons for input type number */
+    #form_thpt input::-webkit-outer-spin-button,
+    #form_thpt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #form_thpt input[type=number] { -moz-appearance: textfield; }
+</style>
+<!-- Edit Form (Redesigned for Visual Parity) -->
 <div id="form_thpt" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
         
-        <!-- Header -->
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 rounded-t-2xl">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-[#0066FF]/10 text-[#0066FF] flex items-center justify-center">
-                    <i class="fas fa-edit text-sm"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Chỉnh sửa</p>
-                    <p class="text-sm font-bold text-slate-700">Điểm thi tốt nghiệp THPT</p>
-                </div>
-            </div>
-            
-            <label class="flex items-center cursor-pointer group bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                <span class="mr-3 text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-[#0066FF] transition-colors">Đã có kết quả thi</span>
-                <div class="relative">
-                    <input type="checkbox" name="has_scores" value="1" <?= (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']) ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
-                    <div class="w-10 h-5.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-[#0066FF]"></div>
-                </div>
-            </label>
-        </div>
-
-        <div class="p-6">
+        <div style="padding: 2px;">
             <div id="thpt_input_container" class="<?= (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']) ? '' : 'opacity-40 pointer-events-none' ?> transition-all duration-300">
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
-                    <?php 
-                    $subjects = [
-                        'toan' => 'Toán', 'van' => 'Văn', 'ly' => 'Lí', 'hoa' => 'Hóa', 'sinh' => 'Sinh',
-                        'su' => 'Sử', 'dia' => 'Địa', 'gdcd' => 'GDCD', 'tieng_anh' => 'T.Anh', 'tieng_trung' => 'T.Trung',
-                        'ktpl' => 'Kinh tế PL', 'tin_hoc' => 'Tin học', 'cnnn' => 'CN Nông nghiệp'
-                    ];
-                    foreach ($subjects as $key => $name): ?>
-                        <div class="space-y-1.5">
-                            <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest px-1"><?= $name ?></label>
-                            <input type="number" step="0.01" min="0" max="10" 
-                                name="thpt_<?= $key ?>" 
-                                value="<?= isset($diemThi[$key]) ? $diemThi[$key] : '' ?>" 
-                                class="w-full h-11 bg-white border border-slate-200 rounded-xl px-3 text-center font-bold text-slate-800 focus:bg-white focus:ring-4 focus:ring-blue-50 focus:border-[#0066FF] outline-none transition-all shadow-sm" 
-                                placeholder="0.0">
-                        </div>
-                    <?php endforeach; ?>
+                <div class="overflow-x-auto border border-slate-200 rounded-xl mb-1">
+                    <table class="w-full text-left border-collapse" style="font-size: 11px;">
+                        <thead>
+                            <tr style="background:#f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0; width: 60px;">STT</th>
+                                <th style="padding: 5px 6px; text-align: left; font-weight: 700; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0;">
+                                    <div class="flex items-center justify-between">
+                                        <span>Môn học</span>
+                                        <!-- Subtle Results Toggle (Label removed) -->
+                                        <label class="flex items-center cursor-pointer scale-75 origin-right mr-[-10px]">
+                                            <div class="relative">
+                                                <input type="checkbox" name="has_scores" value="1" <?= (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']) ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
+                                                <div class="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#0066FF]"></div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </th>
+                                <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; width: 120px;">Điểm số</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                                $thptSubjects = [
+                                    'toan'=>'Toán học', 'van'=>'Ngữ văn', 'ly'=>'Vật lý', 'hoa'=>'Hóa học', 
+                                    'sinh'=>'Sinh học', 'su'=>'Lịch sử', 'dia'=>'Địa lý', 'gdcd'=>'GDCD',
+                                    'tieng_anh'=>'Tiếng Anh', 'tieng_trung'=>'Tiếng Trung', 'ktpl'=>'KTPL',
+                                    'tin_hoc'=>'Tin học', 'cnnn'=>'CN-NN'
+                                ];
+                                $rowIdx = 1;
+                                foreach($thptSubjects as $code => $label): 
+                                    $val = isset($diemThi[$code]) ? $diemThi[$code] : '';
+                                    if ($val !== '' && is_numeric($val)) $val = number_format((float)$val, 2, '.', '');
+                            ?>
+                                <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;" class="hover:bg-blue-50/10 transition-colors">
+                                    <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400;">
+                                        <?= $rowIdx++ ?>
+                                    </td>
+                                    <td style="padding: 5px 6px; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400;">
+                                        <?= $label ?>
+                                    </td>
+                                    <td style="padding: 0; text-align: center;">
+                                        <input type="number" step="0.1" min="0" max="10" 
+                                            name="thpt_<?= $code ?>" 
+                                            value="<?= $val ?>" 
+                                            style="width: 100%; height: 26px; padding: 0; text-align: center; padding-left: 0; padding-right: 0; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; transition: all 0.2s;" 
+                                            class="hover:bg-blue-50/50 focus:border-[#0066FF] focus:bg-white focus:ring-0 placeholder-slate-300"
+                                            placeholder="—">
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- Evidence Upload -->
-                <div class="space-y-4 pt-8 border-t border-slate-100">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                        <i class="fas fa-file-invoice mr-1 text-[#0066FF]"></i> Giấy chứng nhận kết quả thi
-                    </label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                        <div class="relative group aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden hover:border-[#0066FF] transition-all shadow-inner">
-                            <img id="preview_thpt_cert" src="<?= !empty($diemThi['file_chung_nhan']) ? url($diemThi['file_chung_nhan']) : '' ?>" class="w-full h-full object-contain <?= !empty($diemThi['file_chung_nhan']) ? '' : 'hidden' ?>">
-                            <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 <?= !empty($diemThi['file_chung_nhan']) ? 'hidden' : '' ?>" id="placeholder_thpt_cert">
-                                <i class="fas fa-cloud-upload-alt text-3xl mb-2 group-hover:text-[#0066FF] transition-colors"></i>
-                                <span class="text-[10px] font-black uppercase tracking-widest group-hover:text-[#0066FF] transition-colors">Tải lên minh chứng</span>
-                            </div>
-                            <input type="file" name="thpt_file_evidence" accept="image/*" onchange="previewThptCert(this)" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                        </div>
-                        <div class="bg-blue-50/40 p-6 rounded-2xl border border-blue-100">
-                            <h4 class="text-[11px] font-black text-[#0066FF] uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <i class="fas fa-info-circle"></i> Hướng dẫn nhập điểm
-                            </h4>
-                            <ul class="text-xs text-slate-600 space-y-2.5 font-medium">
-                                <li class="flex items-start gap-2.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-[#0066FF] mt-1.5 flex-shrink-0 shadow-sm shadow-blue-200"></span>
-                                    Nhập điểm theo đúng Giấy chứng nhận kết quả thi.
-                                </li>
-                                <li class="flex items-start gap-2.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-[#0066FF] mt-1.5 flex-shrink-0 shadow-sm shadow-blue-200"></span>
-                                    Ảnh minh chứng cần rõ nét, không bị lóa hoặc che khuất thông tin.
-                                </li>
-                                <li class="flex items-start gap-2.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-[#0066FF] mt-1.5 flex-shrink-0 shadow-sm shadow-blue-200"></span>
-                                    Nếu chưa có điểm, hãy tắt nút gạt "Đã có kết quả thi".
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-8 border-t border-slate-100 mt-8">
-                <button type="button" onclick="toggleEdit('thpt')" 
-                    class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all border border-slate-200 uppercase tracking-widest">Hủy bỏ</button>
-                <button type="button" onclick="saveSection('thpt')" 
-                    class="px-8 py-2.5 bg-[#0066FF] text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center gap-2 uppercase tracking-widest">
-                    <i class="fas fa-save"></i> Lưu
-                </button>
+            <!-- Footer Buttons aligned with Academic tab style -->
+            <div style="margin-top: 0; padding: 6px 4px 4px; border-top: 1px solid #f1f5f9;">
+                <div class="flex items-center justify-end gap-2">
+                    <button type="button" onclick="toggleEdit('thpt')" 
+                        class="px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                    
+                    <button type="button" onclick="saveSection('thpt')" 
+                        class="px-4 py-1.5 bg-white text-[#0066FF] border border-[#0066FF]/20 rounded-xl shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                        <i class="fas fa-save"></i> Lưu dữ liệu
+                    </button>
+                </div>
             </div>
         </div>
     </div>

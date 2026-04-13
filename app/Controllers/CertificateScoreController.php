@@ -27,7 +27,8 @@ class CertificateScoreController extends Controller {
         $this->view('admin/certificate_scores/index', [
             'title' => 'Quản lý Điểm Chứng chỉ', 
             'stats' => $stats,
-            'activeSession' => $activeSession
+            'activeSession' => $activeSession,
+            'needsDataTables' => true
         ]);
     }
 

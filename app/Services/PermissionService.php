@@ -36,11 +36,20 @@ class PermissionService {
     }
 
     public function getRolePermissions($roleId) {
-        // Simple cache could be added here
+        // Session-level cache: avoids repeated DB round-trip to Supabase on every page load
+        $sessionKey = '_role_perms_' . (int)$roleId;
+        if (isset($_SESSION[$sessionKey])) {
+            return $_SESSION[$sessionKey];
+        }
+
         $stmt = $this->db->prepare("SELECT permissions FROM roles WHERE id = ?");
         $stmt->execute([$roleId]);
         $role = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $role ? (json_decode($role['permissions'], true) ?? []) : [];
+        $perms = $role ? (json_decode($role['permissions'], true) ?? []) : [];
+
+        // Store in session for the duration of this login session
+        $_SESSION[$sessionKey] = $perms;
+        return $perms;
     }
 
     /**

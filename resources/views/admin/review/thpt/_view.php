@@ -1,42 +1,24 @@
 <!-- View Mode -->
-<div id="view_thpt" class="space-y-6">
+<div id="view_thpt" class="animate-in fade-in duration-300">
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible">
+        <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
         
-        <!-- Header -->
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 rounded-t-2xl">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-[#0066FF]/10 text-[#0066FF] flex items-center justify-center">
-                    <i class="fas fa-poll-h text-sm"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Kết quả kỳ thi</p>
-                    <p class="text-sm font-bold text-slate-700">Điểm thi tốt nghiệp THPT</p>
-                </div>
-            </div>
-            <div id="btn_group_thpt">
-                <button type="button" onclick="toggleEdit('thpt')" 
-                    class="px-5 py-2.5 bg-[#0066FF] text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center gap-2 text-sm">
-                    <i class="fas fa-edit"></i> Chỉnh sửa
-                </button>
-            </div>
-        </div>
-
-        <div class="p-6">
+        <div style="padding: 2px;">
             <?php if(empty($diemThi) || !($diemThi['da_co_diem'] ?? false)): ?>
-                <div class="flex flex-col items-center justify-center p-12 bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl">
-                    <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-200 mb-4 shadow-sm">
-                        <i class="fas fa-ghost text-3xl"></i>
+                <div class="flex flex-col items-center justify-center py-12 bg-slate-50 border-2 border-dashed border-slate-100 rounded-xl mb-4">
+                    <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-200 mb-3 shadow-sm">
+                        <i class="fas fa-ghost text-2xl"></i>
                     </div>
-                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Không có dữ liệu điểm thi</p>
+                    <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest text-center">Không có dữ liệu điểm thi tốt nghiệp THPT</p>
                 </div>
             <?php else: ?>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse border border-slate-100">
+                <div class="overflow-x-auto border border-slate-200 rounded-xl mb-1">
+                    <table class="w-full text-left border-collapse" style="font-size: 11px;">
                         <thead>
-                            <tr class="bg-slate-100/50">
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-16 text-center border border-slate-100">STT</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border border-slate-100">Môn học</th>
-                                <th class="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-40 border border-slate-100">Điểm số</th>
+                            <tr style="background:#f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0; width: 60px;">STT</th>
+                                <th style="padding: 5px 6px; text-align: left; font-weight: 700; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0;">Môn học</th>
+                                <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; width: 120px;">Điểm số</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,39 +33,54 @@
                                 foreach($thptSubjects as $code => $label): 
                                     $val = $diemThi[$code] ?? null;
                                     if($val === null || $val === '') continue;
+                                    $displayVal = is_numeric($val) ? str_replace('.', ',', number_format((float)$val, 2, '.', '')) : $val;
                             ?>
-                                <tr class="<?= $rowIdx % 2 !== 0 ? 'bg-white' : 'bg-slate-50/30' ?> hover:bg-blue-50/50 transition-colors">
-                                    <td class="px-4 py-4 text-center border border-slate-100">
-                                        <span class="text-xs font-mono font-bold text-slate-400"><?= $rowIdx++ ?></span>
+                                <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;" class="hover:bg-blue-50/10 transition-colors">
+                                    <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400;">
+                                        <?= $rowIdx++ ?>
                                     </td>
-                                    <td class="px-4 py-4 border border-slate-100">
-                                        <span class="font-bold text-slate-700 text-sm"><?= $label ?></span>
+                                    <td style="padding: 5px 6px; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400;">
+                                        <?= $label ?>
                                     </td>
-                                    <td class="px-4 py-4 border border-slate-100">
-                                        <div class="flex items-center justify-between">
-                                            <span class="font-black text-slate-800 text-base leading-none"><?= $val ?></span>
-                                            <div class="w-6 h-6 rounded-full bg-blue-50 text-[#0066FF] flex items-center justify-center shadow-sm">
-                                                <i class="fas fa-check text-[8px]"></i>
-                                            </div>
-                                        </div>
+                                    <td style="padding: 5px 6px; text-align: center; color: #000; font-weight: 400;">
+                                        <?= $displayVal ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-
-                <?php if(!empty($diemThi['file_chung_nhan'])): ?>
-                    <div class="mt-8 pt-8 border-t border-slate-100">
-                        <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                             <i class="fas fa-image text-[#0066FF]"></i> Minh chứng Giấy chứng nhận
-                        </h4>
-                        <div class="max-w-md bg-slate-50 p-2 rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                             <img src="<?= url($diemThi['file_chung_nhan']) ?>" class="w-full h-auto rounded-xl object-contain hover:scale-[1.02] transition-transform duration-500">
-                        </div>
-                    </div>
-                <?php endif; ?>
             <?php endif; ?>
+
+            <!-- Dòng cuối: Trạng thái & Nút sửa -->
+            <div style="margin-top: 0; padding: 3px 4px 2px; border-top: 1px solid #f1f5f9;">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <?php
+                        $currentStatus = $user['trang_thai_thpt'] ?? '';
+                        $isRejected = ($currentStatus === 'Từ chối');
+                        ?>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="status_thpt" value="approved" <?= !$isRejected ? 'checked' : '' ?> onchange="document.getElementById('reason_thpt_container').classList.add('hidden')" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300">
+                            <span class="ml-1.5 text-xs font-bold text-emerald-700">Duyệt</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="radio" name="status_thpt" value="rejected" <?= $isRejected ? 'checked' : '' ?> onchange="document.getElementById('reason_thpt_container').classList.remove('hidden')" class="w-4 h-4 text-rose-600 focus:ring-rose-500 border-gray-300">
+                            <span class="ml-1.5 text-xs font-bold text-rose-700">Yêu cầu sửa</span>
+                        </label>
+                    </div>
+
+                    <button type="button" onclick="toggleEdit('thpt')" 
+                        class="px-4 py-1.5 bg-white text-[#0066FF] border border-[#0066FF]/20 rounded-xl shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                        <i class="fas fa-edit"></i> Sửa thông tin
+                    </button>
+                </div>
+
+                <!-- Lý do từ chối -->
+                <div class="<?= $isRejected ? '' : 'hidden' ?>" id="reason_thpt_container">
+                    <textarea name="note_thpt" class="w-full text-xs border border-slate-200 rounded-xl p-3 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/30" rows="2" placeholder="Nhập lý do sai sót/cần bổ sung..."><?= htmlspecialchars($user['ghi_chu_thpt'] ?? '') ?></textarea>
+                </div>
+            </div>
         </div>
     </div>
 </div>

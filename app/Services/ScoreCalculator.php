@@ -201,9 +201,9 @@ class ScoreCalculator {
             }
         }
 
-        $bestResult['priority_score'] = round($finalPriority, 2);
+        $bestResult['priority_score'] = round($finalPriority, 3);
         // $bestResult['final_score'] += $bestResult['priority_score']; // Removed per user request (no priority points)
-        $bestResult['final_score'] = round($bestResult['final_score'], 2);
+        $bestResult['final_score'] = round($bestResult['final_score'], 3);
 
         return $bestResult;
     }

@@ -14,22 +14,23 @@ class DiemThiTHPT extends Model {
     }
 
     public function save($cccd, $data) {
-        // First check if exists
-        $existing = $this->getByCCCD($cccd);
-        
         $fields = [
             'nam_thi', 'da_co_diem', 'toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 
             'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan'
         ];
         
+        // Use a single query to check and update if needed, or insert
+        $existing = $this->db->prepare("SELECT 1 FROM {$this->table} WHERE so_cccd = ?");
+        $existing->execute([$cccd]);
+        $exists = $existing->fetchColumn();
+
         $success = false;
-        if ($existing) {
+        if ($exists) {
             $setClauses = [];
             $params = [];
             foreach ($fields as $field) {
                 if (array_key_exists($field, $data)) {
                     $val = $data[$field];
-                    // Handle empty strings for numeric/boolean fields
                     if ($val === '') $val = null;
                     if ($field === 'da_co_diem') $val = ($val ? 'true' : 'false');
                     
@@ -37,8 +38,9 @@ class DiemThiTHPT extends Model {
                     $params[] = $val;
                 }
             }
+            if (empty($setClauses)) return true;
+
             $params[] = $cccd;
-            
             $sql = "UPDATE {$this->table} SET " . implode(', ', $setClauses) . ", ngay_cap_nhat = NOW() WHERE so_cccd = ?";
             $stmt = $this->db->prepare($sql);
             $success = $stmt->execute($params);
@@ -64,7 +66,6 @@ class DiemThiTHPT extends Model {
             $success = $stmt->execute($params);
         }
 
-        // --- DUAL WRITE TO NORMALIZED TABLE ---
         if ($success) {
             $this->syncToNormalizedTable($cccd, $data);
         }
@@ -74,34 +75,41 @@ class DiemThiTHPT extends Model {
 
     private function syncToNormalizedTable($cccd, $data) {
         try {
-            $stmt = $this->db->query("SELECT id, cot_diem FROM dm_mon WHERE cot_diem IS NOT NULL");
-            $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $mapColToId = [];
-            foreach ($subjects as $s) $mapColToId[$s['cot_diem']] = $s['id'];
+            // Pre-fetch constants
+            static $subjectsMap = null;
+            if ($subjectsMap === null) {
+                $stmt = $this->db->query("SELECT id, cot_diem FROM dm_mon WHERE cot_diem IS NOT NULL");
+                $subjectsMap = $stmt->fetchAll(PDO::FETCH_KEY_PAIR); // map cot_diem => id
+            }
 
-            // Delete old THPT scores for this candidate to avoid duplicates/stale data
-            $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = 'THPT'")->execute([$cccd]);
-
-            $insertValues = [];
-            $insertParams = [];
-
-            foreach ($mapColToId as $col => $monId) {
+            // Only delete and re-insert if we have relevant data
+            $hasData = false;
+            foreach ($subjectsMap as $col => $monId) {
                 if (isset($data[$col]) && $data[$col] !== null && $data[$col] !== '') {
-                    $insertValues[] = "(?, ?, 'THPT', ?)";
-                    $insertParams[] = $cccd;
-                    $insertParams[] = $monId;
-                    $insertParams[] = $data[$col];
+                    $hasData = true;
+                    break;
                 }
             }
 
-            if (!empty($insertValues)) {
+            if ($hasData) {
+                $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = 'THPT'")->execute([$cccd]);
+                
+                $insertValues = [];
+                $insertParams = [];
+                foreach ($subjectsMap as $col => $monId) {
+                    if (isset($data[$col]) && $data[$col] !== null && $data[$col] !== '') {
+                        $insertValues[] = "(?, ?, 'THPT', ?)";
+                        $insertParams[] = $cccd;
+                        $insertParams[] = $monId;
+                        $insertParams[] = $data[$col];
+                    }
+                }
+                
                 $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES " . implode(', ', $insertValues);
                 $this->db->prepare($insertSql)->execute($insertParams);
             }
         } catch (\Exception $e) {
-            // Silent fail for dual write to not block main flow? 
-            // Or log it. For now, we just continue.
-            error_log("Dual write failed: " . $e->getMessage());
+            error_log("Sync THPT dual write failed: " . $e->getMessage());
         }
     }
 }

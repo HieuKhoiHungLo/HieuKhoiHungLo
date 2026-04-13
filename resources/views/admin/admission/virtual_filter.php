@@ -72,7 +72,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <div class="flex flex-col items-center">
-                                    <input type="number" step="0.01" min="0" max="30" x-model.number="major.diem_chuan_nhap" class="w-24 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold text-blue-600 mb-2">
+                                    <input type="number" step="0.001" min="0" max="30" x-model.number="major.diem_chuan_nhap" class="w-24 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-bold text-blue-600 mb-2">
                                     <input type="range" step="0.25" min="15" max="30" x-model.number="major.diem_chuan_nhap" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                                 </div>
                             </td>

@@ -19,6 +19,8 @@ class AcademicRepository {
         // Delegate to model
         return $this->model->save($cccd, $grade, $data);
     }
-    
-    // Add other methods as needed from direct model usage
+
+    public function saveBatch(string $cccd, array $items): bool {
+        return $this->model->saveBatch($cccd, $items);
+    }
 }

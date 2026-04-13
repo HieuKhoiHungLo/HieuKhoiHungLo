@@ -46,43 +46,121 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         <button type="button" onclick="handleBulkSubmit()" class="px-4 py-1.5 bg-[#0066FF] text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-md transition">Áp dụng</button>
     </div>
 
+
+    <!-- Pagination -->
+    <?php
+    $page = $pagination['current_page'];
+    $totalPages = $pagination['total_pages'];
+    $currentLimit = $filters['limit'] ?? 10;
+    if ($totalPages >= 1):
+    ?>
+        <div class="flex items-center justify-between <?= isset($mode) && $mode === 'review' ? 'mb-2' : 'mb-4' ?>">
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+                <span>
+                    Trang <span class="font-bold text-slate-700"><?= $page ?></span> / <span class="font-bold text-slate-700"><?= $totalPages ?></span>
+                    &nbsp;(<span class="font-medium"><?= number_format($pagination['total_items'] ?? $totalCandidates ?? 0) ?></span> bản ghi)
+                </span>
+                <span class="text-slate-300">|</span>
+                <span class="flex items-center gap-1">
+                    Hiển thị:
+                    <?php foreach ([10, 15, 20, 50, 100] as $opt): ?>
+                        <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['limit' => $opt, 'page' => 1])) ?>"
+                           class="px-2 py-0.5 rounded text-xs font-bold border transition
+                                  <?= $opt == $currentLimit
+                                      ? 'bg-[#0066FF] border-blue-600 text-white'
+                                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                            <?= $opt ?>
+                        </a>
+                    <?php endforeach; ?>
+                </span>
+            </div>
+            <?php if ($totalPages > 1): ?>
+            <div class="flex gap-1.5">
+                <?php if ($page > 1): ?>
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Trước</a>
+                <?php endif; ?>
+
+                <?php 
+                $start = max(1, $page - 2);
+                $end = min($totalPages, $page + 2);
+                for ($i = $start; $i <= $end; $i++): 
+                ?>
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-8 h-8 flex items-center justify-center border rounded-lg font-bold text-xs transition <?= $i == $page ? 'bg-[#0066FF] border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($page < $totalPages): ?>
+                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Sau</a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+
     <!-- Table Container -->
-    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto candidate-table-container">
-        <table class="w-full text-left border-collapse candidate-table min-w-[1400px]">
-            <thead class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500">
+    <div class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto candidate-table-container">
+        <table class="candidate-table min-w-[1200px]">
+            <thead class="bg-gray-50 text-[11px] uppercase font-bold text-slate-500">
                 <!-- Row 1: Titles and Sorting -->
-                <tr class="divide-x divide-slate-100">
-                    <th class="sticky-col sticky-col-left-0 w-10 text-center">
+                <tr class="">
+                    <th class="sticky-col sticky-col-left-0 text-center">
                         <input type="checkbox" id="select-all" class="rounded border-gray-300 text-[#0066FF] focus:ring-indigo-600">
                     </th>
-                    <th class="sticky-col sticky-col-left-1 w-12 text-center">STT</th>
                     
                     <?php if ($mode === 'review'): ?>
-                        <th class="sticky-col sticky-col-left-2 w-24 text-center">Duyệt</th>
+                    <th class="sticky-col sticky-col-action text-center text-[10px] text-slate-400">Thao tác</th>
                     <?php endif; ?>
 
-                    <th class="w-32 text-center">Trạng thái</th>
+                    <?php if ($mode === 'all'): ?>
+                    <th class="w-44">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Ghi chú</span>
+                            <a href="<?= sort_url('ghi_chu', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('ghi_chu', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <?php endif; ?>
+
+                    <?php if ($mode !== 'all'): ?>
+                    <th class="sticky-col sticky-col-trangthai text-center text-[10px]">
+                        <i class="fas fa-info-circle" title="Trạng thái"></i>
+                    </th>
+                    <?php endif; ?>
                     
-                    <th class="sticky-col sticky-col-left-3 min-w-[220px]">
-                        <div class="flex items-center justify-between">
-                            <span>Thí sinh (CCCD)</span>
+                    <th class="sticky-col sticky-col-left-3 min-w-[200px]">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Họ tên / CCCD</span>
                             <a href="<?= sort_url('ho_va_ten', $sort, $dir, $baseUrl, $filters) ?>" class="sort-trigger">
                                 <?= sort_icon('ho_va_ten', $sort, $dir) ?>
                             </a>
                         </div>
                     </th>
 
-                    <th class="w-32">
+                    <?php if ($mode !== 'all'): ?>
+                    <th class="w-40">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Ghi chú</span>
+                            <a href="<?= sort_url('ghi_chu', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('ghi_chu', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <?php endif; ?>
+
+                    <th class="w-24 px-1">
                         <div class="flex items-center justify-between">
-                            <span>Ngày sinh</span>
-                            <a href="<?= sort_url('ngay_sinh', $sort, $dir, $baseUrl, $filters) ?>">
+                            <span class="text-[10px]">Ngày sinh</span>
+                            <a href="<?= sort_url('ngay_sinh', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
                                 <?= sort_icon('ngay_sinh', $sort, $dir) ?>
                             </a>
                         </div>
                     </th>
 
-                    <th x-show="showCols.phone" class="w-32">
-                        <div class="flex items-center justify-between">
+                    <th x-show="showCols.phone" class="w-40">
+                        <div class="sort-trigger">
                             <span>Điện thoại</span>
                             <a href="<?= sort_url('dien_thoai', $sort, $dir, $baseUrl, $filters) ?>">
                                 <?= sort_icon('dien_thoai', $sort, $dir) ?>
@@ -90,28 +168,36 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                         </div>
                     </th>
 
-                    <th x-show="showCols.email" class="w-48">Email</th>
+                    <th x-show="showCols.email" class="w-36">Email</th>
                     <th x-show="showCols.province" class="w-32">Hộ khẩu</th>
                     <th x-show="showCols.school" class="w-48">Trường THPT</th>
-                    <th x-show="showCols.nv1" class="w-40">NV1</th>
-                    <th x-show="showCols.gender" class="w-24">Giới tính</th>
-                    <th x-show="showCols.ethnicity" class="w-24">Dân tộc</th>
-                    <th x-show="showCols.area" class="w-24">Khu vực ƯT</th>
-                    <th x-show="showCols.object" class="w-28">Đối tượng ƯT</th>
-                    <th x-show="showCols.grad_year" class="w-24">Năm TN</th>
-                    <th class="w-40">Ghi chú</th>
+                    <th x-show="showCols.nv1" class="w-40">Ngành NV1</th>
+                    <th x-show="showCols.gender" class="w-24 text-center">G.Tính</th>
+                    <th x-show="showCols.ethnicity" class="w-24 text-center">Dân tộc</th>
+                    <th x-show="showCols.area" class="w-24 text-center">Khu vực</th>
+                    <th x-show="showCols.object" class="w-28 text-center">Đối tượng</th>
+                    <th x-show="showCols.grad_year" class="w-24 text-center">Năm TN</th>
                 </tr>
 
                 <!-- Row 2: Search Filters -->
-                <tr class="bg-white border-b border-slate-100 divide-x divide-slate-100">
+                <tr class="bg-gray-50/50">
                     <th class="sticky-col sticky-col-left-0 bg-white"></th>
-                    <th class="sticky-col sticky-col-left-1 bg-white"></th>
                     
                     <?php if ($mode === 'review'): ?>
-                        <th class="sticky-col sticky-col-left-2 bg-white"></th>
+                    <th class="sticky-col sticky-col-action bg-white"></th>
                     <?php endif; ?>
 
-                    <th class="px-2 py-1 bg-slate-50/30">
+                    <?php if ($mode === 'all'): ?>
+                    <th class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" data-filter-key="f_note" placeholder="Tìm (nhập 'trống' để tìm trống)..."
+                            value="<?= htmlspecialchars($filters['note'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <?php endif; ?>
+
+                    <?php if ($mode !== 'all'): ?>
+                    <th class="sticky-col sticky-col-trangthai bg-white px-2 py-1 relative">
                         <select onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
@@ -120,42 +206,62 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
                         </select>
                     </th>
+                    <?php endif; ?>
 
                     <th class="sticky-col sticky-col-left-3 bg-white px-2 py-1">
                         <input type="text" data-filter-key="search" placeholder="Tên / CCCD..."
                             value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
+
+                    <?php if ($mode !== 'all'): ?>
+                    <th class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" data-filter-key="f_note" placeholder="Tìm (nhập 'trống' để tìm trống)..."
+                            value="<?= htmlspecialchars($filters['note'] ?? '') ?>"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <?php endif; ?>
 
                     <th class="px-2 py-1">
                         <input type="text" data-filter-key="f_dob" placeholder="Ngày sinh..."
                             value="<?= htmlspecialchars($filters['f_dob'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.phone" class="px-2 py-1">
                         <input type="text" data-filter-key="f_phone" placeholder="Số ĐT..."
                             value="<?= htmlspecialchars($filters['f_phone'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
-                    <th x-show="showCols.email" class="bg-slate-50/10"></th>
+                    <th x-show="showCols.email" class="bg-white px-2 py-1">
+                        <input type="text" data-filter-key="f_email" placeholder="Email..."
+                            value="<?= htmlspecialchars($filters['email'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
 
                     <th x-show="showCols.province" class="px-2 py-1">
                         <input type="text" data-filter-key="f_province" placeholder="Tỉnh/Tp..."
                             value="<?= htmlspecialchars($filters['f_province'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.school" class="px-2 py-1">
                         <input type="text" data-filter-key="f_school" placeholder="Tên trường..."
                             value="<?= htmlspecialchars($filters['f_school'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.nv1" class="px-2 py-1">
-                        <input type="text" data-filter-key="f_nv1" placeholder="Ngành NV1..."
+                        <input type="text" data-filter-key="f_nv1" placeholder="NV1 (nhập 'chưa đk' để tìm trống)..."
                             value="<?= htmlspecialchars($filters['f_nv1'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
@@ -182,88 +288,102 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <th x-show="showCols.grad_year" class="bg-slate-50/10 px-2 py-1">
                         <input type="text" data-filter-key="f_grad_year" placeholder="Năm TN..."
                             value="<?= htmlspecialchars($filters['f_grad_year'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
-
-                    <th class="w-24 text-center bg-slate-50/30 border-l border-slate-200 shadow-[-4px_0_8px_rgba(0,0,0,0.02)]">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="text-[12px]">
                 <?php if (empty($candidates)): ?>
                     <tr>
-                        <td colspan="20" class="px-6 py-12 text-center text-slate-400 italic">
+                        <td colspan="16" class="px-6 py-12 text-center text-slate-400 italic">
                             <i class="fas fa-search text-2xl mb-2 opacity-10"></i>
                             <p>Không tìm thấy dữ liệu phù hợp.</p>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php
-                    $stt = ($pagination['current_page'] - 1) * 20 + 1;
                     foreach ($candidates as $c):
                         $avatar = !empty($c['anh_dai_dien']) ? (strpos($c['anh_dai_dien'], 'http') === 0 ? google_drive_thumbnail_url($c['anh_dai_dien'], 'w100') : asset($c['anh_dai_dien'])) : null;
                     ?>
-                        <tr class="divide-x divide-slate-100 group">
+                        <tr class="group">
                             <td class="sticky-col sticky-col-left-0 text-center">
-                                <input type="checkbox" name="ids[]" value="<?= $c['so_cccd'] ?>" class="item-checkbox rounded border-gray-300 text-[#0066FF] focus:ring-indigo-600">
+                                <input type="checkbox" name="ids[]" value="<?= $c['so_cccd'] ?>" class="item-checkbox rounded border-gray-300 text-[#0066FF] focus:ring-blue-600">
                             </td>
-                            <td class="sticky-col sticky-col-left-1 text-center text-slate-400 font-mono"><?= $stt++ ?></td>
                             
                             <?php if ($mode === 'review'): ?>
-                                <td class="sticky-col sticky-col-left-2 text-center">
-                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>"
-                                        class="inline-flex items-center justify-center p-1.5 bg-[#0066FF] text-white rounded shadow-sm hover:shadow hover:bg-blue-600 transition min-w-[60px]"
-                                        title="Duyệt hồ sơ">
-                                        <i class="fas fa-check-double scale-90"></i>
-                                        <span class="ml-1 text-[10px] font-bold">Duyệt</span>
+                            <td class="sticky-col sticky-col-action text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" 
+                                        class="px-2 py-1 bg-[#0066FF] text-white hover:bg-blue-700 rounded-lg text-[10px] font-bold transition-all shadow-sm flex items-center justify-center uppercase tracking-tighter shrink-0" title="Xét duyệt">
+                                        Duyệt
                                     </a>
-                                </td>
+                                    <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')"
+                                        class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg transition-all border border-emerald-100 shrink-0" title="Gửi Email">
+                                        <i class="fas fa-envelope text-[9px]"></i>
+                                    </button>
+                                    <button type="button" onclick="openPasswordModal('<?= $c['so_cccd'] ?>', '<?= htmlspecialchars($c['ho_va_ten']) ?>')"
+                                        class="w-7 h-7 flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-all border border-amber-100 shrink-0" title="Đổi mật khẩu">
+                                        <i class="fas fa-key text-[9px]"></i>
+                                    </button>
+                                </div>
+                            </td>
                             <?php endif; ?>
 
-                            <td class="text-center">
+                            <?php if ($mode === 'all'): ?>
+                            <td class="text-slate-500 italic text-[11px] leading-snug max-w-[180px] truncate" title="<?= htmlspecialchars($c['ghi_chu'] ?? '') ?>">
+                                <?= htmlspecialchars($c['ghi_chu'] ?? '') ?>
+                            </td>
+                            <?php endif; ?>
+
+                            <?php if ($mode !== 'all'): ?>
+                            <td class="sticky-col sticky-col-trangthai text-center">
                                 <?php
                                 $mStatus = $c['master_status'] ?? '';
                                 $statuses = array_filter(array_unique(explode(', ', $c['statuses'] ?? '')));
-                                // If master_status is empty but statuses has something, use statuses for backward compatibility
                                 $displayStatuses = !empty($mStatus) ? array_unique(explode(', ', $mStatus)) : $statuses;
                                 
                                 if (empty($displayStatuses)): ?>
-                                    <div class="inline-block px-1" title="Chưa nộp hồ sơ">
-                                        <i class="fas fa-minus-circle text-slate-300"></i>
-                                    </div>
+                                    <span class="text-slate-300"><i class="fas fa-minus-circle"></i></span>
                                 <?php else:
                                     foreach ($displayStatuses as $st):
-                                        $icon = '<i class="fas fa-clock text-amber-400"></i>';
+                                        $colorClass = 'text-amber-500';
                                         if (strpos($st, 'Đã duyệt') !== false || strpos(strtolower($st), 'approved') !== false) 
-                                            $icon = '<i class="fas fa-check-circle text-emerald-500"></i>';
+                                            $colorClass = 'text-emerald-500';
                                         elseif (strpos($st, 'Từ chối') !== false || strpos(strtolower($st), 'rejected') !== false) 
-                                            $icon = '<i class="fas fa-times-circle text-rose-500"></i>';
+                                            $colorClass = 'text-rose-500';
                                         elseif (strpos($st, 'Yêu cầu sửa') !== false || strpos(strtolower($st), 'require_edit') !== false)
-                                            $icon = '<i class="fas fa-edit text-orange-500"></i>';
+                                            $colorClass = 'text-orange-500';
                                     ?>
-                                        <div class="inline-block px-1" title="<?= htmlspecialchars($st ?: 'Mới') ?>">
-                                            <?= $icon ?>
-                                        </div>
+                                        <span class="<?= $colorClass ?> px-0.5" title="<?= htmlspecialchars($st ?: 'Mới') ?>">
+                                            <?php if (strpos($colorClass, 'emerald') !== false): ?>
+                                                <i class="fas fa-check-circle"></i>
+                                            <?php elseif (strpos($colorClass, 'rose') !== false): ?>
+                                                <i class="fas fa-times-circle"></i>
+                                            <?php elseif (strpos($colorClass, 'orange') !== false): ?>
+                                                <i class="fas fa-edit"></i>
+                                            <?php else: ?>
+                                                <i class="fas fa-clock"></i>
+                                            <?php endif; ?>
+                                        </span>
                                     <?php endforeach; 
                                 endif; ?>
                             </td>
+                            <?php endif; ?>
                             
                             <td class="sticky-col sticky-col-left-3">
                                 <?php if ($mode === 'all'): ?>
-                                    <div class="flex items-center py-1">
+                                    <div class="candidate-info">
                                 <?php else: ?>
-                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="flex items-center py-1">
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="candidate-info group/info">
                                 <?php endif; ?>
-                                    <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-xs">
+                                    <div class="flex items-center gap-2">
                                         <?php if ($avatar): ?>
-                                            <img src="<?= $avatar ?>" class="w-full h-full object-cover">
-                                        <?php else: ?>
-                                            <i class="fas fa-user text-slate-300 scale-75"></i>
+                                            <img src="<?= $avatar ?>" class="w-5 h-5 rounded-full object-cover border border-slate-100">
                                         <?php endif; ?>
+                                        <span class="candidate-link"><?= htmlspecialchars($c['ho_va_ten']) ?></span>
                                     </div>
-                                    <div class="ml-2 overflow-hidden leading-tight">
-                                        <p class="font-bold text-slate-700 truncate line-clamp-1"><?= htmlspecialchars($c['ho_va_ten']) ?></p>
-                                        <p class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($c['so_cccd']) ?></p>
-                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5 pl-7"><?= htmlspecialchars($c['so_cccd']) ?></div>
                                 <?php if ($mode === 'all'): ?>
                                     </div>
                                 <?php else: ?>
@@ -271,34 +391,31 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                 <?php endif; ?>
                             </td>
 
-                            <td class="font-medium text-slate-600">
+                            <?php if ($mode !== 'all'): ?>
+                            <td class="text-slate-500 italic text-[11px] leading-snug max-w-[200px] truncate" title="<?= htmlspecialchars($c['ghi_chu'] ?? '') ?>">
+                                <?= htmlspecialchars($c['ghi_chu'] ?? '') ?>
+                            </td>
+                            <?php endif; ?>
+
+                            <td class="text-slate-600">
                                 <?= $c['ngay_sinh'] ? date('d/m/Y', strtotime($c['ngay_sinh'])) : '-' ?>
                             </td>
 
-                            <td x-show="showCols.phone" class="font-bold text-slate-600">
-                                <div class="flex items-center gap-2">
+                            <td x-show="showCols.phone" class="font-medium text-slate-700">
+                                <div class="flex items-center justify-between">
                                     <span><?= htmlspecialchars($c['dien_thoai']) ?></span>
-                                    <?php 
-                                    $purePhone = preg_replace('/\D/', '', $c['dien_thoai']); 
-                                    if ($purePhone):
-                                    ?>
-                                        <div class="flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <a href="tel:<?= $purePhone ?>" 
-                                               class="w-6 h-6 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm"
-                                               title="Gọi điện (Phone Link)">
-                                                <i class="fas fa-phone-alt text-[10px]"></i>
+                                    <?php if ($purePhone = preg_replace('/\D/', '', $c['dien_thoai'])): ?>
+                                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <a href="tel:<?= $purePhone ?>" class="text-emerald-500 w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-50" title="Gọi điện">
+                                                <i class="fas fa-phone-alt scale-75"></i>
                                             </a>
-                                            <a href="https://zalo.me/<?= $purePhone ?>" target="_blank"
-                                               class="w-6 h-6 flex items-center justify-center rounded bg-sky-50 text-sky-600 hover:bg-sky-600 hover:text-white transition shadow-sm"
-                                               title="Nhắn tin Zalo">
-                                                <span class="text-[10px] font-black">Z</span>
-                                            </a>
+                                            <a href="https://zalo.me/<?= $purePhone ?>" target="_blank" class="text-sky-500 font-black text-[10px] w-5 h-5 flex items-center justify-center rounded hover:bg-sky-50" title="Zalo">Z</a>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </td>
 
-                            <td x-show="showCols.email" class="truncate text-slate-500 text-[11px]" title="<?= htmlspecialchars($c['email']) ?>">
+                            <td x-show="showCols.email" class="text-slate-500 text-[11px]">
                                 <?= htmlspecialchars($c['email']) ?>
                             </td>
 
@@ -306,65 +423,35 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                 <?= htmlspecialchars($c['province_name'] ?: '-') ?>
                             </td>
 
-                            <td x-show="showCols.school" class="text-slate-500 leading-tight">
+                            <td x-show="showCols.school" class="text-slate-500 text-[11px] leading-tight">
                                 <?= htmlspecialchars($c['school_name'] ?: '-') ?>
                             </td>
 
-                            <td x-show="showCols.nv1">
-                                <?php if ($c['nv1']): ?>
-                                    <span class="font-medium text-slate-700 truncate block" title="<?= htmlspecialchars($c['nv1']) ?>">
-                                        <?= htmlspecialchars($c['nv1']) ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="text-slate-300 italic">Chưa ĐK</span>
-                                <?php endif; ?>
+                            <td x-show="showCols.nv1" class="font-medium text-slate-700">
+                                <?= htmlspecialchars($c['nv1'] ?: 'Chưa ĐK') ?>
                             </td>
 
-                            <td x-show="showCols.gender" class="text-slate-600">
+                            <td x-show="showCols.gender" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['gioi_tinh'] ?? '') ?>
                             </td>
 
-                            <td x-show="showCols.ethnicity" class="text-slate-600">
+                            <td x-show="showCols.ethnicity" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['dan_toc'] ?? '') ?>
                             </td>
 
-                            <td x-show="showCols.area" class="text-slate-600">
+                            <td x-show="showCols.area" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['khu_vuc_uu_tien'] ?? '') ?>
                             </td>
 
-                            <td x-show="showCols.object" class="text-slate-600">
+                            <td x-show="showCols.object" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['doi_tuong_uu_tien'] ?? '') ?>
                             </td>
 
-                            <td x-show="showCols.grad_year" class="text-slate-600">
+                            <td x-show="showCols.grad_year" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['nam_tot_nghiep'] ?? '') ?>
                             </td>
-
-                            <td class="text-slate-400 italic text-[11px] leading-snug">
-                                <?= nl2br(htmlspecialchars($c['ghi_chu'] ?? '')) ?>
-                            </td>
-
-                            <td class="text-center border-l border-slate-100 bg-slate-50/30">
-                                <div class="flex items-center justify-center gap-1">
-                                    <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" 
-                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition"
-                                        title="Gửi mail">
-                                        <i class="fas fa-envelope text-[10px]"></i>
-                                    </button>
-                                    <button type="button" onclick="openPasswordModal('<?= $c['so_cccd'] ?>', '<?= addslashes($c['ho_va_ten']) ?>')" 
-                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-50 text-[#0066FF] hover:bg-[#0066FF] hover:text-white transition"
-                                        title="Đổi mật khẩu">
-                                        <i class="fas fa-key text-[10px]"></i>
-                                    </button>
-                                    <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')"
-                                        class="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition"
-                                        title="Xóa hồ sơ">
-                                        <i class="fas fa-trash-alt text-[10px]"></i>
-                                    </button>
-                                </div>
-                            </td>
                         </tr>
-                    <?php endforeach; ?>
+<?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -391,97 +478,16 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                              </div>
                         </div>
                     </div>
-                    <div class="flex flex-col items-end gap-2 shrink-0">
-                        <div class="flex gap-2">
-                            <button type="button" onclick="sendSingleEmail('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-envelope scale-90"></i></button>
-                            <button type="button" onclick="openPasswordModal('<?= $c['so_cccd'] ?>', '<?= addslashes($c['ho_va_ten']) ?>')" class="w-8 h-8 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shadow-lg"><i class="fas fa-key scale-90"></i></button>
-                            <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')" class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-lg"><i class="fas fa-trash-alt scale-90"></i></button>
-                        </div>
-                    </div>
+                    <?php /* Mobile action buttons đã bị xóa */ ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
 
-    <!-- Pagination -->
-    <?php
-    $page = $pagination['current_page'];
-    $totalPages = $pagination['total_pages'];
-    if ($totalPages > 1):
-    ?>
-        <div class="flex items-center justify-between mt-6">
-            <div class="text-xs text-slate-500">
-                Trang <span class="font-bold text-slate-700"><?= $page ?></span> / <span class="font-bold text-slate-700"><?= $totalPages ?></span> 
-                (<span class="font-medium"><?= number_format($pagination['total_items'] ?? $totalCandidates ?? 0) ?></span> bản ghi)
-            </div>
-            <div class="flex gap-1.5">
-                <?php if ($page > 1): ?>
-                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page - 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Trước</a>
-                <?php endif; ?>
 
-                <?php 
-                $start = max(1, $page - 2);
-                $end = min($totalPages, $page + 2);
-                for ($i = $start; $i <= $end; $i++): 
-                ?>
-                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $i])) ?>" class="w-8 h-8 flex items-center justify-center border rounded-lg font-bold text-xs transition <?= $i == $page ? 'bg-[#0066FF] border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
-                        <?= $i ?>
-                    </a>
-                <?php endfor; ?>
-
-                <?php if ($page < $totalPages): ?>
-                    <a href="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['page' => $page + 1])) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Sau</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
 </form>
 
 <script>
-    // Centralized Filter logic for all Candidate related pages
-    window.applyCandidateFilters = function() {
-        const baseUrl = '<?= $baseUrl ?>';
-        // Start with current filters from PHP
-        const f = <?= json_encode($filters, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-        
-        // 1. Collect from Header Inputs (CCCD, Name, Phone, etc.)
-        document.querySelectorAll('[data-filter-key]').forEach(el => {
-            const key = el.getAttribute('data-filter-key');
-            f[key] = el.value.trim();
-        });
-
-        // 2. Collect from Filters form (Year, Session, Status, etc. if available)
-        const filterForm = document.querySelector('form[action="<?= $baseUrl ?>"]');
-        if (filterForm) {
-            const formData = new FormData(filterForm);
-            formData.forEach((value, key) => {
-                // Only take those not yet in f OR specifically from selects
-                if (!f[key] || filterForm.querySelector(`select[name="${key}"]`)) {
-                    f[key] = value;
-                }
-            });
-        }
-
-        f.page = 1; // Reset to page 1 on new filter
-
-        const params = new URLSearchParams();
-        for (const k in f) {
-            if (f[k] !== '' && f[k] !== null && f[k] !== undefined) {
-                params.set(k, f[k]);
-            }
-        }
-        window.location.href = baseUrl + '?' + params.toString();
-    };
-
-    // Global Keydown Listener for Header Filters
-    document.addEventListener('keydown', function(e) {
-        const target = e.target;
-        if (target.hasAttribute('data-filter-key') && (e.key === 'Enter' || e.keyCode === 13)) {
-            e.preventDefault();
-            window.applyCandidateFilters();
-        }
-    });
-
     // Bulk Action Logic
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('.item-checkbox');
@@ -712,10 +718,10 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         // Fix: These IDs are in _modals.php
         const templateId = document.getElementById('email-template-select').value;
         const subject = document.getElementById('email-modal-subject').value;
-        const content = document.getElementById('email-editor').value;
+        const content = document.getElementById('email-editor').innerHTML;
         const internalNote = document.getElementById('email-modal-internal-note').value;
 
-        if (!templateId && (!subject || !content)) {
+        if (!templateId && (!subject || !content || content.trim() === '')) {
             if (typeof Toast !== 'undefined') Toast.warning('Vui lòng nhập tiêu đề và nội dung');
             else alert('Vui lòng nhập tiêu đề và nội dung');
             return;
@@ -741,14 +747,13 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                 if (!templateId) {
                     subjectInput.value = '';
-                    contentInput.value = '';
+                    contentInput.innerHTML = '';
                     return;
                 }
 
                 // Show loading state (optional)
                 subjectInput.placeholder = 'Đang tải mẫu...';
-                contentInput.placeholder = 'Đang tải nội dung mẫu...';
-
+                
                 fetch('<?= url('/admin/candidates/get-template') ?>?id=' + templateId, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
@@ -756,7 +761,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                 .then(data => {
                     if (data && !data.error) {
                         subjectInput.value = data.subject || '';
-                        contentInput.value = data.body || data.content || ''; // Support both body and content tags
+                        contentInput.innerHTML = data.body || data.content || ''; // Support both body and content tags
                     } else {
                         console.error('Template fetch error:', data.error);
                     }
@@ -766,7 +771,6 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                 })
                 .finally(() => {
                     subjectInput.placeholder = 'Nhập tiêu đề email...';
-                    contentInput.placeholder = 'Nhập nội dung thư gửi cho thí sinh...';
                 });
             });
         }
@@ -809,6 +813,16 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
             form.submit();
         }
     }
+
+    // Attach global Enter-key listener to all data-filter-key inputs
+    document.addEventListener('keydown', function(e) {
+        if (e.target.hasAttribute('data-filter-key') && e.key === 'Enter') {
+            e.preventDefault(); // Stop form submission (Bulk Action Form)
+            if (typeof window.applyCandidateFilters === 'function') {
+                window.applyCandidateFilters();
+            }
+        }
+    });
 
     // Attach sync to modal forms where needed
     const emailModalForm = document.getElementById('email-modal-form');

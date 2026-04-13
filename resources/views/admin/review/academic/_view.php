@@ -1,113 +1,10 @@
 <!-- View Mode -->
-<div id="view_academic" class="space-y-6">
-    <!-- School & Priority Info -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible mb-6">
-
-        <!-- Header -->
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 rounded-t-2xl">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-[#0066FF]/10 text-[#0066FF] flex items-center justify-center">
-                    <i class="fas fa-graduation-cap text-sm"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Thông tin học tập</p>
-                    <p class="text-sm font-bold text-slate-700">Học bạ THPT</p>
-                </div>
-            </div>
-            <div id="btn_group_academic">
-                <button type="button" onclick="toggleEdit('academic')" 
-                    class="px-5 py-2.5 bg-[#0066FF] text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center gap-2 text-sm">
-                    <i class="fas fa-edit"></i> Sửa thông tin
-                </button>
-            </div>
-        </div>
-
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 mb-6">
-
-                <!-- Tỉnh/TP -->
-                <div class="md:col-span-4">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <i class="fas fa-map-marker-alt mr-1 text-[#0066FF]"></i> Tỉnh/TP
-                    </label>
-                    <div class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800">
-                        <?= isset($provinceMap[$user['ma_tinh_lop_12']]) ? $provinceMap[$user['ma_tinh_lop_12']] : '<span class="text-slate-300">Chưa cập nhật</span>' ?>
-                    </div>
-                </div>
-
-                <!-- Trường THPT -->
-                <div class="md:col-span-8">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <i class="fas fa-university mr-1 text-[#0066FF]"></i> Trường THPT
-                    </label>
-                    <div class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800">
-                        <?= $user['ten_truong_lop_12'] ?? '<span class="text-slate-300">Chưa cập nhật</span>' ?>
-                    </div>
-                </div>
-
-                <!-- Năm tốt nghiệp -->
-                <div class="md:col-span-4">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <i class="fas fa-calendar-check mr-1 text-[#0066FF]"></i> Năm tốt nghiệp
-                    </label>
-                    <div class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800">
-                        <?= $user['nam_tot_nghiep'] ?? '<span class="text-slate-300">Chưa cập nhật</span>' ?>
-                    </div>
-                </div>
-
-                <!-- KV ưu tiên -->
-                <div class="md:col-span-4">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <i class="fas fa-star mr-1 text-amber-400"></i> KV ưu tiên
-                    </label>
-                    <div class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 flex items-center gap-2">
-                        <?= $user['khu_vuc_uu_tien'] ?? '<span class="text-slate-300">--</span>' ?>
-                        <?php if ($user['is_custom_kv'] ?? 0): ?>
-                            <span class="text-[9px] font-black text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">THÍ SINH TỰ CHỌN</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <!-- ĐT ưu tiên -->
-                <div class="md:col-span-4">
-                    <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                        <i class="fas fa-user-shield mr-1 text-[#0066FF]"></i> ĐT ưu tiên
-                    </label>
-                    <div class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 flex items-center gap-2">
-                        <?php if (empty($user['doi_tuong_uu_tien'])): ?>
-                            <span class="text-slate-300">Không ưu tiên</span>
-                        <?php else: ?>
-                            <?= htmlspecialchars($user['doi_tuong_uu_tien']) ?>
-                        <?php endif; ?>
-                        
-                        <?php if ($user['is_custom_dt'] ?? 0): ?>
-                            <span class="text-[9px] font-black text-blue-500 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">THÍ SINH TỰ CHỌN</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
+<div id="view_academic" class="animate-in fade-in duration-300">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible relative">
+        <div style="padding: 2px;">
 
             <!-- Scores Table -->
             <div class="rounded-xl border border-slate-200 overflow-hidden">
-                <!-- Table Header Banner -->
-                <div class="bg-[#0066FF] px-5 py-3 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-table text-white/70 text-xs"></i>
-                        <span class="text-xs font-black text-white uppercase tracking-widest">Bảng điểm học bạ</span>
-                    </div>
-                    <div>
-                        <?php if (isset($user['da_du_6_ky']) && $user['da_du_6_ky']): ?>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 text-white text-[10px] font-black uppercase tracking-wider rounded-lg">
-                                <i class="fas fa-check-circle"></i> Đủ 3 năm
-                            </span>
-                        <?php else: ?>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/30 text-amber-100 text-[10px] font-black uppercase tracking-wider rounded-lg">
-                                <i class="fas fa-exclamation-triangle"></i> Thiếu điểm Lớp 12
-                            </span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
                 <?php
                 $rowsByGrade = [];
                 if (isset($academicRows) && is_array($academicRows)) {
@@ -117,23 +14,24 @@
                 }
                 $getScore = function ($grade, $field) use ($rowsByGrade) {
                     $val = $rowsByGrade[$grade][$field] ?? null;
-                    return ($val !== null && $val !== '') ? $val : '<span class="text-slate-300">-</span>';
+                    if ($val === null || $val === '') return '<span class="text-slate-300">—</span>';
+                    if (is_numeric($val)) return str_replace('.', ',', number_format((float)$val, 2, '.', ''));
+                    return $val;
                 };
                 $mapDisplay = function ($val) {
                     $map = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'Trung binh' => 'Trung bình', 'TB' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt', 'TrungBinh' => 'Trung bình'];
-                    return $map[$val] ?? ($val ?: '<span class="text-slate-300">-</span>');
+                    $display = $map[$val] ?? $val;
+                    return ($display !== null && $display !== '') ? $display : '<span class="text-slate-300">—</span>';
                 };
                 ?>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
+                    <table class="w-full border-collapse" style="font-size: 11px;">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="px-5 py-3 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest sticky left-0 bg-slate-50 z-10 w-48 border-r border-slate-200">
-                                    Môn học
-                                </th>
+                            <tr style="background:#f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <th style="padding: 5px 6px; text-align: left; font-weight: 600; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0; width: 120px;">Môn học</th>
                                 <?php foreach ([10 => 'Lớp 10', 11 => 'Lớp 11', 12 => 'Lớp 12'] as $g => $label): ?>
-                                    <th class="px-4 py-3 text-center text-[11px] font-black uppercase tracking-widest border-r border-slate-200 last:border-r-0 <?= $g == 12 ? 'text-[#0066FF] bg-blue-50/40' : 'text-slate-500' ?>">
+                                    <th style="padding: 5px 4px; text-align: center; font-weight: 600; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0;">
                                         <?= $label ?>
                                     </th>
                                 <?php endforeach; ?>
@@ -141,55 +39,82 @@
                         </thead>
                         <tbody>
                             <?php foreach ($subjects as $code => $name): ?>
-                                <tr class="border-b border-slate-100 hover:bg-blue-50/20 transition-colors">
-                                    <td class="px-5 py-2 text-sm font-medium text-slate-700 border-r border-slate-100 sticky left-0 bg-white hover:bg-blue-50/20 z-10">
-                                        <?= $name ?>
-                                    </td>
+                                <tr style="border-bottom: 1px solid #e2e8f0; background: #fff;">
+                                    <td style="padding: 5px 6px; color: #000; font-weight: 400; border-right: 1px solid #e2e8f0;"><?= $name ?></td>
                                     <?php foreach ([10, 11, 12] as $g): ?>
-                                        <td class="px-4 py-2 text-center border-r border-slate-100 last:border-r-0 text-sm font-semibold text-slate-800 <?= $g == 12 ? 'bg-blue-50/20' : '' ?>">
+                                        <td style="padding: 5px 4px; text-align: center; border-right: 1px solid #e2e8f0; font-weight: 400; color: #000; background: #fff;">
                                             <?= $getScore($g, "diem_{$code}_cn") ?>
                                         </td>
                                     <?php endforeach; ?>
                                 </tr>
                             <?php endforeach; ?>
-
-                            <!-- ĐTB chung -->
-                            <tr class="border-t-2 border-[#0066FF]/20 bg-blue-50/30">
-                                <td class="px-5 py-2.5 text-xs font-black text-slate-500 uppercase tracking-widest border-r border-slate-200 sticky left-0 bg-blue-50/30 z-10">
-                                    Điểm TB chung
-                                </td>
+                            <tr style="background: #fff; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 5px 6px; color: #000; font-weight: 500; border-right: 1px solid #e2e8f0; font-size: 11px;">TB chung</td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
-                                    <td class="px-4 py-2.5 text-center border-r border-slate-200 last:border-r-0 text-sm font-bold text-slate-800 <?= $g == 12 ? 'bg-blue-50/40' : '' ?>">
+                                    <td style="padding: 5px 4px; text-align: center; border-right: 1px solid #e2e8f0; color: #000; font-weight: 500; background: #fff;">
                                         <?= $getScore($g, 'diem_tb_ca_nam') ?>
                                     </td>
                                 <?php endforeach; ?>
                             </tr>
-
-                            <!-- Kết quả Học lực -->
-                            <tr class="border-t border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                <td class="px-5 py-2.5 text-xs font-black text-slate-500 uppercase tracking-widest border-r border-slate-200 sticky left-0 bg-white z-10">
-                                    Kết quả học lực
-                                </td>
+                            <tr style="background: #fff; border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 5px 6px; color: #000; font-weight: 400; border-right: 1px solid #e2e8f0;">Học lực</td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
-                                    <td class="px-4 py-2.5 text-center border-r border-slate-100 last:border-r-0 text-sm font-semibold text-slate-800 <?= $g == 12 ? 'bg-blue-50/10' : '' ?>">
-                                        <?= $mapDisplay($rowsByGrade[$g]['hoc_luc_ca_nam'] ?? '') ?>
+                                    <td style="padding: 5px 4px; text-align: center; border-right: 1px solid #e2e8f0; font-weight: 400; color: #000; background: #fff;">
+                                        <?= $mapDisplay($getScore($g, 'hoc_luc_ca_nam')) ?>
                                     </td>
                                 <?php endforeach; ?>
                             </tr>
-
-                            <!-- Hạnh kiểm -->
-                            <tr class="border-t border-slate-100 hover:bg-slate-50/50 transition-colors bg-slate-50/30">
-                                <td class="px-5 py-2.5 text-xs font-black text-slate-500 uppercase tracking-widest border-r border-slate-200 sticky left-0 bg-slate-50/30 z-10">
-                                    Hạnh kiểm
-                                </td>
+                            <tr style="background: #fff;">
+                                <td style="padding: 5px 6px; color: #000; font-weight: 400; border-right: 1px solid #e2e8f0;">Hạnh kiểm</td>
                                 <?php foreach ([10, 11, 12] as $g): ?>
-                                    <td class="px-4 py-2.5 text-center border-r border-slate-100 last:border-r-0 text-sm font-semibold text-slate-800 <?= $g == 12 ? 'bg-blue-50/10' : '' ?>">
-                                        <?= $mapDisplay($rowsByGrade[$g]['hanh_kiem_ca_nam'] ?? '') ?>
+                                    <td style="padding: 5px 4px; text-align: center; border-right: 1px solid #e2e8f0; font-weight: 400; color: #000; background: #fff;">
+                                        <?= $mapDisplay($getScore($g, 'hanh_kiem_ca_nam')) ?>
                                     </td>
                                 <?php endforeach; ?>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Dòng cuối: Trạng thái & Nút sửa -->
+            <div style="margin-top: 0; padding: 3px 4px 2px; border-top: 1px solid #f1f5f9;">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <!-- Biểu tượng đủ 3 năm -->
+                        <?php if (isset($user['da_du_6_ky']) && $user['da_du_6_ky']): ?>
+                            <span title="Đủ điểm 3 năm" style="color:#059669; font-size:15px; line-height:1;"><i class="fas fa-check-circle"></i></span>
+                        <?php else: ?>
+                            <span title="Chưa đủ điểm 3 năm" style="color:#d97706; font-size:15px; line-height:1;"><i class="fas fa-exclamation-circle"></i></span>
+                        <?php endif; ?>
+                        <div class="flex items-center gap-3">
+                            <?php
+                            $currentStatus = $user['trang_thai_hoc_ba'] ?? '';
+                            $isRejected = ($currentStatus === 'Từ chối');
+                            ?>
+                            <label class="flex items-center cursor-pointer group">
+                                <input type="radio" name="status_academic" value="approved" <?= !$isRejected ? 'checked' : '' ?>
+                                    onchange="document.getElementById('reason_academic_container').classList.add('hidden')"
+                                    class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300">
+                                <span class="ml-1.5 text-xs font-bold text-emerald-700">Duyệt</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer group">
+                                <input type="radio" name="status_academic" value="rejected" <?= $isRejected ? 'checked' : '' ?>
+                                    onchange="document.getElementById('reason_academic_container').classList.remove('hidden')"
+                                    class="w-4 h-4 text-rose-600 focus:ring-rose-500 border-gray-300">
+                                <span class="ml-1.5 text-xs font-bold text-rose-700">Yêu cầu sửa</span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="button" onclick="toggleEdit('academic')"
+                        class="px-4 py-1.5 bg-white text-[#0066FF] border border-[#0066FF]/20 rounded-xl shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                        <i class="fas fa-edit"></i> Sửa thông tin
+                    </button>
+                </div>
+
+                <!-- Lý do từ chối -->
+                <div class="<?= $isRejected ? '' : 'hidden' ?>" id="reason_academic_container">
+                    <textarea name="note_academic" class="w-full text-xs border border-slate-200 rounded-xl p-3 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/30" rows="2" placeholder="Nhập lý do sai sót/cần bổ sung..."><?= htmlspecialchars($user['ghi_chu_hoc_ba'] ?? '') ?></textarea>
                 </div>
             </div>
         </div>

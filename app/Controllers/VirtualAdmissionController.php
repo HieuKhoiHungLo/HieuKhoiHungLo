@@ -39,7 +39,8 @@ class VirtualAdmissionController extends Controller {
             'title' => 'Xét Tuyển Lọc Ảo',
             'sessions' => $sessions,
             'years' => $years,
-            'combinations' => $combinations
+            'combinations' => $combinations,
+            'needsDataTables' => true
         ]);
     }
 

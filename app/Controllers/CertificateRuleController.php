@@ -24,7 +24,8 @@ class CertificateRuleController extends Controller {
         $this->view('admin/certificate_rules/index', [
             'title' => 'Cấu hình Quy đổi Chứng chỉ',
             'rules' => $rules,
-            'subjects' => $subjects
+            'subjects' => $subjects,
+            'needsDataTables' => true
         ]);
     }
 
