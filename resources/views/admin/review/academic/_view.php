@@ -15,7 +15,7 @@
                 $getScore = function ($grade, $field) use ($rowsByGrade) {
                     $val = $rowsByGrade[$grade][$field] ?? null;
                     if ($val === null || $val === '') return '<span class="text-slate-300">—</span>';
-                    if (is_numeric($val)) return str_replace('.', ',', number_format((float)$val, 2, '.', ''));
+                    if (is_numeric($val)) return str_replace('.', ',', number_format((float)$val, 3, '.', ''));
                     return $val;
                 };
                 $mapDisplay = function ($val) {

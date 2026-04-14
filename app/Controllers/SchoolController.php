@@ -67,34 +67,31 @@ class SchoolController extends Controller {
         $this->validateCsrf();
         $schools = $this->masterData->getSchoolsWithProvince();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_truong_thpt_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Trường', 'Tên Trường', 'Khu Vực', 'Mã Tỉnh', 'Tên Tỉnh']);
-        
+        $data = [];
         foreach ($schools as $row) {
-            fputcsv($output, [
-                $row['ma_truong'], 
-                $row['ten_truong'], 
-                $row['khu_vuc'], 
-                $row['ma_tinh'], 
-                $row['ten_tinh'] ?? ''
-            ]);
+            $data[] = [
+                'Mã Trường' => $row['ma_truong'], 
+                'Tên Trường' => $row['ten_truong'], 
+                'Khu Vực' => $row['khu_vuc'], 
+                'Mã Tỉnh' => $row['ma_tinh'], 
+                'Tên Tỉnh' => $row['ten_tinh'] ?? ''
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_truong_thpt_' . date('Y-m-d') . '.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_truong_thpt.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Trường', 'Tên Trường', 'Khu Vực', 'Mã Tỉnh']);
-        fputcsv($output, ['17001', 'THPT Chuyên Hùng Vương', 'KV2-NT', '17']);
-        fclose($output);
-        exit;
+        $data = [[
+            'Mã Trường' => '17001', 
+            'Tên Trường' => 'THPT Chuyên Hùng Vương', 
+            'Khu Vực' => 'KV2-NT', 
+            'Mã Tỉnh' => '17'
+        ]];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_truong_thpt.xls');
     }
 
     public function actions() {

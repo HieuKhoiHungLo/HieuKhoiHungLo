@@ -26,9 +26,14 @@ class ReportController extends Controller {
     public function index() {
         $majors   = $this->masterData->getMajors();
         $sessions = $this->masterData->getAll('dot_tuyen_sinh', 'nam_tuyen_sinh DESC, id DESC');
-        $stats    = $this->exportService->getStatistics();
+        
+        // Find active session to determine initial filters
+        $activeSession = null;
+        foreach ($sessions as $s) {
+            if (!empty($s['kich_hoat'])) { $activeSession = $s; break; }
+        }
 
-        // Collect distinct years from sessions
+        // Determine current selected year
         $years = [];
         foreach ($sessions as $s) {
             $y = $s['nam_tuyen_sinh'] ?? null;
@@ -36,19 +41,9 @@ class ReportController extends Controller {
         }
         rsort($years);
 
-        // Determine active session (kich_hoat = true)
-        $activeSession = null;
-        foreach ($sessions as $s) {
-            if (!empty($s['kich_hoat'])) { $activeSession = $s; break; }
-        }
-
-        // Selected year (from GET or from active session)
         $selectedYear = $_GET['year'] ?? ($activeSession['nam_tuyen_sinh'] ?? ($years[0] ?? null));
-
-        // Filter sessions by selected year
         $yearSessions = array_values(array_filter($sessions, fn($s) => ($s['nam_tuyen_sinh'] ?? null) == $selectedYear));
 
-        // Selected session_id (from GET or active session if it belongs to selected year, or first of that year)
         $selectedSessionId = $_GET['session_id'] ?? null;
         if (!$selectedSessionId) {
             if ($activeSession && ($activeSession['nam_tuyen_sinh'] ?? null) == $selectedYear) {
@@ -57,6 +52,9 @@ class ReportController extends Controller {
                 $selectedSessionId = $yearSessions[0]['id'];
             }
         }
+
+        // Fetch stats filtered by the current selected session
+        $stats = $this->exportService->getStatistics(['session_id' => $selectedSessionId]);
 
         $this->view('admin/reports/index', [
             'majors'            => $majors,
@@ -81,7 +79,7 @@ class ReportController extends Controller {
         ];
 
         $data = $this->exportService->exportCandidatesToCsv($filters);
-        $this->exportService->toCsv($data, 'danh_sach_thi_sinh_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'danh_sach_thi_sinh_' . date('Ymd') . '.xls');
     }
 
     public function exportAdmitted() {
@@ -100,7 +98,7 @@ class ReportController extends Controller {
         ];
 
         $data = $this->exportService->exportAdmittedByMajor($maNganh, $filters);
-        $this->exportService->toCsv($data, 'trung_tuyen_' . $maNganh . '_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'trung_tuyen_' . $maNganh . '_' . date('Ymd') . '.xls');
     }
 
     public function exportCertificates() {
@@ -113,7 +111,7 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportCertificatesFiltered($filters);
-        $this->exportService->toCsv($data, 'danh_sach_chung_chi_nn_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'danh_sach_chung_chi_nn_' . date('Ymd') . '.xls');
     }
 
     public function exportAptitudeList() {
@@ -126,12 +124,15 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportAptitudeList($filters);
-        $this->exportService->toCsv($data, 'danh_sach_thi_nang_khieu_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'danh_sach_thi_nang_khieu_' . date('Ymd') . '.xls');
     }
 
     public function statsApi() {
         header('Content-Type: application/json');
-        echo json_encode($this->exportService->getStatistics());
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null
+        ];
+        echo json_encode($this->exportService->getStatistics($filters));
         exit;
     }
 
@@ -144,7 +145,7 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportMoetInfoCsv($filters);
-        $this->exportService->toCsv($data, 'moet_thong_tin_diem_thpt_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'moet_thong_tin_diem_thpt_' . date('Ymd') . '.xls');
     }
 
     public function exportMoetWishes() {
@@ -156,7 +157,7 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportMoetWishesCsv($filters);
-        $this->exportService->toCsv($data, 'moet_nguyen_vong_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'moet_nguyen_vong_' . date('Ymd') . '.xls');
     }
 
     public function exportMoetTranscripts() {
@@ -168,7 +169,7 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportMoetTranscriptsCsv($filters);
-        $this->exportService->toCsv($data, 'moet_diem_hoc_ba_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'moet_diem_hoc_ba_' . date('Ymd') . '.xls');
     }
 
     public function exportAdmissionReport() {
@@ -180,7 +181,7 @@ class ReportController extends Controller {
             'major'      => $_GET['major'] ?? null,
         ];
         $data = $this->exportService->exportAdmissionData($filters);
-        $this->exportService->toCsv($data, 'du_lieu_xet_tuyen_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'du_lieu_xet_tuyen_' . date('Ymd') . '.xls');
     }
 
     public function exportAllAdmittedReport() {
@@ -191,6 +192,6 @@ class ReportController extends Controller {
             'session_id' => $_GET['session_id'] ?? null,
         ];
         $data = $this->exportService->exportAdmittedByMajor(null, $filters);
-        $this->exportService->toCsv($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.csv');
+        $this->exportService->toExcel($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.xls');
     }
 }

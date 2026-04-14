@@ -162,7 +162,7 @@ class ScoreCalculator {
 
             // Case B: Transcript (Apply Weight)
             if ($hbValid) {
-                $weightedHB = $hbSum * $weightRatio;
+                $weightedHB = round($hbSum * $weightRatio, 3);
                 
                 if ($weightedHB > $bestResult['final_score']) {
                     $bestResult = [

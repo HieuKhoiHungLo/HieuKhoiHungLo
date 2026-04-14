@@ -234,37 +234,31 @@ class CertificateScoreController extends Controller {
         $query .= " ORDER BY c.id DESC";
         $stmt = $db->prepare($query);
         $stmt->execute($params);
-        $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $dataRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=danh_sach_diem_chung_chi.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
-
-        // Headers matching the template exactly for easy re-import
-        fputcsv($output, ['CCCD (Bat buoc)', 'Ma mon (N1, N2, N3...)', 'Diem quy doi (Bat buoc)', 'Ghi chu']);
-
-        foreach ($data as $row) {
-            fputcsv($output, [
-                $row['so_cccd'],
-                $row['ma_mon'],
-                $row['diem'],
-                $row['ghi_chu']
-            ]);
+        $data = [];
+        foreach ($dataRows as $row) {
+            $data[] = [
+                'CCCD (Bat buoc)' => "\t" . $row['so_cccd'],
+                'Ma mon (N1, N2, N3...)' => $row['ma_mon'],
+                'Diem quy doi (Bat buoc)' => $row['diem'],
+                'Ghi chu' => $row['ghi_chu']
+            ];
         }
 
-        fclose($output);
-        exit;
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'danh_sach_diem_chung_chi.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_import_diem_chung_chi.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['CCCD (Bat buoc)', 'Ma mon (N1, N2, N3...)', 'Diem quy doi (Bat buoc)', 'Ghi chu']);
-        fputcsv($output, ['123456789', 'N1', '10.0', 'Vi du mau']);
-        fclose($output);
-        exit;
+        $data = [[
+            'CCCD (Bat buoc)' => "\t123456789",
+            'Ma mon (N1, N2, N3...)' => 'N1',
+            'Diem quy doi (Bat buoc)' => '10.0',
+            'Ghi chu' => 'Vi du mau'
+        ]];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_import_diem_chung_chi.xls');
     }
 }

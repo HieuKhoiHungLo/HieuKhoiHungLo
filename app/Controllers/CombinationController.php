@@ -77,35 +77,29 @@ class CombinationController extends Controller {
         $this->validateCsrf();
         $combinations = $this->masterData->getCombinations();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_to_hop_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['ID', 'Mã Tổ Hợp', 'Môn 1 (Mã)', 'Môn 2 (Mã)', 'Môn 3 (Mã)']);
-        
+        $data = [];
         foreach ($combinations as $row) {
-            fputcsv($output, [
-                $row['id'], 
-                $row['ma_to_hop'], 
-                $row['mon1_ma'] ?? '', 
-                $row['mon2_ma'] ?? '', 
-                $row['mon3_ma'] ?? ''
-            ]);
+            $data[] = [
+                'ID' => $row['id'], 
+                'Mã Tổ Hợp' => $row['ma_to_hop'], 
+                'Môn 1 (Mã)' => $row['mon1_ma'] ?? '', 
+                'Môn 2 (Mã)' => $row['mon2_ma'] ?? '', 
+                'Môn 3 (Mã)' => $row['mon3_ma'] ?? ''
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_to_hop_' . date('Y-m-d') . '.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_to_hop.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Tổ Hợp', 'Môn 1 (Mã)', 'Môn 2 (Mã)', 'Môn 3 (Mã)']);
-        fputcsv($output, ['A00', 'TOAN', 'LY', 'HOA']);
-        fputcsv($output, ['D01', 'TOAN', 'VAN', 'ANH']);
-        fclose($output);
-        exit;
+        $data = [
+            ['Mã Tổ Hợp' => 'A00', 'Môn 1 (Mã)' => 'TOAN', 'Môn 2 (Mã)' => 'LY', 'Môn 4 (Mã)' => 'HOA'],
+            ['Mã Tổ Hợp' => 'D01', 'Môn 1 (Mã)' => 'TOAN', 'Môn 2 (Mã)' => 'VAN', 'Môn 5 (Mã)' => 'ANH']
+        ];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_to_hop.xls');
     }
 
     private function import() {

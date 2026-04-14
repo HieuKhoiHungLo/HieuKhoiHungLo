@@ -156,32 +156,32 @@ class MasterDataController extends Controller {
     }
 
     public function exportSubjects() {
-        $this->validateCsrf(); // Generic CSRF check for GET requests if needed, but usually GET is safe for export if authenticated
+        $this->validateCsrf();
         $subjects = $this->masterData->getSubjects();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_mon_hoc_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['ID', 'Mã Môn', 'Tên Môn', 'Loại (van_hoa/nang_khieu)', 'Cột Điểm']);
-        
+        $data = [];
         foreach ($subjects as $row) {
-            fputcsv($output, [$row['id'], $row['ma_mon'], $row['ten_mon'], $row['loai_mon'], $row['cot_diem']]);
+            $data[] = [
+                'ID' => $row['id'], 
+                'Mã Môn' => $row['ma_mon'], 
+                'Tên Môn' => $row['ten_mon'], 
+                'Loại (van_hoa/nang_khieu)' => $row['loai_mon'], 
+                'Cột Điểm' => $row['cot_diem']
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_mon_hoc_' . date('Y-m-d') . '.xls');
     }
 
     public function templateSubjects() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_mon_hoc.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Môn', 'Tên Môn', 'Loại (van_hoa/nang_khieu)', 'Cột Điểm']);
-        fputcsv($output, ['TOAN', 'Toán Học', 'van_hoa', 'toan']);
-        fputcsv($output, ['NK_VE', 'Vẽ Mỹ Thuật', 'nang_khieu', 'nk1']);
-        fclose($output);
-        exit;
+        $data = [
+            ['Mã Môn' => 'TOAN', 'Tên Môn' => 'Toán Học', 'Loại (van_hoa/nang_khieu)' => 'van_hoa', 'Cột Điểm' => 'toan'],
+            ['Mã Môn' => 'NK_VE', 'Tên Môn' => 'Vẽ Mỹ Thuật', 'Loại (van_hoa/nang_khieu)' => 'nang_khieu', 'Cột Điểm' => 'nk1']
+        ];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_mon_hoc.xls');
     }
 
     private function importSubjects() {
@@ -284,35 +284,29 @@ class MasterDataController extends Controller {
         $this->validateCsrf();
         $combinations = $this->masterData->getCombinations();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_to_hop_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['ID', 'Mã Tổ Hợp', 'Môn 1 (Mã)', 'Môn 2 (Mã)', 'Môn 3 (Mã)']);
-        
+        $data = [];
         foreach ($combinations as $row) {
-            fputcsv($output, [
-                $row['id'], 
-                $row['ma_to_hop'], 
-                $row['mon1_ma'] ?? '', 
-                $row['mon2_ma'] ?? '', 
-                $row['mon3_ma'] ?? ''
-            ]);
+            $data[] = [
+                'ID' => $row['id'], 
+                'Mã Tổ Hợp' => $row['ma_to_hop'], 
+                'Môn 1 (Mã)' => $row['mon1_ma'] ?? '', 
+                'Môn 2 (Mã)' => $row['mon2_ma'] ?? '', 
+                'Môn 3 (Mã)' => $row['mon3_ma'] ?? ''
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_to_hop_' . date('Y-m-d') . '.xls');
     }
 
     public function templateCombinations() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_to_hop.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Tổ Hợp', 'Môn 1 (Mã)', 'Môn 2 (Mã)', 'Môn 3 (Mã)']);
-        fputcsv($output, ['A00', 'TOAN', 'LY', 'HOA']);
-        fputcsv($output, ['D01', 'TOAN', 'VAN', 'ANH']);
-        fclose($output);
-        exit;
+        $data = [
+            ['Mã Tổ Hợp' => 'A00', 'Môn 1 (Mã)' => 'TOAN', 'Môn 2 (Mã)' => 'LY', 'Môn 4 (Mã)' => 'HOA'],
+            ['Mã Tổ Hợp' => 'D01', 'Môn 1 (Mã)' => 'TOAN', 'Môn 2 (Mã)' => 'VAN', 'Môn 5 (Mã)' => 'ANH']
+        ];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_to_hop.xls');
     }
 
     private function importCombinations() {
@@ -447,35 +441,34 @@ class MasterDataController extends Controller {
         $this->validateCsrf();
         $majors = $this->masterData->getMajorsWithCombinations();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_nganh_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Ngành', 'Tên Ngành', 'Chỉ Tiêu', 'Điểm 2025', 'Khối Xét Tuyển (Cách nhau dấu phẩy)', 'Ghi Chú']);
-        
+        $data = [];
         foreach ($majors as $row) {
-            fputcsv($output, [
-                $row['ma_nganh'], 
-                $row['ten_nganh'], 
-                $row['chi_tieu'], 
-                $row['diem_nam_truoc'], 
-                $row['combination_list'] ?? '', 
-                $row['ghi_chu']
-            ]);
+            $data[] = [
+                'Mã Ngành' => $row['ma_nganh'], 
+                'Tên Ngành' => $row['ten_nganh'], 
+                'Chỉ Tiêu' => $row['chi_tieu'], 
+                'Điểm 2025' => $row['diem_nam_truoc'], 
+                'Khối Xét Tuyển (Cách nhau dấu phẩy)' => $row['combination_list'] ?? '', 
+                'Ghi Chú' => $row['ghi_chu']
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_nganh_' . date('Y-m-d') . '.xls');
     }
 
     public function templateMajors() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_nganh.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Ngành', 'Tên Ngành', 'Chỉ Tiêu', 'Điểm 2025', 'Khối Xét Tuyển (Cách nhau dấu phẩy)', 'Ghi Chú']);
-        fputcsv($output, ['7480201', 'Công nghệ thông tin', '200', '21.5', 'A00, A01, D01', 'Chương trình chuẩn']);
-        fclose($output);
-        exit;
+        $data = [[
+            'Mã Ngành' => '7480201', 
+            'Tên Ngành' => 'Công nghệ thông tin', 
+            'Chỉ Tiêu' => '200', 
+            'Điểm 2025' => '21.5', 
+            'Khối Xét Tuyển (Cách nhau dấu phẩy)' => 'A00, A01, D01', 
+            'Ghi Chú' => 'Chương trình chuẩn'
+        ]];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_nganh.xls');
     }
 
     private function importMajors() {

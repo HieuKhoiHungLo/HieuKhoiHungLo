@@ -315,16 +315,6 @@ class VirtualAdmissionController extends Controller {
             die("Chưa chọn đợt xét tuyển.");
         }
 
-        // Logic xuất excel đơn giản (CSV)
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=xet_tuyen_loc_ao_' . $sessionId . '.csv');
-        
-        $output = fopen('php://output', 'w');
-        fputs($output, "\xEF\xBB\xBF"); // BOM for Excel UTF-8
-        
-        // Header
-        fputcsv($output, ['CCCD', 'Họ tên', 'Ngành', 'NV', 'Điểm M1', 'Điểm M2', 'Điểm M3', 'Tổng Điểm', 'Trạng Thái']);
-
         $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
                        cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen
                 FROM nguyen_vong nv
@@ -335,21 +325,22 @@ class VirtualAdmissionController extends Controller {
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);
         
+        $data = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $status = ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt';
-            fputcsv($output, [
-                $row['so_cccd'],
-                $row['ho_va_ten'],
-                $row['ma_nganh'],
-                $row['thu_tu_nguyen_vong'],
-                $row['diem_mon_1'],
-                $row['diem_mon_2'],
-                $row['diem_mon_3'],
-                $row['diem_xet_tuyen'],
-                $status
-            ]);
+            $data[] = [
+                'CCCD'       => "\t" . $row['so_cccd'], // Prefix with tab for ExportService detection
+                'Họ tên'     => $row['ho_va_ten'],
+                'Ngành'      => $row['ma_nganh'],
+                'NV'         => $row['thu_tu_nguyen_vong'],
+                'Điểm M1'    => $row['diem_mon_1'],
+                'Điểm M2'    => $row['diem_mon_2'],
+                'Điểm M3'    => $row['diem_mon_3'],
+                'Tổng Điểm'  => $row['diem_xet_tuyen'],
+                'Trạng Thái' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt'
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'xet_tuyen_loc_ao_' . $sessionId . '.xls');
     }
 }

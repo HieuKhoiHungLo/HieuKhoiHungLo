@@ -112,29 +112,29 @@ class SubjectController extends Controller {
         $this->validateCsrf();
         $subjects = $this->masterData->getSubjects();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_mon_hoc_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['ID', 'Mã Môn', 'Tên Môn', 'Loại (van_hoa/nang_khieu)', 'Cột Điểm']);
-        
+        $data = [];
         foreach ($subjects as $row) {
-            fputcsv($output, [$row['id'], $row['ma_mon'], $row['ten_mon'], $row['loai_mon'], $row['cot_diem']]);
+            $data[] = [
+                'ID' => $row['id'], 
+                'Mã Môn' => $row['ma_mon'], 
+                'Tên Môn' => $row['ten_mon'], 
+                'Loại (van_hoa/nang_khieu)' => $row['loai_mon'], 
+                'Cột Điểm' => $row['cot_diem']
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_mon_hoc_' . date('Y-m-d') . '.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_mon_hoc.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Môn', 'Tên Môn', 'Loại (van_hoa/nang_khieu)', 'Cột Điểm']);
-        fputcsv($output, ['TOAN', 'Toán Học', 'van_hoa', 'toan']);
-        fputcsv($output, ['NK_VE', 'Vẽ Mỹ Thuật', 'nang_khieu', 'nk1']);
-        fclose($output);
-        exit;
+        $data = [
+            ['Mã Môn' => 'TOAN', 'Tên Môn' => 'Toán Học', 'Loại (van_hoa/nang_khieu)' => 'van_hoa', 'Cột Điểm' => 'toan'],
+            ['Mã Môn' => 'NK_VE', 'Tên Môn' => 'Vẽ Mỹ Thuật', 'Loại (van_hoa/nang_khieu)' => 'nang_khieu', 'Cột Điểm' => 'nk1']
+        ];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_mon_hoc.xls');
     }
 
     private function import() {

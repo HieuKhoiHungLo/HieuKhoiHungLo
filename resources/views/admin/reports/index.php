@@ -14,36 +14,43 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
 <style>
 .export-table th,
 .export-table td {
-    padding: 0.75rem 1.25rem;
+    padding: 0.4rem 0.75rem;
     text-align: left;
     vertical-align: middle;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    font-size: 13px;
+    color: #334155;
+}
+.export-table th:first-child, .export-table td:first-child {
+    border-left: 1px solid #e2e8f0;
 }
 .export-table thead th {
     background: #f8fafc;
-    font-size: 0.7rem;
-    font-weight: 900;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #64748b;
+    letter-spacing: 0.025em;
+    color: #475569;
+    border-top: 1px solid #e2e8f0;
 }
-.export-table tbody tr:hover td { background: #f0f7ff; }
-.export-table .tt-cell { width: 48px; text-align: center; font-weight: 900; color: #94a3b8; }
+.export-table tbody tr:hover td { background: #f8fafc; }
+.export-table .tt-cell { width: 45px; text-align: center; font-weight: 700; color: #64748b; background: #f8fafc; }
 .download-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 8px;
+    padding: 4px 12px; border-radius: 6px;
     background: #0066FF; color: #fff;
-    font-size: 0.78rem; font-weight: 700;
+    font-size: 0.72rem; font-weight: 700;
     transition: background 0.15s, transform 0.1s;
     white-space: nowrap;
 }
 .download-btn:hover { background: #0050CC; transform: translateY(-1px); }
 .download-btn:active { transform: translateY(0); }
 .badge-dev {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 6px;
     background: #f1f5f9; color: #94a3b8;
-    font-size: 0.75rem; font-weight: 700;
+    font-size: 0.7rem; font-weight: 700;
     border: 1px dashed #cbd5e1;
     white-space: nowrap;
 }
@@ -62,10 +69,7 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
 </style>
 
 <div class="max-w-5xl mx-auto">
-    <header class="mb-6">
-        <h2 class="text-3xl font-black text-gray-900 uppercase">Xuất dữ liệu hồ sơ</h2>
-        <p class="text-gray-500 mt-1 text-sm">Chọn năm tuyển sinh và đợt, sau đó tải xuống dữ liệu theo từng chức năng.</p>
-    </header>
+    <!-- Header removed as per user request -->
 
     <!-- ===== SESSION FILTER BAR ===== -->
     <div class="session-filter-bar">
@@ -85,7 +89,7 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
 
         <div class="flex items-center gap-2">
             <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Đợt tuyển sinh</label>
-            <select id="sel-session"
+            <select id="sel-session" onchange="onSessionChange(this.value)"
                 class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-400 outline-none shadow-sm cursor-pointer max-w-[280px]">
                 <?php foreach ($yearSessions as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= $selectedSessionId == $s['id'] ? 'selected' : '' ?>>
@@ -101,12 +105,28 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
         <?php endif; ?>
     </div>
 
-    <!-- ===== EXPORT TABLE ===== -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
-            <i class="fas fa-file-export text-[#0066FF] text-lg"></i>
-            <h3 class="text-base font-black text-slate-800 uppercase tracking-wide">Danh sách chức năng xuất dữ liệu</h3>
+    <!-- ===== Stats Grid (compact) ===== -->
+    <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-[#e2e8f0] border-l-4 border-l-blue-500">
+            <p class="text-xs font-bold text-gray-400 uppercase">Tổng hồ sơ</p>
+            <p id="stat-total" class="text-3xl font-black text-gray-800 mt-1"><?= number_format($stats['total_candidates'] ?? 0) ?></p>
         </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-[#e2e8f0] border-l-4 border-l-green-500">
+            <p class="text-xs font-bold text-gray-400 uppercase">Đã duyệt</p>
+            <p id="stat-approved" class="text-3xl font-black text-green-600 mt-1"><?= number_format($stats['total_approved'] ?? 0) ?></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-[#e2e8f0] border-l-4 border-l-yellow-500">
+            <p class="text-xs font-bold text-gray-400 uppercase">Chờ duyệt</p>
+            <p id="stat-pending" class="text-3xl font-black text-yellow-600 mt-1"><?= number_format($stats['by_status']['Chờ duyệt'] ?? 0) ?></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-[#e2e8f0] border-l-4 border-l-orange-500">
+            <p class="text-xs font-bold text-gray-400 uppercase">Yêu cầu sửa</p>
+            <p id="stat-edit" class="text-3xl font-black text-orange-600 mt-1"><?= number_format($stats['by_status']['Yêu cầu sửa'] ?? 0) ?></p>
+        </div>
+    </div>
+
+    <!-- ===== EXPORT TABLE ===== -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
 
         <div class="overflow-x-auto">
             <table class="export-table w-full">
@@ -235,42 +255,12 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
             </table>
         </div>
 
-        <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-400 flex items-center gap-2">
+        <div class="px-6 py-3 bg-slate-50 border-t border-[#e2e8f0] text-xs text-slate-400 flex items-center gap-2">
             <i class="fas fa-info-circle text-blue-400"></i>
             Dữ liệu xuất ra thuộc <strong class="text-slate-600">đợt đang chọn</strong> ở bộ lọc phía trên. Cột số CCCD/ĐDCN được định dạng text để không mất số 0 đầu khi mở bằng Excel.
         </div>
-    </div>
-
-    <!-- ===== Stats Grid (compact) ===== -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-blue-500">
-            <p class="text-xs font-bold text-gray-400 uppercase">Tổng hồ sơ</p>
-            <p class="text-3xl font-black text-gray-800 mt-1"><?= number_format($stats['total_candidates'] ?? 0) ?></p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-green-500">
-            <p class="text-xs font-bold text-gray-400 uppercase">Đã duyệt</p>
-            <p class="text-3xl font-black text-green-600 mt-1"><?= number_format($stats['total_approved'] ?? 0) ?></p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-yellow-500">
-            <p class="text-xs font-bold text-gray-400 uppercase">Chờ duyệt</p>
-            <p class="text-3xl font-black text-yellow-600 mt-1"><?= number_format($stats['by_status']['Chờ duyệt'] ?? 0) ?></p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-100 border-l-4 border-l-orange-500">
-            <p class="text-xs font-bold text-gray-400 uppercase">Yêu cầu sửa</p>
-            <p class="text-3xl font-black text-orange-600 mt-1"><?= number_format($stats['by_status']['Yêu cầu sửa'] ?? 0) ?></p>
-        </div>
-    </div>
-
-    <!-- ===== Chart ===== -->
-    <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100 mt-6">
-        <h3 class="text-base font-bold text-gray-800 mb-4 border-b pb-2">
-            <i class="fas fa-chart-bar text-[#0066FF] mr-2"></i> Thống kê hồ sơ mới theo ngày (14 ngày gần nhất)
-        </h3>
-        <canvas id="dailyChart" height="160"></canvas>
-    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // All sessions data from PHP
 const allSessions = <?= $allSessionsJson ?>;
@@ -299,6 +289,28 @@ function updateLinks() {
     // Optional: could visual feedback when checkbox is toggled
 }
 
+// When session changes: Refresh stats via AJAX
+function onSessionChange(sessionId) {
+    if (!sessionId) return;
+    
+    const container = document.getElementById('stats-container');
+    container.style.opacity = '0.5';
+    
+    fetch('<?= url('/admin/reports/stats-api') ?>?session_id=' + sessionId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('stat-total').textContent = (data.total_candidates || 0).toLocaleString();
+            document.getElementById('stat-approved').textContent = (data.total_approved || 0).toLocaleString();
+            document.getElementById('stat-pending').textContent = (data.by_status['Chờ duyệt'] || 0).toLocaleString();
+            document.getElementById('stat-edit').textContent = (data.by_status['Yêu cầu sửa'] || 0).toLocaleString();
+            container.style.opacity = '1';
+        })
+        .catch(err => {
+            console.error('Lỗi tải thống kê:', err);
+            container.style.opacity = '1';
+        });
+}
+
 // When year changes: repopulate session dropdown
 function onYearChange(year) {
     const sel = document.getElementById('sel-session');
@@ -316,28 +328,15 @@ function onYearChange(year) {
     });
     // Auto-select the active session in the filtered list
     const activeSess = filtered.find(s => s.kich_hoat);
-    if (activeSess) sel.value = activeSess.id;
-}
-
-// Daily Chart
-const dailyData = <?= json_encode($stats['by_date'] ?? []) ?>;
-new Chart(document.getElementById('dailyChart'), {
-    type: 'bar',
-    data: {
-        labels: dailyData.map(d => d.date),
-        datasets: [{
-            label: 'Hồ sơ mới',
-            data: dailyData.map(d => d.count),
-            backgroundColor: 'rgba(0, 102, 255, 0.65)',
-            borderRadius: 6,
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    if (activeSess) {
+        sel.value = activeSess.id;
+    } else {
+        sel.value = filtered[0].id;
     }
-});
+    
+    // Trigger stats update for the new selected session
+    onSessionChange(sel.value);
+}
 </script>
 
 <?php

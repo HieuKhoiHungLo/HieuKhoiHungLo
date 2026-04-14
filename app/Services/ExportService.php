@@ -26,9 +26,12 @@ class ExportService {
     /**
      * Prefix CCCD/ĐDCN with a tab character so Excel treats it as text
      * and does NOT strip the leading zero.
+     * Note: In toExcel(), we strip this tab and apply mso-number-format:"\@".
      */
     private function textCell(?string $value): string {
-        return "\t" . ($value ?? '');
+        if ($value === null || $value === '') return '';
+        // In the new toExcel(), we'll use <Data ss:Type="String"> to handle this
+        return (string)$value;
     }
 
     /**
@@ -288,22 +291,49 @@ class ExportService {
     // Statistics
     // ----------------------------------------------------------------
 
-    public function getStatistics() {
+    public function getStatistics($filters = []) {
         $stats = [];
+        $sessionId = $filters['session_id'] ?? null;
+        $where = $sessionId ? " WHERE dot_tuyen_sinh_id = ?" : "";
+        $whereNv = $sessionId ? " AND nv.dot_tuyen_sinh_id = ?" : "";
+        $params = $sessionId ? [$sessionId] : [];
 
-        $stmt = $this->db->query("SELECT trang_thai, COUNT(*) as count FROM ho_so_xet_tuyen GROUP BY trang_thai");
+        // By Status
+        $sqlStatus = "SELECT trang_thai, COUNT(*) as count FROM ho_so_xet_tuyen" . $where . " GROUP BY trang_thai";
+        $stmt = $this->db->prepare($sqlStatus);
+        $stmt->execute($params);
         $stats['by_status'] = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
 
-        $stmt = $this->db->query("SELECT n.ten_nganh, COUNT(*) as count FROM nguyen_vong nv JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh WHERE nv.thu_tu_nguyen_vong = 1 GROUP BY n.ten_nganh ORDER BY count DESC LIMIT 10");
+        // By Major (Top 10)
+        $sqlMajor = "SELECT n.ten_nganh, COUNT(*) as count 
+                     FROM nguyen_vong nv 
+                     JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh 
+                     WHERE nv.thu_tu_nguyen_vong = 1" . $whereNv . " 
+                     GROUP BY n.ten_nganh 
+                     ORDER BY count DESC LIMIT 10";
+        $stmt = $this->db->prepare($sqlMajor);
+        $stmt->execute($params);
         $stats['by_major'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        $stmt = $this->db->query("SELECT DATE(created_at) as date, COUNT(*) as count FROM ho_so_xet_tuyen WHERE created_at > NOW() - INTERVAL '14 days' GROUP BY DATE(created_at) ORDER BY date");
+        // By Date (Last 14 days)
+        $sqlDate = "SELECT DATE(created_at) as date, COUNT(*) as count 
+                    FROM ho_so_xet_tuyen 
+                    WHERE created_at > NOW() - INTERVAL '14 days'" . ($sessionId ? " AND dot_tuyen_sinh_id = ?" : "") . " 
+                    GROUP BY DATE(created_at) ORDER BY date";
+        $stmt = $this->db->prepare($sqlDate);
+        $stmt->execute($params);
         $stats['by_date'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        $stmt = $this->db->query("SELECT COUNT(*) FROM ho_so_xet_tuyen");
+        // Total
+        $sqlTotal = "SELECT COUNT(*) FROM ho_so_xet_tuyen" . $where;
+        $stmt = $this->db->prepare($sqlTotal);
+        $stmt->execute($params);
         $stats['total_candidates'] = $stmt->fetchColumn();
 
-        $stmt = $this->db->query("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE trang_thai = 'Đã duyệt'");
+        // Approved
+        $sqlApproved = "SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE trang_thai = 'Đã duyệt'" . ($sessionId ? " AND dot_tuyen_sinh_id = ?" : "");
+        $stmt = $this->db->prepare($sqlApproved);
+        $stmt->execute($params);
         $stats['total_approved'] = $stmt->fetchColumn();
 
         return $stats;
@@ -364,7 +394,7 @@ class ExportService {
                 'stt'             => $stt++,
                 'sbd'             => '',
                 'ho_ten'          => mb_strtoupper($c['ho_va_ten'], 'UTF-8'),
-                'ddcn'            => "\t" . ($c['so_cccd'] ?? ''),
+                'ddcn'            => ($c['so_cccd'] ?? ''),
                 'ngay_sinh'       => $this->formatDate($c['ngay_sinh']),
                 'gioi_tinh'       => $c['gioi_tinh'],
                 'dtu'             => $c['doi_tuong_uu_tien'] ?: '0',
@@ -445,7 +475,7 @@ class ExportService {
 
             $data[] = [
                 'STT'                   => $stt++,
-                'Số ĐDCN'               => "\t" . ($w['so_cccd'] ?? ''),
+                'Số ĐDCN'               => ($w['so_cccd'] ?? ''),
                 'Thứ tự nguyện vọng'    => $w['thu_tu_nv_bo'] ?? $w['thu_tu_nguyen_vong'],
                 'Mã trường'             => 'THV',
                 'Tên trường'            => 'Trường Đại học Hùng Vương',
@@ -511,7 +541,7 @@ class ExportService {
         foreach ($records as $r) {
             $row = [
                 'STT'                      => $stt++,
-                'Số ĐDCN'                  => "\t" . ($r['so_cccd'] ?? ''),
+                'Số ĐDCN'                  => ($r['so_cccd'] ?? ''),
                 'Họ và tên'                => mb_strtoupper($r['ho_va_ten'], 'UTF-8'),
                 'Ngày sinh'                => $this->formatDate($r['ngay_sinh']),
                 'Giới tính'                => $r['gioi_tinh'],
@@ -558,7 +588,79 @@ class ExportService {
     // ----------------------------------------------------------------
 
     /**
-     * Stream CSV with UTF-8 BOM. Tab-prefixed cells preserve leading zeros in Excel.
+     * Stream Excel file (XLS) using HTML representation.
+     * Supports basic formatting and ensures data types (e.g. text for CCCD).
+     */
+    public function toExcel($data, $filename) {
+        // Ensure .xls extension for simple browser handling
+        $filename = str_replace(['.csv', '.xlsx'], '', $filename) . '.xls';
+
+        ob_clean();
+        header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header("Cache-Control: no-cache, no-store, must-revalidate");
+
+        // Excel 2003 XML SpreadsheetML boilerplate
+        echo '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+        
+        echo ' <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>Virtual Admission</Author></DocumentProperties>' . "\n";
+        
+        // Define Styles
+        echo ' <Styles>' . "\n";
+        echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#334155"/></Style>' . "\n";
+        echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#475569" ss:Bold="1"/><Interior ss:Color="#f8fafc" ss:Pattern="Solid"/></Style>' . "\n";
+        echo '  <Style ss:ID="sText"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="@"/></Style>' . "\n";
+        echo '  <Style ss:ID="sNum"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="Fixed"/></Style>' . "\n";
+        echo ' </Styles>' . "\n";
+
+        echo ' <Worksheet ss:Name="Report">' . "\n";
+        echo '  <Table>' . "\n";
+
+        if (!empty($data)) {
+            $keys = array_keys($data[0]);
+            
+            // Columns definition (optional but good for widths)
+            foreach ($keys as $k) {
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="120"/>' . "\n";
+            }
+
+            // Header Row
+            echo '   <Row ss:Height="25">' . "\n";
+            foreach ($keys as $key) {
+                // Humanize keys (replace underscores)
+                $label = str_replace('_', ' ', $key);
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">' . htmlspecialchars($label) . '</Data></Cell>' . "\n";
+            }
+            echo '   </Row>' . "\n";
+
+            // Data Rows
+            foreach ($data as $row) {
+                echo '   <Row ss:AutoFitHeight="1">' . "\n";
+                foreach ($row as $key => $cell) {
+                    $type = 'String';
+                    $style = 'sText';
+                    
+                    if (is_numeric($cell) && strpos((string)$cell, ',') === false && !in_array($key, ['Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại'])) {
+                        $type = 'Number';
+                        $style = 'sNum';
+                    }
+
+                    echo '    <Cell ss:StyleID="' . $style . '"><Data ss:Type="' . $type . '">' . htmlspecialchars((string)$cell) . '</Data></Cell>' . "\n";
+                }
+                echo '   </Row>' . "\n";
+            }
+        }
+
+        echo '  </Table>' . "\n";
+        echo ' </Worksheet>' . "\n";
+        echo '</Workbook>' . "\n";
+        exit;
+    }
+
+    /**
+     * Stream CSV with UTF-8 BOM. 
      */
     public function toCsv($data, $filename) {
         header('Content-Type: text/csv; charset=utf-8');

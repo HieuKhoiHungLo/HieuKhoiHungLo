@@ -336,7 +336,7 @@ if (!empty($combinations)) {
                                 let p = JSON.parse(row.chi_tiet_diem);
                                 let combs = p.all_combinations || {};
                                 let val = combs['THPT_' + targetCombo];
-                                return val !== undefined && val !== null ? parseFloat(val).toFixed(2) : '-';
+                                return val !== undefined && val !== null ? parseFloat(val).toFixed(3) : '-';
                             } catch(e) { return '-'; }
                         }
                     });
@@ -356,7 +356,7 @@ if (!empty($combinations)) {
                                 let p = JSON.parse(row.chi_tiet_diem);
                                 let combs = p.all_combinations || {};
                                 let val = combs['HB_' + targetCombo];
-                                return val !== undefined && val !== null ? parseFloat(val).toFixed(2) : '-';
+                                return val !== undefined && val !== null ? parseFloat(val).toFixed(3) : '-';
                             } catch(e) { return '-'; }
                         }
                     });
@@ -395,9 +395,9 @@ if (!empty($combinations)) {
                 });
 
                 // M1, M2, M3
-                columns.push({ data: 'diem_mon_1', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_2', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
-                columns.push({ data: 'diem_mon_3', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(2) : '-'; } });
+                columns.push({ data: 'diem_mon_1', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
+                columns.push({ data: 'diem_mon_2', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
+                columns.push({ data: 'diem_mon_3', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
                 
                 // Điểm Tổ Hợp (M1 + M2 + M3)
                 columns.push({ 
@@ -408,26 +408,26 @@ if (!empty($combinations)) {
                         let m2 = parseFloat(row.diem_mon_2 || 0);
                         let m3 = parseFloat(row.diem_mon_3 || 0);
                         let sum = m1 + m2 + m3;
-                        return sum > 0 ? sum.toFixed(2) : '-';
+                        return sum > 0 ? sum.toFixed(3) : '-';
                     }
                 });
 
                 // QD, UT Goc, UT QD
                 columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
-                    try { let p = JSON.parse(data); return p.total_raw ? parseFloat(p.total_raw).toFixed(2) : '-'; } catch(e){return '-'}
+                    try { let p = JSON.parse(data); return p.total_raw ? parseFloat(p.total_raw).toFixed(3) : '-'; } catch(e){return '-'}
                 }});
                 columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
-                    try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(2) : '-'; } catch(e){return '-'}
+                    try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(3) : '-'; } catch(e){return '-'}
                 }});
                 columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
-                    try { let p = JSON.parse(data); return p.priority_converted !== undefined ? parseFloat(p.priority_converted).toFixed(2) : '-'; } catch(e){return '-'}
+                    try { let p = JSON.parse(data); return p.priority_converted !== undefined ? parseFloat(p.priority_converted).toFixed(3) : '-'; } catch(e){return '-'}
                 }});
 
                 // Final Score
                 columns.push({ 
                     data: 'diem_xet_tuyen', 
                     className: 'text-center font-bold',
-                    render: function(data) { return data > 0 ? parseFloat(data).toFixed(2) : '-'; }
+                    render: function(data) { return data > 0 ? parseFloat(data).toFixed(3) : '-'; }
                 });
 
                 // DK Hoc Luc

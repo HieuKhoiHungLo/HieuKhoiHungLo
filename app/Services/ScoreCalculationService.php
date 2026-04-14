@@ -897,7 +897,7 @@ class ScoreCalculationService {
             
             // Quy đổi hệ số học bạ theo cấu hình (mặc định 0.95)
             if ($method === 'HOC_BA') {
-                $baseScore = $baseScore * $this->cachedHeSoHocBa;
+                $baseScore = round($baseScore * $this->cachedHeSoHocBa, 3);
             }
 
             $certScore = ($allowCert && isset($certs[$monId])) ? $certs[$monId] : 0;
@@ -949,7 +949,7 @@ class ScoreCalculationService {
         }
         $priorityConverted = round($priorityConverted, 3);
 
-        $totalFinal = $totalRaw + $priorityConverted;
+        $totalFinal = round($totalRaw + $priorityConverted, 3);
         
         $details['priority_raw'] = $priorityPointsRaw;
         $details['priority_converted'] = $priorityConverted;

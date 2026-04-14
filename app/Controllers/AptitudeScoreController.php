@@ -208,7 +208,6 @@ class AptitudeScoreController extends Controller {
                 }
             }
         }
-        $this->json(['success' => false]);
     }
 
     public function export() {
@@ -231,38 +230,33 @@ class AptitudeScoreController extends Controller {
         $query .= " ORDER BY d.id DESC";
         $stmt = $db->prepare($query);
         $stmt->execute($params);
-        $data = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $dataRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=danh_sach_diem_nang_khieu.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
-
-        // Headers matching the template exactly for easy re-import
-        fputcsv($output, ['CCCD (Bat buoc)', 'SBD', 'Ma mon (NK1, NK2, NK3, NK4)', 'Diem (Bat buoc)', 'Ghi chu']);
-
-        foreach ($data as $row) {
-            fputcsv($output, [
-                $row['so_cccd'],
-                $row['sbd'],
-                $row['ma_mon'],
-                $row['diem'],
-                $row['ghi_chu']
-            ]);
+        $data = [];
+        foreach ($dataRows as $row) {
+            $data[] = [
+                'CCCD (Bat buoc)' => "\t" . $row['so_cccd'],
+                'SBD' => $row['sbd'],
+                'Ma mon (NK1, NK2, NK3, NK4)' => $row['ma_mon'],
+                'Diem (Bat buoc)' => $row['diem'],
+                'Ghi chu' => $row['ghi_chu']
+            ];
         }
 
-        fclose($output);
-        exit;
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'danh_sach_diem_nang_khieu.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_import_diem_nang_khieu.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['CCCD (Bat buoc)', 'SBD', 'Ma mon (NK1, NK2, NK3, NK4)', 'Diem (Bat buoc)', 'Ghi chu']);
-        fputcsv($output, ['123456789', 'NK2024001', 'NK1', '9.5', 'Vi du mau']);
-        fclose($output);
-        exit;
+        $data = [[
+            'CCCD (Bat buoc)' => "\t123456789",
+            'SBD' => 'NK2024001',
+            'Ma mon (NK1, NK2, NK3, NK4)' => 'NK1',
+            'Diem (Bat buoc)' => '9.5',
+            'Ghi chu' => 'Vi du mau'
+        ]];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_import_diem_nang_khieu.xls');
     }
 }

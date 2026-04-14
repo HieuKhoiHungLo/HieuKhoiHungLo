@@ -41,7 +41,7 @@ $mapDisplay = function($v) {
                                     </td>
                                     <?php foreach ([10, 11, 12] as $g):
                                         $gradeRow = $rowsByGrade[$g] ?? [];
-                                        $val = is_numeric($gradeRow['diem_'.$code.'_cn']) ? number_format((float)$gradeRow['diem_'.$code.'_cn'], 2, '.', '') : ($gradeRow['diem_'.$code.'_cn'] ?? '');
+                                        $val = is_numeric($gradeRow['diem_'.$code.'_cn']) ? number_format((float)$gradeRow['diem_'.$code.'_cn'], 3, '.', '') : ($gradeRow['diem_'.$code.'_cn'] ?? '');
                                     ?>
                                         <td style="padding: 0; text-align: center; border-right: 1px solid #e2e8f0; background: #fff;" class="last:border-r-0">
                                             <input type="number" step="0.1" min="0" max="10"
@@ -62,10 +62,10 @@ $mapDisplay = function($v) {
                                 </td>
                                 <?php foreach ([10, 11, 12] as $g):
                                     $gradeRow = $rowsByGrade[$g] ?? [];
-                                    $val = is_numeric($gradeRow['diem_tb_ca_nam']) ? number_format((float)$gradeRow['diem_tb_ca_nam'], 2, '.', '') : ($gradeRow['diem_tb_ca_nam'] ?? '');
+                                    $val = is_numeric($gradeRow['diem_tb_ca_nam']) ? number_format((float)$gradeRow['diem_tb_ca_nam'], 3, '.', '') : ($gradeRow['diem_tb_ca_nam'] ?? '');
                                 ?>
                                     <td style="padding: 0; text-align: center; border-right: 1px solid #e2e8f0; background: #fff;" class="last:border-r-0">
-                                        <input type="number" step="0.01" min="0" max="10"
+                                        <input type="number" step="0.001" min="0" max="10"
                                             name="scores[<?= $g ?>][diem_tb_ca_nam]"
                                             value="<?= $val ?>"
                                             placeholder="—"

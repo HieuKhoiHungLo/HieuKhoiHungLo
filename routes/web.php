@@ -273,7 +273,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports/export-moet-transcripts', 'ReportController@exportMoetTranscripts');
     $router->get('/admin/reports/export-aptitude-list', 'ReportController@exportAptitudeList');
 
-    // New Admission & Results Exports
+    $router->get('/admin/reports/stats-api', 'ReportController@statsApi');
     $router->get('/admin/reports/export-admission', 'ReportController@exportAdmissionReport');
     $router->get('/admin/reports/export-all-admitted', 'ReportController@exportAllAdmittedReport');
 

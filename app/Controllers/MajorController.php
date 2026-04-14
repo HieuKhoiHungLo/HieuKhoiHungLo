@@ -180,35 +180,34 @@ class MajorController extends Controller {
         $this->validateCsrf();
         $majors = $this->masterData->getMajorsWithCombinations();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=ds_nganh_' . date('Y-m-d') . '.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Ngành', 'Tên Ngành', 'Chỉ Tiêu', 'Điểm 2025', 'Khối Xét Tuyển (Cách nhau dấu phẩy)', 'Ghi Chú']);
-        
+        $data = [];
         foreach ($majors as $row) {
-            fputcsv($output, [
-                $row['ma_nganh'], 
-                $row['ten_nganh'], 
-                $row['chi_tieu'], 
-                $row['diem_nam_truoc'], 
-                $row['combination_list'] ?? '', 
-                $row['ghi_chu']
-            ]);
+            $data[] = [
+                'Mã Ngành' => $row['ma_nganh'], 
+                'Tên Ngành' => $row['ten_nganh'], 
+                'Chỉ Tiêu' => $row['chi_tieu'], 
+                'Điểm 2025' => $row['diem_nam_truoc'], 
+                'Khối Xét Tuyển (Cách nhau dấu phẩy)' => $row['combination_list'] ?? '', 
+                'Ghi Chú' => $row['ghi_chu']
+            ];
         }
-        fclose($output);
-        exit;
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_nganh_' . date('Y-m-d') . '.xls');
     }
 
     public function template() {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=mau_nhap_nganh.csv');
-        $output = fopen('php://output', 'w');
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
-        fputcsv($output, ['Mã Ngành', 'Tên Ngành', 'Chỉ Tiêu', 'Điểm 2025', 'Khối Xét Tuyển (Cách nhau dấu phẩy)', 'Ghi Chú']);
-        fputcsv($output, ['7480201', 'Công nghệ thông tin', '200', '21.5', 'A00, A01, D01', 'Chương trình chuẩn']);
-        fclose($output);
-        exit;
+        $data = [[
+            'Mã Ngành' => '7480201', 
+            'Tên Ngành' => 'Công nghệ thông tin', 
+            'Chỉ Tiêu' => '200', 
+            'Điểm 2025' => '21.5', 
+            'Khối Xét Tuyển (Cách nhau dấu phẩy)' => 'A00, A01, D01', 
+            'Ghi Chú' => 'Chương trình chuẩn'
+        ]];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_nganh.xls');
     }
 
     private function import() {
