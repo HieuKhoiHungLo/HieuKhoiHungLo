@@ -223,31 +223,31 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                         </td>
                     </tr>
 
-                    <!-- Row 6: Photo images (planned) -->
-                    <tr class="opacity-60">
+                    <!-- Row 6: Photo images -->
+                    <tr>
                         <td class="tt-cell">6</td>
                         <td>
-                            <div class="font-semibold text-slate-600 text-sm">Download file ảnh thẻ</div>
-                            <div class="text-xs text-slate-400 mt-0.5">Tải toàn bộ ảnh thẻ của thí sinh theo đợt (định dạng ZIP)</div>
+                            <div class="font-semibold text-slate-800 text-sm">Download file ảnh thẻ</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Tải toàn bộ ảnh thẻ của thí sinh năng khiếu theo đợt (định dạng ZIP)</div>
                         </td>
                         <td class="text-center">
-                            <span class="badge-dev">
-                                <i class="fas fa-wrench text-[10px]"></i> Đang phát triển
-                            </span>
+                            <button onclick="doExport('<?= url('/admin/reports/download-photos-aptitude') ?>')" class="download-btn !background-[#0066FF] hover:!bg-[#0050CC]">
+                                <i class="fas fa-file-archive text-xs"></i> Download ZIP
+                            </button>
                         </td>
                     </tr>
 
-                    <!-- Row 7: Certificate images (planned) -->
-                    <tr class="opacity-60">
+                    <!-- Row 7: Certificate images -->
+                    <tr>
                         <td class="tt-cell">7</td>
                         <td>
-                            <div class="font-semibold text-slate-600 text-sm">Download file ảnh chứng chỉ ngoại ngữ</div>
+                            <div class="font-semibold text-slate-800 text-sm">Download file ảnh chứng chỉ ngoại ngữ</div>
                             <div class="text-xs text-slate-400 mt-0.5">Tải minh chứng ảnh chứng chỉ ngoại ngữ của thí sinh (định dạng ZIP)</div>
                         </td>
                         <td class="text-center">
-                            <span class="badge-dev">
-                                <i class="fas fa-wrench text-[10px]"></i> Đang phát triển
-                            </span>
+                            <button onclick="doExport('<?= url('/admin/reports/download-certs') ?>')" class="download-btn !background-[#0066FF] hover:!bg-[#0050CC]">
+                                <i class="fas fa-file-archive text-xs"></i> Download ZIP
+                            </button>
                         </td>
                     </tr>
 

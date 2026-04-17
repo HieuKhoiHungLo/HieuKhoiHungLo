@@ -909,6 +909,12 @@ class CandidateController extends Controller
 
         try {
             $this->db->beginTransaction();
+
+            $logPath = dirname(__DIR__, 2) . '/storage/logs/bulk_transcript.log';
+            $logFile = @fopen($logPath, 'a');
+            if ($logFile) {
+                fwrite($logFile, "\n--- BULK TRANSCRIPT START: " . date('Y-m-d H:i:s') . " ---\n");
+            }
             switch ($section) {
                 case 'personal':
                     // Personal Info (Updated fields only)
@@ -1451,5 +1457,245 @@ class CandidateController extends Controller
             $redirectTo .= (strpos($redirectTo, '?') !== false ? '&' : '?') . 'error=update_failed';
             $this->redirect($redirectTo);
         }
+    }
+
+    /**
+     * Bulk approve applications by uploading an Excel file (CCCD + Note)
+     */
+        public function bulkApproveByFile()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+
+        $redirectTo = url('/admin/review-management');
+
+        if (!isset($_FILES['approve_file']) || $_FILES['approve_file']['error'] !== UPLOAD_ERR_OK) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Vui lòng chọn file để upload.'));
+            return;
+        }
+
+        $filePath = $_FILES['approve_file']['tmp_name'];
+        $sessionId = $_POST['session_id'] ?? null;
+
+        $logPath = dirname(__DIR__, 2) . '/storage/logs/bulk_approval.log';
+        $logFile = @fopen($logPath, 'a');
+        
+        if ($logFile) {
+            fwrite($logFile, "\n--- BULK APPROVE START: " . date('Y-m-d H:i:s') . " ---\n");
+            fwrite($logFile, "Session ID Filter: " . ($sessionId ?: 'None (Will use latest)') . "\n");
+        }
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+            $rows = array_values($rows);
+            array_shift($rows); 
+
+            $success = 0;
+            $notFound = 0;
+            $adminId = $_SESSION['admin_id'] ?? null;
+
+            $this->db->beginTransaction();
+
+            foreach ($rows as $index => $row) {
+                $rowValues = array_values($row);
+                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
+                $note = trim($rowValues[2] ?? '');
+                
+                if (empty($cccd)) continue;
+
+                $sql = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = ?";
+                $params = [$cccd];
+                if ($sessionId) {
+                    $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+                    $params[] = $sessionId;
+                } else {
+                    $sql .= " AND hs.dot_tuyen_sinh_id = (SELECT id FROM dot_tuyen_sinh ORDER BY ngay_bat_dau DESC LIMIT 1)";
+                }
+
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($params);
+                if ($stmt->fetch()) {
+                    $updSql = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', admin_id = ?, ngay_duyet = NOW()";
+                    $updParams = [$adminId];
+                    if ($note !== '') {
+                        $updSql .= ", ghi_chu = ?";
+                        $updParams[] = $note;
+                    }
+                    $updSql .= " WHERE so_cccd = ? AND dot_tuyen_sinh_id = (SELECT dot_tuyen_sinh_id FROM (" . $sql . ") as t)";
+                    
+                    // Simplified update for reliability
+                    $finalUpdate = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', admin_id = ?, ngay_duyet = NOW()";
+                    $finalParams = [$adminId];
+                    if ($note !== '') {
+                        $finalUpdate .= ", ghi_chu = ?";
+                        $finalParams[] = $note;
+                    }
+                    $finalUpdate .= " WHERE so_cccd = ?";
+                    $finalParams[] = $cccd;
+                    if ($sessionId) {
+                        $finalUpdate .= " AND dot_tuyen_sinh_id = ?";
+                        $finalParams[] = $sessionId;
+                    }
+
+                    $this->db->prepare($finalUpdate)->execute($finalParams);
+                    $success++;
+                    if ($logFile) fwrite($logFile, "Line " . ($index+2) . ": CCCD $cccd -> APPROVED\n");
+                } else {
+                    $notFound++;
+                    if ($logFile) fwrite($logFile, "Line " . ($index+2) . ": CCCD $cccd -> NOT FOUND in session\n");
+                }
+            }
+
+            $this->db->commit();
+            if ($logFile) {
+                fwrite($logFile, "--- COMPLETED: $success success, $notFound not found ---\n");
+                fclose($logFile);
+            }
+
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt thành công $success hồ sơ."));
+
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
+        }
+    }
+
+    public function downloadApproveTemplate()
+    {
+        $this->checkPermission('candidate.edit');
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = ['STT', 'Số CCCD', 'Ghi chú'];
+        foreach ($headers as $i => $h) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->setCellValue($colLetter . '1', $h);
+        }
+        $sheet->setCellValue('A2', 1);
+        $sheet->setCellValueExplicit('B2', '012345678901', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('C2', 'Đã kiểm tra');
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Mau_Duyet_Ho_So.xlsx"');
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function downloadTranscriptTemplate()
+    {
+        $this->checkPermission('candidate.edit');
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = [
+            'STT', 'CCCD', 'Lớp', 'Toán', 'Văn', 'NN', 'Lý', 'Hóa', 'Sinh', 
+            'Sử', 'Địa', 'GDCD', 'Tin', 'CN', 'KTPL', 'ĐTB cả năm', 'Học lực', 'Hạnh kiểm', 'Ghi chú'
+        ];
+        foreach ($headers as $i => $h) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->setCellValue($colLetter . '1', $h);
+        }
+        $sheet->getStyle('A1:S1')->getFont()->setBold(true);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('S')->setWidth(30);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Mau_Cap_Nhat_Hoc_Ba_Moi_Nhat_V2.xlsx"');
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function bulkUpdateTranscript()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+        $redirectTo = url('/admin/review-management');
+
+        if (!isset($_FILES['transcript_file']) || $_FILES['transcript_file']['error'] !== UPLOAD_ERR_OK) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Vui lòng chọn file để upload.'));
+            return;
+        }
+
+        $filePath = $_FILES['transcript_file']['tmp_name'];
+        $academicModel = new \App\Models\AcademicRecord();
+        $colMap = [3=>'diem_toan_cn', 4=>'diem_van_cn', 5=>'diem_ngoai_ngu_cn', 6=>'diem_ly_cn', 7=>'diem_hoa_cn', 8=>'diem_sinh_cn', 9=>'diem_su_cn', 10=>'diem_dia_cn', 11=>'diem_gdcd_cn', 12=>'diem_tin_hoc_cn', 13=>'diem_cong_nghe_cn', 14=>'diem_ktpl_cn', 15=>'diem_tb_ca_nam'];
+        $textCols = [16=>'hoc_luc_ca_nam', 17=>'hanh_kiem_ca_nam', 18=>'ghi_chu'];
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $rows = array_values($spreadsheet->getActiveSheet()->toArray(null, true, true, true));
+            array_shift($rows);
+
+            $success = 0; $skipped = 0; $warnings = [];
+            $this->db->beginTransaction();
+
+            $logFile = @fopen(dirname(__DIR__, 2) . '/storage/logs/bulk_transcript.log', 'a');
+            if ($logFile) fwrite($logFile, "\n--- BULK TRANSCRIPT START: " . date('Y-m-d H:i:s') . " ---\n");
+
+            foreach ($rows as $index => $row) {
+                $rowValues = array_values($row);
+                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
+                $lop = trim($rowValues[2] ?? '');
+                $lineNum = $index + 2;
+
+                if (empty($cccd)) continue;
+                if (!in_array($lop, ['10', '11', '12'])) {
+                    $warnings[] = "Dòng $lineNum: Lớp '$lop' không hợp lệ.";
+                    $skipped++; continue;
+                }
+
+                $stmtCheck = $this->db->prepare("SELECT so_cccd FROM thi_sinh WHERE so_cccd = ?");
+                $stmtCheck->execute([$cccd]);
+                if (!$stmtCheck->fetchColumn()) {
+                    $warnings[] = "Dòng $lineNum: CCCD $cccd không tồn tại.";
+                    $skipped++; continue;
+                }
+
+                $scoreData = [];
+                foreach ($colMap as $colIdx => $dbCol) {
+                    $val = trim($rowValues[$colIdx] ?? '');
+                    if ($val === '') { $scoreData[$dbCol] = null; }
+                    else {
+                        $numVal = str_replace(',', '.', $val);
+                        $scoreData[$dbCol] = is_numeric($numVal) ? (float)$numVal : null;
+                    }
+                }
+                foreach ($textCols as $colIdx => $dbCol) {
+                    $val = trim($rowValues[$colIdx] ?? '');
+                    $scoreData[$dbCol] = ($val === '') ? null : $val;
+                }
+
+                $academicModel->save($cccd, (int)$lop, $scoreData);
+                if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS\n");
+                $success++;
+            }
+
+            $this->db->commit();
+            if ($logFile) fclose($logFile);
+            if (!empty($warnings)) $_SESSION['bulk_warnings'] = $warnings;
+
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã cập nhật xong $success thí sinh."));
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
+        }
+    }
+
+    private function normalizeCCCD($cccd)
+    {
+        $cccd = (string)$cccd;
+        if (empty(trim($cccd))) return '';
+        if (stripos($cccd, 'E') !== false) { $cccd = sprintf('%.0f', (float)trim($cccd)); }
+        $cccd = preg_replace('/[^\d]/', '', $cccd);
+        if (strlen($cccd) > 0 && strlen($cccd) < 12) { $cccd = str_pad($cccd, 12, '0', STR_PAD_LEFT); }
+        if (strlen($cccd) === 13 && $cccd[0] === '0') { $cccd = substr($cccd, 1); }
+        return $cccd;
+    }
+
+    private function getLatestSessionId()
+    {
+        $stmt = $this->db->query("SELECT id FROM dot_tuyen_sinh ORDER BY ngay_bat_dau DESC LIMIT 1");
+        return $stmt->fetchColumn() ?: null;
     }
 }

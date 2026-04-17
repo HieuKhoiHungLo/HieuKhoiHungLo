@@ -53,7 +53,7 @@
                             <?= $index + 1 ?>
                         </td>
                         <td style="padding: 12px 10px; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400; font-size: 12px;">
-                            <?= htmlspecialchars($wish['ten_nganh']) ?>
+                            <?= htmlspecialchars($majorInfo['ten_nganh'] ?? ($wish['ten_nganh'] ?? '—')) ?>
                         </td>
                         <td style="padding: 12px 10px; text-align: center; border-right: 1px solid #e2e8f0; color: #000; font-weight: 400; font-size: 12px; font-family: monospace;">
                             <?= $wish['ma_nganh'] ?>

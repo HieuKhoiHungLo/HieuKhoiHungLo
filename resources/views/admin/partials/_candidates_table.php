@@ -326,6 +326,10 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                         class="w-7 h-7 flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-all border border-amber-100 shrink-0" title="Đổi mật khẩu">
                                         <i class="fas fa-key text-[9px]"></i>
                                     </button>
+                                    <button type="button" onclick="deleteSingle('<?= $c['so_cccd'] ?>')"
+                                        class="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-lg transition-all border border-rose-100 shrink-0" title="Xóa hồ sơ">
+                                        <i class="fas fa-trash-alt text-[9px]"></i>
+                                    </button>
                                 </div>
                             </td>
                             <?php endif; ?>
@@ -339,32 +343,32 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             <?php if ($mode !== 'all'): ?>
                             <td class="sticky-col sticky-col-trangthai text-center">
                                 <?php
-                                $mStatus = $c['master_status'] ?? '';
-                                $statuses = array_filter(array_unique(explode(', ', $c['statuses'] ?? '')));
-                                $displayStatuses = !empty($mStatus) ? array_unique(explode(', ', $mStatus)) : $statuses;
+                                $mStatus = trim($c['master_status'] ?? '');
+                                // Split by comma with optional spaces
+                                $displayStatuses = $mStatus ? preg_split('/\s*,\s*/', $mStatus) : [];
                                 
                                 if (empty($displayStatuses)): ?>
-                                    <span class="text-slate-300"><i class="fas fa-minus-circle"></i></span>
+                                    <span class="text-amber-500" title="Chưa có hồ sơ"><i class="fas fa-clock"></i></span>
                                 <?php else:
                                     foreach ($displayStatuses as $st):
+                                        $stTrim = trim($st);
+                                        $stLower = mb_strtolower($stTrim, 'UTF-8');
                                         $colorClass = 'text-amber-500';
-                                        if (strpos($st, 'Đã duyệt') !== false || strpos(strtolower($st), 'approved') !== false) 
+                                        $iconClass = 'fas fa-clock';
+
+                                        if (strpos($stLower, 'đã duyệt') !== false || strpos($stLower, 'approved') !== false || strpos($stLower, 'daduyet') !== false) {
                                             $colorClass = 'text-emerald-500';
-                                        elseif (strpos($st, 'Từ chối') !== false || strpos(strtolower($st), 'rejected') !== false) 
+                                            $iconClass = 'fas fa-check-circle';
+                                        } elseif (strpos($stLower, 'từ chối') !== false || strpos($stLower, 'rejected') !== false) {
                                             $colorClass = 'text-rose-500';
-                                        elseif (strpos($st, 'Yêu cầu sửa') !== false || strpos(strtolower($st), 'require_edit') !== false)
+                                            $iconClass = 'fas fa-times-circle';
+                                        } elseif (strpos($stLower, 'yêu cầu sửa') !== false || strpos($stLower, 'edit') !== false) {
                                             $colorClass = 'text-orange-500';
+                                            $iconClass = 'fas fa-edit';
+                                        }
                                     ?>
-                                        <span class="<?= $colorClass ?> px-0.5" title="<?= htmlspecialchars($st ?: 'Mới') ?>">
-                                            <?php if (strpos($colorClass, 'emerald') !== false): ?>
-                                                <i class="fas fa-check-circle"></i>
-                                            <?php elseif (strpos($colorClass, 'rose') !== false): ?>
-                                                <i class="fas fa-times-circle"></i>
-                                            <?php elseif (strpos($colorClass, 'orange') !== false): ?>
-                                                <i class="fas fa-edit"></i>
-                                            <?php else: ?>
-                                                <i class="fas fa-clock"></i>
-                                            <?php endif; ?>
+                                        <span class="<?= $colorClass ?> px-0.5" title="<?= htmlspecialchars($stTrim) ?>">
+                                            <i class="<?= $iconClass ?>"></i>
                                         </span>
                                     <?php endforeach; 
                                 endif; ?>
@@ -796,18 +800,18 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
             inputCCCD.value = cccd;
             form.appendChild(inputCCCD);
 
+            const inputCsrf = document.createElement('input');
+            inputCsrf.type = 'hidden';
+            inputCsrf.name = 'csrf_token';
+            inputCsrf.value = '<?= $_SESSION['csrf_token'] ?? '' ?>';
+            form.appendChild(inputCsrf);
+
             const inputRedirect = document.createElement('input');
             inputRedirect.type = 'hidden';
             inputRedirect.name = 'redirect_to';
-            inputRedirect.value = window.location.href; // Preserve filters/sorting
+            inputRedirect.value = window.location.href; 
             form.appendChild(inputRedirect);
-            
-            const inputCSRF = document.createElement('input');
-            inputCSRF.type = 'hidden';
-            inputCSRF.name = 'csrf_token';
-            inputCSRF.value = '<?= csrf_token() ?>';
-            form.appendChild(inputCSRF);
-            
+
             document.body.appendChild(form);
             Loading.show();
             form.submit();

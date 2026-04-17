@@ -150,16 +150,31 @@ class AdmissionController extends Controller {
     public function results() {
         $db = \App\Core\Database::getInstance()->getConnection();
         $sessionModel = new AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
         
-        // Filters
+        // Session selector: allow viewing any session, default to active
+        $allSessions = $sessionModel->getAll();
+        $selectedSessionId = $_GET['session_id'] ?? null;
+        
+        if ($selectedSessionId) {
+            $activeSession = null;
+            foreach ($allSessions as $s) {
+                if ($s['id'] == $selectedSessionId) { $activeSession = $s; break; }
+            }
+            if (!$activeSession) $activeSession = $sessionModel->getActiveSession();
+        } else {
+            $activeSession = $sessionModel->getActiveSession();
+        }
+        $sessionId = $activeSession['id'] ?? 0;
+
+        // Filters (for initial page state, API will handle actual data loading)
         $filterMajor = $_GET['major'] ?? '';
-        $filterStatus = $_GET['status'] ?? ''; 
+        $filterStatus = $_GET['status'] ?? '';
         $showAll = isset($_GET['show_all']) && $_GET['show_all'] == '1';
 
-        // 1. Calculate Stats for the Dashboard
+        // 1. Global Stats
         $statsSql = "SELECT 
                         COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                        COUNT(*) as total_wishes,
                         COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as total_admitted,
                         COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 1) as nv1_admit,
                         COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 2) as nv2_admit,
@@ -167,63 +182,252 @@ class AdmissionController extends Controller {
                      FROM nguyen_vong nv
                      LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                      WHERE nv.dot_tuyen_sinh_id = ?";
-        
         $statsStmt = $db->prepare($statsSql);
-        $statsStmt->execute([$activeSession['id'] ?? 0]);
+        $statsStmt->execute([$sessionId]);
         $stats = $statsStmt->fetch(\PDO::FETCH_ASSOC);
 
-        // 2. Fetch Results Query
-        $sql = "SELECT nv.*, t.ho_va_ten, t.so_cccd, n.ten_nganh,
-                       cs.diem_xet_tuyen as cs_diem_xet_tuyen, cs.to_hop_toi_uu as cs_to_hop, 
-                       cs.phuong_thuc_toi_uu as cs_phuong_thuc, cs.chi_tiet_diem,
-                       cs.trang_thai_trung_tuyen
-                FROM nguyen_vong nv
-                JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
-                JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
-                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                WHERE nv.dot_tuyen_sinh_id = ?";
-        
-        $params = [$activeSession['id'] ?? 0];
+        // 2. Per-major stats (admitted vs chi_tieu)  
+        $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
+                            COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as so_trung_tuyen,
+                            COUNT(*) as tong_nguyen_vong,
+                            MAX(cs.diem_xet_tuyen) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as diem_cao_nhat,
+                            MIN(cs.diem_xet_tuyen) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as diem_thap_nhat
+                          FROM dm_nganh n
+                          LEFT JOIN nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                          LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
+                          ORDER BY n.ma_nganh";
+        $majorStatsStmt = $db->prepare($majorStatsSql);
+        $majorStatsStmt->execute([$sessionId]);
+        $majorStats = $majorStatsStmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        if ($filterMajor) {
-            $sql .= " AND nv.ma_nganh = ?";
-            $params[] = $filterMajor;
+        // 3. Demographics for Charts
+        $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                           COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
+                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong
+                    FROM nguyen_vong nv
+                    JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                    LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                    LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh
+                    WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+        $demoStmt = $db->prepare($demoSql);
+        $demoStmt->execute([$sessionId]);
+        $demoRows = $demoStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $chartDist = [
+            'gender' => [],
+            'area' => [],
+            'object' => [],
+            'province' => [],
+            'school' => []
+        ];
+
+        foreach ($demoRows as $r) {
+            $gt = trim($r['gioi_tinh']);
+            // Standardize gender
+            if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+            elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+            else $gt = 'Khác';
+            $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
+            
+            $ar = $r['khu_vuc_uu_tien'] ?: 'Khác';
+            $chartDist['area'][$ar] = ($chartDist['area'][$ar] ?? 0) + 1;
+
+            $obj = $r['doi_tuong_uu_tien'] ?: 'Không';
+            $chartDist['object'][$obj] = ($chartDist['object'][$obj] ?? 0) + 1;
+
+            $prov = $r['ten_tinh'] ?: 'Khác';
+            $chartDist['province'][$prov] = ($chartDist['province'][$prov] ?? 0) + 1;
+
+            $sch = $r['ten_truong'] ?: 'Khác';
+            $chartDist['school'][$sch] = ($chartDist['school'][$sch] ?? 0) + 1;
         }
 
-        if ($filterStatus) {
-            if ($filterStatus === 'Trung tuyen') {
-                $sql .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
-            } else {
-                $sql .= " AND nv.trang_thai = ?";
-                $params[] = $filterStatus;
-            }
-        } elseif (!$showAll) {
-            // Default: Only show admitted if no specific status or show_all is requested
-            $sql .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
-        }
-
-        $sql .= " ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        // Group by Major
-        $grouped = [];
-        foreach ($results as $r) {
-            $grouped[$r['ma_nganh']][] = $r;
-        }
+        // Sort province and school by count DESC to pick top
+        arsort($chartDist['province']);
+        arsort($chartDist['school']);
 
         $this->view('admin/admission/results', [
-            'results' => $results, 
             'stats' => $stats,
+            'majorStats' => $majorStats,
+            'chartDist' => $chartDist,
             'majors' => $this->masterData->getMajors(),
             'filterMajor' => $filterMajor,
             'filterStatus' => $filterStatus,
             'showAll' => $showAll,
-            'activeSession' => $activeSession
+            'activeSession' => $activeSession,
+            'allSessions' => $allSessions
         ]);
     }
+
+    /**
+     * SSP API endpoint for the results table (AJAX DataTables)
+     */
+    public function resultsApi() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $sessionId = $_GET['session_id'] ?? 0;
+        $draw = intval($_GET['draw'] ?? 1);
+        $start = intval($_GET['start'] ?? 0);
+        $length = intval($_GET['length'] ?? 50);
+        $search = trim($_GET['search'] ?? '');
+        $filterMajor = $_GET['major'] ?? '';
+        $filterStatus = $_GET['status'] ?? '';
+        $showAll = ($_GET['show_all'] ?? '0') === '1';
+
+        if ($length < 1) $length = 50;
+        if ($length > 200) $length = 200;
+
+        // Base query
+        $baseFrom = "FROM nguyen_vong nv
+                     JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                     JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                     LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                     WHERE nv.dot_tuyen_sinh_id = ?";
+        $params = [$sessionId];
+
+        // Status filter
+        if ($filterStatus === 'Trung tuyen') {
+            $baseFrom .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+        } elseif ($filterStatus) {
+            $baseFrom .= " AND nv.trang_thai = ?";
+            $params[] = $filterStatus;
+        } elseif (!$showAll) {
+            $baseFrom .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+        }
+
+        // Major filter  
+        if ($filterMajor) {
+            $baseFrom .= " AND nv.ma_nganh = ?";
+            $params[] = $filterMajor;
+        }
+
+        // Search filter
+        $searchSql = "";
+        if (!empty($search)) {
+            $searchSql = " AND (t.ho_va_ten ILIKE ? OR t.so_cccd ILIKE ? OR nv.ma_nganh ILIKE ? OR n.ten_nganh ILIKE ?)";
+            $searchParam = "%{$search}%";
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
+
+        // Count total (without search)
+        $paramsNoSearch = array_slice($params, 0, count($params) - ($search ? 4 : 0));
+        $stmtTotal = $db->prepare("SELECT COUNT(*) $baseFrom");
+        $stmtTotal->execute($paramsNoSearch);
+        $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
+
+        // Count filtered (with search)
+        if (!empty($search)) {
+            $stmtFiltered = $db->prepare("SELECT COUNT(*) $baseFrom $searchSql");
+            $stmtFiltered->execute($params);
+            $recordsFiltered = $stmtFiltered->fetchColumn() ?: 0;
+        } else {
+            $recordsFiltered = $recordsTotal;
+        }
+
+        // Data query
+        $dataSql = "SELECT nv.id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, nv.trang_thai,
+                           nv.phuong_thuc_xet_tuyen,
+                           t.ho_va_ten, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien,
+                           n.ten_nganh, n.nhom_nganh,
+                           cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu,
+                           cs.chi_tiet_diem, cs.trang_thai_trung_tuyen,
+                           cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3
+                    $baseFrom $searchSql
+                    ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC
+                    LIMIT $length OFFSET $start";
+        
+        $stmt = $db->prepare($dataSql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Process rows
+        foreach ($rows as &$row) {
+            $row['is_pass'] = ($row['trang_thai'] == 'Trung tuyen' || $row['trang_thai'] == 'Trúng tuyển' || ($row['trang_thai_trung_tuyen'] ?? false));
+            if (!empty($row['chi_tiet_diem'])) {
+                $row['chi_tiet_diem'] = json_decode($row['chi_tiet_diem'], true);
+            }
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'draw' => $draw,
+            'recordsTotal' => intval($recordsTotal),
+            'recordsFiltered' => intval($recordsFiltered),
+            'data' => $rows
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Bulk email to selected candidates
+     */
+    public function bulkEmail() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $ids = json_decode($_POST['ids'] ?? '[]', true);
+        $sessionId = $_POST['session_id'] ?? 0;
+        
+        if (empty($ids)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Chưa chọn thí sinh nào.']);
+            exit;
+        }
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        $sql = "SELECT t.so_cccd, t.ho_va_ten, t.email, nv.ma_nganh, n.ten_nganh, nv.trang_thai, cs.diem_xet_tuyen
+                FROM nguyen_vong nv
+                JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
+                JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                WHERE nv.id IN ($placeholders)
+                AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($ids);
+        $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $count = 0;
+        $errors = 0;
+        
+        foreach ($candidates as $cand) {
+            if (empty($cand['email'])) continue;
+            
+            $data = [
+                'ho_ten' => $cand['ho_va_ten'],
+                'cccd' => $cand['so_cccd'],
+                'ten_nganh' => $cand['ten_nganh'],
+                'ma_nganh' => $cand['ma_nganh'],
+                'diem_xet_tuyen' => number_format($cand['diem_xet_tuyen'], 2),
+                'login_url' => url('/login')
+            ];
+            
+            $res = $this->emailService->sendWithTemplate($cand['email'], 'admission_success', $data);
+            if ($res === true) { $count++; } else { $errors++; }
+        }
+        
+        // Audit log
+        $auditService = new \App\Services\AuditService();
+        $auditService->log('BULK_EMAIL_SENT', 'admission', null, null, [
+            'count' => $count,
+            'errors' => $errors,
+            'session_id' => $sessionId
+        ]);
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => "Đã gửi email cho $count thí sinh." . ($errors > 0 ? " ($errors lỗi)" : "")
+        ]);
+        exit;
+    }
+
     public function finalize() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
         
@@ -294,6 +498,14 @@ class AdmissionController extends Controller {
                 }
             }
             $db->commit();
+            
+            // Audit log
+            $auditService = new \App\Services\AuditService();
+            $auditService->log('ADMISSION_FINALIZED', 'admission', null, null, [
+                'session_id' => $activeSession['id'],
+                'count_passed' => $countPassed
+            ]);
+
             $this->redirect(url('/admin/admission/results?message=' . urlencode("Đã công bố kết quả. $countPassed nguyện vọng trúng tuyển.")));
         } catch (\Exception $e) {
             $db->rollBack();

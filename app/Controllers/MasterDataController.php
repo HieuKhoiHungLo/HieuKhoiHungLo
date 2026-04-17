@@ -585,7 +585,7 @@ class MasterDataController extends Controller {
                 'nam_tuyen_sinh' => (int)$_POST['nam_tuyen_sinh'],
                 'ngay_bat_dau' => $_POST['ngay_bat_dau'],
                 'ngay_ket_thuc' => $_POST['ngay_ket_thuc'],
-                'kich_hoat' => isset($_POST['kich_hoat']) ? true : false
+                'kich_hoat' => isset($_POST['kich_hoat']) ? 'true' : 'false'
             ];
 
             if ($id) {
@@ -653,7 +653,7 @@ class MasterDataController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();
             $ma = $_POST['ma_phuong_thuc'] ?? '';
-            $isActive = isset($_POST['is_active']) ? 1 : 0;
+            $isActive = isset($_POST['is_active']) ? 'true' : 'false';
             
             if ($ma) {
                 // Update is_active only currently, it's mostly read-only

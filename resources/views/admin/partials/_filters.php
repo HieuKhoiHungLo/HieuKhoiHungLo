@@ -26,6 +26,14 @@
 
     <?php if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 1): ?>
         <div class="flex items-center gap-3">
+            <?php if (isset($mode) && $mode === 'review'): ?>
+            <button onclick="document.getElementById('modal-bulk-approve').classList.remove('hidden')" class="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-sm font-semibold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition shadow-sm">
+                <i class="fas fa-file-check"></i> Duyệt theo file
+            </button>
+            <button onclick="document.getElementById('modal-bulk-transcript').classList.remove('hidden')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition shadow-sm">
+                <i class="fas fa-file-excel"></i> Cập nhật học bạ
+            </button>
+            <?php endif; ?>
             <a href="<?= url('/admin/candidates/trash') ?>" class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:text-red-600 hover:border-red-200 transition shadow-sm" title="Xem hồ sơ đã xóa">
                 <i class="fas fa-trash-alt"></i> Thùng rác
             </a>

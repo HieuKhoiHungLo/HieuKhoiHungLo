@@ -157,6 +157,120 @@
     <?php include __DIR__ . '/partials/_candidates_table.php'; ?>
 </div>
 
+<?php if (isset($mode) && $mode === 'review'): ?>
+<!-- Modal: Duyệt hồ sơ theo file -->
+<div id="modal-bulk-approve" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg"><i class="fas fa-file-check mr-2"></i>Duyệt hồ sơ theo file</h3>
+            <button onclick="document.getElementById('modal-bulk-approve').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+        </div>
+        <form action="<?= url('/admin/review/bulk-approve-file') ?>" method="POST" enctype="multipart/form-data" class="p-6">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
+            
+            <div class="mb-5">
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-sm text-slate-600">Upload file Excel (.xlsx/.xls) chứa danh sách CCCD cần duyệt.</p>
+                    <a href="<?= url('/admin/review/download-approve-template') ?>" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition">
+                        <i class="fas fa-download mr-1"></i> Tải file mẫu
+                    </a>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cấu trúc file yêu cầu:</p>
+                    <table class="w-full text-xs">
+                        <thead><tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="py-1 px-2">Cột A</th><th class="py-1 px-2">Cột B</th><th class="py-1 px-2">Cột C</th>
+                        </tr></thead>
+                        <tbody class="text-slate-700">
+                            <tr class="border-b border-slate-100"><td class="py-1 px-2 text-slate-400">STT</td><td class="py-1 px-2 font-semibold">CCCD</td><td class="py-1 px-2">Ghi chú</td></tr>
+                            <tr class="border-b border-slate-100"><td class="py-1 px-2 text-slate-400">1</td><td class="py-1 px-2 font-mono">001234567890</td><td class="py-1 px-2">Đã xác minh</td></tr>
+                            <tr><td class="py-1 px-2 text-slate-400">2</td><td class="py-1 px-2 font-mono">009876543210</td><td class="py-1 px-2 text-slate-400 italic">Để trống = giữ ghi chú cũ</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
+                <input type="file" name="approve_file" accept=".xlsx,.xls,.csv" required
+                    class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-xl">
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-bulk-approve').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-200 transition">
+                    <i class="fas fa-check-double mr-1"></i> Duyệt tất cả
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Cập nhật điểm học bạ theo file -->
+<div id="modal-bulk-transcript" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg"><i class="fas fa-file-excel mr-2"></i>Cập nhật điểm học bạ</h3>
+            <button onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+        </div>
+        <form action="<?= url('/admin/review/bulk-update-transcript') ?>" method="POST" enctype="multipart/form-data" class="p-6">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            
+            <div class="mb-5">
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-sm text-slate-600">Upload file Excel (.xlsx/.xls) chứa điểm cả năm theo mẫu. Mỗi dòng = 1 thí sinh × 1 lớp.</p>
+                    <a href="<?= url('/admin/review/download-transcript-template') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition">
+                        <i class="fas fa-download mr-1"></i> Tải file mẫu
+                    </a>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 overflow-x-auto">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cấu trúc file (19 cột):</p>
+                    <table class="w-full text-xs whitespace-nowrap">
+                        <thead><tr class="text-left text-slate-500 border-b border-slate-200">
+                            <th class="py-1 px-1">A</th><th class="py-1 px-1 font-bold text-slate-800">B</th><th class="py-1 px-1 font-bold text-slate-800">C</th>
+                            <th class="py-1 px-1">D</th><th class="py-1 px-1">E</th><th class="py-1 px-1">F</th><th class="py-1 px-1">G</th><th class="py-1 px-1">H</th>
+                            <th class="py-1 px-1">I</th><th class="py-1 px-1">J</th><th class="py-1 px-1">K</th><th class="py-1 px-1">L</th>
+                            <th class="py-1 px-1">M</th><th class="py-1 px-1">N</th><th class="py-1 px-1">O</th>
+                            <th class="py-1 px-1">P</th><th class="py-1 px-1">Q</th><th class="py-1 px-1">R</th><th class="py-1 px-1 font-bold text-blue-600">S</th>
+                        </tr></thead>
+                        <tbody class="text-slate-600">
+                            <tr class="border-b border-slate-100 font-medium text-[10px]">
+                                <td class="py-1 px-1 text-slate-400">STT</td><td class="py-1 px-1 font-bold">CCCD</td><td class="py-1 px-1 font-bold">Lớp</td>
+                                <td class="py-1 px-1">Toán</td><td class="py-1 px-1">Văn</td><td class="py-1 px-1">NN</td><td class="py-1 px-1">Lý</td><td class="py-1 px-1">Hóa</td>
+                                <td class="py-1 px-1">Sinh</td><td class="py-1 px-1">Sử</td><td class="py-1 px-1">Địa</td><td class="py-1 px-1">GDCD</td>
+                                <td class="py-1 px-1">Tin</td><td class="py-1 px-1">CN</td><td class="py-1 px-1">KTPL</td>
+                                <td class="py-1 px-1">ĐTB</td><td class="py-1 px-1">HL</td><td class="py-1 px-1">HK</td><td class="py-1 px-1 font-semibold text-blue-600">Ghi chú</td>
+                            </tr>
+                            <tr class="text-[10px]">
+                                <td class="py-1 px-1 text-slate-400">1</td><td class="py-1 px-1 font-mono">00123...</td><td class="py-1 px-1">12</td>
+                                <td class="py-1 px-1">8.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">8.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
+                                <td class="py-1 px-1">6.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
+                                <td class="py-1 px-1">9.0</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1"></td>
+                                <td class="py-1 px-1">7.7</td><td class="py-1 px-1">Khá</td><td class="py-1 px-1">Tốt</td><td class="py-1 px-1 text-blue-500 italic">Dữ liệu mẫu</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
+                <input type="file" name="transcript_file" accept=".xlsx,.xls,.csv" required
+                    class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-xl">
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-200 transition">
+                    <i class="fas fa-upload mr-1"></i> Cập nhật điểm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
 
 <script>
     // Checkbox Listeners

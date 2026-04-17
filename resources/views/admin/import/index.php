@@ -1,35 +1,34 @@
 <?php
-$title = 'Import dữ liệu Bộ GD&ĐT';
-include __DIR__ . '/../../layouts/admin.php';
+ob_start();
 ?>
 
 <div class="p-6 bg-gray-50 min-h-screen" x-data="importApp()">
-    <div class="mb-6 flex justify-between items-end">
+    <div class="mb-8 flex justify-between items-start">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Import Dữ liệu Bộ GD&ĐT</h1>
-            <p class="text-sm text-gray-500 mt-1">Đẩy file CSV trích xuất từ Hệ thống chung của Bộ Giáo dục & Đào tạo.</p>
+            <p class="text-sm text-gray-500 mt-1">Đẩy file Excel (.xlsx) hoặc CSV trích xuất từ Hệ thống chung của Bộ Giáo dục & Đào tạo.</p>
         </div>
-        <button @click="openBatchModal = true" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
-            <i class="fas fa-plus mr-2"></i> Tạo đợt mới
-        </button>
+        <div class="flex gap-3">
+            <button @click="openBatchModal = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-lg shadow-blue-200">
+                <i class="fas fa-plus mr-2"></i> TẠO ĐỢT MỚI
+            </button>
+        </div>
     </div>
 
-    <!-- Active Batch Info -->
+    <!-- Active Batch Banner -->
     <?php if ($activeBatch): ?>
-        <div class="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+        <div class="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
             <div class="flex items-center">
                 <i class="fas fa-info-circle text-blue-400 mr-3"></i>
                 <p class="text-sm text-blue-700">
-                    <strong>Đợt đang hoạt động:</strong> <?= htmlspecialchars($activeBatch['ten_dot']) ?> (Năm <?= $activeBatch['nam'] ?>)
+                    <strong>Đợt đang hoạt động:</strong> <?= htmlspecialchars($activeBatch['ten_dot']) ?> (Năm <?= $activeBatch['nam_tuyen_sinh'] ?>)
                 </p>
             </div>
         </div>
     <?php else: ?>
-        <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
-            <div class="flex items-center">
-                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
-                <p class="text-sm text-yellow-700">Chưa có đợt tuyển sinh nào đang hoạt động. Vui lòng tạo đợt mới phía trên.</p>
-            </div>
+        <div class="mb-6 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center shadow-sm">
+            <i class="fas fa-exclamation-triangle text-amber-500 mr-3"></i>
+            <p class="text-sm text-amber-700">Chưa có đợt tuyển sinh nào được kích hoạt. Vui lòng tạo hoặc kích hoạt đợt trước khi import.</p>
         </div>
     <?php endif; ?>
 
@@ -43,9 +42,10 @@ include __DIR__ . '/../../layouts/admin.php';
                 <div>
                     <p class="text-sm text-gray-500 mb-4">Import thông tin cá nhân (SBD, Họ tên, Quê quán) và Điểm bài thi THPT Quốc gia để dùng làm Điểm thành phần.</p>
                     <form @submit.prevent="upload('candidates', $event)" class="mb-2">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 1)</label>
-                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel/CSV (Bảng 1)</label>
+                        <input type="file" name="file" accept=".xlsx, .xls, .csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
                         <button type="submit" :disabled="!hasBatch || loading.candidates" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <i class="fas fa-upload mr-2" x-show="!loading.candidates"></i>
                             <i class="fas fa-spinner fa-spin mr-2" x-show="loading.candidates" x-cloak></i>
@@ -67,9 +67,10 @@ include __DIR__ . '/../../layouts/admin.php';
                 <div>
                     <p class="text-sm text-gray-500 mb-4">Import danh sách Hàng vạn nguyện vọng Đăng ký vào Trường kèm Thứ tự Ưu tiên (Do Bộ trả về).</p>
                     <form @submit.prevent="upload('applications', $event)" class="mb-2">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 3)</label>
-                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel/CSV (Bảng 3)</label>
+                        <input type="file" name="file" accept=".xlsx, .xls, .csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 mb-4">
                         <button type="submit" :disabled="!hasBatch || loading.applications" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <i class="fas fa-upload mr-2" x-show="!loading.applications"></i>
                             <i class="fas fa-spinner fa-spin mr-2" x-show="loading.applications" x-cloak></i>
@@ -91,9 +92,10 @@ include __DIR__ . '/../../layouts/admin.php';
                 <div>
                     <p class="text-sm text-gray-500 mb-4">Import Bảng điểm tổng kết cả năm lớp 10, 11 và 12 của tất cả các môn.</p>
                     <form @submit.prevent="upload('transcripts', $event)" class="mb-2">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file CSV (Bảng 9)</label>
-                        <input type="file" name="file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file Excel/CSV (Bảng 9)</label>
+                        <input type="file" name="file" accept=".xlsx, .xls, .csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 mb-4">
                         <button type="submit" :disabled="!hasBatch || loading.transcripts" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <i class="fas fa-upload mr-2" x-show="!loading.transcripts"></i>
                             <i class="fas fa-spinner fa-spin mr-2" x-show="loading.transcripts" x-cloak></i>
@@ -131,7 +133,7 @@ include __DIR__ . '/../../layouts/admin.php';
                     <?php else: ?>
                     <?php foreach ($history as $log): ?>
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-500"><?= $log['created_at'] ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">Log #<?= $log['id'] ?></td>
                         <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900"><?= htmlspecialchars($log['file_name']) ?></td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -156,6 +158,7 @@ include __DIR__ . '/../../layouts/admin.php';
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div x-show="openBatchModal" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <form action="<?= url('/admin/import/batch/create') ?>" method="POST">
+                    <?= csrf_field() ?>
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -215,10 +218,16 @@ function importApp() {
                     body: formData
                 });
                 
-                const result = await response.json();
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Dữ liệu máy chủ trả về không hợp lệ (Không phải JSON). Có thể do file quá lớn hoặc lỗi PHP Fatal Error. Nội dung: ' + text.substring(0, 200));
+                }
                 
                 if (result.status) {
-                    this.msg[type] = `<div class="p-3 bg-green-100 text-green-700 rounded"><i class="fas fa-check-circle mr-1"></i> Thành công! Đã nạp ${result.success}/${result.count} dòng. Khôi phục tải lại trang.</div>`;
+                    this.msg[type] = `<div class="p-3 bg-green-100 text-green-700 rounded"><i class="fas fa-check-circle mr-1"></i> Thành công! Đã nạp ${result.success}/${result.count} dòng. Đang tải lại trang...</div>`;
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     let errorHtml = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-exclamation-triangle mr-1"></i> Lỗi: ${result.message}`;
@@ -232,7 +241,8 @@ function importApp() {
                     this.msg[type] = errorHtml;
                 }
             } catch (error) {
-                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ!</div>`;
+                console.error(error);
+                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ hoặc lỗi xử lý! <br><small class="text-xs">${error.message}</small></div>`;
             } finally {
                 this.loading[type] = false;
                 form.reset();
@@ -241,3 +251,10 @@ function importApp() {
     }
 }
 </script>
+
+<?php
+$content = ob_get_clean();
+$title = 'Import dữ liệu Bộ GD&ĐT';
+include __DIR__ . '/../../layouts/admin.php';
+?>
+

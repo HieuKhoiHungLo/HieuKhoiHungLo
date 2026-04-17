@@ -590,7 +590,7 @@ class AdminController extends Controller
                     // Fallback to 2025 latest session if 2026 is empty
                     $prevSession = \App\Core\Cache::remember('latest_session_2025', 60, function() {
                         $db = \App\Core\Database::getInstance()->getConnection();
-                        $stmt = $db->query("SELECT * FROM dm_dot_tuyen_sinh WHERE nam_tuyen_sinh = 2025 ORDER BY id DESC LIMIT 1");
+                        $stmt = $db->query("SELECT * FROM dot_tuyen_sinh WHERE nam_tuyen_sinh = 2025 ORDER BY id DESC LIMIT 1");
                         return $stmt->fetch(\PDO::FETCH_ASSOC);
                     });
                     if ($prevSession) {

@@ -42,6 +42,10 @@ class ThiSinh extends Model {
                 $params[] = $year;
             }
 
+            if ($excludeTrash) {
+                $sql .= " AND t.deleted_at IS NULL";
+            }
+
             if ($onlyEditRequests) {
                 $sql .= " AND hs.yeu_cau_chinh_sua = TRUE";
             }
@@ -161,35 +165,73 @@ class ThiSinh extends Model {
         $cccds = array_column($candidates, 'so_cccd');
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
 
-        $statusSql = "SELECT so_cccd, string_agg(trang_thai, ', ') as statuses 
-                      FROM nguyen_vong 
-                      WHERE so_cccd IN ($placeholders) 
-                      GROUP BY so_cccd";
+        // Filter statuses and master status by session if provided
+        $statusSql = "SELECT nv.so_cccd, string_agg(nv.trang_thai, ', ') as statuses 
+                      FROM nguyen_vong nv
+                      WHERE nv.so_cccd IN ($placeholders)";
+        $statusParams = $cccds;
+        if ($sessionId) {
+            $statusSql .= " AND nv.dot_tuyen_sinh_id = ?";
+            $statusParams[] = $sessionId;
+        } elseif ($year) {
+            $statusSql .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE nv.dot_tuyen_sinh_id = dt.id AND dt.dm_nam_tuyen_sinh_nam = ?)";
+            $statusParams[] = $year;
+        }
+        $statusSql .= " GROUP BY nv.so_cccd";
+        
         $stmtStatus = $this->db->prepare($statusSql);
-        $stmtStatus->execute($cccds);
+        $stmtStatus->execute($statusParams);
         $statusMap = $stmtStatus->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        $editSql = "SELECT so_cccd, COUNT(*) > 0 as has_edit_request, string_agg(trang_thai, ', ') as master_status, string_agg(ghi_chu, '\n') as ghi_chu
-                    FROM ho_so_xet_tuyen 
-                    WHERE so_cccd IN ($placeholders) 
-                    GROUP BY so_cccd";
+        $editSql = "SELECT hs.so_cccd, COUNT(*) > 0 as has_edit_request, string_agg(hs.trang_thai, ', ') as master_status, string_agg(hs.ghi_chu, '\n') as ghi_chu
+                    FROM ho_so_xet_tuyen hs
+                    WHERE hs.so_cccd IN ($placeholders)";
+        $editParams = $cccds;
+        if ($sessionId) {
+            $editSql .= " AND hs.dot_tuyen_sinh_id = ?";
+            $editParams[] = $sessionId;
+        } elseif ($year) {
+            $editSql .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE hs.dot_tuyen_sinh_id = dt.id AND dt.dm_nam_tuyen_sinh_nam = ?)";
+            $editParams[] = $year;
+        }
+        $editSql .= " GROUP BY hs.so_cccd";
+        
         $stmtEdit = $this->db->prepare($editSql);
-        $stmtEdit->execute($cccds);
+        $stmtEdit->execute($editParams);
         $masterStatusMap = $stmtEdit->fetchAll(PDO::FETCH_ASSOC);
         $editMap = [];
         $statusMapHoso = [];
         $noteMap = [];
         foreach($masterStatusMap as $ms) {
-            $editMap[$ms['so_cccd']] = $ms['has_edit_request'];
-            $statusMapHoso[$ms['so_cccd']] = $ms['master_status'];
-            $noteMap[$ms['so_cccd']] = $ms['ghi_chu'];
+            $cleanedCCCD = trim($ms['so_cccd']);
+            $editMap[$cleanedCCCD] = $ms['has_edit_request'];
+            $statusMapHoso[$cleanedCCCD] = $ms['master_status'];
+            $noteMap[$cleanedCCCD] = $ms['ghi_chu'];
+        }
+
+        // Fetch and merge Transcript Notes
+        $transcriptNoteSql = "SELECT so_cccd, string_agg(DISTINCT ghi_chu, '; ') as transcript_notes 
+                              FROM ket_qua_hoc_tap 
+                              WHERE so_cccd IN ($placeholders) AND ghi_chu IS NOT NULL AND ghi_chu != ''
+                              GROUP BY so_cccd";
+        $stmtTranscriptNote = $this->db->prepare($transcriptNoteSql);
+        $stmtTranscriptNote->execute($cccds);
+        $transcriptNotes = $stmtTranscriptNote->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        foreach ($transcriptNotes as $cccd => $tn) {
+            $cleanedCCCD = trim($cccd);
+            if (isset($noteMap[$cleanedCCCD]) && !empty($noteMap[$cleanedCCCD])) {
+                $noteMap[$cleanedCCCD] .= " (" . $tn . ")";
+            } else {
+                $noteMap[$cleanedCCCD] = $tn;
+            }
         }
 
         // Metadata (Province, School, NV1) is now fetched via LEFT JOINs in the primary query.
         // Secondary mapping queries for statuses and edit requests remain separate for group-by efficiency.
 
         foreach ($candidates as &$candidate) {
-            $cccd = $candidate['so_cccd'];
+            $cccd = trim($candidate['so_cccd']);
             $candidate['statuses'] = $statusMap[$cccd] ?? '';
             $candidate['master_status'] = $statusMapHoso[$cccd] ?? ''; // Use ho_so_xet_tuyen status
             
@@ -216,6 +258,10 @@ class ThiSinh extends Model {
             $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
                     WHERE 1=1";
+            
+            if ($excludeTrash) {
+                $sql .= " AND t.deleted_at IS NULL";
+            }
             
             if ($sessionId) {
                 $sql .= " AND hs.dot_tuyen_sinh_id = ?";
@@ -403,12 +449,19 @@ class ThiSinh extends Model {
     public function create($data) {
         $sql = "INSERT INTO {$this->table} (so_cccd, ho_va_ten, mat_khau, dien_thoai, email) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
+        
+        $cccd = $data['so_cccd'] ?? $data['cccd'] ?? null;
+        $name = $data['ho_va_ten'] ?? $data['fullname'] ?? '';
+        $pass = $data['mat_khau'] ?? $data['password'] ?? '';
+        $phone = $data['so_dien_thoai'] ?? $data['dien_thoai'] ?? $data['phone'] ?? '';
+        $email = $data['email'] ?? '';
+
         return $stmt->execute([
-            $data['cccd'],
-            $data['fullname'],
-            $data['password'],
-            $data['phone'],
-            $data['email']
+            $cccd,
+            $name,
+            $pass,
+            $phone,
+            $email
         ]);
     }
 

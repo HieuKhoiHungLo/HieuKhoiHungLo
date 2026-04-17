@@ -194,4 +194,140 @@ class ReportController extends Controller {
         $data = $this->exportService->exportAdmittedByMajor(null, $filters);
         $this->exportService->toExcel($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.xls');
     }
+    
+    public function downloadAptitudePhotos() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+            'status'     => $_GET['status'] ?? null,
+        ];
+
+        $list = $this->exportService->exportAptitudeList($filters);
+        if (empty($list)) {
+            die('Không có dữ liệu thí sinh năng khiếu để tải ảnh.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFileName = 'anh_the_nang_khieu_' . date('Ymd_His') . '.zip';
+        $zipFilePath = sys_get_temp_dir() . '/' . $zipFileName;
+
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            die('Không thể tạo file ZIP.');
+        }
+
+        $publicPath = __DIR__ . '/../../public';
+        $addedFiles = 0;
+
+        foreach ($list as $c) {
+            $cccd = $c['Số CCCD'] ?? '';
+            $hoTen = $c['Họ và Tên'] ?? '';
+            $path = $c['anh_dai_dien'] ?? '';
+
+            if (!$path || strpos($path, 'http') === 0) continue;
+
+            $fullPath = $publicPath . $path;
+            if (file_exists($fullPath) && is_file($fullPath)) {
+                $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
+                // Clean name for zip
+                $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($hoTen, 'ASCII', 'UTF-8'));
+                if (empty($safeName)) $safeName = 'thi_sinh';
+                
+                $zipName = "{$cccd}_{$safeName}.{$ext}";
+                $zip->addFile($fullPath, $zipName);
+                $addedFiles++;
+            }
+        }
+
+        $zip->close();
+
+        if ($addedFiles === 0) {
+            @unlink($zipFilePath);
+            die('Không tìm thấy tệp ảnh nào trên máy chủ để nén.');
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $zipFileName . '"');
+        header('Content-Length: ' . filesize($zipFilePath));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($zipFilePath);
+        unlink($zipFilePath);
+        exit;
+    }
+
+    public function downloadCertificatePhotos() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+            'status'     => $_GET['status'] ?? null,
+        ];
+
+        $list = $this->exportService->exportCertificatesFiltered($filters);
+        if (empty($list)) {
+            die('Không có dữ liệu chứng chỉ để tải ảnh.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFileName = 'anh_minh_chung_cc_' . date('Ymd_His') . '.zip';
+        $zipFilePath = sys_get_temp_dir() . '/' . $zipFileName;
+
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            die('Không thể tạo file ZIP.');
+        }
+
+        $publicPath = __DIR__ . '/../../public';
+        $addedFiles = 0;
+
+        foreach ($list as $c) {
+            $cccd = $c['Số CCCD'] ?? '';
+            $hoTen = $c['Họ và Tên'] ?? '';
+            $type = $c['Loại chứng chỉ'] ?? 'CC';
+            $paths = $c['file_minh_chung_cc'] ?? '';
+
+            if (!$paths) continue;
+
+            $files = explode(',', $paths);
+            $i = 1;
+            foreach ($files as $path) {
+                $path = trim($path);
+                if (!$path || strpos($path, 'http') === 0) continue;
+
+                $fullPath = $publicPath . $path;
+                if (file_exists($fullPath) && is_file($fullPath)) {
+                    $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
+                    $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($hoTen, 'ASCII', 'UTF-8'));
+                    $safeType = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($type, 'ASCII', 'UTF-8'));
+                    
+                    $suffix = count($files) > 1 ? "_{$i}" : "";
+                    $zipName = "{$cccd}_{$safeName}_{$safeType}{$suffix}.{$ext}";
+                    
+                    $zip->addFile($fullPath, $zipName);
+                    $addedFiles++;
+                    $i++;
+                }
+            }
+        }
+
+        $zip->close();
+
+        if ($addedFiles === 0) {
+            @unlink($zipFilePath);
+            die('Không tìm thấy tệp ảnh minh chứng nào trên máy chủ để nén.');
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $zipFileName . '"');
+        header('Content-Length: ' . filesize($zipFilePath));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($zipFilePath);
+        unlink($zipFilePath);
+        exit;
+    }
 }

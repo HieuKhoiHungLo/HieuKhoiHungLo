@@ -10,7 +10,6 @@ class ImportController extends Controller {
     protected $importRepo;
 
     public function __construct() {
-        parent::__construct();
         $this->importService = new ImportService();
         $this->importRepo = new ImportRepository();
     }
@@ -30,54 +29,68 @@ class ImportController extends Controller {
 
     public function upload() {
         $this->requireAdmin();
+        
+        // Increase resources for large MOET files
+        ini_set('memory_limit', '1024M');
+        ini_set('max_execution_time', '600');
+        set_time_limit(600);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['status' => false, 'message' => 'Invalid method']);
             return;
         }
 
-        $type = $_POST['type'] ?? '';
-        $batchId = $_POST['batch_id'] ?? '';
-        
-        if (empty($batchId) || empty($type)) {
-            $this->json(['status' => false, 'message' => 'Missing parameters']);
-            return;
+        try {
+            $type = $_POST['type'] ?? '';
+            $batchId = $_POST['batch_id'] ?? '';
+            
+            if (empty($batchId) || empty($type)) {
+                $this->json(['status' => false, 'message' => 'Vui lòng chọn hoặc tạo đợt tuyển sinh trước khi import.']);
+                return;
+            }
+
+            if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                $this->json(['status' => false, 'message' => 'Lỗi upload file hoặc file quá lớn so với cấu hình máy chủ.']);
+                return;
+            }
+
+            $storageDir = __DIR__ . '/../../storage';
+            $uploadDir = $storageDir . '/imports/';
+            
+            if (!is_dir($storageDir)) mkdir($storageDir, 0777, true);
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+            $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', basename($_FILES['file']['name']));
+            $filePath = $uploadDir . $fileName;
+
+            if (!move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
+                $this->json(['status' => false, 'message' => 'Không thể lưu file vào thư mục storage. Vui lòng kiểm tra quyền ghi thư mục.']);
+                return;
+            }
+
+            $adminId = $_SESSION['admin_id'] ?? 1;
+            $result = ['status' => false, 'message' => 'Unknown type'];
+
+            $batch = $this->importRepo->getActiveBatch();
+            $year = $batch ? (int)$batch['nam_tuyen_sinh'] : (int)date('Y');
+
+            if ($type === 'candidates') {
+                $result = $this->importService->parseCandidates($filePath, $batchId, $adminId, $year);
+            } elseif ($type === 'applications') {
+                $result = $this->importService->parseApplications($filePath, $batchId, $adminId, 'THV');
+            } elseif ($type === 'transcripts') {
+                $result = $this->importService->parseTranscripts($filePath, $batchId, $adminId);
+            }
+
+            $this->json($result);
+        } catch (\Throwable $e) {
+            $this->json([
+                'status' => false, 
+                'message' => 'Lỗi hệ thống trong quá trình import: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
         }
-
-        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-            $this->json(['status' => false, 'message' => 'Upload failed']);
-            return;
-        }
-
-        $uploadDir = __DIR__ . '/../../storage/imports/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-        $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', basename($_FILES['file']['name']));
-        $filePath = $uploadDir . $fileName;
-
-        if (!move_uploaded_file($_FILES['file']['tmp_name'], $filePath)) {
-            $this->json(['status' => false, 'message' => 'Failed to save file']);
-            return;
-        }
-
-        $adminId = $_SESSION['admin_id'] ?? 1; // Fallback
-        $result = ['status' => false, 'message' => 'Unknown type'];
-
-        if ($type === 'candidates') {
-            $result = $this->importService->parseCandidates($filePath, $batchId, $adminId);
-        } elseif ($type === 'applications') {
-            // Need target school code? Config or Param?
-            // Assume we grab it from settings or hardcode 'HVU' (Example) or pass in form.
-            // Let's assume passed in env or hardcoded for now, or fetch from SettingsRepo.
-            // Using placeholder 'CHECK_DB' for service to validate if needed or just pass empty if checks done inside.
-            // Service Logic: if ($schoolCode !== $target) continue.
-            // Let's rely on user to upload correct file for now.
-            // Or get school code from Settings.
-            $result = $this->importService->parseApplications($filePath, $batchId, $adminId, 'HVU'); // Default placeholder
-        } elseif ($type === 'transcripts') {
-            $result = $this->importService->parseTranscripts($filePath, $batchId, $adminId);
-        }
-
-        $this->json($result);
     }
     
     public function createBatch() {

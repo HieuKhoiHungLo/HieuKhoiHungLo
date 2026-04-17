@@ -7,6 +7,7 @@ use PDO;
 use App\Models\DiemThiTHPT;
 use App\Core\Database;
 use App\Repositories\MasterDataRepository;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ImportService {
     protected $importRepo;
@@ -19,64 +20,76 @@ class ImportService {
         $this->importRepo = new ImportRepository();
         $this->thiSinhRepo = new ThiSinhRepository();
         $this->diemThiModel = new DiemThiTHPT();
-        $this->masterDataRepo = new MasterDataRepository(); // Assumption
+        $this->masterDataRepo = new MasterDataRepository();
         $this->db = Database::getInstance()->getConnection();
     }
 
-    public function parseCandidates($filePath, $batchId, $adminId) {
+    public function parseCandidates($filePath, $batchId, $adminId, $year) {
         if (!file_exists($filePath)) {
             return ['status' => false, 'message' => 'File not found'];
         }
 
-        $handle = fopen($filePath, "r");
-        $header = fgetcsv($handle); 
-        
-        $count = 0;
-        $success = 0;
-        $errors = [];
-
-        $this->db->beginTransaction();
-
         try {
-            $schoolCodes = $this->getSchoolCodes();
+            $rows = $this->loadData($filePath);
+            if (empty($rows)) return ['status' => false, 'message' => 'File is empty or invalid'];
 
-            while (($row = fgetcsv($handle)) !== false) {
-                // If row is empty or too short, skip
+            array_shift($rows); // Skip header
+
+            $count = 0;
+            $success = 0;
+            $errors = [];
+
+            $this->db->beginTransaction();
+
+            $schoolCodes = $this->getSchoolCodes();
+            
+            // Pre-fetch valid category codes for validation
+            $validProvinces = $this->db->query("SELECT ma_tinh FROM dm_tinh")->fetchAll(PDO::FETCH_COLUMN);
+            $validWards = $this->db->query("SELECT ma_xa FROM dm_xa")->fetchAll(PDO::FETCH_COLUMN);
+            $validObjects = $this->db->query("SELECT ma_dt FROM dm_doi_tuong")->fetchAll(PDO::FETCH_COLUMN);
+            $validAreas = $this->db->query("SELECT ma_kv FROM dm_khu_vuc")->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($rows as $row) {
                 if (count($row) < 30) continue;
-                
                 $count++;
                 
-                // Index Mapping based on Google Sheet Bang 1
                 $sbd = trim($row[1] ?? '');
-                $cccd = trim($row[3] ?? ''); // DDCN
+                $cccd = trim($row[3] ?? '');
                 if (empty($cccd)) {
-                    $errors[] = "Row $count: Missing CCCD";
+                    $errors[] = "Dòng $count: Thiếu CCCD";
                     continue; 
                 }
 
-                // Prepare Profile Data
+                $maTinh = $this->nullIfEmpty(trim($row[14] ?? ''));
+                $maXa = $this->nullIfEmpty(trim($row[18] ?? ''));
+                $maDT = $this->nullIfEmpty(trim($row[6] ?? ''));
+                $maKV = $this->nullIfEmpty(trim($row[7] ?? ''));
+
+                // Validate codes against database
+                if ($maTinh && !in_array($maTinh, $validProvinces)) $maTinh = null;
+                if ($maXa && !in_array($maXa, $validWards)) $maXa = null;
+                if ($maDT && !in_array($maDT, $validObjects)) $maDT = null;
+                if ($maKV && !in_array($maKV, $validAreas)) $maKV = null;
+
                 $profileData = [
                     'so_cccd' => $cccd,
                     'so_bao_danh' => $sbd,
                     'ho_va_ten' => trim($row[2] ?? ''),
-                    'ngay_sinh' => $this->parseDate(trim($row[4] ?? '')), // DD/MM/YYYY
+                    'ngay_sinh' => $this->parseDate(trim($row[4] ?? '')),
                     'gioi_tinh' => $this->parseGender(trim($row[5] ?? '')),
-                    'doi_tuong_uu_tien' => trim($row[6] ?? ''),
-                    'khu_vuc_uu_tien' => trim($row[7] ?? ''),
-                    'nam_tot_nghiep' => (int)trim($row[8] ?? date('Y')), // nam_tn_thpt
+                    'doi_tuong_uu_tien' => $maDT,
+                    'khu_vuc_uu_tien' => $maKV,
+                    'nam_tot_nghiep' => (int)trim($row[8] ?? date('Y')),
                     'hoc_luc' => trim($row[9] ?? ''),
                     'hanh_kiem' => trim($row[10] ?? ''),
-                    'ma_tinh_ho_khau' => trim($row[14] ?? ''), // ma_tinh_tt
-                    'ma_huyen_thuong_tru' => trim($row[16] ?? ''), // ma_huyen_tt
-                    'ma_xa_thuong_tru' => trim($row[18] ?? ''), // ma_xa_tt
+                    'ma_tinh_ho_khau' => $maTinh,
+                    'ma_tinh_thuong_tru' => $maTinh, // Fallback to province code if needed
+                    'ma_xa_thuong_tru' => $maXa,
                     'nguon_du_lieu' => 'bo_gddt'
                 ];
 
-                // School Logic: ma_tinh_lop12 (20) + ma_truong_lop12 (21)
                 $maTinhLop12 = trim($row[20] ?? '');
                 $maTruongLop12 = trim($row[21] ?? '');
-                // Ensure maTruongLop12 is 3 chars? Sometimes it's '71', needs to be '071'? The DB might handle it, or we just concat.
-                // Assuming it matches dm_truong_thpt format directly (e.g. 16071)
                 $maTruongLop12Padded = str_pad($maTruongLop12, 3, '0', STR_PAD_LEFT);
                 $fullSchoolCode = $maTinhLop12 . $maTruongLop12Padded;
                 
@@ -89,19 +102,23 @@ class ImportService {
                 }
 
                 if (!$this->thiSinhRepo->findByCCCD($cccd)) {
-                    $profileData['email'] = $cccd . '@import.local'; // Dummy
+                    $profileData['email'] = $cccd . '@import.local';
                     $profileData['so_dien_thoai'] = '';
-                    $profileData['mat_khau'] = password_hash($cccd, PASSWORD_DEFAULT); // Default password = CCCD
+                    $profileData['mat_khau'] = password_hash($cccd, PASSWORD_DEFAULT);
                 }
 
                 $this->thiSinhRepo->saveImportedCandidate($profileData);
 
-                // Prepare THPT Score Data
-                // toan (23), van (24), ly (25), hoa (26), sinh (27), su (28), dia (29), gdcd (30), 
-                // ngoai_ngu (31), ma_mon_nn (32)
-                
+                // Ensure ho_so_xet_tuyen exists for this candidate in this batch
+                $stmtCheckHoso = $this->db->prepare("SELECT id FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+                $stmtCheckHoso->execute([$cccd, $batchId]);
+                if (!$stmtCheckHoso->fetchColumn()) {
+                    $stmtInsHoso = $this->db->prepare("INSERT INTO ho_so_xet_tuyen (so_cccd, dot_tuyen_sinh_id, trang_thai, created_at, updated_at) VALUES (?, ?, 'Chờ duyệt', NOW(), NOW())");
+                    $stmtInsHoso->execute([$cccd, $batchId]);
+                }
+
                 $scores = [
-                    'nam_thi' => $batchId ? 2026 : date('Y'),
+                    'nam_thi' => $year,
                     'toan' => $this->parseFloat($row[23] ?? ''),
                     'van' => $this->parseFloat($row[24] ?? ''),
                     'ly' => $this->parseFloat($row[25] ?? ''),
@@ -115,8 +132,8 @@ class ImportService {
                     'tin_hoc' => $this->parseFloat($row[34] ?? '') 
                 ];
 
-                $nnScore = $this->parseFloat($row[31] ?? ''); // 31: NN
-                $maMonNN = trim($row[32] ?? ''); // 32: Ma mon NN
+                $nnScore = $this->parseFloat($row[31] ?? '');
+                $maMonNN = trim($row[32] ?? '');
                 
                 if ($maMonNN == 'N1') $scores['tieng_anh'] = $nnScore;
                 if ($maMonNN == 'N4') $scores['tieng_trung'] = $nnScore;
@@ -128,40 +145,30 @@ class ImportService {
             }
             
             $this->db->commit();
-            
-            // Log Import
             $this->importRepo->logImport(basename($filePath), 'candidates', $count, $adminId);
 
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("ImportService::parseCandidates Exception: " . $e->getMessage());
             return ['status' => false, 'message' => $e->getMessage(), 'errors' => $errors];
-        } finally {
-            fclose($handle);
         }
     }
 
     private function getSchoolCodes() {
         $stmt = $this->db->query("SELECT ma_truong FROM dm_truong_thpt");
-        if (!$stmt) {
-            error_log("ImportService::getSchoolCodes Error: " . print_r($this->db->errorInfo(), true));
-            return [];
-        }
+        if (!$stmt) return [];
         $codes = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $codes[] = $row['ma_truong'];
         }
         return $codes;
-    } // End of getSchoolCodes
+    }
 
     private function getMajors() {
         $stmt = $this->db->query("SELECT ma_nganh FROM dm_nganh");
-        if (!$stmt) {
-             error_log("ImportService::getMajors Error: " . print_r($this->db->errorInfo(), true));
-             return [];
-        }
+        if (!$stmt) return [];
         $codes = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $codes[] = $row['ma_nganh'];
@@ -171,7 +178,6 @@ class ImportService {
 
     private function parseDate($str) {
         if (empty($str)) return null;
-        // Assume DD/MM/YYYY
         $parts = explode('/', $str);
         if (count($parts) == 3) {
             return $parts[2] . '-' . $parts[1] . '-' . $parts[0];
@@ -180,8 +186,6 @@ class ImportService {
     }
 
     private function parseGender($str) {
-        // MOET: 0=Nu, 1=Nam.
-        // DB stores strings: 'Nam', 'Nữ'
         return $str === '1' ? 'Nam' : 'Nữ';
     }
 
@@ -190,41 +194,43 @@ class ImportService {
             return ['status' => false, 'message' => 'File not found'];
         }
 
-        $handle = fopen($filePath, "r");
-        fgetcsv($handle); // Header
-
-        $count = 0;
-        $success = 0;
-        $errors = [];
-        
-        $this->db->beginTransaction();
-
         try {
-            // Load Majors for Validation
-            $majors = $this->getMajors();
+            $rows = $this->loadData($filePath);
+            if (empty($rows)) return ['status' => false, 'message' => 'File empty'];
 
-            while (($row = fgetcsv($handle)) !== false) {
+            array_shift($rows);
+
+            $count = 0;
+            $success = 0;
+            $errors = [];
+            
+            $this->db->beginTransaction();
+            // Pre-fetch majors for mapping
+            $stmtMajors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh");
+            $majorMap = $stmtMajors->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            foreach ($rows as $row) {
                 $count++;
-                // Col 2: So DDCN (Index 1)
-                // Col 4: Ma Truong (Index 3)
-                // Col 6: Ma Xet Tuyen (Index 5) - Major Code
-                // Col 14: Ma THM (Index 13) - Combo Code
-                // Col 3: Thu Tu NV (Index 2)
-
                 $cccd = trim($row[1] ?? '');
-                // Dữ liệu CSV Bảng 3 bị dư 1 số 0 ở đầu ví dụ "026307014381" (13 ký tự thay vì 12)
                 if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) {
                     $cccd = substr($cccd, 1);
                 }
 
                 $schoolCode = trim($row[3] ?? '');
-                
-                if ($schoolCode !== $targetSchoolCode) {
-                    continue; // Skip other schools
-                }
+                if ($schoolCode !== $targetSchoolCode) continue;
 
                 if (empty($cccd)) {
-                    $errors[] = "Row $count: Missing CCCD";
+                    $errors[] = "Dòng $count: Thiếu CCCD";
+                    continue;
+                }
+
+                // Check if candidate has a registration in this batch
+                $stmtHoso = $this->db->prepare("SELECT id FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+                $stmtHoso->execute([$cccd, $batchId]);
+                $hoSoId = $stmtHoso->fetchColumn();
+
+                if (!$hoSoId) {
+                    $errors[] = "Dòng $count (CCCD: $cccd): Thí sinh chưa có hồ sơ trong đợt này. Bỏ qua nguyện vọng.";
                     continue;
                 }
 
@@ -232,14 +238,16 @@ class ImportService {
                 $comboCode = trim($row[13] ?? '');
                 $priority = (int)trim($row[2] ?? 0);
 
-                if (!in_array($majorCode, $majors)) {
-                    $errors[] = "Row $count: Major $majorCode not found";
+                if (!isset($majorMap[$majorCode])) {
+                    $errors[] = "Dòng $count: Ngành $majorCode không tồn tại trong danh mục";
                 }
 
                 $data = [
                     'so_cccd' => $cccd,
+                    'ho_so_id' => $hoSoId,
                     'ma_nganh' => $majorCode,
-                    'ma_to_hop' => $comboCode, 
+                    'ten_nganh' => $majorMap[$majorCode] ?? '',
+                    'to_hop_mon' => $comboCode, 
                     'thu_tu_nguyen_vong' => $priority,
                     'thu_tu_nv_bo' => $priority,
                     'dot_tuyen_sinh_id' => $batchId,
@@ -257,11 +265,9 @@ class ImportService {
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("ImportService::parseApplications Exception: " . $e->getMessage());
             return ['status' => false, 'message' => $e->getMessage(), 'errors' => $errors];
-        } finally {
-            fclose($handle);
         }
     }
 
@@ -270,17 +276,19 @@ class ImportService {
             return ['status' => false, 'message' => 'File not found'];
         }
 
-        $handle = fopen($filePath, "r");
-        $header = fgetcsv($handle); 
-        
-        $count = 0;
-        $success = 0;
-        $errors = [];
-
-        $this->db->beginTransaction();
-
         try {
-            while (($row = fgetcsv($handle)) !== false) {
+            $rows = $this->loadData($filePath);
+            if (empty($rows)) return ['status' => false, 'message' => 'File error'];
+
+            array_shift($rows);
+        
+            $count = 0;
+            $success = 0;
+            $errors = [];
+
+            $this->db->beginTransaction();
+
+            foreach ($rows as $row) {
                 if (count($row) < 50) continue;
                 $count++;
                 
@@ -290,42 +298,30 @@ class ImportService {
                 }
 
                 if (empty($cccd)) {
-                    $errors[] = "Row $count: Missing CCCD";
+                    $errors[] = "Dòng $count: Thiếu CCCD";
                     continue; 
                 }
 
-                $lop = trim($row[5] ?? ''); // Lớp 10, 11, 12
-                if (!in_array($lop, ['10', '11', '12'])) {
-                    continue; // Skip invalid rows
-                }
+                $lop = trim($row[5] ?? '');
+                if (!in_array($lop, ['10', '11', '12'])) continue;
 
-                // Điểm Tổng kết Cả Năm (CN) theo ánh xạ Bảng 9
-                // Toan CN(25), Van CN(28), Ly CN(31), Hoa CN(34), Sinh CN(37)
-                // Su CN(40), Dia CN(43), GDCD CN(46), KTPL(49), Tin(52)
-                // Ngoai ngu CN(61) -> Tieng Anh
-                
                 $scores = [];
-                $scores['toan_' . $lop] = $this->parseFloat($row[25] ?? '');
-                $scores['van_' . $lop] = $this->parseFloat($row[28] ?? '');
-                $scores['ly_' . $lop] = $this->parseFloat($row[31] ?? '');
-                $scores['hoa_' . $lop] = $this->parseFloat($row[34] ?? '');
-                $scores['sinh_' . $lop] = $this->parseFloat($row[37] ?? '');
-                $scores['su_' . $lop] = $this->parseFloat($row[40] ?? '');
-                $scores['dia_' . $lop] = $this->parseFloat($row[43] ?? '');
-                $scores['gdcd_' . $lop] = $this->parseFloat($row[46] ?? '');
-                $scores['ktpl_' . $lop] = $this->parseFloat($row[49] ?? '');
-                $scores['tin_hoc_' . $lop] = $this->parseFloat($row[52] ?? '');
-                $scores['tieng_anh_' . $lop] = $this->parseFloat($row[61] ?? '');
+                $scores['diem_toan_cn'] = $this->parseFloat($row[25] ?? '');
+                $scores['diem_van_cn'] = $this->parseFloat($row[28] ?? '');
+                $scores['diem_ly_cn'] = $this->parseFloat($row[31] ?? '');
+                $scores['diem_hoa_cn'] = $this->parseFloat($row[34] ?? '');
+                $scores['diem_sinh_cn'] = $this->parseFloat($row[37] ?? '');
+                $scores['diem_su_cn'] = $this->parseFloat($row[40] ?? '');
+                $scores['diem_dia_cn'] = $this->parseFloat($row[43] ?? '');
+                $scores['diem_gdcd_cn'] = $this->parseFloat($row[46] ?? '');
+                $scores['diem_ktpl_cn'] = $this->parseFloat($row[49] ?? '');
+                $scores['diem_tin_hoc_cn'] = $this->parseFloat($row[52] ?? '');
+                $scores['diem_ngoai_ngu_cn'] = $this->parseFloat($row[61] ?? '');
 
-                // Lọc bỏ môn bị NULL để không đè dữ liệu cũ
-                $scores = array_filter($scores, function($val) {
-                    return $val !== null;
-                });
-
+                $scores = array_filter($scores, function($val) { return $val !== null; });
                 if (empty($scores)) continue;
 
-                // Cập nhật/Thêm mới vào DB bảng hoc_ba_thpt
-                $this->upsertTranscript($cccd, $scores);
+                $this->upsertTranscript($cccd, $lop, $scores);
                 $success++;
             }
             
@@ -335,22 +331,18 @@ class ImportService {
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("ImportService::parseTranscripts Exception: " . $e->getMessage());
             return ['status' => false, 'message' => $e->getMessage(), 'errors' => $errors];
-        } finally {
-            fclose($handle);
         }
     }
 
-    private function upsertTranscript($cccd, $scores) {
-        // Kiểm tra xem đã có học bạ chưa
-        $stmt = $this->db->prepare("SELECT id FROM hoc_ba_thpt WHERE so_cccd = ?");
-        $stmt->execute([$cccd]);
+    private function upsertTranscript($cccd, $lop, $scores) {
+        $stmt = $this->db->prepare("SELECT id FROM ket_qua_hoc_tap WHERE so_cccd = ? AND lop = ?");
+        $stmt->execute([$cccd, (int)$lop]);
         $exists = $stmt->fetchColumn();
 
         if ($exists) {
-            // Update động theo mảng $scores
             $setClause = [];
             $params = [];
             foreach ($scores as $col => $val) {
@@ -358,40 +350,38 @@ class ImportService {
                 $params[] = $val;
             }
             $params[] = $cccd;
-            
-            $sql = "UPDATE hoc_ba_thpt SET " . implode(', ', $setClause) . " WHERE so_cccd = ?";
+            $params[] = (int)$lop;
+            $sql = "UPDATE ket_qua_hoc_tap SET " . implode(', ', $setClause) . " WHERE so_cccd = ? AND lop = ?";
             $this->db->prepare($sql)->execute($params);
         } else {
-            // Insert
             $cols = array_keys($scores);
             $vals = array_values($scores);
-            
             $cols[] = 'so_cccd';
             $vals[] = $cccd;
+            $cols[] = 'lop';
+            $vals[] = (int)$lop;
             
             $placeholders = implode(',', array_fill(0, count($cols), '?'));
             $colNames = implode(',', $cols);
-            
-            $sql = "INSERT INTO hoc_ba_thpt ($colNames) VALUES ($placeholders)";
+            $sql = "INSERT INTO ket_qua_hoc_tap ($colNames) VALUES ($placeholders)";
             $this->db->prepare($sql)->execute($vals);
         }
     }
 
-
-    
     private function saveApplication($data) {
-        // Simple Insert for now. Update if logic changes.
-        // Columns: so_cccd, ma_nganh, ma_to_hop, thu_tu_nguyen_vong, dot_tuyen_sinh_id, nguon_du_lieu
-        
-        // Xóa nguyện vọng cũ dựa trên CCCD, Đợt và Thứ tự NV (để ghi đè bản cập nhật mới nhất từ Bộ)
+        // Cleanup existing wishes for this candidate in this specific batch and priority level
         $sql = "DELETE FROM nguyen_vong WHERE so_cccd = ? AND dot_tuyen_sinh_id = ? AND (thu_tu_nguyen_vong = ? OR thu_tu_nv_bo = ?)";
-        $this->db->prepare($sql)->execute([$data['so_cccd'], $data['dot_tuyen_sinh_id'], $data['thu_tu_nguyen_vong'] ?? 0, $data['thu_tu_nv_bo'] ?? 0]);
+        $this->db->prepare($sql)->execute([
+            $data['so_cccd'], 
+            $data['dot_tuyen_sinh_id'], 
+            $data['thu_tu_nguyen_vong'] ?? 0, 
+            $data['thu_tu_nv_bo'] ?? 0
+        ]);
 
         $cols = array_keys($data);
         $vals = array_values($data);
         $placeholders = implode(',', array_fill(0, count($cols), '?'));
         $colNames = implode(',', $cols);
-        
         $sql = "INSERT INTO nguyen_vong ($colNames) VALUES ($placeholders)";
         $this->db->prepare($sql)->execute($vals);
     }
@@ -400,5 +390,52 @@ class ImportService {
         if ($str === null || $str === '') return null;
         $val = str_replace(',', '.', trim($str));
         return is_numeric($val) ? (float)$val : null;
+    }
+
+    private function nullIfEmpty($str) {
+        $val = trim($str);
+        return $val === '' ? null : $val;
+    }
+
+    private function loadData($filePath) {
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $rows = [];
+
+        if ($extension === 'csv') {
+            $content = file_get_contents($filePath);
+            
+            // Detect and remove UTF-8 BOM if present
+            if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+                $content = substr($content, 3);
+            }
+            
+            // Convert from Windows-1258 (Vietnamese) or UTF-16 to UTF-8 if it's not UTF-8
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'UTF-16', 'Windows-1258', 'ASCII']);
+            if ($encoding && $encoding !== 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+            }
+
+            $lines = explode("\n", str_replace("\r", "", $content));
+            foreach ($lines as $line) {
+                if (trim($line) === '') continue;
+                $rows[] = str_getcsv($line, ",");
+            }
+        } else {
+            // Re-throw the error with a helpful message if PhpSpreadsheet fails due to PHP version
+            try {
+                $spreadsheet = IOFactory::load($filePath);
+                $sheet = $spreadsheet->getActiveSheet();
+                $data = $sheet->toArray(null, true, true, true);
+                foreach ($data as $row) {
+                    $rows[] = array_values($row);
+                }
+            } catch (\Throwable $e) {
+                if (strpos($e->getMessage(), 'Enum') !== false || strpos($e->getMessage(), 'final') !== false) {
+                    throw new \Exception("Phiên bản PHP 8.0 của bạn không tương thích với bộ đọc Excel (.xlsx). Vui lòng lưu file (Save As) dưới dạng .csv và thử lại.");
+                }
+                throw $e;
+            }
+        }
+        return $rows;
     }
 }

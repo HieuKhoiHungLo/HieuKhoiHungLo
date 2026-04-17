@@ -211,7 +211,8 @@ class ExportService {
                        t.ho_va_ten AS \"Họ và Tên\",
                        t.ngay_sinh AS \"Ngày Sinh\",
                        cc.loai_chung_chi AS \"Loại chứng chỉ\",
-                       cc.diem_chung_chi AS \"Điểm/Xếp loại\"
+                       cc.diem_chung_chi AS \"Điểm/Xếp loại\",
+                       cc.file_minh_chung_cc
                 FROM chung_chi_thi_sinh cc
                 JOIN thi_sinh t ON cc.so_cccd = t.so_cccd
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
@@ -262,7 +263,8 @@ class ExportService {
                        n.ma_nganh AS \"Mã ngành\",
                        n.ten_nganh AS \"Tên ngành\",
                        nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
-                       h.trang_thai AS \"Trạng thái hồ sơ\"
+                       h.trang_thai AS \"Trạng thái hồ sơ\",
+                       t.anh_dai_dien
                 FROM thi_sinh t
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
                 JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND h.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id

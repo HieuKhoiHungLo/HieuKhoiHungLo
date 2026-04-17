@@ -12,6 +12,11 @@ $router = new App\Core\Router();
 $router->get('/', 'HomeController@index');
 $router->get('/news/detail', 'NewsController@detail');
 
+// Calculator Module
+$router->get('/tinh-diem', 'CalculatorController@index');
+$router->post('/api/tinh-diem', 'CalculatorController@calculate');
+
+
 $router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
     $router->get('/login', 'AuthController@login');
     $router->post('/login', 'AuthController@login');
@@ -104,6 +109,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/stats/api', 'AdminController@statsApi');
     $router->post('/admin/media/rotate', 'AdminController@rotateImage');
     $router->post('/admin/applications/approve-edit-request', 'AdminController@approveEditRequest');
+    $router->post('/admin/review/bulk-approve-file', 'CandidateController@bulkApproveByFile');
+    $router->post('/admin/review/bulk-update-transcript', 'CandidateController@bulkUpdateTranscript');
+    $router->get('/admin/review/download-approve-template', 'CandidateController@downloadApproveTemplate');
+    $router->get('/admin/review/download-transcript-template', 'CandidateController@downloadTranscriptTemplate');
 
     // Admin Notifications
     $router->get('/admin/notifications', 'AdminNotificationController@index');
@@ -197,8 +206,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/benchmarks', 'AdmissionController@saveBenchmarks');
     $router->post('/admin/admission/process', 'AdmissionController@process');
     $router->get('/admin/admission/results', 'AdmissionController@results');
+    $router->get('/admin/admission/results/api', 'AdmissionController@resultsApi');
+    $router->post('/admin/admission/results/bulk-email', 'AdmissionController@bulkEmail');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
-    $router->post('/admin/admission/notify', 'AdmissionController@notifyAdmitted');
+    $router->post('/admin/admission/notify', 'AdmissionController@notify');
 
     // Virtual Filter Dashboard (New Grid UI)
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
@@ -276,6 +287,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports/stats-api', 'ReportController@statsApi');
     $router->get('/admin/reports/export-admission', 'ReportController@exportAdmissionReport');
     $router->get('/admin/reports/export-all-admitted', 'ReportController@exportAllAdmittedReport');
+    $router->get('/admin/reports/download-photos-aptitude', 'ReportController@downloadAptitudePhotos');
+    $router->get('/admin/reports/download-certs', 'ReportController@downloadCertificatePhotos');
+
 
     // Rules
     $router->get('/admin/rules', 'RuleController@index');

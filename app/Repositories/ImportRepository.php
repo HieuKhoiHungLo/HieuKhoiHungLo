@@ -12,18 +12,19 @@ class ImportRepository {
     }
 
     public function getAllBatches() {
-        $stmt = $this->db->query("SELECT * FROM dot_tuyen_sinh ORDER BY created_at DESC");
+        $stmt = $this->db->query("SELECT * FROM dot_tuyen_sinh ORDER BY id DESC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getActiveBatch() {
-        $stmt = $this->db->query("SELECT * FROM dot_tuyen_sinh WHERE trang_thai = 'active' ORDER BY created_at DESC LIMIT 1");
+        $stmt = $this->db->query("SELECT * FROM dot_tuyen_sinh WHERE kich_hoat = true ORDER BY id DESC LIMIT 1");
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function createBatch($name, $year) {
-        $stmt = $this->db->prepare("INSERT INTO dot_tuyen_sinh (ten_dot, nam, trang_thai) VALUES (?, ?, 'active')");
-        $stmt->execute([$name, $year]);
+        $stmt = $this->db->prepare("INSERT INTO dot_tuyen_sinh (ten_dot, nam_tuyen_sinh, dm_nam_tuyen_sinh_nam, kich_hoat) VALUES (?, ?, ?, true)");
+        // Update dm_nam_tuyen_sinh_nam as well for FK consistency if needed
+        $stmt->execute([$name, (int)$year, (int)$year]);
         return $this->db->lastInsertId();
     }
 
@@ -39,7 +40,7 @@ class ImportRepository {
     }
 
     public function getImportHistory() {
-        $stmt = $this->db->query("SELECT * FROM log_import ORDER BY created_at DESC LIMIT 50");
+        $stmt = $this->db->query("SELECT * FROM log_import ORDER BY id DESC LIMIT 50");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

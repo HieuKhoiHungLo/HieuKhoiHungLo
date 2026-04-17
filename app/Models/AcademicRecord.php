@@ -83,7 +83,11 @@ class AcademicRecord extends \App\Core\Model
         }
 
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $result = $stmt->execute($params);
+        if ($result) {
+            $this->syncToNormalizedTable($cccd);
+        }
+        return $result;
     }
 
     /**

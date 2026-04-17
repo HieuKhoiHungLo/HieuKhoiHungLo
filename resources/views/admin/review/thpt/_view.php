@@ -4,7 +4,15 @@
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
         
         <div style="padding: 2px;">
-            <?php if(empty($diemThi) || !($diemThi['da_co_diem'] ?? false)): ?>
+            <?php 
+                $hasData = ($diemThi['da_co_diem'] ?? false);
+                if (!$hasData && !empty($diemThi)) {
+                   foreach(['toan','van','ly','hoa','sinh','su','dia','gdcd','tieng_anh','tieng_trung','ktpl','tin_hoc','cnnn'] as $c) {
+                       if(!empty($diemThi[$c])) { $hasData = true; break; }
+                   }
+                }
+            ?>
+            <?php if(!$hasData): ?>
                 <div class="flex flex-col items-center justify-center py-12 bg-slate-50 border-2 border-dashed border-slate-100 rounded-xl mb-4">
                     <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-200 mb-3 shadow-sm">
                         <i class="fas fa-ghost text-2xl"></i>
