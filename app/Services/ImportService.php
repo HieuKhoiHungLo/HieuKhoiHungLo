@@ -573,8 +573,23 @@ class ImportService {
         } else {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
             $sheet = $spreadsheet->getActiveSheet();
-            // Convert to simple numeric-indexed array for consistency with CSV
-            return $sheet->toArray(null, true, true, false);
+            $highestRow = $sheet->getHighestRow();
+            $highestCol = $sheet->getHighestColumn();
+            
+            // Use explicit range to ensure all columns are included
+            $range = 'A1:' . $highestCol . $highestRow;
+            $data = $sheet->rangeToArray($range, null, true, true, false);
+            
+            // Pad every row to at least 40 columns for safety
+            foreach ($data as &$row) {
+                $row = array_values($row); // Ensure 0-based numeric keys
+                while (count($row) < 40) {
+                    $row[] = null;
+                }
+            }
+            unset($row);
+            
+            return $data;
         }
     }
 }

@@ -4,6 +4,9 @@
 // Autoloader (load first for middleware)
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Set timezone to Vietnam (UTC+7)
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 // Load Env early (Before middleware and session)
 try {
     $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
