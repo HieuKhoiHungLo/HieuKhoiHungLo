@@ -280,6 +280,8 @@ class ImportService {
                 $sqlValues = [];
                 $sqlParams = [];
                 
+                $this->db->beginTransaction(); // Start transaction for THIS chunk
+
                 foreach ($chunk as $row) {
                     $count++;
                     if (count($row) < 5) continue;
@@ -337,10 +339,10 @@ class ImportService {
                     $this->db->prepare($insertSql)->execute($sqlParams);
                 }
 
+                $this->db->commit(); // Commit THIS chunk
                 $this->updateProgress($adminId, min($count, $totalRows), $totalRows, "Đã xử lý " . min($count, $totalRows) . " nguyện vọng...");
             }
 
-            $this->db->commit();
             $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
             $this->importRepo->logImport(basename($filePath), 'applications', $success, $adminId);
             
