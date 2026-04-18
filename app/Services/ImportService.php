@@ -189,24 +189,23 @@ class ImportService {
 
                 $success++;
 
-                // Process every 500 rows to save memory and avoid parameter limits
-                if (count($candidateBatch) >= 500) {
+                // Process every 2000 rows (Optimized V12)
+                if (count($candidateBatch) >= 2000) {
                     $flushBatches();
-                    $this->updateProgress($token, $count, $totalRows, "Đã xử lý $count / $totalRows thí sinh...");
+                    $this->updateProgress($token, $count, $totalRows, "Đang nạp: $count/$totalRows thí sinh...");
                 }
             }
             
             // Process any remaining rows
             $flushBatches();
+            $this->db->commit();
             $this->updateProgress($token, $totalRows, $totalRows, "Đã hoàn thành xử lý $totalRows thí sinh.");
 
-
-
-            $this->db->commit();
-            $this->importRepo->logImport(basename($filePath), 'candidates', $count, $adminId);
+            $this->importRepo->logImport(basename($filePath), 'candidates', $count, 1);
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
             error_log("ImportService::parseCandidates Exception: " . $e->getMessage());
             return ['status' => false, 'message' => $e->getMessage(), 'errors' => $errors];
         }
@@ -257,7 +256,7 @@ class ImportService {
             $sheet = $spreadsheet->getActiveSheet();
             $totalRows = $sheet->getHighestDataRow();
             
-            $this->updateProgress($token, 0, $totalRows, 'Đang chuẩn bị nạp nguyện vọng (bản nâng cấp ổn định 2025)...');
+            $this->updateProgress($token, 0, $totalRows, 'Đang đẩy hàng vạn nguyện vọng vào Database Singapore (Siêu tốc V12)...');
 
             // 1. Pre-fetch Majors and Profiles
             $majors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -269,7 +268,9 @@ class ImportService {
             $success = 0;
             $errors = [];
             
-            $rowIterator = $sheet->getRowIterator(2); // Skip header (row 1)
+            $this->db->beginTransaction(); // Move transaction OUTSIDE loop for speed
+            
+            $rowIterator = $sheet->getRowIterator(2); 
             $buffer = [];
             
             foreach ($rowIterator as $row) {
@@ -307,11 +308,11 @@ class ImportService {
                     'to_hop' => trim($rowData[10] ?? '')
                 ];
 
-                if (count($buffer) >= 1000) {
+                if (count($buffer) >= 2000) {
                     $this->flushApplicationBuffer($buffer, $batchId);
                     $success += count($buffer);
                     $buffer = [];
-                    $this->updateProgress($token, $count, $totalRows, "Đã xử lý $count/$totalRows nguyện vọng...");
+                    $this->updateProgress($token, $count, $totalRows, "Đang nạp NV: $count/$totalRows dòng...");
                 }
             }
 
@@ -320,6 +321,8 @@ class ImportService {
                 $success += count($buffer);
             }
 
+            $this->db->commit(); // One single commit at the end
+
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
@@ -327,6 +330,7 @@ class ImportService {
             return ['status' => true, 'success' => $success, 'errors' => array_slice($errors, 0, 50)];
 
         } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
             return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage()];
         }
     }
@@ -355,9 +359,7 @@ class ImportService {
                 ten_phuong_thuc = EXCLUDED.ten_phuong_thuc,
                 updated_at = NOW()
         ";
-        $this->db->beginTransaction();
         $this->db->prepare($sql)->execute($sqlParams);
-        $this->db->commit();
     }
 
     public function parseTranscripts($filePath, $batchId, $token) {
@@ -372,7 +374,7 @@ class ImportService {
             $sheet = $spreadsheet->getActiveSheet();
             $totalRows = $sheet->getHighestDataRow();
 
-            $this->updateProgress($token, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ (chế độ AI bảo vệ)...');
+            $this->updateProgress($token, 0, $totalRows, 'Đang truyền điểm học bạ tới Singapore (Siêu tốc V12)...');
         
             // 1. Pre-fetch valid candidates to prevent FK violations
             $stmt = $this->db->query("SELECT so_cccd FROM thi_sinh");
@@ -381,6 +383,9 @@ class ImportService {
             $count = 0;
             $success = 0;
             $skipped = 0;
+            
+            $this->db->beginTransaction(); // Move transaction OUTSIDE loop
+            
             $rowIterator = $sheet->getRowIterator(2);
             $buffer = [];
 
@@ -426,11 +431,11 @@ class ImportService {
                     ]
                 ];
 
-                if (count($buffer) >= 1000) {
+                if (count($buffer) >= 2000) {
                     $this->flushTranscriptBuffer($buffer);
                     $success += count($buffer);
                     $buffer = [];
-                    $this->updateProgress($token, $count, $totalRows, "Đang nạp: $count/$totalRows dòng (Bỏ qua $skipped thí sinh chưa có hồ sơ)...");
+                    $this->updateProgress($token, $count, $totalRows, "Đang nạp: $count/$totalRows dòng...");
                 }
             }
 
@@ -438,6 +443,8 @@ class ImportService {
                 $this->flushTranscriptBuffer($buffer);
                 $success += count($buffer);
             }
+
+            $this->db->commit(); // One single commit
 
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
@@ -449,6 +456,7 @@ class ImportService {
             return ['status' => true, 'success' => $success, 'skipped' => $skipped];
 
         } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
             return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage()];
         }
     }
@@ -483,9 +491,7 @@ class ImportService {
                 diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
                 diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn
         ";
-        $this->db->beginTransaction();
         $this->db->prepare($sql)->execute($sqlParams);
-        $this->db->commit();
     }
 
     private function upsertTranscript($cccd, $lop, $scores) {
