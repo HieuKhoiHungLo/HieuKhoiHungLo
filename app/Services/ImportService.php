@@ -572,20 +572,17 @@ class ImportService {
             return $data;
         } else {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-            $sheet = $spreadsheet->getActiveSheet();
+            // Always use first sheet - Government files may have active sheet set to an empty sheet
+            $sheet = $spreadsheet->getSheet(0);
             $highestRow = $sheet->getHighestRow();
-            $highestCol = $sheet->getHighestColumn();
             
-            // Use explicit range to ensure all columns are included
-            $range = 'A1:' . $highestCol . $highestRow;
+            // Limit to column AO (41 cols) - government files may have 257+ cols but data is only in first ~37
+            $range = 'A1:AO' . $highestRow;
             $data = $sheet->rangeToArray($range, null, true, true, false);
             
-            // Pad every row to at least 40 columns for safety
+            // Ensure 0-based numeric keys for each row
             foreach ($data as &$row) {
-                $row = array_values($row); // Ensure 0-based numeric keys
-                while (count($row) < 40) {
-                    $row[] = null;
-                }
+                $row = array_values($row);
             }
             unset($row);
             
