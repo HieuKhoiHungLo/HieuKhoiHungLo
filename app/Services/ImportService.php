@@ -558,4 +558,23 @@ class ImportService {
         $val = trim($str);
         return $val === '' ? null : $val;
     }
+
+    private function loadData($filePath) {
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        if ($extension === 'csv') {
+            $data = [];
+            if (($handle = fopen($filePath, "r")) !== FALSE) {
+                while (($row = fgetcsv($handle, 10000, ",")) !== FALSE) {
+                    $data[] = $row;
+                }
+                fclose($handle);
+            }
+            return $data;
+        } else {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            // Convert to simple numeric-indexed array for consistency with CSV
+            return $sheet->toArray(null, true, true, false);
+        }
+    }
 }
