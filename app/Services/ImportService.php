@@ -414,7 +414,7 @@ class ImportService {
                         $this->parseFloat($row[61] ?? '')  // Ngoại ngữ
                     ];
 
-                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $sqlParams[] = $cccd;
                     $sqlParams[] = (int)$lop;
                     foreach ($subjects as $s) $sqlParams[] = $s;
@@ -429,8 +429,7 @@ class ImportService {
                             so_cccd, lop, 
                             diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
                             diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
-                            diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn, 
-                            updated_at
+                            diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn
                         ) VALUES " . implode(',', $sqlValues) . "
                         ON CONFLICT (so_cccd, lop) DO UPDATE SET
                             diem_toan_cn = EXCLUDED.diem_toan_cn,
@@ -443,8 +442,7 @@ class ImportService {
                             diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
                             diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
                             diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
-                            diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
-                            updated_at = NOW()
+                            diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn
                     ";
                     $this->db->prepare($upsertSql)->execute($sqlParams);
                 }
