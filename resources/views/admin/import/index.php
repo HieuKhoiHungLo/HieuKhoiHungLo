@@ -24,6 +24,9 @@ ob_start();
                     <strong>Đợt đang hoạt động:</strong> <?= htmlspecialchars($activeBatch['ten_dot']) ?> (Năm <?= $activeBatch['nam_tuyen_sinh'] ?>)
                 </p>
             </div>
+            <button @click="confirmClearBatch" class="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-600 hover:text-white transition flex items-center shadow-sm">
+                <i class="fas fa-trash-alt mr-2"></i> XÓA TRẮNG DỮ LIỆU ĐỢT
+            </button>
         </div>
     <?php else: ?>
         <div class="mb-6 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center shadow-sm">
@@ -118,23 +121,28 @@ ob_start();
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian nạp</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên File</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại (Bảng)</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kết quả (Dòng)</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người chạy</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Xử lý</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200 text-sm">
                     <?php if(empty($history)): ?>
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử import nào.</td>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử import nào.</td>
                     </tr>
                     <?php else: ?>
                     <?php foreach ($history as $log): ?>
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">Log #<?= $log['id'] ?></td>
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900"><?= htmlspecialchars($log['file_name']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500 italic">
+                            <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900 max-w-xs truncate" title="<?= htmlspecialchars($log['file_name']) ?>">
+                            <?= htmlspecialchars($log['file_name']) ?>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 <?= $log['loai_file'] == 'candidates' ? 'bg-blue-100 text-blue-800' : 
@@ -142,8 +150,13 @@ ob_start();
                                 <?= ucfirst($log['loai_file']) ?>
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-bold"><?= number_format($log['record_count']) ?> dòng</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">Admin #<?= $log['imported_by'] ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-bold"><?= number_format($log['record_count'] ?? 0) ?> dòng</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500"><?= $log['duration'] ?? 0 ?>s</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button @click="deleteLog(<?= $log['id'] ?>)" class="text-gray-400 hover:text-red-600 transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
                     </tr>
                     <?php endforeach; endif; ?>
                 </tbody>
@@ -363,13 +376,89 @@ function importApp() {
                     confirmButtonText: 'Đóng'
                 });
                 this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ! <br><small class="text-xs">${error.message}</small></div>`;
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: error.message });
             } finally {
                 this.loading[type] = false;
                 form.reset();
             }
+        },
+        async confirmClearBatch() {
+            const { value: password } = await Swal.fire({
+                title: 'XÁC NHẬN XÓA DỮ LIỆU',
+                html: `
+                    <div class="text-sm text-red-600 font-bold mb-4 uppercase text-center">CẢNH BÁO: HÀNH ĐỘNG NÀY SẼ XÓA TRẮNG TOÀN BỘ THÍ SINH, ĐIỂM VÀ NGUYỆN VỌNG CỦA ĐỢT NÀY!</div>
+                    <div class="text-xs text-gray-500 mb-4 text-left font-medium">Để tiếp tục, vui lòng nhập mật khẩu quản trị viên của bạn:</div>
+                `,
+                input: 'password',
+                inputPlaceholder: 'Nhập mật khẩu Admin...',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'XÁC NHẬN XÓA',
+                confirmButtonColor: '#DC2626',
+                cancelButtonText: 'Hủy bỏ',
+                showLoaderOnConfirm: true,
+                preConfirm: async (pass) => {
+                    if (!pass) {
+                        Swal.showValidationMessage('Vui lòng nhập mật khẩu');
+                        return false;
+                    }
+                    try {
+                        const formData = new FormData();
+                        formData.append('password', pass);
+                        formData.append('batch_id', '<?= $activeBatch['id'] ?? '' ?>');
+                        
+                        const response = await fetch('/TS/admin/import/clear-batch', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        if (!result.status) {
+                            throw new Error(result.message || 'Lỗi không xác định');
+                        }
+                        return result;
+                    } catch (error) {
+                        Swal.showValidationMessage(`Lỗi: ${error.message}`);
+                    }
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+
+            if (password) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa trắng dữ liệu!',
+                    text: 'Hệ thống đã dọn dẹp toàn bộ dữ liệu của đợt này.',
+                    confirmButtonColor: '#3B82F6'
+                }).then(() => location.reload());
+            }
+        },
+        async deleteLog(id) {
+            const result = await Swal.fire({
+                title: 'Xóa nhật ký?',
+                text: "Dữ liệu nhật ký sẽ bị xóa khỏi hệ thống.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (result.isConfirmed) {
+                const formData = new FormData();
+                formData.append('id', id);
+                await fetch('/TS/admin/import/delete-log', {
+                    method: 'POST',
+                    body: formData
+                });
+                location.reload();
+            }
         }
-    }
-}
+    }));
+});
 </script>
 
 <?php

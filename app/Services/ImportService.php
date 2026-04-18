@@ -39,7 +39,7 @@ class ImportService {
         file_put_contents($logDir . "/import_progress_{$token}.json", json_encode($status));
     }
 
-    public function parseCandidates($filePath, $batchId, $adminId, $year) {
+    public function parseCandidates($filePath, $batchId, $token, $year) {
         if (!file_exists($filePath)) {
             return ['status' => false, 'message' => 'File not found'];
         }
@@ -51,7 +51,7 @@ class ImportService {
 
             array_shift($rows); // Skip header
             $totalRows = count($rows);
-            $this->updateProgress($adminId, 0, $totalRows, 'Bắt đầu xử lý dữ liệu Thí sinh...');
+            $this->updateProgress($token, 0, $totalRows, 'Bắt đầu xử lý dữ liệu Thí sinh...');
             $success = 0;
             $errors = [];
 
@@ -98,13 +98,12 @@ class ImportService {
                     $this->db->prepare($insertSql)->execute($insertParams);
                 }
 
-
-
                 $candidateBatch = [];
                 $scoresBatch = [];
                 $hoSoBatch = [];
             };
 
+            $count = 0;
             foreach ($rows as $row) {
                 if (count($row) < 30) continue;
                 $count++;
@@ -193,13 +192,13 @@ class ImportService {
                 // Process every 500 rows to save memory and avoid parameter limits
                 if (count($candidateBatch) >= 500) {
                     $flushBatches();
-                    $this->updateProgress($adminId, $count, $totalRows, "Đã xử lý $count / $totalRows thí sinh...");
+                    $this->updateProgress($token, $count, $totalRows, "Đã xử lý $count / $totalRows thí sinh...");
                 }
             }
             
             // Process any remaining rows
             $flushBatches();
-            $this->updateProgress($adminId, $totalRows, $totalRows, "Đã hoàn thành xử lý $totalRows thí sinh.");
+            $this->updateProgress($token, $totalRows, $totalRows, "Đã hoàn thành xử lý $totalRows thí sinh.");
 
 
 

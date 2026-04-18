@@ -30,6 +30,9 @@ class ImportController extends Controller {
     public function upload() {
         $this->requireAdmin();
         
+        // Capture start time
+        $startTime = microtime(true);
+        
         $token = $_POST['import_token'] ?? ('imp_' . time());
         $progressDir = __DIR__ . "/../../storage/logs";
         if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
@@ -103,6 +106,10 @@ class ImportController extends Controller {
                 $result = $this->importService->parseTranscripts($filePath, $batchId, $token);
             }
 
+            // Calculate duration and log
+            $duration = round(microtime(true) - $startTime);
+            $this->importRepo->logImport($fileName, $type, $result['success'] ?? 0, $_SESSION['admin_id'] ?? 1, $duration);
+
             $this->json($result);
         } catch (\Throwable $e) {
             $this->json([
@@ -128,6 +135,43 @@ class ImportController extends Controller {
             $this->json($data);
         } else {
             $this->json(['percent' => 0, 'message' => 'Đang đợi dữ liệu nạp...']);
+        }
+    }
+
+    public function deleteLog() {
+        $this->requireAdmin();
+        $id = $_POST['id'] ?? null;
+        if ($id) {
+            $this->importRepo->deleteImportLog($id);
+            $this->json(['status' => true]);
+        } else {
+            $this->json(['status' => false, 'message' => 'Invalid ID']);
+        }
+    }
+
+    public function clearBatch() {
+        $this->requireAdmin();
+        $password = $_POST['password'] ?? '';
+        $batchId = $_POST['batch_id'] ?? '';
+        $adminId = $_SESSION['admin_id'] ?? 1;
+
+        // 1. Verify admin password
+        $conn = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $conn->prepare("SELECT mat_khau FROM quan_tri_vien WHERE id = ?");
+        $stmt->execute([$adminId]);
+        $admin = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$admin || !password_verify($password, $admin['mat_khau'])) {
+            $this->json(['status' => false, 'message' => 'Mật khẩu xác nhận không chính xác.']);
+            return;
+        }
+
+        // 2. Clear data via repo
+        try {
+            $this->importRepo->clearBatchData($batchId);
+            $this->json(['status' => true, 'message' => 'Đã xóa trắng toàn bộ dữ liệu của đợt tuyển sinh thành công.']);
+        } catch (\Exception $e) {
+            $this->json(['status' => false, 'message' => 'Lỗi khi xóa dữ liệu: ' . $e->getMessage()]);
         }
     }
 
