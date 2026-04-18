@@ -29,7 +29,7 @@ class ImportRepository {
     }
 
     public function logImport($fileName, $type, $recordCount, $adminId, $duration = 0) {
-        $stmt = $this->db->prepare("INSERT INTO log_import (file_name, loai_file, record_count, imported_by, duration, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt = $this->db->prepare("INSERT INTO log_import (file_name, loai_file, record_count, imported_by, duration, created_at) VALUES (?, ?, ?, ?, ?, NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')");
         $stmt->execute([$fileName, $type, $recordCount, $adminId, (int)$duration]);
         return $this->db->lastInsertId();
     }

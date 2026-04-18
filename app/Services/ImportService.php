@@ -218,7 +218,7 @@ class ImportService {
             $this->db->commit();
             $this->updateProgress($token, $totalRows, $totalRows, "Đã hoàn thành xử lý $totalRows thí sinh.");
 
-            $this->importRepo->logImport(basename($filePath), 'candidates', $count, 1);
+            // Log is handled by Controller with accurate duration
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
