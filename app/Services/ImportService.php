@@ -258,7 +258,8 @@ class ImportService {
             $reader = IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
-            $sheet = $spreadsheet->getActiveSheet();
+            // Always use first sheet - Gov files may have active sheet set to empty sheet
+            $sheet = $spreadsheet->getSheet(0);
             $totalRows = $sheet->getHighestDataRow();
             
             $this->updateProgress($token, 0, $totalRows, 'Đang đẩy hàng vạn nguyện vọng vào Database Singapore (Siêu tốc V12)...');
@@ -341,9 +342,17 @@ class ImportService {
     }
 
     private function flushApplicationBuffer($buffer, $batchId) {
+        // Deduplicate: PostgreSQL ON CONFLICT cannot affect same row twice in one command
+        $unique = [];
+        foreach ($buffer as $data) {
+            // Use composite key matching the unique constraint
+            $key = $data['ho_so_id'] . '_' . $data['thu_tu'] . '_' . $data['ma_nganh'] . '_' . $data['ma_pt'] . '_' . $data['to_hop'];
+            $unique[$key] = $data; // Last one wins if duplicate
+        }
+
         $sqlValues = [];
         $sqlParams = [];
-        foreach ($buffer as $data) {
+        foreach ($unique as $data) {
             $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, 'bo_gddt', NOW(), NOW())";
             array_push($sqlParams, 
                 $data['ho_so_id'], $data['so_cccd'], $data['thu_tu'], 
@@ -351,6 +360,8 @@ class ImportService {
                 $data['ten_pt'], $data['to_hop'], $batchId
             );
         }
+
+        if (empty($sqlValues)) return;
 
         $sql = "
             INSERT INTO nguyen_vong (
@@ -376,7 +387,8 @@ class ImportService {
             $reader = IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
-            $sheet = $spreadsheet->getActiveSheet();
+            // Always use first sheet - Gov files may have active sheet set to empty sheet
+            $sheet = $spreadsheet->getSheet(0);
             $totalRows = $sheet->getHighestDataRow();
 
             $this->updateProgress($token, 0, $totalRows, 'Đang truyền điểm học bạ tới Singapore (Siêu tốc V12)...');
