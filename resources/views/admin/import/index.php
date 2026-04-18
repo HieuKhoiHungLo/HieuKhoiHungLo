@@ -391,6 +391,11 @@ function importApp() {
             if (result.isConfirmed) {
                 const formData = new FormData();
                 formData.append('id', id);
+                
+                // Add CSRF token for security
+                const csrfToken = document.querySelector('input[name="csrf_token"]');
+                if (csrfToken) formData.append('csrf_token', csrfToken.value);
+
                 await fetch('/TS/admin/import/delete-log', { method: 'POST', body: formData });
                 location.reload();
             }
