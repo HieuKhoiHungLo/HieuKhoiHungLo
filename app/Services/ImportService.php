@@ -263,92 +263,92 @@ class ImportService {
             $success = 0;
             $errors = [];
             
-            $this->db->beginTransaction();
-            // Pre-fetch majors for mapping
-            $stmtMajors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh");
-            $majorMap = $stmtMajors->fetchAll(PDO::FETCH_KEY_PAIR);
+            // 1. Pre-fetch Majors for fast lookup
+            $majors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            // 2. Pre-fetch Profiles (so_cccd -> id) to eliminate per-row lookups
+            // We use both the original CCCD and the one without leading zero for safety
+            $profiles = $this->db->prepare("SELECT so_cccd, id FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+            $profiles->execute([$batchId]);
+            $profileMap = $profiles->fetchAll(PDO::FETCH_KEY_PAIR);
 
-            foreach ($rows as $row) {
-                $count++;
-                if ($count % 100 == 0) {
-                    $this->updateProgress($adminId, $count, $totalRows, "Đang xử lý nguyện vọng: $count/$totalRows...");
-                }
-
-                // Row mapping based on MOET File 3: 0:STT, 1:CCCD, 2:Priority, 3:SchoolCode, 5:MajorCode, 13:ToHop
-                $cccdRaw = trim($row[1] ?? '');
-                if (empty($cccdRaw)) continue;
-
-                $schoolCode = trim($row[3] ?? '');
-                // MOET file check - only import for our school
-                if ($schoolCode !== $targetSchoolCode) continue;
-
-                // Normalize CCCD for matching (try both original and without leading zero)
-                $cccd = ltrim($cccdRaw, '0');
+            $batchSize = 1000;
+            $chunks = array_chunk($rows, $batchSize);
+            
+            foreach ($chunks as $chunkIndex => $chunk) {
+                $countInChunk = 0;
+                $sqlValues = [];
+                $sqlParams = [];
                 
-                // Find profile by CCCD (either as-is or without leading zero)
-                $stmtHoso = $this->db->prepare("SELECT id FROM ho_so_xet_tuyen WHERE (so_cccd = ? OR so_cccd = ?) AND dot_tuyen_sinh_id = ?");
-                $stmtHoso->execute([$cccdRaw, $cccd, $batchId]);
-                $hoSoId = $stmtHoso->fetchColumn();
+                foreach ($chunk as $row) {
+                    $count++;
+                    if (count($row) < 5) continue;
 
-                if (!$hoSoId) {
-                    // Only log error if it's the target school but missing profile
-                    $errors[] = "Dòng $count (CCCD: $cccdRaw): Thí sinh chưa có hồ sơ trong hệ thống. Vui lòng nạp File 1 trước.";
-                    continue;
-                }
+                    $schoolCode = trim($row[3] ?? '');
+                    if ($schoolCode !== $targetSchoolCode) continue;
 
-                $majorCode = trim($row[5] ?? '');
-                $majorName = $majorMap[$majorCode] ?? '';
-                
-                if (empty($majorName)) {
-                    $errors[] = "Dòng $count: Ngành $majorCode không tồn tại trong danh mục";
-                    continue;
-                }
+                    $cccdRaw = trim($row[1] ?? '');
+                    if (empty($cccdRaw)) continue;
 
-                // Handle multiple combinations (e.g., "A00,A01,D01") - take the first one
-                $comboList = trim($row[13] ?? '');
-                $combos = explode(',', $comboList);
-                $comboCode = trim($combos[0] ?? '');
-                
-                $priority = (int)trim($row[2] ?? 0);
+                    // Match profile from memory cache
+                    $hoSoId = $profileMap[$cccdRaw] ?? $profileMap[ltrim($cccdRaw, '0')] ?? null;
+                    
+                    if (!$hoSoId) {
+                        $errors[] = "Dòng $count: Thí sinh $cccdRaw chưa có hồ sơ. Cần nạp File 1 trước.";
+                        continue;
+                    }
 
-                // Delete existing preference to avoid duplicates (since no unique constraint exists)
-                $stmtDel = $this->db->prepare("DELETE FROM nguyen_vong WHERE ho_so_id = ? AND thu_tu_nguyen_vong = ?");
-                $stmtDel->execute([$hoSoId, $priority]);
+                    $majorCode = trim($row[5] ?? '');
+                    $majorName = $majors[$majorCode] ?? trim($row[6] ?? '');
+                    if (empty($majorName)) {
+                        $errors[] = "Dòng $count: Ngành $majorCode không tồn tại.";
+                        continue;
+                    }
 
-                $stmt = $this->db->prepare("
-                    INSERT INTO nguyen_vong (
-                        ho_so_id, so_cccd, thu_tu_nguyen_vong, thu_tu_nv_bo, 
-                        ma_nganh, ten_nganh, to_hop_mon, dot_tuyen_sinh_id, 
-                        nguon_du_lieu, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'bo_gddt', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ");
-                
-                if ($stmt->execute([
-                    $hoSoId, $cccdRaw, $priority, $priority, 
-                    $majorCode, $majorName, $comboCode, $batchId
-                ])) {
+                    $priority = (int)trim($row[2] ?? 0);
+                    $methodCode = trim($row[8] ?? '');
+                    $methodName = trim($row[9] ?? '');
+                    $comboCode = trim($row[10] ?? '');
+
+                    // Collect for batch UPSERT
+                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, 'bo_gddt', NOW(), NOW())";
+                    array_push($sqlParams, 
+                        $hoSoId, $cccdRaw, $priority, $majorCode, $majorName, 
+                        $methodCode, $methodName, $comboCode, $batchId
+                    );
+                    $countInChunk++;
                     $success++;
-                } else {
-                    $errors[] = "Dòng $count: Lỗi khi lưu vào cơ sở dữ liệu";
                 }
+
+                if ($countInChunk > 0) {
+                    $insertSql = "
+                        INSERT INTO nguyen_vong (
+                            ho_so_id, so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                            ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, dot_tuyen_sinh_id, 
+                            nguon_du_lieu, created_at, updated_at
+                        ) VALUES " . implode(',', $sqlValues) . "
+                        ON CONFLICT (ho_so_id, thu_tu_nguyen_vong, ma_phuong_thuc, to_hop_mon) 
+                        DO UPDATE SET 
+                            ma_nganh = EXCLUDED.ma_nganh,
+                            ten_nganh = EXCLUDED.ten_nganh,
+                            ten_phuong_thuc = EXCLUDED.ten_phuong_thuc,
+                            updated_at = NOW()
+                    ";
+                    $this->db->prepare($insertSql)->execute($sqlParams);
+                }
+
+                $this->updateProgress($adminId, min($count, $totalRows), $totalRows, "Đã xử lý " . min($count, $totalRows) . " nguyện vọng...");
             }
 
             $this->db->commit();
-            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp $success nguyện vọng.");
+            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
             $this->importRepo->logImport(basename($filePath), 'applications', $success, $adminId);
             
-            $errorCount = count($errors);
-            $msg = "Đã nạp thành công $success nguyện vọng vào Đợt tuyển sinh hiện tại.";
-            if ($errorCount > 0) {
-                $msg .= " Có $errorCount dòng bị bỏ qua (Xem danh sách lỗi bên dưới).";
-            }
-
             return [
                 'status' => true, 
-                'count' => $count, 
                 'success' => $success, 
                 'errors' => array_slice($errors, 0, 50), 
-                'message' => $msg
+                'message' => "Đã nạp thành công $success nguyện vọng theo phương thức đồng bộ lô tốc độ cao."
             ];
 
         } catch (\Throwable $e) {
