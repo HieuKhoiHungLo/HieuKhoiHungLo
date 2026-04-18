@@ -329,7 +329,7 @@ class ImportService {
                             ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, dot_tuyen_sinh_id, 
                             nguon_du_lieu, created_at, updated_at
                         ) VALUES " . implode(',', $sqlValues) . "
-                        ON CONFLICT ON CONSTRAINT uk_hoso_nv_method_combo 
+                        ON CONFLICT ON CONSTRAINT uk_hoso_nv_aspiration 
                         DO UPDATE SET 
                             ma_nganh = EXCLUDED.ma_nganh,
                             ten_nganh = EXCLUDED.ten_nganh,
