@@ -43,29 +43,47 @@ class ImportRepository {
         try {
             $this->db->beginTransaction();
 
-            // 1. Delete Wishes (Nguyen Vong)
-            $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
+            // 1. Get all CCCDs in this batch first to use for deletions
+            $stmt = $this->db->prepare("SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
             $stmt->execute([$batchId]);
+            $cccds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // 2. Delete Transcripts (Hoc Ba) based on CCCDs in this batch
-            $stmt = $this->db->prepare("DELETE FROM ket_qua_hoc_tap WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
 
-            // 3. Delete High School Exam Scores (Diem Thi THPT)
-            $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+                // 2. Delete Nguyen Vong (by batch_id)
+                $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
+                $stmt->execute([$batchId]);
 
-            // 4. Delete Detailed Scores (Diem Chi Tiet) - NEW: Added to fix FK violation
-            $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+                // 3. Delete ket_qua_hoc_tap
+                $stmt = $this->db->prepare("DELETE FROM ket_qua_hoc_tap WHERE so_cccd IN ($placeholders)");
+                $stmt->execute($cccds);
 
-            // 5. Delete Candidates (Thi Sinh) associated with this batch
-            $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+                // 4. Delete diem_thi_thpt
+                $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN ($placeholders)");
+                $stmt->execute($cccds);
 
-            // 5. Finally delete the Profile Records (Ho So)
-            $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
-            $stmt->execute([$batchId]);
+                // 5. Delete diem_chi_tiet
+                $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN ($placeholders)");
+                $stmt->execute($cccds);
+
+                // 6. Delete ho_so_xet_tuyen (The linker)
+                // We MUST delete this BEFORE thi_sinh due to FK constraints
+                $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+                $stmt->execute([$batchId]);
+
+                // 7. Delete thi_sinh
+                // Only delete candidates if they no longer have any applications/profiles in other batches
+                $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN ($placeholders) AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)");
+                $stmt->execute($cccds);
+            } else {
+                // If no profile exists, still try to delete batch-related records just in case
+                $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
+                $stmt->execute([$batchId]);
+                
+                $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+                $stmt->execute([$batchId]);
+            }
 
             $this->db->commit();
             return true;
