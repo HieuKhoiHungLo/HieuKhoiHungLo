@@ -375,8 +375,6 @@ function importApp() {
                     confirmButtonColor: '#3B82F6',
                     confirmButtonText: 'Đóng'
                 });
-                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ! <br><small class="text-xs">${error.message}</small></div>`;
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: error.message });
             } finally {
                 this.loading[type] = false;
                 form.reset();
@@ -385,75 +383,42 @@ function importApp() {
         async confirmClearBatch() {
             const { value: password } = await Swal.fire({
                 title: 'XÁC NHẬN XÓA DỮ LIỆU',
-                html: `
-                    <div class="text-sm text-red-600 font-bold mb-4 uppercase text-center">CẢNH BÁO: HÀNH ĐỘNG NÀY SẼ XÓA TRẮNG TOÀN BỘ THÍ SINH, ĐIỂM VÀ NGUYỆN VỌNG CỦA ĐỢT NÀY!</div>
-                    <div class="text-xs text-gray-500 mb-4 text-left font-medium">Để tiếp tục, vui lòng nhập mật khẩu quản trị viên của bạn:</div>
-                `,
                 input: 'password',
                 inputPlaceholder: 'Nhập mật khẩu Admin...',
-                inputAttributes: {
-                    autocapitalize: 'off',
-                    autocorrect: 'off'
-                },
                 showCancelButton: true,
                 confirmButtonText: 'XÁC NHẬN XÓA',
                 confirmButtonColor: '#DC2626',
-                cancelButtonText: 'Hủy bỏ',
-                showLoaderOnConfirm: true,
                 preConfirm: async (pass) => {
-                    if (!pass) {
-                        Swal.showValidationMessage('Vui lòng nhập mật khẩu');
-                        return false;
-                    }
+                    if (!pass) return Swal.showValidationMessage('Vui lòng nhập mật khẩu');
                     try {
                         const formData = new FormData();
                         formData.append('password', pass);
                         formData.append('batch_id', '<?= $activeBatch['id'] ?? '' ?>');
-                        
-                        const response = await fetch('/TS/admin/import/clear-batch', {
-                            method: 'POST',
-                            body: formData
-                        });
+                        const response = await fetch('/TS/admin/import/clear-batch', { method: 'POST', body: formData });
                         const result = await response.json();
-                        if (!result.status) {
-                            throw new Error(result.message || 'Lỗi không xác định');
-                        }
+                        if (!result.status) throw new Error(result.message);
                         return result;
                     } catch (error) {
                         Swal.showValidationMessage(`Lỗi: ${error.message}`);
                     }
-                },
-                allowOutsideClick: () => !Swal.isLoading()
+                }
             });
-
             if (password) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Đã xóa trắng dữ liệu!',
-                    text: 'Hệ thống đã dọn dẹp toàn bộ dữ liệu của đợt này.',
-                    confirmButtonColor: '#3B82F6'
-                }).then(() => location.reload());
+                Swal.fire({ icon: 'success', title: 'Đã xóa trắng dữ liệu!' }).then(() => location.reload());
             }
         },
         async deleteLog(id) {
             const result = await Swal.fire({
                 title: 'Xóa nhật ký?',
-                text: "Dữ liệu nhật ký sẽ bị xóa khỏi hệ thống.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3B82F6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Đồng ý',
-                cancelButtonText: 'Hủy'
+                confirmButtonText: 'Đồng ý'
             });
-
             if (result.isConfirmed) {
                 const formData = new FormData();
                 formData.append('id', id);
-                await fetch('/TS/admin/import/delete-log', {
-                    method: 'POST',
-                    body: formData
-                });
+                await fetch('/TS/admin/import/delete-log', { method: 'POST', body: formData });
                 location.reload();
             }
         }
@@ -466,4 +431,3 @@ $content = ob_get_clean();
 $title = 'Import dữ liệu Bộ GD&ĐT';
 include __DIR__ . '/../../layouts/admin.php';
 ?>
-
