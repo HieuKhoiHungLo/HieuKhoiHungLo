@@ -45,12 +45,13 @@ class ImportService {
         }
 
         try {
-            $rows = $this->loadData($filePath);
+            // Use reader with ReadDataOnly for maximum speed (like File 2/3)
+            $reader = IOFactory::createReaderForFile($filePath);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getSheet(0); // Always first sheet
+            $totalRows = $sheet->getHighestDataRow() - 1; // Minus header
             
-            if (empty($rows)) return ['status' => false, 'message' => 'File is empty or invalid'];
-
-            array_shift($rows); // Skip header
-            $totalRows = count($rows);
             $this->updateProgress($token, 0, $totalRows, 'Bắt đầu xử lý dữ liệu Thí sinh...');
             $success = 0;
             $errors = [];
@@ -104,7 +105,16 @@ class ImportService {
             };
 
             $count = 0;
-            foreach ($rows as $row) {
+            // Use row iterator starting from row 2 (skip header) - much faster than loadData
+            $rowIterator = $sheet->getRowIterator(2);
+            foreach ($rowIterator as $excelRow) {
+                $cells = $excelRow->getCellIterator('A', 'AK'); // Only columns A-AK (37 cols)
+                $cells->setIterateOnlyExistingCells(false);
+                $row = [];
+                foreach ($cells as $cell) {
+                    $row[] = $cell->getValue();
+                }
+
                 if (count($row) < 30) continue;
                 $count++;
                 
@@ -156,13 +166,15 @@ class ImportService {
                     $profileData['ma_truong_lop_12'] = null;
                 }
 
-                $profileData['email'] = $this->nullIfEmpty(trim($row[12] ?? '')); // Try to get email if exists
+                $profileData['email'] = $this->nullIfEmpty(trim($row[12] ?? ''));
                 if (!$profileData['email']) $profileData['email'] = null;
                 
-                $profileData['so_dien_thoai'] = $this->nullIfEmpty(trim($row[11] ?? '')); // Try to get phone if exists
+                $profileData['so_dien_thoai'] = $this->nullIfEmpty(trim($row[11] ?? ''));
                 if (!$profileData['so_dien_thoai']) $profileData['so_dien_thoai'] = null;
 
-                $profileData['mat_khau'] = password_hash($cccd, PASSWORD_DEFAULT);
+                // V13: Use low-cost bcrypt for bulk import (cost=4 vs default=10)
+                // ~1ms vs ~80ms per hash. Saves 700+ seconds for 9000 candidates.
+                $profileData['mat_khau'] = password_hash($cccd, PASSWORD_BCRYPT, ['cost' => 4]);
 
                 $candidateBatch[] = $profileData;
 
