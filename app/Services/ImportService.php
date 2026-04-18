@@ -108,7 +108,7 @@ class ImportService {
             // Use row iterator starting from row 2 (skip header) - much faster than loadData
             $rowIterator = $sheet->getRowIterator(2);
             foreach ($rowIterator as $excelRow) {
-                $cells = $excelRow->getCellIterator('A', 'AK'); // Only columns A-AK (37 cols)
+                $cells = $excelRow->getCellIterator('A', 'BB'); // File 1: Columns A-BB
                 $cells->setIterateOnlyExistingCells(false);
                 $row = [];
                 foreach ($cells as $cell) {
@@ -293,7 +293,7 @@ class ImportService {
             
             foreach ($rowIterator as $row) {
                 $count++;
-                $cells = $row->getCellIterator('A', 'K'); // Only A-K (11 cols) - data uses up to col 10
+                $cells = $row->getCellIterator('A', 'T'); // File 3: Columns A-T
                 $cells->setIterateOnlyExistingCells(false);
                 $rowData = [];
                 foreach ($cells as $cell) {
@@ -420,7 +420,7 @@ class ImportService {
 
             foreach ($rowIterator as $row) {
                 $count++;
-                $cells = $row->getCellIterator('A', 'BK'); // Only A-BK (63 cols) - data uses up to col 61
+                $cells = $row->getCellIterator('A', 'BZ'); // File 9: Columns A-BZ
                 $cells->setIterateOnlyExistingCells(false);
                 $rowData = [];
                 foreach ($cells as $cell) {
