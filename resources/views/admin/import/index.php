@@ -56,7 +56,6 @@ ob_start();
                         </button>
                     </form>
                 </div>
-                <!-- Status Message -->
                 <div x-show="msg.candidates" x-html="msg.candidates" class="mt-2 text-sm" x-cloak></div>
             </div>
         </div>
@@ -81,7 +80,6 @@ ob_start();
                         </button>
                     </form>
                 </div>
-                <!-- Status Message -->
                 <div x-show="msg.applications" x-html="msg.applications" class="mt-2 text-sm" x-cloak></div>
             </div>
         </div>
@@ -106,7 +104,6 @@ ob_start();
                         </button>
                     </form>
                 </div>
-                <!-- Status Message -->
                 <div x-show="msg.transcripts" x-html="msg.transcripts" class="mt-2 text-sm" x-cloak></div>
             </div>
         </div>
@@ -178,7 +175,7 @@ ob_start();
                                 <i class="fas fa-calendar-plus text-blue-600"></i>
                             </div>
                             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Tạo đợt Tuyển sinh & Import mới</h3>
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">Tạo đợt Tuyển sinh & Import mới</h3>
                                 <div class="mt-4 space-y-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Tên đợt tuyển</label>
@@ -228,7 +225,6 @@ function importApp() {
             this.loading[type] = true;
             this.msg[type] = '';
             
-            // SweetAlert2 Modal with Progress Bar
             Swal.fire({
                 title: 'Đang tải lên dữ liệu',
                 html: `
@@ -250,12 +246,10 @@ function importApp() {
             });
 
             try {
-                // Wrap XMLHttpRequest in a Promise to track upload progress
                 const result = await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', '/TS/admin/import/upload', true);
 
-                    // Track upload progress
                     xhr.upload.onprogress = (e) => {
                         if (e.lengthComputable) {
                             const percentComplete = Math.round((e.loaded / e.total) * 100);
@@ -268,7 +262,6 @@ function importApp() {
                                 progressText.textContent = percentComplete + '%';
                             }
                             
-                            // When upload finishes, switch to server-side progress tracking
                             if (percentComplete === 100) {
                                 const titleEl = Swal.getTitle();
                                 if (titleEl) titleEl.textContent = 'Đang lưu dữ liệu...';
@@ -277,16 +270,13 @@ function importApp() {
                                 if (progressBar) {
                                     progressBar.classList.remove('bg-indigo-600');
                                     progressBar.classList.add('bg-blue-400', 'animate-pulse');
-                                    // Reset to small value (e.g. 5%) to show backend started if server hasn't updated yet
                                     progressBar.style.width = '5%';
                                     if (progressText) progressText.textContent = '5%';
                                 }
 
-                                // Start polling server-side progress
                                 let lastPercent = 0;
                                 const progressInterval = setInterval(async () => {
                                     try {
-                                        // Cache busting + TOKEN tracking
                                         const res = await fetch('/TS/admin/import/progress?token=' + importToken + '&t=' + Date.now());
                                         if (res.ok) {
                                             const data = await res.json();
@@ -308,8 +298,6 @@ function importApp() {
                                     }
                                 }, 1500);
 
-
-                                // Save interval to clear it later
                                 xhr.progressInterval = progressInterval;
                             }
                         }
@@ -321,7 +309,7 @@ function importApp() {
                             try {
                                 resolve(JSON.parse(xhr.responseText));
                             } catch (e) {
-                                reject(new Error('Dữ liệu máy chủ trả về không hợp lệ (Không phải JSON). Nội dung: ' + xhr.responseText.substring(0, 150)));
+                                reject(new Error('Dữ liệu máy chủ trả về không hợp lệ.'));
                             }
                         } else {
                             reject(new Error('Lỗi máy chủ (HTTP ' + xhr.status + ')'));
@@ -346,34 +334,19 @@ function importApp() {
                         location.reload();
                     });
                 } else {
-                    let errorHtml = `<div class="text-left mt-3"><p class="text-sm text-red-600 mb-3 font-medium">${result.message}</p>`;
-                    if (result.errors && result.errors.length > 0) {
-                        errorHtml += '<div class="bg-gray-50 border border-gray-200 rounded p-3">';
-                        errorHtml += '<ul class="list-disc pl-5 text-xs text-gray-600 max-h-40 overflow-y-auto space-y-1">';
-                        result.errors.slice(0, 10).forEach(err => errorHtml += `<li>${err}</li>`);
-                        if (result.errors.length > 10) errorHtml += `<li class="text-gray-400 italic">... và ${result.errors.length - 10} lỗi khác trống</li>`;
-                        errorHtml += '</ul></div>';
-                    }
-                    errorHtml += '</div>';
-                    
                     Swal.fire({
                         icon: 'error',
                         title: 'Có lỗi xảy ra',
-                        html: errorHtml,
-                        confirmButtonColor: '#3B82F6',
-                        confirmButtonText: 'Đóng lại'
+                        text: result.message,
+                        confirmButtonColor: '#3B82F6'
                     });
-                    
-                    this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded text-sm"><i class="fas fa-exclamation-triangle mr-1"></i> Quá trình import có lỗi, vui lòng kiểm tra chi tiết trên bảng thông báo.</div>`;
                 }
             } catch (error) {
-                console.error(error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Lỗi Kết Nối',
                     text: error.message,
-                    confirmButtonColor: '#3B82F6',
-                    confirmButtonText: 'Đóng'
+                    confirmButtonColor: '#3B82F6'
                 });
             } finally {
                 this.loading[type] = false;
@@ -422,8 +395,8 @@ function importApp() {
                 location.reload();
             }
         }
-    }));
-});
+    };
+}
 </script>
 
 <?php
