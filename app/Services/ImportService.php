@@ -25,8 +25,8 @@ class ImportService {
     }
 
     private function updateProgress($token, $current, $total, $message = '') {
-        $logDir = __DIR__ . '/../../../storage/logs';
-        if (!is_dir($logDir)) mkdir($logDir, 0777, true);
+        $progressDir = __DIR__ . '/../../storage/logs';
+        if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
         
         $status = [
             'current' => $current,
@@ -36,7 +36,7 @@ class ImportService {
             'updated_at' => date('Y-m-d H:i:s')
         ];
         
-        file_put_contents($logDir . "/import_progress_{$token}.json", json_encode($status));
+        file_put_contents($progressDir . "/import_progress_{$token}.json", json_encode($status));
     }
 
     public function parseCandidates($filePath, $batchId, $token, $year) {
