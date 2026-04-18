@@ -30,6 +30,18 @@ class ImportController extends Controller {
     public function upload() {
         $this->requireAdmin();
         
+        $adminId = $_SESSION['admin_id'] ?? 1;
+        $progressDir = __DIR__ . "/../../storage/logs";
+        if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
+        $progressFile = $progressDir . "/import_progress_{$adminId}.json";
+
+        // Reset and initialize progress file IMMEDIATELY before session close
+        file_put_contents($progressFile, json_encode([
+            'percent' => 0, 
+            'message' => 'Đang kết nối máy chủ...',
+            'updated_at' => date('Y-m-d H:i:s')
+        ]));
+        
         // Increase resources for large MOET files
         ini_set('memory_limit', '2048M');
         ini_set('max_execution_time', '3600');
@@ -43,19 +55,14 @@ class ImportController extends Controller {
         try {
             $type = $_POST['type'] ?? '';
             $batchId = $_POST['batch_id'] ?? '';
-            $adminId = $_SESSION['admin_id'] ?? 1;
 
             // Release session lock so progress polling can work
-            // This is critical to prevent the /progress endpoint from being blocked
             session_write_close();
-
-            // Reset and initialize progress file for this admin
-            $progressDir = __DIR__ . "/../../storage/logs";
-            if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
-            $progressFile = $progressDir . "/import_progress_{$adminId}.json";
+            
+            // Re-update to show spreadsheet loading started
             file_put_contents($progressFile, json_encode([
                 'percent' => 0, 
-                'message' => 'Đang tải file Excel vào bộ nhớ...',
+                'message' => 'Đang nạp file Excel vào bộ nhớ (32k+ dòng)...',
                 'updated_at' => date('Y-m-d H:i:s')
             ]));
             

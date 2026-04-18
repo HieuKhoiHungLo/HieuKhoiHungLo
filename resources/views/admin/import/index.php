@@ -257,25 +257,32 @@ function importApp() {
                             if (percentComplete === 100) {
                                 const titleEl = Swal.getTitle();
                                 if (titleEl) titleEl.textContent = 'Đang lưu dữ liệu...';
-                                if (textEl) textEl.textContent = 'Hệ thống đang lưu vào DB (có thể mất vài phút)...';
+                                if (textEl) textEl.textContent = 'Vui lòng đợi, hệ thống đang xử lý dữ liệu lớn...';
                                 
                                 if (progressBar) {
-                                    progressBar.classList.remove('bg-indigo-600', 'animate-pulse');
-                                    progressBar.classList.add('bg-green-500');
+                                    progressBar.classList.remove('bg-indigo-600');
+                                    progressBar.classList.add('bg-blue-400', 'animate-pulse');
+                                    // Reset to small value (e.g. 5%) to show backend started if server hasn't updated yet
+                                    progressBar.style.width = '5%';
+                                    if (progressText) progressText.textContent = '5%';
                                 }
 
                                 // Start polling server-side progress
                                 let lastPercent = 0;
                                 const progressInterval = setInterval(async () => {
                                     try {
-                                        const res = await fetch('/TS/admin/import/progress');
+                                        // Cache busting with timestamp
+                                        const res = await fetch('/TS/admin/import/progress?t=' + Date.now());
                                         if (res.ok) {
                                             const data = await res.json();
                                             if (data.percent !== undefined) {
                                                 const currentPercent = parseInt(data.percent);
-                                                if (currentPercent > lastPercent) {
+                                                if (currentPercent > lastPercent || currentPercent === 0) {
                                                     lastPercent = currentPercent;
-                                                    if (progressBar) progressBar.style.width = currentPercent + '%';
+                                                    if (progressBar) {
+                                                        progressBar.style.width = currentPercent + '%';
+                                                        if (currentPercent > 5) progressBar.classList.remove('animate-pulse');
+                                                    }
                                                     if (progressText) progressText.textContent = currentPercent + '%';
                                                     if (textEl && data.message) textEl.textContent = data.message;
                                                 }
@@ -284,7 +291,8 @@ function importApp() {
                                     } catch (err) {
                                         console.error('Progress polling error:', err);
                                     }
-                                }, 2000);
+                                }, 1500);
+
 
                                 // Save interval to clear it later
                                 xhr.progressInterval = progressInterval;
