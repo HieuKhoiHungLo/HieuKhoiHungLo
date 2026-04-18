@@ -55,7 +55,11 @@ class ImportRepository {
             $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
             $stmt->execute([$batchId]);
 
-            // 4. Delete Candidates (Thi Sinh) associated with this batch
+            // 4. Delete Detailed Scores (Diem Chi Tiet) - NEW: Added to fix FK violation
+            $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
+            $stmt->execute([$batchId]);
+
+            // 5. Delete Candidates (Thi Sinh) associated with this batch
             $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
             $stmt->execute([$batchId]);
 
