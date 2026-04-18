@@ -1032,21 +1032,17 @@ updateActionBarOffset();
 
     // Email Modal Functions
     function openEmailModal() {
-        const countSpan = document.getElementById('email-count');
+        const countSpan = document.getElementById('email-target-count');
         if (countSpan) countSpan.innerText = '1';
         
-        // Mặc định nội dung email khi gửi lẻ từ trang review
-        const contentArea = document.getElementById('modal-email-content');
-        const noteArea = document.getElementById('modal-internal-note');
+        const subjectArea = document.getElementById('email-modal-subject');
+        const contentArea = document.getElementById('email-editor');
+        const noteArea = document.getElementById('email-modal-internal-note');
         
         const today = new Date().toLocaleDateString('vi-VN');
         
-        if (contentArea) {
-            const existingNote = <?= json_encode($user['ghi_chu'] ?? '') ?>;
-            let defaultContent = ""; // Giữ nguyên nội dung nếu không cần ngày ở đây? 
-            // User nói: "mặc định là chữ Gửi mail ngày: [Ngày hiện tại]" áp dụng cho INPUT "Ghi chú nội bộ"
-            contentArea.value = existingNote ? `Ghi chú hiện tại: ${existingNote}\n\n` : "";
-        }
+        if (subjectArea) subjectArea.value = '';
+        if (contentArea) contentArea.innerHTML = '';
 
         if (noteArea) {
             noteArea.value = `Gửi mail ngày: ${today}`;
@@ -1131,7 +1127,8 @@ updateActionBarOffset();
         const inputNote = document.createElement('input');
         inputNote.type = 'hidden';
         inputNote.name = 'internal_note';
-        inputNote.value = document.getElementById('modal-internal-note').value;
+        const noteEl = document.getElementById('email-modal-internal-note');
+        inputNote.value = noteEl ? noteEl.value : '';
         form.appendChild(inputNote);
 
         const inputRedirect = document.createElement('input');
