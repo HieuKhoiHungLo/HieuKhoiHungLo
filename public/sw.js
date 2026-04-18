@@ -33,8 +33,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Skip non-GET and external requests
-    if (event.request.method !== 'GET') return;
+    // Bypass Admin area and non-GET requests
+    if (url.pathname.includes('/admin/') || event.request.method !== 'GET') return;
     if (!url.origin.includes(self.location.hostname)) return;
 
     // For API calls — network only (don't cache dynamic data)

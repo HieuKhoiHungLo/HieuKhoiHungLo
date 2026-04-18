@@ -201,7 +201,6 @@ class ThiSinhRepository
                 'diem_chi_tiet' => 'so_cccd',
                 'diem_thi_thpt' => 'so_cccd',
                 'diem_nang_khieu' => 'so_cccd',
-                'diem_nang_khieu_ngoai' => 'so_cccd',
                 'notification_reads' => 'user_cccd'
             ];
 
@@ -210,7 +209,8 @@ class ThiSinhRepository
                 $stmt->execute([$cccd]);
             }
 
-            $result = $this->model->delete($cccd);
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
+            $result = $stmt->execute([$cccd]);
 
             $this->db->commit();
             return $result;
@@ -601,5 +601,40 @@ class ThiSinhRepository
     public function getLatestCandidates($limit = 5, $sessionId = null)
     {
         return $this->model->getLatestCandidates($limit, $sessionId);
+    }
+
+    public function upsertBatch(array $candidatesData)
+    {
+        if (empty($candidatesData)) return 0;
+
+        $cols = ['so_cccd', 'ho_va_ten', 'ngay_sinh', 'gioi_tinh', 'doi_tuong_uu_tien', 'khu_vuc_uu_tien', 'nam_tot_nghiep', 'ma_tinh_ho_khau', 'ma_tinh_thuong_tru', 'ma_xa_thuong_tru', 'ma_truong_lop_12', 'email', 'mat_khau', 'nguon_du_lieu'];
+        
+        $placeholders = [];
+        $values = [];
+        
+        foreach ($candidatesData as $data) {
+            $rowPlaceholders = [];
+            foreach ($cols as $col) {
+                $rowPlaceholders[] = '?';
+                $values[] = $data[$col] ?? null;
+            }
+            $placeholders[] = '(' . implode(',', $rowPlaceholders) . ')';
+        }
+        
+        $sql = "INSERT INTO {$this->table} (" . implode(', ', $cols) . ") VALUES " . implode(', ', $placeholders);
+        $sql .= " ON CONFLICT (so_cccd) DO UPDATE SET ";
+        
+        $updateCols = [];
+        foreach ($cols as $col) {
+            if ($col !== 'so_cccd' && $col !== 'mat_khau' && $col !== 'email') { 
+                // Do not blindly overwrite password or email if they exist, but update other profile fields
+                $updateCols[] = "$col = EXCLUDED.$col";
+            }
+        }
+        $sql .= implode(', ', $updateCols);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($values);
+        return count($candidatesData);
     }
 }

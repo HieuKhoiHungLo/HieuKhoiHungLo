@@ -1061,11 +1061,11 @@ updateActionBarOffset();
     }
 
     function applyEmailTemplate(val) {
-        var sel = document.getElementById('modal-email-template');
+        var sel = document.getElementById('email-template-select');
         var opt = sel.options[sel.selectedIndex];
         if (!opt || !val) {
-            document.getElementById('modal-email-subject').value = '';
-            document.getElementById('modal-email-content').value = '';
+            document.getElementById('email-modal-subject').value = '';
+            document.getElementById('email-editor').innerHTML = '';
             return;
         }
         var subject = opt.getAttribute('data-subject') || '';

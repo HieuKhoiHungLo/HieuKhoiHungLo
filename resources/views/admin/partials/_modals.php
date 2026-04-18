@@ -147,11 +147,14 @@
                     <span class="text-sm text-slate-500 w-20 shrink-0">Mẫu thư</span>
                     <div class="flex-1 relative group">
                         <select name="template_id" id="email-template-select" 
+                            onchange="applyEmailTemplate(this.value)"
                             class="w-full bg-transparent border-none text-slate-900 text-sm font-bold focus:ring-0 p-0 outline-none cursor-pointer appearance-none">
                             <option value="">-- Tự soạn hoặc chọn mẫu --</option>
                             <?php if (isset($emailTemplates)): ?>
                                 <?php foreach ($emailTemplates as $t): ?>
-                                    <option value="<?= $t['id'] ?>">
+                                    <option value="<?= $t['id'] ?>" 
+                                            data-subject="<?= htmlspecialchars($t['subject'] ?? '') ?>"
+                                            data-body="<?= htmlspecialchars($t['body'] ?? '') ?>">
                                         <?= htmlspecialchars($t['subject'] ?? $t['code'] ?? 'Mẫu thư') ?>
                                     </option>
                                 <?php endforeach; ?>

@@ -311,6 +311,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     // Import & Profile
     $router->get('/admin/import', 'ImportController@index');
+    $router->get('/admin/import/progress', 'ImportController@progress');
     $router->post('/admin/import/upload', 'ImportController@upload');
     $router->post('/admin/import/batch/create', 'ImportController@createBatch');
 

@@ -31,9 +31,9 @@ class ImportController extends Controller {
         $this->requireAdmin();
         
         // Increase resources for large MOET files
-        ini_set('memory_limit', '1024M');
-        ini_set('max_execution_time', '600');
-        set_time_limit(600);
+        ini_set('memory_limit', '2048M');
+        ini_set('max_execution_time', '3600');
+        set_time_limit(3600);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['status' => false, 'message' => 'Invalid method']);
@@ -43,6 +43,21 @@ class ImportController extends Controller {
         try {
             $type = $_POST['type'] ?? '';
             $batchId = $_POST['batch_id'] ?? '';
+            $adminId = $_SESSION['admin_id'] ?? 1;
+
+            // Release session lock so progress polling can work
+            // This is critical to prevent the /progress endpoint from being blocked
+            session_write_close();
+
+            // Reset and initialize progress file for this admin
+            $progressDir = __DIR__ . "/../../storage/logs";
+            if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
+            $progressFile = $progressDir . "/import_progress_{$adminId}.json";
+            file_put_contents($progressFile, json_encode([
+                'percent' => 0, 
+                'message' => 'Đang tải file Excel vào bộ nhớ...',
+                'updated_at' => date('Y-m-d H:i:s')
+            ]));
             
             if (empty($batchId) || empty($type)) {
                 $this->json(['status' => false, 'message' => 'Vui lòng chọn hoặc tạo đợt tuyển sinh trước khi import.']);
@@ -68,7 +83,6 @@ class ImportController extends Controller {
                 return;
             }
 
-            $adminId = $_SESSION['admin_id'] ?? 1;
             $result = ['status' => false, 'message' => 'Unknown type'];
 
             $batch = $this->importRepo->getActiveBatch();
@@ -92,17 +106,25 @@ class ImportController extends Controller {
             ]);
         }
     }
-    
+
+    public function progress() {
+        $adminId = $_SESSION['admin_id'] ?? 1;
+        $progressFile = __DIR__ . "/../../storage/logs/import_progress_{$adminId}.json";
+        
+        if (file_exists($progressFile)) {
+            $data = json_decode(file_get_contents($progressFile), true);
+            $this->json($data);
+        } else {
+            $this->json(['percent' => 0, 'message' => 'Đang chờ máy chủ...']);
+        }
+    }
+
     public function createBatch() {
         $this->requireAdmin();
         $name = $_POST['name'] ?? '';
         $year = $_POST['year'] ?? date('Y');
         
-        if (empty($name)) {
-            $this->redirect('/admin/import?error=Name required');
-        }
-        
         $this->importRepo->createBatch($name, $year);
-        $this->redirect('/admin/import?success=Batch created');
+        $this->redirect(url('/admin/master-data/sessions'));
     }
 }

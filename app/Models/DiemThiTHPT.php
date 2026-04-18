@@ -112,4 +112,98 @@ class DiemThiTHPT extends Model {
             error_log("Sync THPT dual write failed: " . $e->getMessage());
         }
     }
+
+    public function upsertBatch(array $scoresData) {
+        if (empty($scoresData)) return 0;
+        
+        $fields = [
+            'so_cccd', 'nam_thi', 'da_co_diem', 'toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 
+            'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan'
+        ];
+
+        $placeholders = [];
+        $values = [];
+
+        foreach ($scoresData as $cccd => $data) {
+            $rowPlaceholders = [];
+            foreach ($fields as $field) {
+                $rowPlaceholders[] = '?';
+                if ($field === 'so_cccd') {
+                    $values[] = $cccd;
+                } else {
+                    $val = $data[$field] ?? null;
+                    if ($val === '') $val = null;
+                    if ($field === 'da_co_diem') $val = ($val ? 'true' : 'false');
+                    $values[] = $val;
+                }
+            }
+            $placeholders[] = '(' . implode(',', $rowPlaceholders) . ')';
+        }
+
+        $sql = "INSERT INTO {$this->table} (" . implode(', ', $fields) . ") VALUES " . implode(', ', $placeholders);
+        $sql .= " ON CONFLICT (so_cccd) DO UPDATE SET ";
+
+        $updateCols = [];
+        foreach ($fields as $field) {
+            if ($field !== 'so_cccd') {
+                $updateCols[] = "$field = EXCLUDED.$field";
+            }
+        }
+        $sql .= implode(', ', $updateCols);
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($values);
+
+        // Bulk sync to diem_chi_tiet
+        $this->syncBatchToNormalizedTable($scoresData);
+
+        return count($scoresData);
+    }
+
+    public function syncBatchToNormalizedTable(array $scoresData) {
+        if (empty($scoresData)) return;
+
+        static $subjectsMap = null;
+        if ($subjectsMap === null) {
+            $stmt = $this->db->query("SELECT cot_diem, id FROM dm_mon WHERE cot_diem IS NOT NULL");
+            $subjectsMap = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        }
+
+        $cccdsWithData = [];
+        $insertValues = [];
+        $insertParams = [];
+
+        foreach ($scoresData as $cccd => $data) {
+            $hasData = false;
+            foreach ($subjectsMap as $col => $monId) {
+                if (isset($data[$col]) && $data[$col] !== null && $data[$col] !== '') {
+                    $hasData = true;
+                    $insertValues[] = "(?, ?, 'THPT', ?)";
+                    $insertParams[] = $cccd;
+                    $insertParams[] = $monId;
+                    $insertParams[] = $data[$col];
+                }
+            }
+            if ($hasData) {
+                $cccdsWithData[] = $cccd;
+            }
+        }
+
+        if (!empty($cccdsWithData)) {
+            try {
+                // Delete existing for these CCCDs
+                $placeholders = implode(',', array_fill(0, count($cccdsWithData), '?'));
+                $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN ($placeholders) AND loai_diem = 'THPT'")->execute($cccdsWithData);
+
+                if (!empty($insertValues)) {
+                    // Postgres has a limit of 65535 parameters per statement. 
+                    // Chunks of 500 candidates max will have ~ 500 * 9 = 4500 params, which is safe.
+                    $insertSql = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES " . implode(', ', $insertValues);
+                    $this->db->prepare($insertSql)->execute($insertParams);
+                }
+            } catch (\Exception $e) {
+                error_log("Batch Sync THPT dual write failed: " . $e->getMessage());
+            }
+        }
+    }
 }

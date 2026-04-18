@@ -189,6 +189,7 @@ ob_start();
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function importApp() {
     return {
@@ -212,37 +213,146 @@ function importApp() {
             this.loading[type] = true;
             this.msg[type] = '';
             
+            // SweetAlert2 Modal with Progress Bar
+            Swal.fire({
+                title: 'Đang tải lên dữ liệu',
+                html: `
+                    <div class="mb-4 text-sm text-gray-500 text-center" id="swal-upload-text">Đang tải file lên máy chủ...</div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 mt-4 relative overflow-hidden">
+                        <div id="swal-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs font-semibold text-gray-400 mt-2">
+                        <span id="swal-progress-text" class="text-indigo-600">0%</span>
+                        <span class="uppercase tracking-widest text-[10px]">Vui lòng không đóng trang</span>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             try {
-                const response = await fetch('/TS/admin/import/upload', {
-                    method: 'POST',
-                    body: formData
+                // Wrap XMLHttpRequest in a Promise to track upload progress
+                const result = await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/TS/admin/import/upload', true);
+
+                    // Track upload progress
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const percentComplete = Math.round((e.loaded / e.total) * 100);
+                            const progressBar = document.getElementById('swal-progress-bar');
+                            const progressText = document.getElementById('swal-progress-text');
+                            const textEl = document.getElementById('swal-upload-text');
+                            
+                            if (progressBar && progressText) {
+                                progressBar.style.width = percentComplete + '%';
+                                progressText.textContent = percentComplete + '%';
+                            }
+                            
+                            // When upload finishes, switch to server-side progress tracking
+                            if (percentComplete === 100) {
+                                const titleEl = Swal.getTitle();
+                                if (titleEl) titleEl.textContent = 'Đang lưu dữ liệu...';
+                                if (textEl) textEl.textContent = 'Hệ thống đang lưu vào DB (có thể mất vài phút)...';
+                                
+                                if (progressBar) {
+                                    progressBar.classList.remove('bg-indigo-600', 'animate-pulse');
+                                    progressBar.classList.add('bg-green-500');
+                                }
+
+                                // Start polling server-side progress
+                                let lastPercent = 0;
+                                const progressInterval = setInterval(async () => {
+                                    try {
+                                        const res = await fetch('/TS/admin/import/progress');
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            if (data.percent !== undefined) {
+                                                const currentPercent = parseInt(data.percent);
+                                                if (currentPercent > lastPercent) {
+                                                    lastPercent = currentPercent;
+                                                    if (progressBar) progressBar.style.width = currentPercent + '%';
+                                                    if (progressText) progressText.textContent = currentPercent + '%';
+                                                    if (textEl && data.message) textEl.textContent = data.message;
+                                                }
+                                            }
+                                        }
+                                    } catch (err) {
+                                        console.error('Progress polling error:', err);
+                                    }
+                                }, 2000);
+
+                                // Save interval to clear it later
+                                xhr.progressInterval = progressInterval;
+                            }
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.progressInterval) clearInterval(xhr.progressInterval);
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                resolve(JSON.parse(xhr.responseText));
+                            } catch (e) {
+                                reject(new Error('Dữ liệu máy chủ trả về không hợp lệ (Không phải JSON). Nội dung: ' + xhr.responseText.substring(0, 150)));
+                            }
+                        } else {
+                            reject(new Error('Lỗi máy chủ (HTTP ' + xhr.status + ')'));
+                        }
+                    };
+
+                    xhr.onerror = () => {
+                        if (xhr.progressInterval) clearInterval(xhr.progressInterval);
+                        reject(new Error('Lỗi kết nối mạng'));
+                    };
+                    xhr.send(formData);
                 });
                 
-                const text = await response.text();
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    throw new Error('Dữ liệu máy chủ trả về không hợp lệ (Không phải JSON). Có thể do file quá lớn hoặc lỗi PHP Fatal Error. Nội dung: ' + text.substring(0, 200));
-                }
-                
                 if (result.status) {
-                    this.msg[type] = `<div class="p-3 bg-green-100 text-green-700 rounded"><i class="fas fa-check-circle mr-1"></i> Thành công! Đã nạp ${result.success}/${result.count} dòng. Đang tải lại trang...</div>`;
-                    setTimeout(() => location.reload(), 2000);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Hoàn tất nạp dữ liệu!',
+                        html: `<div class="text-sm mt-2 text-gray-600">Đã cập nhật thành công <b>${result.success}</b> / ${result.count} dòng.</div>`,
+                        showConfirmButton: false,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
                 } else {
-                    let errorHtml = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-exclamation-triangle mr-1"></i> Lỗi: ${result.message}`;
+                    let errorHtml = `<div class="text-left mt-3"><p class="text-sm text-red-600 mb-3 font-medium">${result.message}</p>`;
                     if (result.errors && result.errors.length > 0) {
-                        errorHtml += '<ul class="mt-2 list-disc pl-5 text-xs text-red-600">';
-                        result.errors.slice(0, 5).forEach(err => errorHtml += `<li>${err}</li>`);
-                        if (result.errors.length > 5) errorHtml += `<li>... và ${result.errors.length - 5} lỗi khác</li>`;
-                        errorHtml += '</ul>';
+                        errorHtml += '<div class="bg-gray-50 border border-gray-200 rounded p-3">';
+                        errorHtml += '<ul class="list-disc pl-5 text-xs text-gray-600 max-h-40 overflow-y-auto space-y-1">';
+                        result.errors.slice(0, 10).forEach(err => errorHtml += `<li>${err}</li>`);
+                        if (result.errors.length > 10) errorHtml += `<li class="text-gray-400 italic">... và ${result.errors.length - 10} lỗi khác trống</li>`;
+                        errorHtml += '</ul></div>';
                     }
                     errorHtml += '</div>';
-                    this.msg[type] = errorHtml;
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra',
+                        html: errorHtml,
+                        confirmButtonColor: '#3B82F6',
+                        confirmButtonText: 'Đóng lại'
+                    });
+                    
+                    this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded text-sm"><i class="fas fa-exclamation-triangle mr-1"></i> Quá trình import có lỗi, vui lòng kiểm tra chi tiết trên bảng thông báo.</div>`;
                 }
             } catch (error) {
                 console.error(error);
-                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ hoặc lỗi xử lý! <br><small class="text-xs">${error.message}</small></div>`;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi Kết Nối',
+                    text: error.message,
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'Đóng'
+                });
+                this.msg[type] = `<div class="p-3 bg-red-100 text-red-700 rounded"><i class="fas fa-wifi mr-1"></i> Lỗi kết nối máy chủ! <br><small class="text-xs">${error.message}</small></div>`;
             } finally {
                 this.loading[type] = false;
                 form.reset();
