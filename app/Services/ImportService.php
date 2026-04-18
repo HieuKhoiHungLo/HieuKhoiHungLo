@@ -343,10 +343,10 @@ class ImportService {
 
     private function flushApplicationBuffer($buffer, $batchId) {
         // Deduplicate: PostgreSQL ON CONFLICT cannot affect same row twice in one command
+        // Constraint uk_hoso_nv_aspiration is UNIQUE(ho_so_id, thu_tu_nguyen_vong)
         $unique = [];
         foreach ($buffer as $data) {
-            // Use composite key matching the unique constraint
-            $key = $data['ho_so_id'] . '_' . $data['thu_tu'] . '_' . $data['ma_nganh'] . '_' . $data['ma_pt'] . '_' . $data['to_hop'];
+            $key = $data['ho_so_id'] . '_' . $data['thu_tu'];
             $unique[$key] = $data; // Last one wins if duplicate
         }
 
