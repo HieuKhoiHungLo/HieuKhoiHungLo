@@ -407,8 +407,8 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                             <td x-show="showCols.phone" class="font-medium text-slate-700">
                                 <div class="flex items-center justify-between">
-                                    <span><?= htmlspecialchars($c['dien_thoai']) ?></span>
-                                    <?php if ($purePhone = preg_replace('/\D/', '', $c['dien_thoai'])): ?>
+                                    <span><?= htmlspecialchars($c['dien_thoai'] ?? '') ?></span>
+                                    <?php if ($purePhone = preg_replace('/\D/', '', $c['dien_thoai'] ?? '')): ?>
                                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <a href="tel:<?= $purePhone ?>" class="text-emerald-500 w-5 h-5 flex items-center justify-center rounded hover:bg-emerald-50" title="Gọi điện">
                                                 <i class="fas fa-phone-alt scale-75"></i>
@@ -420,7 +420,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             </td>
 
                             <td x-show="showCols.email" class="text-slate-500 text-[11px]">
-                                <?= htmlspecialchars($c['email']) ?>
+                                <?= htmlspecialchars($c['email'] ?? '') ?>
                             </td>
 
                             <td x-show="showCols.province" class="text-slate-600">

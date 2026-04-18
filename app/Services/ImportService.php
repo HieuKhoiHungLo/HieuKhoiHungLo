@@ -156,7 +156,12 @@ class ImportService {
                     $profileData['ma_truong_lop_12'] = null;
                 }
 
-                $profileData['email'] = $cccd . '@import.local';
+                $profileData['email'] = $this->nullIfEmpty(trim($row[12] ?? '')); // Try to get email if exists
+                if (!$profileData['email']) $profileData['email'] = null;
+                
+                $profileData['so_dien_thoai'] = $this->nullIfEmpty(trim($row[11] ?? '')); // Try to get phone if exists
+                if (!$profileData['so_dien_thoai']) $profileData['so_dien_thoai'] = null;
+
                 $profileData['mat_khau'] = password_hash($cccd, PASSWORD_DEFAULT);
 
                 $candidateBatch[] = $profileData;
