@@ -1516,16 +1516,8 @@ class CandidateController extends Controller
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute($params);
                 if ($stmt->fetch()) {
-                    $updSql = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', admin_id = ?, ngay_duyet = NOW()";
-                    $updParams = [$adminId];
-                    if ($note !== '') {
-                        $updSql .= ", ghi_chu = ?";
-                        $updParams[] = $note;
-                    }
-                    $updSql .= " WHERE so_cccd = ? AND dot_tuyen_sinh_id = (SELECT dot_tuyen_sinh_id FROM (" . $sql . ") as t)";
-                    
                     // Simplified update for reliability
-                    $finalUpdate = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', admin_id = ?, ngay_duyet = NOW()";
+                    $finalUpdate = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', nguoi_duyet_id = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh'";
                     $finalParams = [$adminId];
                     if ($note !== '') {
                         $finalUpdate .= ", ghi_chu = ?";
