@@ -293,7 +293,7 @@ class ImportService {
             
             foreach ($rowIterator as $row) {
                 $count++;
-                $cells = $row->getCellIterator();
+                $cells = $row->getCellIterator('A', 'K'); // Only A-K (11 cols) - data uses up to col 10
                 $cells->setIterateOnlyExistingCells(false);
                 $rowData = [];
                 foreach ($cells as $cell) {
@@ -420,7 +420,7 @@ class ImportService {
 
             foreach ($rowIterator as $row) {
                 $count++;
-                $cells = $row->getCellIterator();
+                $cells = $row->getCellIterator('A', 'BK'); // Only A-BK (63 cols) - data uses up to col 61
                 $cells->setIterateOnlyExistingCells(false);
                 $rowData = [];
                 foreach ($cells as $cell) {
