@@ -207,8 +207,10 @@ function importApp() {
         },
         async upload(type, event) {
             const form = event.target;
+            const importToken = 'imp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
             const formData = new FormData(form);
             formData.append('type', type);
+            formData.append('import_token', importToken);
             
             this.loading[type] = true;
             this.msg[type] = '';
@@ -271,8 +273,8 @@ function importApp() {
                                 let lastPercent = 0;
                                 const progressInterval = setInterval(async () => {
                                     try {
-                                        // Cache busting with timestamp
-                                        const res = await fetch('/TS/admin/import/progress?t=' + Date.now());
+                                        // Cache busting + TOKEN tracking
+                                        const res = await fetch('/TS/admin/import/progress?token=' + importToken + '&t=' + Date.now());
                                         if (res.ok) {
                                             const data = await res.json();
                                             if (data.percent !== undefined) {

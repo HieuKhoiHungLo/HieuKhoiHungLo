@@ -30,10 +30,10 @@ class ImportController extends Controller {
     public function upload() {
         $this->requireAdmin();
         
-        $adminId = $_SESSION['admin_id'] ?? 1;
+        $token = $_POST['import_token'] ?? ('imp_' . time());
         $progressDir = __DIR__ . "/../../storage/logs";
         if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
-        $progressFile = $progressDir . "/import_progress_{$adminId}.json";
+        $progressFile = $progressDir . "/import_progress_{$token}.json";
 
         // Reset and initialize progress file IMMEDIATELY before session close
         file_put_contents($progressFile, json_encode([
@@ -96,11 +96,11 @@ class ImportController extends Controller {
             $year = $batch ? (int)$batch['nam_tuyen_sinh'] : (int)date('Y');
 
             if ($type === 'candidates') {
-                $result = $this->importService->parseCandidates($filePath, $batchId, $adminId, $year);
+                $result = $this->importService->parseCandidates($filePath, $batchId, $token, $year);
             } elseif ($type === 'applications') {
-                $result = $this->importService->parseApplications($filePath, $batchId, $adminId, 'THV');
+                $result = $this->importService->parseApplications($filePath, $batchId, $token, 'THV');
             } elseif ($type === 'transcripts') {
-                $result = $this->importService->parseTranscripts($filePath, $batchId, $adminId);
+                $result = $this->importService->parseTranscripts($filePath, $batchId, $token);
             }
 
             $this->json($result);
@@ -115,14 +115,19 @@ class ImportController extends Controller {
     }
 
     public function progress() {
-        $adminId = $_SESSION['admin_id'] ?? 1;
-        $progressFile = __DIR__ . "/../../storage/logs/import_progress_{$adminId}.json";
+        $token = $_GET['token'] ?? '';
+        if (empty($token)) {
+            $this->json(['percent' => 0, 'message' => 'Đang khởi tạo kết nối...']);
+            return;
+        }
+
+        $progressFile = __DIR__ . "/../../storage/logs/import_progress_{$token}.json";
         
         if (file_exists($progressFile)) {
             $data = json_decode(file_get_contents($progressFile), true);
             $this->json($data);
         } else {
-            $this->json(['percent' => 0, 'message' => 'Đang chờ máy chủ...']);
+            $this->json(['percent' => 0, 'message' => 'Đang đợi dữ liệu nạp...']);
         }
     }
 

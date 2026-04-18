@@ -24,7 +24,7 @@ class ImportService {
         $this->db = Database::getInstance()->getConnection();
     }
 
-    private function updateProgress($adminId, $current, $total, $message = '') {
+    private function updateProgress($token, $current, $total, $message = '') {
         $logDir = __DIR__ . '/../../../storage/logs';
         if (!is_dir($logDir)) mkdir($logDir, 0777, true);
         
@@ -36,7 +36,7 @@ class ImportService {
             'updated_at' => date('Y-m-d H:i:s')
         ];
         
-        file_put_contents($logDir . "/import_progress_{$adminId}.json", json_encode($status));
+        file_put_contents($logDir . "/import_progress_{$token}.json", json_encode($status));
     }
 
     public function parseCandidates($filePath, $batchId, $adminId, $year) {
@@ -246,7 +246,7 @@ class ImportService {
         return $str === '1' ? 'Nam' : 'Nữ';
     }
 
-    public function parseApplications($filePath, $batchId, $adminId, $targetSchoolCode) {
+    public function parseApplications($filePath, $batchId, $token, $targetSchoolCode) {
         if (!file_exists($filePath)) {
             return ['status' => false, 'message' => 'File not found'];
         }
@@ -258,7 +258,7 @@ class ImportService {
             $sheet = $spreadsheet->getActiveSheet();
             $totalRows = $sheet->getHighestDataRow();
             
-            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp nguyện vọng (bản nâng cấp ổn định 2025)...');
+            $this->updateProgress($token, 0, $totalRows, 'Đang chuẩn bị nạp nguyện vọng (bản nâng cấp ổn định 2025)...');
 
             // 1. Pre-fetch Majors and Profiles
             $majors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -312,7 +312,7 @@ class ImportService {
                     $this->flushApplicationBuffer($buffer, $batchId);
                     $success += count($buffer);
                     $buffer = [];
-                    $this->updateProgress($adminId, $count, $totalRows, "Đã xử lý $count/$totalRows nguyện vọng...");
+                    $this->updateProgress($token, $count, $totalRows, "Đã xử lý $count/$totalRows nguyện vọng...");
                 }
             }
 
@@ -324,7 +324,7 @@ class ImportService {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
-            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
+            $this->updateProgress($token, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
             return ['status' => true, 'success' => $success, 'errors' => array_slice($errors, 0, 50)];
 
         } catch (\Throwable $e) {
@@ -361,7 +361,7 @@ class ImportService {
         $this->db->commit();
     }
 
-    public function parseTranscripts($filePath, $batchId, $adminId) {
+    public function parseTranscripts($filePath, $batchId, $token) {
         if (!file_exists($filePath)) {
             return ['status' => false, 'message' => 'File not found'];
         }
@@ -373,10 +373,15 @@ class ImportService {
             $sheet = $spreadsheet->getActiveSheet();
             $totalRows = $sheet->getHighestDataRow();
 
-            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ (chế độ tiết kiệm RAM)...');
+            $this->updateProgress($token, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ (chế độ AI bảo vệ)...');
         
+            // 1. Pre-fetch valid candidates to prevent FK violations
+            $stmt = $this->db->query("SELECT so_cccd FROM thi_sinh");
+            $validCCCDs = array_flip($stmt->fetchAll(PDO::FETCH_COLUMN));
+
             $count = 0;
             $success = 0;
+            $skipped = 0;
             $rowIterator = $sheet->getRowIterator(2);
             $buffer = [];
 
@@ -394,6 +399,12 @@ class ImportService {
                 $cccd = trim($rowData[1] ?? '');
                 if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) $cccd = substr($cccd, 1);
                 if (empty($cccd)) continue; 
+
+                // SKIP logic: if student not found in File 1, don't try to import scores
+                if (!isset($validCCCDs[$cccd])) {
+                    $skipped++;
+                    continue;
+                }
 
                 $lop = trim($rowData[5] ?? '');
                 if (!in_array($lop, ['10', '11', '12'])) continue;
@@ -420,7 +431,7 @@ class ImportService {
                     $this->flushTranscriptBuffer($buffer);
                     $success += count($buffer);
                     $buffer = [];
-                    $this->updateProgress($adminId, $count, $totalRows, "Đã nạp $count/$totalRows dòng điểm...");
+                    $this->updateProgress($token, $count, $totalRows, "Đang nạp: $count/$totalRows dòng (Bỏ qua $skipped thí sinh chưa có hồ sơ)...");
                 }
             }
 
@@ -432,8 +443,11 @@ class ImportService {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
-            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success bản ghi điểm.");
-            return ['status' => true, 'success' => $success];
+            $msg = "Hoàn thành: Đã nạp xong $success bản ghi.";
+            if ($skipped > 0) $msg .= " (Đã bỏ qua $skipped thí sinh chưa có thông tin ở File 1)";
+            $this->updateProgress($token, $totalRows, $totalRows, $msg);
+            
+            return ['status' => true, 'success' => $success, 'skipped' => $skipped];
 
         } catch (\Throwable $e) {
             return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage()];
