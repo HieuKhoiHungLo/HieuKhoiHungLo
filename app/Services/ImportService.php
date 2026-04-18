@@ -368,59 +368,99 @@ class ImportService {
             $rows = $this->loadData($filePath);
             if (empty($rows)) return ['status' => false, 'message' => 'File error'];
 
-            array_shift($rows);
+            array_shift($rows); // Skip header
+            $totalRows = count($rows);
+            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ...');
         
             $count = 0;
             $success = 0;
             $errors = [];
+            $batchSize = 1000;
+            $chunks = array_chunk($rows, $batchSize);
 
-            $this->db->beginTransaction();
+            foreach ($chunks as $chunk) {
+                $sqlValues = [];
+                $sqlParams = [];
+                $countInChunk = 0;
 
-            foreach ($rows as $row) {
-                if (count($row) < 50) continue;
-                $count++;
-                
-                $cccd = trim($row[1] ?? '');
-                if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) {
-                    $cccd = substr($cccd, 1);
+                $this->db->beginTransaction();
+
+                foreach ($chunk as $row) {
+                    $count++;
+                    if (count($row) < 50) continue;
+                    
+                    $cccd = trim($row[1] ?? '');
+                    if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) {
+                        $cccd = substr($cccd, 1);
+                    }
+
+                    if (empty($cccd)) continue; 
+
+                    $lop = trim($row[5] ?? '');
+                    if (!in_array($lop, ['10', '11', '12'])) continue;
+
+                    // Map 11 subjects
+                    $subjects = [
+                        $this->parseFloat($row[25] ?? ''), // Toán
+                        $this->parseFloat($row[28] ?? ''), // Văn
+                        $this->parseFloat($row[31] ?? ''), // Lý
+                        $this->parseFloat($row[34] ?? ''), // Hóa
+                        $this->parseFloat($row[37] ?? ''), // Sinh
+                        $this->parseFloat($row[40] ?? ''), // Sử
+                        $this->parseFloat($row[43] ?? ''), // Địa
+                        $this->parseFloat($row[46] ?? ''), // GDCD
+                        $this->parseFloat($row[49] ?? ''), // KTPL
+                        $this->parseFloat($row[52] ?? ''), // Tin
+                        $this->parseFloat($row[61] ?? '')  // Ngoại ngữ
+                    ];
+
+                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                    $sqlParams[] = $cccd;
+                    $sqlParams[] = (int)$lop;
+                    foreach ($subjects as $s) $sqlParams[] = $s;
+
+                    $countInChunk++;
+                    $success++;
                 }
 
-                if (empty($cccd)) {
-                    $errors[] = "Dòng $count: Thiếu CCCD";
-                    continue; 
+                if ($countInChunk > 0) {
+                    $upsertSql = "
+                        INSERT INTO ket_qua_hoc_tap (
+                            so_cccd, lop, 
+                            diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
+                            diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
+                            diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn, 
+                            updated_at
+                        ) VALUES " . implode(',', $sqlValues) . "
+                        ON CONFLICT (so_cccd, lop) DO UPDATE SET
+                            diem_toan_cn = EXCLUDED.diem_toan_cn,
+                            diem_van_cn = EXCLUDED.diem_van_cn,
+                            diem_ly_cn = EXCLUDED.diem_ly_cn,
+                            diem_hoa_cn = EXCLUDED.diem_hoa_cn,
+                            diem_sinh_cn = EXCLUDED.diem_sinh_cn,
+                            diem_su_cn = EXCLUDED.diem_su_cn,
+                            diem_dia_cn = EXCLUDED.diem_dia_cn,
+                            diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
+                            diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
+                            diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
+                            diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
+                            updated_at = NOW()
+                    ";
+                    $this->db->prepare($upsertSql)->execute($sqlParams);
                 }
 
-                $lop = trim($row[5] ?? '');
-                if (!in_array($lop, ['10', '11', '12'])) continue;
-
-                $scores = [];
-                $scores['diem_toan_cn'] = $this->parseFloat($row[25] ?? '');
-                $scores['diem_van_cn'] = $this->parseFloat($row[28] ?? '');
-                $scores['diem_ly_cn'] = $this->parseFloat($row[31] ?? '');
-                $scores['diem_hoa_cn'] = $this->parseFloat($row[34] ?? '');
-                $scores['diem_sinh_cn'] = $this->parseFloat($row[37] ?? '');
-                $scores['diem_su_cn'] = $this->parseFloat($row[40] ?? '');
-                $scores['diem_dia_cn'] = $this->parseFloat($row[43] ?? '');
-                $scores['diem_gdcd_cn'] = $this->parseFloat($row[46] ?? '');
-                $scores['diem_ktpl_cn'] = $this->parseFloat($row[49] ?? '');
-                $scores['diem_tin_hoc_cn'] = $this->parseFloat($row[52] ?? '');
-                $scores['diem_ngoai_ngu_cn'] = $this->parseFloat($row[61] ?? '');
-
-                $scores = array_filter($scores, function($val) { return $val !== null; });
-                if (empty($scores)) continue;
-
-                $this->upsertTranscript($cccd, $lop, $scores);
-                $success++;
+                $this->db->commit();
+                $this->updateProgress($adminId, min($count, $totalRows), $totalRows, "Đã nạp " . min($count, $totalRows) . " dòng điểm học bạ...");
             }
             
-            $this->db->commit();
-            $this->importRepo->logImport(basename($filePath), 'transcripts', $count, $adminId);
+            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success bản ghi điểm.");
+            $this->importRepo->logImport(basename($filePath), 'transcripts', $success, $adminId);
 
             return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
-            return ['status' => false, 'message' => $e->getMessage(), 'errors' => $errors];
+            return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage(), 'errors' => $errors];
         }
     }
 
