@@ -252,111 +252,113 @@ class ImportService {
         }
 
         try {
-            $rows = $this->loadData($filePath);
-            if (empty($rows)) return ['status' => false, 'message' => 'File empty'];
+            $reader = IOFactory::createReaderForFile($filePath);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $totalRows = $sheet->getHighestDataRow();
+            
+            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp nguyện vọng (bản nâng cấp ổn định 2025)...');
 
-            array_shift($rows);
-            $totalRows = count($rows);
-            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp nguyện vọng...');
+            // 1. Pre-fetch Majors and Profiles
+            $majors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $profiles = $this->db->prepare("SELECT so_cccd, id FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+            $profiles->execute([$batchId]);
+            $profileMap = $profiles->fetchAll(PDO::FETCH_KEY_PAIR);
 
             $count = 0;
             $success = 0;
             $errors = [];
             
-            // 1. Pre-fetch Majors for fast lookup
-            $majors = $this->db->query("SELECT ma_nganh, ten_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $rowIterator = $sheet->getRowIterator(2); // Skip header (row 1)
+            $buffer = [];
             
-            // 2. Pre-fetch Profiles (so_cccd -> id) to eliminate per-row lookups
-            // We use both the original CCCD and the one without leading zero for safety
-            $profiles = $this->db->prepare("SELECT so_cccd, id FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
-            $profiles->execute([$batchId]);
-            $profileMap = $profiles->fetchAll(PDO::FETCH_KEY_PAIR);
+            foreach ($rowIterator as $row) {
+                $count++;
+                $cells = $row->getCellIterator();
+                $cells->setIterateOnlyExistingCells(false);
+                $rowData = [];
+                foreach ($cells as $cell) {
+                    $rowData[] = $cell->getValue();
+                }
 
-            $batchSize = 1000;
-            $chunks = array_chunk($rows, $batchSize);
-            
-            foreach ($chunks as $chunkIndex => $chunk) {
-                $countInChunk = 0;
-                $sqlValues = [];
-                $sqlParams = [];
+                $schoolCode = trim($rowData[3] ?? '');
+                if ($schoolCode !== $targetSchoolCode) continue;
+
+                $cccdRaw = trim($rowData[1] ?? '');
+                if (empty($cccdRaw)) continue;
+
+                $hoSoId = $profileMap[$cccdRaw] ?? $profileMap[ltrim($cccdRaw, '0')] ?? null;
+                if (!$hoSoId) {
+                    if (count($errors) < 50) $errors[] = "Dòng $count: Thí sinh $cccdRaw chưa có hồ sơ.";
+                    continue;
+                }
+
+                $majorCode = trim($rowData[5] ?? '');
+                $majorName = $majors[$majorCode] ?? trim($rowData[6] ?? '');
                 
-                $this->db->beginTransaction(); // Start transaction for THIS chunk
+                $buffer[] = [
+                    'ho_so_id' => $hoSoId,
+                    'so_cccd' => $cccdRaw,
+                    'thu_tu' => (int)trim($rowData[2] ?? 0),
+                    'ma_nganh' => $majorCode,
+                    'ten_nganh' => $majorName,
+                    'ma_pt' => trim($rowData[8] ?? ''),
+                    'ten_pt' => trim($rowData[9] ?? ''),
+                    'to_hop' => trim($rowData[10] ?? '')
+                ];
 
-                foreach ($chunk as $row) {
-                    $count++;
-                    if (count($row) < 5) continue;
-
-                    $schoolCode = trim($row[3] ?? '');
-                    if ($schoolCode !== $targetSchoolCode) continue;
-
-                    $cccdRaw = trim($row[1] ?? '');
-                    if (empty($cccdRaw)) continue;
-
-                    // Match profile from memory cache
-                    $hoSoId = $profileMap[$cccdRaw] ?? $profileMap[ltrim($cccdRaw, '0')] ?? null;
-                    
-                    if (!$hoSoId) {
-                        $errors[] = "Dòng $count: Thí sinh $cccdRaw chưa có hồ sơ. Cần nạp File 1 trước.";
-                        continue;
-                    }
-
-                    $majorCode = trim($row[5] ?? '');
-                    $majorName = $majors[$majorCode] ?? trim($row[6] ?? '');
-                    if (empty($majorName)) {
-                        $errors[] = "Dòng $count: Ngành $majorCode không tồn tại.";
-                        continue;
-                    }
-
-                    $priority = (int)trim($row[2] ?? 0);
-                    $methodCode = trim($row[8] ?? '');
-                    $methodName = trim($row[9] ?? '');
-                    $comboCode = trim($row[10] ?? '');
-
-                    // Collect for batch UPSERT
-                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, 'bo_gddt', NOW(), NOW())";
-                    array_push($sqlParams, 
-                        $hoSoId, $cccdRaw, $priority, $majorCode, $majorName, 
-                        $methodCode, $methodName, $comboCode, $batchId
-                    );
-                    $countInChunk++;
-                    $success++;
+                if (count($buffer) >= 1000) {
+                    $this->flushApplicationBuffer($buffer, $batchId);
+                    $success += count($buffer);
+                    $buffer = [];
+                    $this->updateProgress($adminId, $count, $totalRows, "Đã xử lý $count/$totalRows nguyện vọng...");
                 }
-
-                if ($countInChunk > 0) {
-                    $insertSql = "
-                        INSERT INTO nguyen_vong (
-                            ho_so_id, so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
-                            ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, dot_tuyen_sinh_id, 
-                            nguon_du_lieu, created_at, updated_at
-                        ) VALUES " . implode(',', $sqlValues) . "
-                        ON CONFLICT ON CONSTRAINT uk_hoso_nv_aspiration 
-                        DO UPDATE SET 
-                            ma_nganh = EXCLUDED.ma_nganh,
-                            ten_nganh = EXCLUDED.ten_nganh,
-                            ten_phuong_thuc = EXCLUDED.ten_phuong_thuc,
-                            updated_at = NOW()
-                    ";
-                    $this->db->prepare($insertSql)->execute($sqlParams);
-                }
-
-                $this->db->commit(); // Commit THIS chunk
-                $this->updateProgress($adminId, min($count, $totalRows), $totalRows, "Đã xử lý " . min($count, $totalRows) . " nguyện vọng...");
             }
 
+            if (!empty($buffer)) {
+                $this->flushApplicationBuffer($buffer, $batchId);
+                $success += count($buffer);
+            }
+
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
             $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
-            $this->importRepo->logImport(basename($filePath), 'applications', $success, $adminId);
-            
-            return [
-                'status' => true, 
-                'success' => $success, 
-                'errors' => array_slice($errors, 0, 50), 
-                'message' => "Đã nạp thành công $success nguyện vọng theo phương thức đồng bộ lô tốc độ cao."
-            ];
+            return ['status' => true, 'success' => $success, 'errors' => array_slice($errors, 0, 50)];
 
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
-            return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage(), 'errors' => $errors];
+            return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage()];
         }
+    }
+
+    private function flushApplicationBuffer($buffer, $batchId) {
+        $sqlValues = [];
+        $sqlParams = [];
+        foreach ($buffer as $data) {
+            $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, 'bo_gddt', NOW(), NOW())";
+            array_push($sqlParams, 
+                $data['ho_so_id'], $data['so_cccd'], $data['thu_tu'], 
+                $data['ma_nganh'], $data['ten_nganh'], $data['ma_pt'], 
+                $data['ten_pt'], $data['to_hop'], $batchId
+            );
+        }
+
+        $sql = "
+            INSERT INTO nguyen_vong (
+                ho_so_id, so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, dot_tuyen_sinh_id, 
+                nguon_du_lieu, created_at, updated_at
+            ) VALUES " . implode(',', $sqlValues) . "
+            ON CONFLICT ON CONSTRAINT uk_hoso_nv_aspiration DO UPDATE SET 
+                ma_nganh = EXCLUDED.ma_nganh,
+                ten_nganh = EXCLUDED.ten_nganh,
+                ten_phuong_thuc = EXCLUDED.ten_phuong_thuc,
+                updated_at = NOW()
+        ";
+        $this->db->beginTransaction();
+        $this->db->prepare($sql)->execute($sqlParams);
+        $this->db->commit();
     }
 
     public function parseTranscripts($filePath, $batchId, $adminId) {
@@ -365,101 +367,112 @@ class ImportService {
         }
 
         try {
-            $rows = $this->loadData($filePath);
-            if (empty($rows)) return ['status' => false, 'message' => 'File error'];
+            $reader = IOFactory::createReaderForFile($filePath);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $totalRows = $sheet->getHighestDataRow();
 
-            array_shift($rows); // Skip header
-            $totalRows = count($rows);
-            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ...');
+            $this->updateProgress($adminId, 0, $totalRows, 'Đang chuẩn bị nạp điểm học bạ (chế độ tiết kiệm RAM)...');
         
             $count = 0;
             $success = 0;
-            $errors = [];
-            $batchSize = 1000;
-            $chunks = array_chunk($rows, $batchSize);
+            $rowIterator = $sheet->getRowIterator(2);
+            $buffer = [];
 
-            foreach ($chunks as $chunk) {
-                $sqlValues = [];
-                $sqlParams = [];
-                $countInChunk = 0;
-
-                $this->db->beginTransaction();
-
-                foreach ($chunk as $row) {
-                    $count++;
-                    if (count($row) < 50) continue;
-                    
-                    $cccd = trim($row[1] ?? '');
-                    if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) {
-                        $cccd = substr($cccd, 1);
-                    }
-
-                    if (empty($cccd)) continue; 
-
-                    $lop = trim($row[5] ?? '');
-                    if (!in_array($lop, ['10', '11', '12'])) continue;
-
-                    // Map 11 subjects
-                    $subjects = [
-                        $this->parseFloat($row[25] ?? ''), // Toán
-                        $this->parseFloat($row[28] ?? ''), // Văn
-                        $this->parseFloat($row[31] ?? ''), // Lý
-                        $this->parseFloat($row[34] ?? ''), // Hóa
-                        $this->parseFloat($row[37] ?? ''), // Sinh
-                        $this->parseFloat($row[40] ?? ''), // Sử
-                        $this->parseFloat($row[43] ?? ''), // Địa
-                        $this->parseFloat($row[46] ?? ''), // GDCD
-                        $this->parseFloat($row[49] ?? ''), // KTPL
-                        $this->parseFloat($row[52] ?? ''), // Tin
-                        $this->parseFloat($row[61] ?? '')  // Ngoại ngữ
-                    ];
-
-                    $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                    $sqlParams[] = $cccd;
-                    $sqlParams[] = (int)$lop;
-                    foreach ($subjects as $s) $sqlParams[] = $s;
-
-                    $countInChunk++;
-                    $success++;
+            foreach ($rowIterator as $row) {
+                $count++;
+                $cells = $row->getCellIterator();
+                $cells->setIterateOnlyExistingCells(false);
+                $rowData = [];
+                foreach ($cells as $cell) {
+                    $rowData[] = $cell->getValue();
                 }
 
-                if ($countInChunk > 0) {
-                    $upsertSql = "
-                        INSERT INTO ket_qua_hoc_tap (
-                            so_cccd, lop, 
-                            diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
-                            diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
-                            diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn
-                        ) VALUES " . implode(',', $sqlValues) . "
-                        ON CONFLICT (so_cccd, lop) DO UPDATE SET
-                            diem_toan_cn = EXCLUDED.diem_toan_cn,
-                            diem_van_cn = EXCLUDED.diem_van_cn,
-                            diem_ly_cn = EXCLUDED.diem_ly_cn,
-                            diem_hoa_cn = EXCLUDED.diem_hoa_cn,
-                            diem_sinh_cn = EXCLUDED.diem_sinh_cn,
-                            diem_su_cn = EXCLUDED.diem_su_cn,
-                            diem_dia_cn = EXCLUDED.diem_dia_cn,
-                            diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
-                            diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
-                            diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
-                            diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn
-                    ";
-                    $this->db->prepare($upsertSql)->execute($sqlParams);
-                }
+                if (count($rowData) < 50) continue;
+                
+                $cccd = trim($rowData[1] ?? '');
+                if (strlen($cccd) == 13 && strpos($cccd, '0') === 0) $cccd = substr($cccd, 1);
+                if (empty($cccd)) continue; 
 
-                $this->db->commit();
-                $this->updateProgress($adminId, min($count, $totalRows), $totalRows, "Đã nạp " . min($count, $totalRows) . " dòng điểm học bạ...");
+                $lop = trim($rowData[5] ?? '');
+                if (!in_array($lop, ['10', '11', '12'])) continue;
+
+                $buffer[] = [
+                    'cccd' => $cccd,
+                    'lop' => (int)$lop,
+                    'scores' => [
+                        $this->parseFloat($rowData[25] ?? ''), // Toán
+                        $this->parseFloat($rowData[28] ?? ''), // Văn
+                        $this->parseFloat($rowData[31] ?? ''), // Lý
+                        $this->parseFloat($rowData[34] ?? ''), // Hóa
+                        $this->parseFloat($rowData[37] ?? ''), // Sinh
+                        $this->parseFloat($rowData[40] ?? ''), // Sử
+                        $this->parseFloat($rowData[43] ?? ''), // Địa
+                        $this->parseFloat($rowData[46] ?? ''), // GDCD
+                        $this->parseFloat($rowData[49] ?? ''), // KTPL
+                        $this->parseFloat($rowData[52] ?? ''), // Tin
+                        $this->parseFloat($rowData[61] ?? '')  // Ngoại ngữ
+                    ]
+                ];
+
+                if (count($buffer) >= 1000) {
+                    $this->flushTranscriptBuffer($buffer);
+                    $success += count($buffer);
+                    $buffer = [];
+                    $this->updateProgress($adminId, $count, $totalRows, "Đã nạp $count/$totalRows dòng điểm...");
+                }
             }
-            
-            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success bản ghi điểm.");
-            $this->importRepo->logImport(basename($filePath), 'transcripts', $success, $adminId);
 
-            return ['status' => true, 'count' => $count, 'success' => $success, 'errors' => $errors];
+            if (!empty($buffer)) {
+                $this->flushTranscriptBuffer($buffer);
+                $success += count($buffer);
+            }
+
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            $this->updateProgress($adminId, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success bản ghi điểm.");
+            return ['status' => true, 'success' => $success];
 
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
-            return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage(), 'errors' => $errors];
+            return ['status' => false, 'message' => "Lỗi thực thi: " . $e->getMessage()];
         }
+    }
+
+    private function flushTranscriptBuffer($buffer) {
+        $sqlValues = [];
+        $sqlParams = [];
+        foreach ($buffer as $data) {
+            $sqlValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $sqlParams[] = $data['cccd'];
+            $sqlParams[] = $data['lop'];
+            foreach ($data['scores'] as $s) $sqlParams[] = $s;
+        }
+
+        $sql = "
+            INSERT INTO ket_qua_hoc_tap (
+                so_cccd, lop, 
+                diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
+                diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
+                diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn
+            ) VALUES " . implode(',', $sqlValues) . "
+            ON CONFLICT (so_cccd, lop) DO UPDATE SET
+                diem_toan_cn = EXCLUDED.diem_toan_cn,
+                diem_van_cn = EXCLUDED.diem_van_cn,
+                diem_ly_cn = EXCLUDED.diem_ly_cn,
+                diem_hoa_cn = EXCLUDED.diem_hoa_cn,
+                diem_sinh_cn = EXCLUDED.diem_sinh_cn,
+                diem_su_cn = EXCLUDED.diem_su_cn,
+                diem_dia_cn = EXCLUDED.diem_dia_cn,
+                diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
+                diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
+                diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
+                diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn
+        ";
+        $this->db->beginTransaction();
+        $this->db->prepare($sql)->execute($sqlParams);
+        $this->db->commit();
     }
 
     private function upsertTranscript($cccd, $lop, $scores) {
@@ -520,89 +533,5 @@ class ImportService {
     private function nullIfEmpty($str) {
         $val = trim($str);
         return $val === '' ? null : $val;
-    }
-
-    private function loadData($filePath) {
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-        $rows = [];
-
-        if ($extension === 'csv') {
-            $content = file_get_contents($filePath);
-            
-            // Detect and remove UTF-8 BOM if present
-            if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
-                $content = substr($content, 3);
-            }
-            
-            // Convert from UTF-16 to UTF-8 if it's not UTF-8
-            $encoding = mb_detect_encoding($content, ['UTF-8', 'UTF-16', 'ASCII']);
-            if ($encoding && $encoding !== 'UTF-8') {
-                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-            }
-
-            $lines = explode("\n", str_replace("\r", "", $content));
-            if (!empty($lines)) {
-                $firstLine = $lines[0];
-                // Simple auto-detect: count commas vs semicolons in the header
-                $commaCount = substr_count($firstLine, ',');
-                $semiCount = substr_count($firstLine, ';');
-                $delimiter = ($semiCount > $commaCount) ? ';' : ',';
-
-                foreach ($lines as $line) {
-                    if (trim($line) === '') continue;
-                    $rows[] = array_map('trim', str_getcsv($line, $delimiter));
-                }
-            }
-        } else {
-            // Memory efficient loading for Excel files
-            try {
-                $reader = IOFactory::createReaderForFile($filePath);
-                
-                // CRITICAL: setReadDataOnly(true) avoids loading styles, fonts, etc.
-                // This is the single biggest performance improvement for large files.
-                $reader->setReadDataOnly(true);
-                $reader->setReadEmptyCells(false);
-                
-                $spreadsheet = $reader->load($filePath);
-                
-                // Find the sheet with the most rows to avoid reading blank default/saved sheets
-                $highestRowCount = 0;
-                $targetSheet = null;
-                $sheets = $spreadsheet->getAllSheets();
-                
-                if (count($sheets) === 1) {
-                    $targetSheet = $sheets[0];
-                } else {
-                    foreach ($sheets as $currentSheet) {
-                        $rowCount = $currentSheet->getHighestDataRow();
-                        if ($rowCount > $highestRowCount) {
-                            $highestRowCount = $rowCount;
-                            $targetSheet = $currentSheet;
-                        }
-                    }
-                }
-                
-                // Fallback to active sheet if something goes wrong
-                if ($targetSheet === null) {
-                    $targetSheet = $spreadsheet->getActiveSheet();
-                }
-                
-                $data = $targetSheet->toArray(null, true, true, true);
-                foreach ($data as $row) {
-                    $rows[] = array_values($row);
-                }
-                
-                // Free memory immediately
-                $spreadsheet->disconnectWorksheets();
-                unset($spreadsheet);
-                
-            } catch (\Throwable $e) {
-                if (strpos($e->getMessage(), 'Enum') !== false || strpos($e->getMessage(), 'final') !== false) {
-                    throw new \Exception("Phiên bản PHP 8.0 của bạn không tương thích với bộ đọc Excel (.xlsx). Vui lòng lưu file (Save As) dưới dạng .csv và thử lại.");
-                }
-                throw $e;
-            }
-        }
-        return $rows;
     }
 }
