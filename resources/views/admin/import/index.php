@@ -368,11 +368,15 @@ function importApp() {
                         formData.append('batch_id', '<?= $activeBatch['id'] ?? '' ?>');
                         formData.append('password', pass);
                         
-                        // Add CSRF token for security
-                        const csrfToken = document.querySelector('input[name="csrf_token"]');
-                        if (csrfToken) formData.append('csrf_token', csrfToken.value);
+                        // Add CSRF token for security (Fixed: added underscore)
+                        const csrfToken = document.querySelector('input[name="_csrf_token"]');
+                        if (csrfToken) formData.append('_csrf_token', csrfToken.value);
 
-                        const response = await fetch('/TS/admin/import/clear-batch', { method: 'POST', body: formData });
+                        const response = await fetch('/TS/admin/import/clear-batch', { 
+                            method: 'POST', 
+                            body: formData,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' } // Header for middleware detection
+                        });
                         const result = await response.json();
                         if (!result.status) throw new Error(result.message);
                         return result;
@@ -397,11 +401,15 @@ function importApp() {
                 const formData = new FormData();
                 formData.append('id', id);
                 
-                // Add CSRF token for security
-                const csrfToken = document.querySelector('input[name="csrf_token"]');
-                if (csrfToken) formData.append('csrf_token', csrfToken.value);
+                // Add CSRF token for security (Fixed: added underscore)
+                const csrfToken = document.querySelector('input[name="_csrf_token"]');
+                if (csrfToken) formData.append('_csrf_token', csrfToken.value);
 
-                await fetch('/TS/admin/import/delete-log', { method: 'POST', body: formData });
+                await fetch('/TS/admin/import/delete-log', { 
+                    method: 'POST', 
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' } // Header for middleware detection
+                });
                 location.reload();
             }
         }
