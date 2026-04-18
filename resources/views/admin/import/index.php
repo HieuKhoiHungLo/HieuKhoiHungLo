@@ -365,8 +365,13 @@ function importApp() {
                     if (!pass) return Swal.showValidationMessage('Vui lòng nhập mật khẩu');
                     try {
                         const formData = new FormData();
-                        formData.append('password', pass);
                         formData.append('batch_id', '<?= $activeBatch['id'] ?? '' ?>');
+                        formData.append('password', pass);
+                        
+                        // Add CSRF token for security
+                        const csrfToken = document.querySelector('input[name="csrf_token"]');
+                        if (csrfToken) formData.append('csrf_token', csrfToken.value);
+
                         const response = await fetch('/TS/admin/import/clear-batch', { method: 'POST', body: formData });
                         const result = await response.json();
                         if (!result.status) throw new Error(result.message);

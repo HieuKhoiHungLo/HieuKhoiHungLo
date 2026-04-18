@@ -313,6 +313,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/import', 'ImportController@index');
     $router->get('/admin/import/progress', 'ImportController@progress');
     $router->post('/admin/import/upload', 'ImportController@upload');
+    $router->post('/admin/import/delete-log', 'ImportController@deleteLog');
+    $router->post('/admin/import/clear-batch', 'ImportController@clearBatch');
     $router->post('/admin/import/batch/create', 'ImportController@createBatch');
 
     $router->get('/admin/profile', 'AdminProfileController@index');
