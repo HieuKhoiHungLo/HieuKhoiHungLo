@@ -3,12 +3,12 @@ $title = 'Tính điểm xét tuyển - Đại học Hùng Vương';
 include __DIR__ . '/layouts/header.php';
 ?>
 
-<div class="bg-white border-b border-gray-100 py-6">
+<div class="bg-white border-b border-gray-100 pt-4 pb-2">
     <div class="container mx-auto px-4 text-center">
-        <h1 class="text-xl md:text-3xl font-black font-heading leading-tight mb-1 text-gray-900 uppercase tracking-tighter">
+        <h1 class="text-2xl md:text-4xl font-black font-heading leading-tight mb-1 text-gray-900 uppercase tracking-tighter">
             TÍNH ĐIỂM XÉT TUYỂN VÀO HVU
         </h1>
-        <p class="text-gray-400 font-medium max-w-2xl mx-auto text-[11px] uppercase tracking-widest">
+        <p class="text-gray-900 font-medium max-w-2xl mx-auto text-[11px] uppercase tracking-widest">
             Công cụ hỗ trợ thí sinh xác định điểm xét tuyển & chọn tổ hợp tối ưu nhất năm 2026.
         </p>
     </div>
@@ -89,15 +89,15 @@ button:active { transform: scale(0.98); }
                                 <td class="border border-gray-100 px-3 py-1.5 font-medium bg-gray-50/20" x-text="label"></td>
                                 <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr10" 
-                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0,00">
                                 </td>
                                 <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr11" 
-                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0,00">
                                 </td>
                                 <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr12" 
-                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0,00">
                                 </td>
                             </tr>
                         </template>
@@ -109,10 +109,10 @@ button:active { transform: scale(0.98); }
         <!-- CỘT 2: ĐIỂM HỌC BẠ QUY ĐỔI (ĐƯA VÀO GIỮA) -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
             <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between min-h-[48px]">
-                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
-                    <i class="fas fa-calculator text-hvu-red mr-2 text-xs"></i> Điểm QH: 
+                <h3 class="font-bold text-gray-800 uppercase text-[9px] flex items-center tracking-widest leading-tight">
+                    <i class="fas fa-calculator text-hvu-red mr-2 text-xs"></i> Điểm học bạ quy đổi - Hệ số quy đổi: 
                     <input type="number" step="0.01" x-model.number="coefficient" 
-                           class="ml-2 w-14 p-0.5 text-center border border-gray-200 rounded focus:ring-blue-500 font-bold text-blue-700 bg-white">
+                           class="ml-2 w-12 p-0.5 text-center border border-gray-200 rounded focus:ring-blue-500 font-bold text-blue-700 bg-white">
                 </h3>
             </div>
             <div class="overflow-x-auto flex-1">
@@ -158,7 +158,7 @@ button:active { transform: scale(0.98); }
                                 <td class="border border-gray-100 px-3 py-1.5 font-medium bg-gray-50/20" x-text="label"></td>
                                 <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.01" min="0" max="10" x-model.number="scores[sub].exam" 
-                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0,00">
                                 </td>
                             </tr>
                         </template>
@@ -174,61 +174,57 @@ button:active { transform: scale(0.98); }
 
     </div> <!-- END GRID 3 COLUMNS -->
 
-    <!-- KHỐI DASHBOARD 3 CỘT: DỰ TUYỂN | BẢNG TỔ HỢP | KẾT QUẢ -->
-    <div class="bg-white rounded-[2rem] shadow-xl border border-gray-200 overflow-hidden mt-4">
-        <div class="grid grid-cols-1 lg:grid-cols-3">
-            
-            <!-- CỘT 1: NHẬP THÔNG TIN DỰ TUYỂN -->
-            <div class="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 bg-white">
-                <h2 class="text-lg font-black text-gray-900 uppercase mb-8 flex items-center tracking-tight">
-                    <span class="bg-hvu-red/10 text-hvu-red w-8 h-8 rounded-full flex items-center justify-center mr-3 text-xs"><i class="fas fa-user-graduate"></i></span>
-                    Thông tin dự tuyển
-                </h2>
-                
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Ngành đào tạo</label>
-                        <div class="relative">
-                            <select x-model="form.majorCode" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all appearance-none cursor-pointer bg-gray-50 hover:bg-white text-gray-900 text-sm font-semibold">
-                                <option value="">-- Tính tất cả các ngành --</option>
-                                <?php foreach ($majors as $major): ?>
-                                    <option value="<?= htmlspecialchars($major['ma_nganh']) ?>">
-                                        <?= htmlspecialchars($major['ten_nganh'] . ' (' . str_replace(['.1', '.2'], '', $major['ma_nganh']) . ')') ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
+    <!-- KHỐI DASHBOARD 3 CARD RỜI (DỰ TUYỂN | TỔ HỢP | KẾT QUẢ) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+        
+        <!-- CỘT 1: NHẬP THÔNG TIN DỰ TUYỂN -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-user-graduate text-hvu-red mr-2 text-xs"></i> Thông tin dự tuyển
+                </h3>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-center space-y-4">
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest leading-tight">Ngành đào tạo</label>
+                    <div class="relative">
+                        <select x-model="form.majorCode" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-2.5 transition-all appearance-none cursor-pointer bg-gray-50 hover:bg-white text-gray-900 text-xs font-semibold">
+                            <option value="">-- Tính tất cả các ngành --</option>
+                            <?php foreach ($majors as $major): ?>
+                                <option value="<?= htmlspecialchars($major['ma_nganh']) ?>">
+                                    <?= htmlspecialchars($major['ten_nganh'] . ' (' . str_replace(['.1', '.2'], '', $major['ma_nganh']) . ')') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                            <i class="fas fa-chevron-down text-[10px]"></i>
                         </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Đối tượng ưu tiên</label>
-                        <select x-model="form.doiTuong" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
-                            <option value="">Không có ưu tiên (0đ)</option>
-                            <optgroup label="Nhóm ưu tiên 1 (+2.0đ)">
-                                <option value="DT1">Đối tượng 01; 02; 03; 04</option>
-                            </optgroup>
-                            <optgroup label="Nhóm ưu tiên 2 (+1.0đ)">
-                                <option value="DT2">Đối tượng 05; 06; 07</option>
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Khu vực ưu tiên</label>
-                        <select x-model="form.khuVuc" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
-                            <option value="KV3">KV3 (0 điểm)</option>
-                            <option value="KV2">KV2 (+0.25 điểm)</option>
-                            <option value="KV2-NT">KV2-NT (+0.5 điểm)</option>
-                            <option value="KV1">KV1 (+0.75 điểm)</option>
-                        </select>
                     </div>
                 </div>
                 
-                <div class="mt-8">
-                    <button @click="calculateBestResult" class="btn-hvu-calculate px-8 py-5 font-black rounded-xl shadow-2xl transition-all uppercase tracking-[0.1em] text-[10px] w-full text-white flex items-center justify-center group overflow-hidden relative">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[9px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest leading-tight">Đối tượng</label>
+                        <select x-model="form.doiTuong" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red text-xs p-2.5 bg-gray-50 font-medium">
+                            <option value="">Không ưu tiên</option>
+                            <option value="DT1">Nhóm 1 (+2đ)</option>
+                            <option value="DT2">Nhóm 2 (+1đ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest leading-tight">Khu vực</label>
+                        <select x-model="form.khuVuc" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red text-xs p-2.5 bg-gray-50 font-medium">
+                            <option value="KV3">KV3 (0đ)</option>
+                            <option value="KV2">KV2 (0.25đ)</option>
+                            <option value="KV2-NT">KV2-NT (0.5đ)</option>
+                            <option value="KV1">KV1 (0.75đ)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+                
+                <div class="mt-6">
+                    <button @click="calculateBestResult" class="btn-hvu-calculate py-4 font-black rounded-xl shadow-lg transition-all uppercase tracking-[0.1em] text-[10px] w-full text-white flex items-center justify-center group overflow-hidden relative">
                         <span class="relative z-10 flex items-center">
                             <i class="fas fa-calculator mr-2 group-hover:rotate-12 transition-transform"></i>
                             Tính điểm xét tuyển
@@ -236,13 +232,16 @@ button:active { transform: scale(0.98); }
                         <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform skew-x-12 duration-500"></div>
                     </button>
                 </div>
-            </div>
-
-            <!-- CỘT 2: BẢNG TỔ HỢP ĐỦ ĐIỂM -->
-            <div class="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 bg-gray-50/20 flex flex-col min-h-[400px]">
-                <h3 class="text-[10px] font-black text-gray-400 uppercase mb-6 flex items-center tracking-[0.2em] ml-1">
-                    <i class="fas fa-list-ol text-hvu-red mr-2 text-xs opacity-50"></i> Tổ hợp đủ điểm vào ngành
+        </div>
+        
+        <!-- CỘT 2: BẢNG TỔ HỢP ĐỦ ĐIỂM -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-[300px]">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-list-ol text-hvu-red mr-2 text-xs"></i> Tổ hợp đủ điểm vào ngành
                 </h3>
+            </div>
+            <div class="flex-1 flex flex-col">
                 
                 <div x-show="!bestItem" class="flex-1 flex flex-col items-center justify-center text-center opacity-30 select-none py-20">
                     <i class="fas fa-table text-3xl mb-3 text-gray-300"></i>
@@ -271,10 +270,10 @@ button:active { transform: scale(0.98); }
                         </table>
                     </div>
                 </div>
-            </div>
+        </div>
 
-            <!-- CỘT 3: KẾT QUẢ TỐI ƯU NHẤT -->
-            <div class="p-6 md:p-8 bg-gray-50/50 flex flex-col justify-center">
+        <!-- CỘT 3: KẾT QUẢ TỐI ƯU NHẤT -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col items-center justify-center p-5 min-h-[300px] relative">
                 <div x-show="!bestItem" class="text-center py-20 select-none group text-gray-400 opacity-30">
                     <div class="mb-4"><i class="fas fa-chart-line text-3xl"></i></div>
                     <p class="text-[10px] uppercase font-bold tracking-widest">Kết quả tối ưu</p>
