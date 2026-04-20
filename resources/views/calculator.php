@@ -313,6 +313,7 @@ function calculatorApp() {
         subjects: <?= json_encode($subjects) ?>,
         thptSubjects: <?= json_encode($thptSubjects) ?>,
         combinationsList: <?= json_encode($combinations) ?>,
+        majorsList: <?= json_encode($majors) ?>,
         priorityMeta: <?= json_encode($priorityData) ?>,
         
         // App State
@@ -364,7 +365,21 @@ function calculatorApp() {
             const results = [];
             let hasAny = false;
             
+            // Get allowed combinations for current major if selected
+            let allowedCombs = [];
+            if (this.form.majorCode) {
+                const major = this.majorsList.find(m => m.ma_nganh === this.form.majorCode);
+                if (major && major.combination_list) {
+                    allowedCombs = major.combination_list.split(',').map(s => s.trim());
+                }
+            }
+
             this.combinationsList.forEach(comb => {
+                // Filter by major if selected
+                if (allowedCombs.length > 0 && !allowedCombs.includes(comb.ma_to_hop)) {
+                    return;
+                }
+
                 // Find internal keys for the subjects in this combo
                 const key1 = this.findKeyByMa(comb.mon1_ma);
                 const key2 = this.findKeyByMa(comb.mon2_ma);
@@ -396,7 +411,7 @@ function calculatorApp() {
             });
 
             if (!hasAny) {
-                alert("Vui lòng nhập đầy đủ điểm ít nhất 3 môn của một tổ hợp (ví dụ: Toán, Lý, Hóa cho khối A00) để tính kết quả.");
+                alert("Vui lòng nhập đầy đủ điểm ít nhất 3 môn của một tổ hợp hợp lệ cho ngành này để tính kết quả.");
                 return;
             }
 
