@@ -22,16 +22,18 @@ class ThiSinh extends Model {
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
         $params = [];
         
-        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, nv_first.ten_nganh as nv1";
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
-                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
-                       LEFT JOIN nguyen_vong nv_first ON t.so_cccd = nv_first.so_cccd AND nv_first.thu_tu_nguyen_vong = 1";
+                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong";
 
         // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
         if ($applicationStatus === 'submitted') {
-            $sql = "SELECT $baseSelect FROM {$this->table} t 
+            $sql = "SELECT $baseSelect, COALESCE(dmn_nv1.ten_nganh, nv_first.ten_nganh) as nv1 
+                    FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
                     $baseJoins
+                    LEFT JOIN nguyen_vong nv_first ON (nv_first.ho_so_id = hs.id OR (nv_first.so_cccd = t.so_cccd AND nv_first.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_first.ho_so_id IS NULL)) AND nv_first.thu_tu_nguyen_vong = 1
+                    LEFT JOIN dm_nganh dmn_nv1 ON nv_first.ma_nganh = dmn_nv1.ma_nganh
                     WHERE 1=1";
             
             if ($sessionId) {
@@ -50,7 +52,10 @@ class ThiSinh extends Model {
                 $sql .= " AND hs.yeu_cau_chinh_sua = TRUE";
             }
         } else {
-            $sql = "SELECT $baseSelect FROM {$this->table} t $baseJoins WHERE 1=1";
+            $sql = "SELECT $baseSelect, nv_first.ten_nganh as nv1 
+                    FROM {$this->table} t $baseJoins 
+                    LEFT JOIN nguyen_vong nv_first ON t.so_cccd = nv_first.so_cccd AND nv_first.thu_tu_nguyen_vong = 1
+                    WHERE 1=1";
             
             if ($applicationStatus === 'trash') {
                 $sql .= " AND t.deleted_at IS NOT NULL";
@@ -97,36 +102,41 @@ class ThiSinh extends Model {
             foreach ($extraFilters as $field => $val) {
                 if ($val === '' || $val === null) continue;
                 if ($field === 'phone') {
-                    $sql .= " AND t.dien_thoai LIKE ?";
+                    $sql .= " AND t.dien_thoai ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'dob') {
-                    $sql .= " AND t.ngay_sinh::text LIKE ?";
+                    $sql .= " AND t.ngay_sinh::text ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'province') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh LIKE ?)";
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'school') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'nv1') {
                     $trimVal = trim(mb_strtolower($val));
+                    $nv1Where = "SELECT 1 FROM nguyen_vong nv LEFT JOIN dm_nganh dn ON nv.ma_nganh = dn.ma_nganh WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1";
+                    if ($sessionId) {
+                        $nv1Where .= " AND nv.dot_tuyen_sinh_id = " . (int)$sessionId;
+                    }
                     if ($trimVal === 'chưa đk') {
-                        $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1)";
+                        $sql .= " AND NOT EXISTS ($nv1Where)";
                     } else {
-                        $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                        $sql .= " AND EXISTS ($nv1Where AND (nv.ten_nganh ILIKE ? OR dn.ten_nganh ILIKE ?))";
+                        $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'gender') {
-                    $sql .= " AND t.gioi_tinh LIKE ?";
+                    $sql .= " AND t.gioi_tinh ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'ethnicity') {
-                    $sql .= " AND t.dan_toc LIKE ?";
+                    $sql .= " AND t.dan_toc ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'area') {
-                    $sql .= " AND t.khu_vuc_uu_tien LIKE ?";
+                    $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'object') {
-                    $sql .= " AND t.doi_tuong_uu_tien LIKE ?";
+                    $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'grad_year') {
                     $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
@@ -308,7 +318,7 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai IILIKE ?)";
             $params[] = "%$status%";
         }
 
@@ -322,27 +332,32 @@ class ThiSinh extends Model {
             foreach ($extraFilters as $field => $val) {
                 if ($val === '' || $val === null) continue;
                 if ($field === 'phone') {
-                    $sql .= " AND t.dien_thoai LIKE ?";
+                    $sql .= " AND t.dien_thoai ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'dob') {
-                    $sql .= " AND t.ngay_sinh::text LIKE ?";
+                    $sql .= " AND t.ngay_sinh::text ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'province') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh LIKE ?)";
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'school') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong LIKE ?)";
+                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
                     $params[] = "%$val%";
                 } elseif ($field === 'nv1') {
                     $trimVal = trim(mb_strtolower($val));
+                    $nv1Where = "SELECT 1 FROM nguyen_vong nv LEFT JOIN dm_nganh dn ON nv.ma_nganh = dn.ma_nganh WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1";
+                    if ($sessionId) {
+                        $nv1Where .= " AND nv.dot_tuyen_sinh_id = " . (int)$sessionId;
+                    }
                     if ($trimVal === 'chưa đk') {
-                        $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1)";
+                        $sql .= " AND NOT EXISTS ($nv1Where)";
                     } else {
-                        $sql .= " AND EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1 AND nv.ten_nganh LIKE ?)";
+                        $sql .= " AND EXISTS ($nv1Where AND (nv.ten_nganh ILIKE ? OR dn.ten_nganh ILIKE ?))";
+                        $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'gender') {
-                    $sql .= " AND t.gioi_tinh LIKE ?";
+                    $sql .= " AND t.gioi_tinh ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'ethnicity') {
                     $sql .= " AND t.dan_toc LIKE ?";

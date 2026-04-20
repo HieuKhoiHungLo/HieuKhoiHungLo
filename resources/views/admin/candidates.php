@@ -269,6 +269,50 @@
         </form>
     </div>
 </div>
+<!-- Modal: Duyệt tất cả hồ sơ trong đợt -->
+<div id="modal-bulk-approve-all" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg"><i class="fas fa-exclamation-triangle mr-2"></i>Xác nhận duyệt tất cả</h3>
+            <button onclick="document.getElementById('modal-bulk-approve-all').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="p-6">
+            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn duyệt **TẤT CẢ** hồ sơ chưa duyệt trong đợt này không? Hành động này không thể hoàn tác.</p>
+            <form action="<?= url('/admin/review/bulk-approve-all') ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-bulk-approve-all').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow shadow-blue-200 transition">
+                        Xác nhận duyệt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal: Hủy duyệt tất cả hồ sơ trong đợt -->
+<div id="modal-bulk-unapprove-all" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-red-600 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg"><i class="fas fa-exclamation-triangle mr-2"></i>Xác nhận hủy duyệt tất cả</h3>
+            <button onclick="document.getElementById('modal-bulk-unapprove-all').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="p-6">
+            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn **HỦY DUYỆT TẤT CẢ** hồ sơ đã duyệt trong đợt này không? Trạng thái sẽ được chuyển về "Chờ duyệt".</p>
+            <form action="<?= url('/admin/review/bulk-unapprove-all') ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-bulk-unapprove-all').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 shadow shadow-red-200 transition">
+                        Xác nhận hủy duyệt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <?php endif; ?>
 
 

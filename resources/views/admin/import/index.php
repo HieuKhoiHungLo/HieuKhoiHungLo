@@ -3,6 +3,56 @@ ob_start();
 ?>
 
 <div class="p-6 bg-gray-50 min-h-screen" x-data="importApp()">
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <!-- Decorative background shapes -->
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+            <!-- Animated Logo Container -->
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <!-- Outer Pulse ring -->
+                <div class="absolute inset-0 bg-blue-500/20 rounded-full animate-pulsing-slow"></div>
+                <!-- Dotted rotating ring -->
+                <div class="absolute inset-1 border-2 border-blue-200 border-dashed rounded-full animate-spin-slow"></div>
+                <!-- Glassmorphism Circle with Logo -->
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <!-- Internal Shimmer -->
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Hệ thống đang xử lý</h3>
+            <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
+            
+            <!-- Progress container -->
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="loadingProgress">
+                </div>
+                <!-- Shimmering overlay -->
+                <div class="shimmer-glare absolute inset-0"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
+            </div>
+        </div>
+    </div>
+
     <div class="mb-8 flex justify-between items-start">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Import Dữ liệu Bộ GD&ĐT</h1>
@@ -43,7 +93,7 @@ ob_start();
             </div>
             <div class="p-4 flex-grow flex flex-col justify-between">
                 <div>
-                    <p class="text-sm text-gray-500 mb-4">Import thông tin cá nhân (SBD, Họ tên, Quê quán) và Điểm bài thi THPT Quốc gia để dùng làm Điểm thành phần.</p>
+                    <p class="text-sm text-gray-500 mb-4">Import thông tin cá nhân và Điểm bài thi THPT Quốc gia của thí sinh.</p>
                     <form @submit.prevent="upload('candidates', $event)" class="mb-2">
                         <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
@@ -67,7 +117,7 @@ ob_start();
             </div>
             <div class="p-4 flex-grow flex flex-col justify-between">
                 <div>
-                    <p class="text-sm text-gray-500 mb-4">Import danh sách Hàng vạn nguyện vọng Đăng ký vào Trường kèm Thứ tự Ưu tiên (Do Bộ trả về).</p>
+                    <p class="text-sm text-gray-500 mb-4">Import danh sách nguyện vọng kèm Thứ tự nguyện vọng trên hệ thống của Bộ GD&ĐT</p>
                     <form @submit.prevent="upload('applications', $event)" class="mb-2">
                         <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
@@ -91,7 +141,7 @@ ob_start();
             </div>
             <div class="p-4 flex-grow flex flex-col justify-between">
                 <div>
-                    <p class="text-sm text-gray-500 mb-4">Import Bảng điểm tổng kết cả năm lớp 10, 11 và 12 của tất cả các môn.</p>
+                    <p class="text-sm text-gray-500 mb-4">Import điểm tổng kết cả năm lớp 10, 11 và 12 tất cả các môn trong học bạ của thí sinh.</p>
                     <form @submit.prevent="upload('transcripts', $event)" class="mb-2">
                         <?= csrf_field() ?>
                         <input type="hidden" name="batch_id" value="<?= $activeBatch['id'] ?? '' ?>">
@@ -205,6 +255,9 @@ function importApp() {
     return {
         hasBatch: <?= $activeBatch ? 'true' : 'false' ?>,
         openBatchModal: false,
+        isLoading: false,
+        progress: 0,
+        currentLoadingMessage: '',
         loading: {
             candidates: false,
             applications: false,
@@ -215,6 +268,21 @@ function importApp() {
             applications: '',
             transcripts: ''
         },
+        
+        startLoading(msg) {
+            this.isLoading = true;
+            this.progress = 0;
+            this.currentLoadingMessage = msg;
+        },
+
+        stopLoading() {
+            this.progress = 100;
+            this.uploadProgress = 100;
+            setTimeout(() => {
+                this.isLoading = false;
+            }, 600);
+        },
+
         async upload(type, event) {
             const form = event.target;
             const importToken = 'imp_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -225,25 +293,7 @@ function importApp() {
             this.loading[type] = true;
             this.msg[type] = '';
             
-            Swal.fire({
-                title: 'Đang tải lên dữ liệu',
-                html: `
-                    <div class="mb-4 text-sm text-gray-500 text-center" id="swal-upload-text">Đang tải file lên máy chủ...</div>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 mt-4 relative overflow-hidden">
-                        <div id="swal-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                    <div class="flex justify-between text-xs font-semibold text-gray-400 mt-2">
-                        <span id="swal-progress-text" class="text-indigo-600">0%</span>
-                        <span class="uppercase tracking-widest text-[10px]">Vui lòng không đóng trang</span>
-                    </div>
-                `,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+            this.startLoading('Đang tải file lên máy chủ...');
 
             try {
                 const result = await new Promise((resolve, reject) => {
@@ -253,50 +303,41 @@ function importApp() {
                     xhr.upload.onprogress = (e) => {
                         if (e.lengthComputable) {
                             const percentComplete = Math.round((e.loaded / e.total) * 100);
-                            const progressBar = document.getElementById('swal-progress-bar');
-                            const progressText = document.getElementById('swal-progress-text');
-                            const textEl = document.getElementById('swal-upload-text');
                             
-                            if (progressBar && progressText) {
-                                progressBar.style.width = percentComplete + '%';
-                                progressText.textContent = percentComplete + '%';
+                            // Only update main progress if we haven't started server polling yet
+                            // but show it's "Uploading"
+                            if (percentComplete < 100) {
+                                this.progress = Math.round(percentComplete * 0.1); // Small segment for upload
+                                this.currentLoadingMessage = `Đang tải file lên máy chủ: ${percentComplete}%`;
+                            } else {
+                                this.currentLoadingMessage = 'Đang nạp file Excel vào bộ nhớ (32k+ dòng)...';
+                                // Don't set progress to 100 here to avoid the jump. 
+                                // Keep it low until server data starts coming.
+                                this.progress = 10; 
                             }
                             
                             if (percentComplete === 100) {
-                                const titleEl = Swal.getTitle();
-                                if (titleEl) titleEl.textContent = 'Đang lưu dữ liệu...';
-                                if (textEl) textEl.textContent = 'Vui lòng đợi, hệ thống đang xử lý dữ liệu lớn...';
-                                
-                                if (progressBar) {
-                                    progressBar.classList.remove('bg-indigo-600');
-                                    progressBar.classList.add('bg-blue-400', 'animate-pulse');
-                                    progressBar.style.width = '5%';
-                                    if (progressText) progressText.textContent = '5%';
-                                }
-
                                 let lastPercent = 0;
                                 const progressInterval = setInterval(async () => {
                                     try {
-                                        const res = await fetch('/TS/admin/import/progress?token=' + importToken + '&t=' + Date.now());
+                                        const res = await fetch('<?= url("/admin/import/progress") ?>?token=' + importToken + '&t=' + Date.now());
                                         if (res.ok) {
                                             const data = await res.json();
                                             if (data.percent !== undefined) {
                                                 const currentPercent = parseInt(data.percent);
-                                                if (currentPercent > lastPercent || currentPercent === 0) {
-                                                    lastPercent = currentPercent;
-                                                    if (progressBar) {
-                                                        progressBar.style.width = currentPercent + '%';
-                                                        if (currentPercent > 5) progressBar.classList.remove('animate-pulse');
-                                                    }
-                                                    if (progressText) progressText.textContent = currentPercent + '%';
-                                                    if (textEl && data.message) textEl.textContent = data.message;
+                                                // Scaling: server progress is the main 10-100%
+                                                const scaledPercent = 10 + Math.round(currentPercent * 0.9);
+                                                
+                                                if (scaledPercent > this.progress || currentPercent === 0) {
+                                                    this.progress = scaledPercent;
+                                                    if (data.message) this.currentLoadingMessage = data.message;
                                                 }
                                             }
                                         }
                                     } catch (err) {
                                         console.error('Progress polling error:', err);
                                     }
-                                }, 1500);
+                                }, 1000);
 
                                 xhr.progressInterval = progressInterval;
                             }
@@ -309,7 +350,7 @@ function importApp() {
                             try {
                                 resolve(JSON.parse(xhr.responseText));
                             } catch (e) {
-                                reject(new Error('Dữ liệu máy chủ trả về không hợp lệ.'));
+                                reject(new Error('Dữ kết quả không hợp lệ.'));
                             }
                         } else {
                             reject(new Error('Lỗi máy chủ (HTTP ' + xhr.status + ')'));
@@ -324,16 +365,20 @@ function importApp() {
                 });
                 
                 if (result.status) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Hoàn tất nạp dữ liệu!',
-                        html: `<div class="text-sm mt-2 text-gray-600">Đã cập nhật thành công <b>${result.success}</b> / ${result.count} dòng.</div>`,
-                        showConfirmButton: false,
-                        timer: 2000
-                    }).then(() => {
-                        location.reload();
-                    });
+                    this.stopLoading();
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Hoàn tất nạp dữ liệu!',
+                            html: `<div class="text-sm mt-2 text-gray-600">Đã cập nhật thành công <b>${result.success}</b> / ${result.count} dòng.</div>`,
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            location.reload();
+                        });
+                    }, 700);
                 } else {
+                    this.isLoading = false;
                     Swal.fire({
                         icon: 'error',
                         title: 'Có lỗi xảy ra',
@@ -342,6 +387,7 @@ function importApp() {
                     });
                 }
             } catch (error) {
+                this.isLoading = false;
                 Swal.fire({
                     icon: 'error',
                     title: 'Lỗi Kết Nối',
@@ -372,7 +418,7 @@ function importApp() {
                         const csrfToken = document.querySelector('input[name="_csrf_token"]');
                         if (csrfToken) formData.append('_csrf_token', csrfToken.value);
 
-                        const response = await fetch('/TS/admin/import/clear-batch', { 
+                        const response = await fetch('<?= url("/admin/import/clear-batch") ?>', { 
                             method: 'POST', 
                             body: formData,
                             headers: { 'X-Requested-With': 'XMLHttpRequest' } // Header for middleware detection
@@ -405,7 +451,7 @@ function importApp() {
                 const csrfToken = document.querySelector('input[name="_csrf_token"]');
                 if (csrfToken) formData.append('_csrf_token', csrfToken.value);
 
-                await fetch('/TS/admin/import/delete-log', { 
+                await fetch('<?= url("/admin/import/delete-log") ?>', { 
                     method: 'POST', 
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest' } // Header for middleware detection
@@ -416,6 +462,43 @@ function importApp() {
     };
 }
 </script>
+
+<style>
+.shimmer-glare {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: loading-shimmer 2s infinite linear;
+}
+
+@keyframes loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes pulsing-slow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulsing-slow {
+    animation: pulsing-slow 3s infinite ease-in-out;
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 6s infinite linear;
+}
+
+[x-cloak] { display: none !important; }
+</style>
 
 <?php
 $content = ob_get_clean();

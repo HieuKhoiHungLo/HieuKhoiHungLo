@@ -24,14 +24,12 @@ class ImportRepository {
     public function createBatch($name, $year) {
         $stmt = $this->db->prepare("INSERT INTO dot_tuyen_sinh (ten_dot, nam_tuyen_sinh, dm_nam_tuyen_sinh_nam, kich_hoat) VALUES (?, ?, ?, true)");
         // Update dm_nam_tuyen_sinh_nam as well for FK consistency if needed
-        $stmt->execute([$name, (int)$year, (int)$year]);
-        return $this->db->lastInsertId();
+        return $stmt->execute([$name, (int)$year, (int)$year]);
     }
 
     public function logImport($fileName, $type, $recordCount, $adminId, $duration = 0) {
         $stmt = $this->db->prepare("INSERT INTO log_import (file_name, loai_file, record_count, imported_by, duration, created_at) VALUES (?, ?, ?, ?, ?, NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')");
-        $stmt->execute([$fileName, $type, $recordCount, $adminId, (int)$duration]);
-        return $this->db->lastInsertId();
+        return $stmt->execute([$fileName, $type, $recordCount, $adminId, (int)$duration]);
     }
 
     public function deleteImportLog($id) {
@@ -43,47 +41,30 @@ class ImportRepository {
         try {
             $this->db->beginTransaction();
 
-            // 1. Get all CCCDs in this batch first to use for deletions
-            $stmt = $this->db->prepare("SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+            // 1. Delete Nguyen Vong (by batch_id) - Direct link
+            $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
             $stmt->execute([$batchId]);
-            $cccds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            if (!empty($cccds)) {
-                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+            // 2. Delete ket_qua_hoc_tap (via subquery to avoid large parameter lists)
+            $stmt = $this->db->prepare("DELETE FROM ket_qua_hoc_tap WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
+            $stmt->execute([$batchId]);
 
-                // 2. Delete Nguyen Vong (by batch_id)
-                $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
-                $stmt->execute([$batchId]);
+            // 3. Delete diem_thi_thpt (via subquery)
+            $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
+            $stmt->execute([$batchId]);
 
-                // 3. Delete ket_qua_hoc_tap
-                $stmt = $this->db->prepare("DELETE FROM ket_qua_hoc_tap WHERE so_cccd IN ($placeholders)");
-                $stmt->execute($cccds);
+            // 4. Delete diem_chi_tiet (via subquery)
+            $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
+            $stmt->execute([$batchId]);
 
-                // 4. Delete diem_thi_thpt
-                $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN ($placeholders)");
-                $stmt->execute($cccds);
+            // 5. Delete ho_so_xet_tuyen (The linker)
+            $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+            $stmt->execute([$batchId]);
 
-                // 5. Delete diem_chi_tiet
-                $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN ($placeholders)");
-                $stmt->execute($cccds);
-
-                // 6. Delete ho_so_xet_tuyen (The linker)
-                // We MUST delete this BEFORE thi_sinh due to FK constraints
-                $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
-                $stmt->execute([$batchId]);
-
-                // 7. Delete thi_sinh
-                // Only delete candidates if they no longer have any applications/profiles in other batches
-                $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN ($placeholders) AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)");
-                $stmt->execute($cccds);
-            } else {
-                // If no profile exists, still try to delete batch-related records just in case
-                $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
-                $stmt->execute([$batchId]);
-                
-                $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
-                $stmt->execute([$batchId]);
-            }
+            // 6. Delete thi_sinh (Orphans)
+            // Delete candidates who no longer have ANY profiles in the system after the batch was cleared
+            $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)");
+            $stmt->execute();
 
             $this->db->commit();
             return true;

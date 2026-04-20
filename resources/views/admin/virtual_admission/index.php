@@ -100,12 +100,19 @@ if (!empty($combinations)) {
                 <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
                 <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
 
-                <!-- Animated Icon Container -->
-                <div class="relative w-24 h-24 mx-auto mb-6">
-                    <div class="absolute inset-0 bg-indigo-500/10 rounded-full animate-pulsing-slow"></div>
-                    <div class="absolute inset-2 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
-                    <div class="absolute inset-4 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-200/50">
-                        <i class="fas fa-calculator text-3xl text-white" :class="{'fa-calculator': isCalculating, 'fa-sync-alt fa-spin': isSyncing, 'fa-magic': isFiltering}"></i>
+                <!-- Animated Logo Container -->
+                <div class="relative w-28 h-28 mx-auto mb-6">
+                    <!-- Outer Pulse ring -->
+                    <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulsing-slow"></div>
+                    <!-- Dotted rotating ring -->
+                    <div class="absolute inset-1 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
+                    <!-- Glassmorphism Circle with Logo -->
+                    <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                        <img src="<?= url('/assets/img/Logo.png') ?>" 
+                             alt="Logo" 
+                             class="w-full h-full object-contain p-2 relative z-10">
+                        <!-- Internal Shimmer -->
+                        <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
                     </div>
                 </div>
 

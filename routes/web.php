@@ -110,6 +110,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/media/rotate', 'AdminController@rotateImage');
     $router->post('/admin/applications/approve-edit-request', 'AdminController@approveEditRequest');
     $router->post('/admin/review/bulk-approve-file', 'CandidateController@bulkApproveByFile');
+    $router->post('/admin/review/bulk-approve-all', 'CandidateController@bulkApproveAll');
+    $router->post('/admin/review/bulk-unapprove-all', 'CandidateController@bulkUnapproveAll');
     $router->post('/admin/review/bulk-update-transcript', 'CandidateController@bulkUpdateTranscript');
     $router->get('/admin/review/download-approve-template', 'CandidateController@downloadApproveTemplate');
     $router->get('/admin/review/download-transcript-template', 'CandidateController@downloadTranscriptTemplate');

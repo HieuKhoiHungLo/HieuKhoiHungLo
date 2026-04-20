@@ -1461,11 +1461,13 @@ class CandidateController extends Controller
 
     /**
      * Bulk approve applications by uploading an Excel file (CCCD + Note)
+     * V13: Optimized - single batch UPDATE instead of per-row queries
      */
-        public function bulkApproveByFile()
+    public function bulkApproveByFile()
     {
         $this->checkPermission('candidate.edit');
         $this->validateCsrf();
+        set_time_limit(0);
 
         $redirectTo = url('/admin/review-management');
 
@@ -1476,76 +1478,174 @@ class CandidateController extends Controller
 
         $filePath = $_FILES['approve_file']['tmp_name'];
         $sessionId = $_POST['session_id'] ?? null;
-
-        $logPath = dirname(__DIR__, 2) . '/storage/logs/bulk_approval.log';
-        $logFile = @fopen($logPath, 'a');
-        
-        if ($logFile) {
-            fwrite($logFile, "\n--- BULK APPROVE START: " . date('Y-m-d H:i:s') . " ---\n");
-            fwrite($logFile, "Session ID Filter: " . ($sessionId ?: 'None (Will use latest)') . "\n");
-        }
+        $adminId = $_SESSION['admin_id'] ?? null;
 
         try {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
-            $rows = array_values($rows);
-            array_shift($rows); 
+            // OPTIMIZATION: Use Xlsx reader with ReadDataOnly for performance
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
+            
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
+            array_shift($rows); // Skip header
 
-            $success = 0;
-            $notFound = 0;
-            $adminId = $_SESSION['admin_id'] ?? null;
+            // Collect all CCCDs and group notes for batch updates
+            $cccds = [];
+            $noteGroups = []; // Group CCCDs by note content to reduce queries
+            foreach ($rows as $row) {
+                $cccd = $this->normalizeCCCD($row['B'] ?? '');
+                if (empty($cccd)) continue;
+                $cccds[] = $cccd;
+                
+                $note = trim($row['C'] ?? '');
+                if ($note !== '') {
+                    if (!isset($noteGroups[$note])) $noteGroups[$note] = [];
+                    $noteGroups[$note][] = $cccd;
+                }
+            }
+
+            if (empty($cccds)) {
+                $this->redirect($redirectTo . '?error=' . urlencode('File không có dữ liệu CCCD hợp lệ.'));
+                return;
+            }
 
             $this->db->beginTransaction();
 
-            foreach ($rows as $index => $row) {
-                $rowValues = array_values($row);
-                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
-                $note = trim($rowValues[2] ?? '');
-                
-                if (empty($cccd)) continue;
+            $approvedStatus = \App\Core\UserStatus::APPROVED;
 
-                $sql = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = ?";
-                $params = [$cccd];
-                if ($sessionId) {
-                    $sql .= " AND hs.dot_tuyen_sinh_id = ?";
-                    $params[] = $sessionId;
-                } else {
-                    $sql .= " AND hs.dot_tuyen_sinh_id = (SELECT id FROM dot_tuyen_sinh ORDER BY ngay_bat_dau DESC LIMIT 1)";
-                }
+            // 1. Batch UPDATE for ho_so_xet_tuyen
+            $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+            $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, nguoi_duyet_id = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd IN ($placeholders)";
+            $params = [$approvedStatus, $adminId];
+            $params = array_merge($params, $cccds);
 
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($params);
-                if ($stmt->fetch()) {
-                    // Simplified update for reliability
-                    $finalUpdate = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', nguoi_duyet_id = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh'";
-                    $finalParams = [$adminId];
-                    if ($note !== '') {
-                        $finalUpdate .= ", ghi_chu = ?";
-                        $finalParams[] = $note;
-                    }
-                    $finalUpdate .= " WHERE so_cccd = ?";
-                    $finalParams[] = $cccd;
+            if ($sessionId) {
+                $sql .= " AND dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            }
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $success = $stmt->rowCount();
+
+            // 2. OPTIMIZATION: Batch UPDATE for notes (grouped by unique note content)
+            if (!empty($noteGroups)) {
+                foreach ($noteGroups as $noteText => $groupCccds) {
+                    $notePlaceholders = implode(',', array_fill(0, count($groupCccds), '?'));
+                    $noteSql = "UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd IN ($notePlaceholders)";
+                    $noteParams = [$noteText];
+                    $noteParams = array_merge($noteParams, $groupCccds);
+                    
                     if ($sessionId) {
-                        $finalUpdate .= " AND dot_tuyen_sinh_id = ?";
-                        $finalParams[] = $sessionId;
+                        $noteSql .= " AND dot_tuyen_sinh_id = ?";
+                        $noteParams[] = $sessionId;
                     }
-
-                    $this->db->prepare($finalUpdate)->execute($finalParams);
-                    $success++;
-                    if ($logFile) fwrite($logFile, "Line " . ($index+2) . ": CCCD $cccd -> APPROVED\n");
-                } else {
-                    $notFound++;
-                    if ($logFile) fwrite($logFile, "Line " . ($index+2) . ": CCCD $cccd -> NOT FOUND in session\n");
+                    
+                    $this->db->prepare($noteSql)->execute($noteParams);
                 }
+            }
+
+            // 3. Batch UPDATE for nguyen_vong status synchronization
+            if ($success > 0) {
+                $nvSql = "UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd IN ($placeholders)";
+                $nvParams = array_merge([$approvedStatus], $cccds);
+                
+                if ($sessionId) {
+                    $nvSql .= " AND dot_tuyen_sinh_id = ?";
+                    $nvParams[] = $sessionId;
+                }
+                
+                $this->db->prepare($nvSql)->execute($nvParams);
             }
 
             $this->db->commit();
-            if ($logFile) {
-                fwrite($logFile, "--- COMPLETED: $success success, $notFound not found ---\n");
-                fclose($logFile);
+
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
+            $total = count($cccds);
+            $notFound = $total - $success;
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt thành công $success/$total hồ sơ." . ($notFound > 0 ? " ($notFound CCCD không tìm thấy)" : "")));
+
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
+        }
+    }
+
+    /**
+     * Bulk approve ALL pending applications in a batch session
+     */
+    public function bulkApproveAll()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+
+        $redirectTo = url('/admin/review-management');
+        $sessionId = $_POST['session_id'] ?? null;
+        $adminId = $_SESSION['admin_id'] ?? null;
+
+        if (!$sessionId) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Chưa chọn đợt tuyển sinh.'));
+            return;
+        }
+
+        try {
+            $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', nguoi_duyet_id = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE dot_tuyen_sinh_id = ? AND trang_thai != 'Đã duyệt'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$adminId, $sessionId]);
+            $count = $stmt->rowCount();
+
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt tất cả $count hồ sơ trong đợt."));
+
+        } catch (\Exception $e) {
+            $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
+        }
+    }
+
+    /**
+     * Bulk unapprove ALL approved applications in a batch session
+     */
+    public function bulkUnapproveAll()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+
+        $redirectTo = url('/admin/review-management');
+        $sessionId = $_POST['session_id'] ?? null;
+
+        if (!$sessionId) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Chưa chọn đợt tuyển sinh.'));
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Update ho_so_xet_tuyen - Reset to 'Chờ duyệt', clear reviewer
+            $sql1 = "UPDATE ho_so_xet_tuyen 
+                    SET trang_thai = 'Chờ duyệt', 
+                        nguoi_duyet_id = NULL, 
+                        updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' 
+                    WHERE dot_tuyen_sinh_id = ? 
+                    AND trang_thai = 'Đã duyệt'";
+            $stmt1 = $this->db->prepare($sql1);
+            $stmt1->execute([$sessionId]);
+            $count = $stmt1->rowCount();
+
+            if ($count > 0) {
+                // 2. Sync nguyen_vong status back to 'Chờ duyệt' for these candidates in this session
+                $sql2 = "UPDATE nguyen_vong 
+                        SET trang_thai = 'Chờ duyệt' 
+                        WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)";
+                $stmt2 = $this->db->prepare($sql2);
+                $stmt2->execute([$sessionId]);
             }
 
-            $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt thành công $success hồ sơ."));
+            $this->db->commit();
+
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã hủy duyệt tất cả $count hồ sơ trong đợt."));
 
         } catch (\Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
