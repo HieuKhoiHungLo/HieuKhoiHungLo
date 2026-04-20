@@ -36,6 +36,31 @@ button:active { transform: scale(0.98); }
 .btn-hvu-calculate:hover {
     background-color: #0a4661 !important;
 }
+
+/* UI Redesign Updates */
+.card-glass {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.result-gradient {
+    background: linear-gradient(135deg, #BE1E2D 0%, #80141E 100%);
+}
+.score-number {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.05em;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+.shimmer-text {
+    background: linear-gradient(90deg, #fff 0%, #ffccd0 50%, #fff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer {
+    to { background-position: 200% center; }
+}
 </style>
 
 <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10" x-data="calculatorApp()" style="font-family: 'Inter', sans-serif;">
@@ -248,47 +273,90 @@ button:active { transform: scale(0.98); }
             </div>
             
             <!-- KẾT QUẢ TỐI ƯU NHẤT -->
-            <div class="p-8 md:p-10 bg-gray-100 flex flex-col justify-center border-l border-gray-100">
-                <div x-show="!bestItem" class="text-center py-20 grayscale select-none">
-                    <img src="<?= url('/assets/img/Logo.png') ?>" class="w-20 mx-auto mb-4 opacity-30">
-                    <p class="text-gray-600 font-bold uppercase tracking-widest text-xs">Nhập thông tin và nhấn nút để xem kết quả</p>
+            <div class="p-4 md:p-10 bg-gray-50/50 flex flex-col justify-center border-l border-gray-100">
+                <!-- Placeholder when no result -->
+                <div x-show="!bestItem" class="text-center py-24 select-none group">
+                    <div class="relative inline-block mb-6">
+                        <div class="absolute inset-0 bg-hvu-red/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                        <img src="<?= url('/assets/img/Logo.png') ?>" class="w-24 mx-auto relative z-10 filter grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-110">
+                    </div>
+                    <h4 class="text-gray-900 font-black uppercase text-sm tracking-widest mb-2">Chưa có kết quả</h4>
+                    <p class="text-gray-400 font-medium text-xs max-w-[240px] mx-auto">Vui lòng nhập đầy đủ thông tin điểm và nhấn nút "Tính điểm xét tuyển" để xem phân tích.</p>
                 </div>
                 
-                <div x-show="bestItem" x-cloak x-transition class="space-y-4">
-                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div class="space-y-1">
-                            <div class="text-gray-400 font-bold uppercase text-[9px] tracking-widest">Tổ hợp điểm cao nhất</div>
-                            <div class="text-xl font-black text-gray-900">
-                                <span x-text="bestItem.score.toFixed(3)"></span> 
-                                <span class="text-gray-500 font-medium ml-1 text-sm" x-text="'(' + bestItem.ma_to_hop + ': ' + bestItem.details + ')'"></span>
+                <!-- Main Result Display -->
+                <div x-show="bestItem" x-cloak x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-8" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-5">
+                    
+                    <!-- BEST COMBINATION CARD -->
+                    <div class="bg-white p-7 rounded-[2rem] shadow-2xl border border-gray-100 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 -mr-16 -mt-16 rounded-full blur-3xl"></div>
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
+                            <div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 uppercase tracking-widest mb-3 border border-green-200">
+                                    <i class="fas fa-star mr-1"></i> Tổ hợp tối ưu nhất
+                                </span>
+                                <h3 class="text-4xl font-black text-gray-900 score-number" x-text="bestItem.score.toFixed(3)"></h3>
+                                <div class="mt-1 flex items-center text-gray-500">
+                                    <span class="font-bold text-sm" x-text="bestItem.ma_to_hop"></span>
+                                    <span class="mx-2 text-gray-300">•</span>
+                                    <span class="text-xs font-medium" x-text="bestItem.details"></span>
+                                </div>
+                            </div>
+                            <div class="mt-4 md:mt-0">
+                                <div class="bg-green-500 text-white px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-tighter shadow-lg shadow-green-500/30 flex items-center">
+                                    <span class="animate-pulse mr-2 w-2 h-2 bg-white rounded-full"></span>
+                                    Khuyên dùng
+                                </div>
                             </div>
                         </div>
-                        <div class="mt-4 md:mt-0 px-3 py-1 bg-green-100 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-wider border border-green-200">
-                            TỐT NHẤT CHO BẠN
+                    </div>
+                    
+                    <!-- SECONDARY STATS GRID -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 group hover:border-hvu-red/20 transition-all cursor-default">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-layer-group text-xs"></i>
+                            </div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Phương thức</div>
+                            <div class="text-sm font-black text-gray-800 leading-tight" x-text="bestItem.methodName"></div>
+                        </div>
+                        
+                        <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 group hover:border-blue-500/20 transition-all cursor-default text-right">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 ml-auto group-hover:scale-110 transition-transform">
+                                <i class="fas fa-plus text-xs"></i>
+                            </div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Ưu tiên gốc</div>
+                            <div class="text-xl font-black text-blue-600 score-number" x-text="bestItem.rawPrio.toFixed(2)"></div>
+                        </div>
+                    </div>
+
+                    <!-- FINAL SCORE - THE SHOWSTOPPER -->
+                    <div class="result-gradient p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(190,30,45,0.3)] text-white relative overflow-hidden group">
+                        <!-- Decorative elements -->
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 -mr-20 -mt-20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-1000"></div>
+                        <div class="absolute bottom-0 left-0 w-32 h-32 bg-black/10 -ml-16 -mb-16 rounded-full blur-2xl"></div>
+                        
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <h4 class="text-[11px] text-white/70 font-black uppercase tracking-[0.3em] mb-4 flex items-center">
+                                <span class="w-8 h-[1px] bg-white/30 mr-3"></span>
+                                Tổng điểm xét tuyển 2026
+                                <span class="w-8 h-[1px] bg-white/30 ml-3"></span>
+                            </h4>
+                            <div class="text-6xl md:text-7xl font-black score-number mb-2 shimmer-text" x-text="bestItem.finalTotal.toFixed(3)"></div>
+                            <div class="inline-flex items-center bg-black/20 px-4 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-sm border border-white/10">
+                                <i class="fas fa-award mr-2 text-yellow-400"></i>
+                                Ưu tiên quy đổi: <span class="ml-1 text-white font-black" x-text="bestItem.convPrio.toFixed(3)"></span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Phương thức</div>
-                            <div class="text-lg font-bold text-gray-800" x-text="bestItem.methodName"></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Điểm ưu tiên gốc</div>
-                            <div class="text-lg font-bold text-blue-600 font-mono" x-text="bestItem.rawPrio.toFixed(2)"></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                            <div class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Điểm ưu tiên quy đổi</div>
-                            <div class="text-lg font-bold text-orange-600 font-mono" x-text="bestItem.convPrio.toFixed(3)"></div>
-                        </div>
-                        <div class="bg-[#0e5c7e] p-5 rounded-xl shadow-lg text-white">
-                            <div class="text-[9px] text-white/80 font-bold uppercase tracking-widest mb-1">ĐIỂM XÉT TUYỂN</div>
-                            <div class="text-3xl font-black font-mono" x-text="bestItem.finalTotal.toFixed(3)"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100 text-[9px] text-blue-800 font-medium leading-relaxed italic">
-                        * Điểm xét tuyển được tính bằng tổng điểm tổ hợp và điểm ưu tiên đã quy đổi theo quy định của Bộ GD&ĐT (đối với thí sinh đạt trên 22.5 điểm).
+                    <!-- FOOTNOTE -->
+                    <div class="flex items-start bg-white p-4 rounded-2xl border border-gray-100 text-[9px] text-gray-500 font-medium leading-relaxed shadow-sm">
+                        <i class="fas fa-info-circle text-hvu-red mt-0.5 mr-2 text-sm opacity-50"></i>
+                        <p>
+                            Điểm xét tuyển là căn cứ để Nhà trường thực hiện quy trình lọc ảo và công bố kết quả trúng tuyển. 
+                            Công cụ mang tính chất tham khảo dựa trên quy định hiện hành của Bộ GD&ĐT.
+                        </p>
                     </div>
                 </div>
             </div>
