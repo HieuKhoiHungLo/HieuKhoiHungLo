@@ -167,7 +167,14 @@ button:active { transform: scale(0.98); }
                                 <td class="border border-gray-200 px-3 py-2 font-normal bg-gray-50/30" x-text="label"></td>
                                 <td class="border border-gray-200 px-1 py-2 text-center font-mono" x-text="getTBC(sub)"></td>
                                 <td class="border border-gray-200 px-1 py-2 text-center text-black font-mono" x-text="getQD(sub)"></td>
-                            <    <!-- PHẦN THÔNG TIN CHI TIẾT & KẾT QUẢ XÉT TUYỂN -->
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div> <!-- END GRID 3 COLUMNS -->
     <div class="bg-white rounded-[2rem] shadow-xl border border-gray-200 overflow-hidden mt-10">
         <div class="grid grid-cols-1 lg:grid-cols-2">
             
@@ -320,10 +327,6 @@ button:active { transform: scale(0.98); }
             </div>
         </div>
     </div>
-
-        </div>
-    </div>
-    
 </div>
 
 <style>
