@@ -3,13 +3,13 @@ $title = 'Tính điểm xét tuyển - Đại học Hùng Vương';
 include __DIR__ . '/layouts/header.php';
 ?>
 
-<div class="relative bg-gradient-to-br from-red-900 via-hvu-red to-red-800 text-white overflow-hidden py-10">
-    <div class="container mx-auto px-4 text-center relative z-10">
-        <h1 class="text-2xl md:text-4xl font-black font-heading leading-tight mb-2 uppercase">
+<div class="bg-white border-b border-gray-100 py-6">
+    <div class="container mx-auto px-4 text-center">
+        <h1 class="text-xl md:text-3xl font-black font-heading leading-tight mb-1 text-gray-900 uppercase tracking-tighter">
             TÍNH ĐIỂM XÉT TUYỂN VÀO HVU
         </h1>
-        <p class="text-red-100 font-medium max-w-2xl mx-auto opacity-90 text-sm">
-            Công cụ hỗ trợ thí sinh xác định điểm xét tuyển và lựa chọn tổ hợp tối ưu nhất năm 2026.
+        <p class="text-gray-400 font-medium max-w-2xl mx-auto text-[11px] uppercase tracking-widest">
+            Công cụ hỗ trợ thí sinh xác định điểm xét tuyển & chọn tổ hợp tối ưu nhất năm 2026.
         </p>
     </div>
 </div>
@@ -63,43 +63,41 @@ button:active { transform: scale(0.98); }
 }
 </style>
 
-<div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-10" x-data="calculatorApp()" style="font-family: 'Inter', sans-serif;">
-    
-    <!-- GRID 3 CỘT - BỐ TRÍ ĐIỂM -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-10">
+<div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4" x-data="calculatorApp()" style="font-family: 'Inter', sans-serif;">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         
         <!-- CỘT 1: ĐIỂM HỌC BẠ -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div class="p-4 bg-gray-50 border-b border-gray-200 flex items-center min-h-[64px]">
-                <h3 class="font-bold text-gray-800 uppercase text-xs flex items-center">
-                    <i class="fas fa-book-open text-hvu-red mr-2 text-sm"></i> Điểm học bạ
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-book-open text-hvu-red mr-2 text-xs"></i> Điểm học bạ
                 </h3>
             </div>
             <div class="overflow-x-auto flex-1">
-                <table class="w-full text-xs border-collapse">
-                    <thead class="bg-gray-50 text-gray-600 uppercase">
+                <table class="w-full text-[11px] border-collapse">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-[9px] tracking-wider">
                         <tr>
-                            <th class="border border-gray-200 px-3 py-2 text-left w-2/5">Môn học</th>
-                            <th class="border border-gray-200 px-1 py-2 text-center">Lớp 10</th>
-                            <th class="border border-gray-200 px-1 py-2 text-center">Lớp 11</th>
-                            <th class="border border-gray-200 px-1 py-2 text-center">Lớp 12</th>
+                            <th class="border border-gray-100 px-3 py-2 text-left w-2/5">Môn học</th>
+                            <th class="border border-gray-100 px-1 py-2 text-center text-[8px]">Lớp 10</th>
+                            <th class="border border-gray-100 px-1 py-2 text-center text-[8px]">Lớp 11</th>
+                            <th class="border border-gray-100 px-1 py-2 text-center text-[8px]">Lớp 12</th>
                         </tr>
                     </thead>
                     <tbody class="text-black">
                         <template x-for="(sub, label) in subjects" :key="sub">
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="border border-gray-200 px-3 py-2 font-normal bg-gray-50/30" x-text="label"></td>
-                                <td class="border border-gray-200 p-0">
+                                <td class="border border-gray-100 px-3 py-1.5 font-medium bg-gray-50/20" x-text="label"></td>
+                                <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr10" 
-                                           class="w-full text-center p-2 border-0 focus:ring-0 placeholder-gray-300" placeholder="0.00">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
                                 </td>
-                                <td class="border border-gray-200 p-0">
+                                <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr11" 
-                                           class="w-full text-center p-2 border-0 focus:ring-0 placeholder-gray-300" placeholder="0.00">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
                                 </td>
-                                <td class="border border-gray-200 p-0">
+                                <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.1" min="0" max="10" x-model.number="scores[sub].gr12" 
-                                           class="w-full text-center p-2 border-0 focus:ring-0 placeholder-gray-300" placeholder="0.00">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
                                 </td>
                             </tr>
                         </template>
@@ -108,67 +106,76 @@ button:active { transform: scale(0.98); }
             </div>
         </div>
 
-        <!-- CỘT 2: ĐIỂM THI TN THPT -->
+        <!-- CỘT 2: ĐIỂM HỌC BẠ QUY ĐỔI (ĐƯA VÀO GIỮA) -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div class="p-4 bg-gray-50 border-b border-gray-200 flex items-center min-h-[64px]">
-                <h3 class="font-bold text-gray-800 uppercase text-xs flex items-center">
-                    <i class="fas fa-pen-nib text-hvu-red mr-2 text-sm"></i> Điểm thi TN THPT
+            <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-calculator text-hvu-red mr-2 text-xs"></i> Điểm QH: 
+                    <input type="number" step="0.01" x-model.number="coefficient" 
+                           class="ml-2 w-14 p-0.5 text-center border border-gray-200 rounded focus:ring-blue-500 font-bold text-blue-700 bg-white">
+                </h3>
+            </div>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-[11px] border-collapse">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-[9px] tracking-wider">
+                        <tr>
+                            <th class="border border-gray-100 px-3 py-2 text-left">Môn học</th>
+                            <th class="border border-gray-100 px-1 py-2 text-center">TBC</th>
+                            <th class="border border-gray-100 px-1 py-2 text-center text-blue-600">Quy đổi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-black">
+                        <template x-for="(sub, label) in subjects" :key="'qd-'+sub">
+                            <tr class="hover:bg-blue-50/20 transition-colors">
+                                <td class="border border-gray-100 px-3 py-1.5 font-medium bg-gray-50/20" x-text="label"></td>
+                                <td class="border border-gray-100 px-1 py-1.5 text-center font-mono text-gray-500" x-text="getTBC(sub)"></td>
+                                <td class="border border-gray-100 px-1 py-1.5 text-center text-blue-700 font-bold font-mono" x-text="getQD(sub)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CỘT 3: ĐIỂM THI TN THPT (CHUYỂN SANG PHẢI) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-pen-nib text-hvu-red mr-2 text-xs"></i> Điểm thi TN THPT
                 </h3>
             </div>
             <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-xs border-collapse">
-                    <thead class="bg-gray-50 text-gray-600 uppercase">
+                <table class="w-full text-[11px] border-collapse">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-[9px] tracking-wider">
                         <tr>
-                            <th class="border border-gray-200 px-3 py-2 text-left">Môn học</th>
-                            <th class="border border-gray-200 px-3 py-2 text-center">Điểm</th>
+                            <th class="border border-gray-100 px-3 py-2 text-left">Môn học</th>
+                            <th class="border border-gray-100 px-3 py-2 text-center">Điểm thi</th>
                         </tr>
                     </thead>
                     <tbody class="text-black">
                         <template x-for="(sub, label) in thptSubjects" :key="'exam-'+sub">
                             <tr>
-                                <td class="border border-gray-200 px-3 py-2 font-normal bg-gray-50/30" x-text="label"></td>
-                                <td class="border border-gray-200 p-0">
+                                <td class="border border-gray-100 px-3 py-1.5 font-medium bg-gray-50/20" x-text="label"></td>
+                                <td class="border border-gray-100 p-0 text-center">
                                     <input type="number" step="0.01" min="0" max="10" x-model.number="scores[sub].exam" 
-                                           class="w-full text-center p-2 border-0 focus:ring-0 placeholder-gray-300" placeholder="0.00">
+                                           class="w-full text-center p-1.5 border-0 focus:ring-0 placeholder-gray-300 bg-transparent" placeholder="0">
                                 </td>
                             </tr>
                         </template>
                     </tbody>
                 </table>
-                <div class="p-4 bg-red-50 border-t border-gray-200">
-                    <p class="text-[10px] text-red-600 leading-relaxed font-medium">
-                        * Nhập điểm thi tốt nghiệp THPT Quốc gia năm 2026 để tính toán cho phương thức xét điểm thi (TS01).
+                <div class="p-3 bg-red-50/50 border-t border-gray-100">
+                    <p class="text-[9px] text-red-500 leading-tight italic">
+                        * Nhập điểm thi TN THPT Quốc gia để tính cho phương thức TS01.
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- CỘT 3: ĐIỂM HỌC BẠ QUY ĐỔI -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between min-h-[64px]">
-                <h3 class="font-bold text-gray-800 uppercase text-xs flex items-center">
-                    <i class="fas fa-calculator text-hvu-red mr-2 text-sm"></i> Điểm quy đổi: 
-                    <input type="number" step="0.01" x-model.number="coefficient" 
-                           class="ml-2 w-16 p-1 text-center border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 font-black text-blue-700 bg-white">
-                </h3>
-            </div>
-            <div class="overflow-x-auto flex-1">
-                <table class="w-full text-xs border-collapse">
-                    <thead class="bg-gray-50 text-gray-600 uppercase">
-                        <tr>
-                            <th class="border border-gray-200 px-3 py-2 text-left">Môn học</th>
-                            <th class="border border-gray-200 px-1 py-2 text-center">Điểm TBC</th>
-                            <th class="border border-gray-200 px-1 py-2 text-center text-blue-600">Điểm QĐ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-black font-normal">
-                        <template x-for="(sub, label) in subjects" :key="'qd-'+sub">
-                            <tr class="hover:bg-blue-50/30 transition-colors">
-                                <td class="border border-gray-200 px-3 py-2 font-normal bg-gray-50/30" x-text="label"></td>
-                                <td class="border border-gray-200 px-1 py-2 text-center font-mono" x-text="getTBC(sub)"></td>
-                                <td class="border border-gray-200 px-1 py-2 text-center text-black font-mono" x-text="getQD(sub)"></td>
-                          <!-- KHỐI DASHBOARD 3 CỘT: DỰ TUYỂN | BẢNG TỔ HỢP | KẾT QUẢ -->
-    <div class="bg-white rounded-[2rem] shadow-xl border border-gray-200 overflow-hidden mt-10">
+    </div> <!-- END GRID 3 COLUMNS -->
+
+    <!-- KHỐI DASHBOARD 3 CỘT: DỰ TUYỂN | BẢNG TỔ HỢP | KẾT QUẢ -->
+    <div class="bg-white rounded-[2rem] shadow-xl border border-gray-200 overflow-hidden mt-4">
         <div class="grid grid-cols-1 lg:grid-cols-3">
             
             <!-- CỘT 1: NHẬP THÔNG TIN DỰ TUYỂN -->
