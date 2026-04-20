@@ -261,45 +261,54 @@ button:active { transform: scale(0.98); }
                             <tbody class="divide-y divide-gray-100 text-black">
                                 <template x-for="item in validCombinations" :key="item.ma_to_hop">
                                     <tr class="hover:bg-blue-50/50 transition-colors" :class="bestItem && bestItem.ma_to_hop === item.ma_to_hop ? 'bg-green-50/80' : ''">
-                                        <td class="px-3 py-3 font-black text-gray-700" x-text="item.ma_to_hop"></td>
-                                        <td class="px-2 py-3 text-center font-mono font-bold text-gray-900" x-text="item.ts01.toFixed(2)"></td>
-                                        <td class="px-2 py-3 text-center font-mono font-bold text-gray-900" x-text="item.ts02.toFixed(2)"></td>
+                                        <td class="px-3 py-2 font-black text-gray-700 text-[9px]" x-text="item.ma_to_hop + ' (' + item.details + ')'"></td>
+                                        <td class="px-2 py-2 text-center font-mono font-bold text-gray-900" x-text="item.ts01.toFixed(3)"></td>
+                                        <td class="px-2 py-2 text-center font-mono font-bold text-gray-900" x-text="item.ts02.toFixed(3)"></td>
                                     </tr>
                                 </template>
                             </tbody>
                         </table>
                     </div>
                 </div>
+            </div>
         </div>
 
-        <!-- CỘT 3: KẾT QUẢ TỐI ƯU NHẤT -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col items-center justify-center p-5 min-h-[300px] relative">
-                <div x-show="!bestItem" class="text-center py-20 select-none group text-gray-400 opacity-30">
-                    <div class="mb-4"><i class="fas fa-chart-line text-3xl"></i></div>
-                    <p class="text-[10px] uppercase font-bold tracking-widest">Kết quả tối ưu</p>
+        <!-- CỘT 3: KẾT QUẢ TỐI ƯU -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-[300px]">
+            <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center min-h-[48px]">
+                <h3 class="font-bold text-gray-800 uppercase text-[10px] flex items-center tracking-widest">
+                    <i class="fas fa-trophy text-hvu-red mr-2 text-xs"></i> Kết quả tối ưu
+                </h3>
+            </div>
+            <div class="flex-1 flex flex-col items-center justify-center p-6 bg-gray-50/10">
+                <div x-show="!bestItem" class="text-center opacity-30 select-none">
+                    <i class="fas fa-chart-line text-3xl mb-3 text-gray-300"></i>
+                    <p class="text-[9px] uppercase font-bold tracking-widest text-gray-400">Kết quả tối ưu</p>
                 </div>
-                <div x-show="bestItem" x-cloak x-transition class="space-y-4">
-                    <!-- BEST COMBINATION CARD -->
+                
+                <div x-show="bestItem" x-cloak x-transition class="w-full space-y-4">
+                    <!-- KHUYÊN DÙNG CARD (IMAGE 2 STYLE) -->
                     <div class="bg-white p-5 rounded-[1.5rem] shadow-xl border border-gray-100 relative overflow-hidden group">
                         <div class="flex flex-col relative z-10">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black bg-green-100 text-green-700 uppercase tracking-widest mb-2 border border-green-200 w-fit">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-[8px] font-black bg-green-50 text-green-600 uppercase tracking-widest mb-3 border border-green-100 w-fit">
                                 <i class="fas fa-star mr-1"></i> KHUYÊN DÙNG
                             </span>
                             <div class="flex justify-between items-end">
                                 <div>
-                                    <h3 class="text-3xl font-black text-gray-900 score-number" x-text="bestItem.score.toFixed(2)"></h3>
-                                    <div class="mt-0.5 text-[10px] font-bold text-gray-500 uppercase" x-text="bestItem.ma_to_hop"></div>
+                                    <h3 class="text-4xl font-black text-gray-900 score-number leading-none" x-text="bestItem.score.toFixed(2)"></h3>
+                                    <div class="mt-2 text-[10px] font-bold text-gray-500 uppercase tracking-tighter" x-text="bestItem.ma_to_hop"></div>
                                 </div>
-                                <div class="text-[9px] font-medium text-gray-400 text-right italic" x-text="bestItem.methodName"></div>
+                                <div class="text-[9px] font-medium text-gray-400 text-right italic leading-tight" x-text="bestItem.methodName"></div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="result-gradient p-6 rounded-[2rem] shadow-[0_15px_35px_rgba(190,30,45,0.25)] text-white relative overflow-hidden text-center">
-                        <h4 class="text-[9px] text-white/70 font-black uppercase tracking-[0.2em] mb-2">Tổng điểm xét tuyển</h4>
-                        <div class="text-5xl font-black score-number shimmer-text" x-text="bestItem.finalTotal.toFixed(2)"></div>
-                        <div class="mt-3 inline-flex items-center bg-black/20 px-3 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm">
-                            Hệ số: <span class="ml-1 text-white" x-text="bestItem.convPrio.toFixed(2)"></span>
+                    <!-- TỔNG ĐIỂM CARD (IMAGE 2 STYLE) -->
+                    <div class="result-gradient p-6 rounded-[2rem] shadow-[0_15px_30px_rgba(190,30,45,0.2)] text-white text-center relative overflow-hidden">
+                        <h4 class="text-[10px] text-white/80 font-bold uppercase tracking-[0.2em] mb-2">Tổng điểm xét tuyển</h4>
+                        <div class="text-5xl font-black score-number shimmer-text leading-none py-1" x-text="bestItem.finalTotal.toFixed(2)"></div>
+                        <div class="mt-4 inline-flex items-center bg-black/20 px-4 py-1.5 rounded-full text-[9px] font-bold backdrop-blur-sm border border-white/5">
+                            Hệ số: <span class="ml-1.5 text-white" x-text="bestItem.convPrio.toFixed(2)"></span>
                         </div>
                     </div>
                 </div>
