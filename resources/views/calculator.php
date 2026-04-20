@@ -167,29 +167,22 @@ button:active { transform: scale(0.98); }
                                 <td class="border border-gray-200 px-3 py-2 font-normal bg-gray-50/30" x-text="label"></td>
                                 <td class="border border-gray-200 px-1 py-2 text-center font-mono" x-text="getTBC(sub)"></td>
                                 <td class="border border-gray-200 px-1 py-2 text-center text-black font-mono" x-text="getQD(sub)"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div> <!-- END GRID 3 COLUMNS -->
+                          <!-- KHỐI DASHBOARD 3 CỘT: DỰ TUYỂN | BẢNG TỔ HỢP | KẾT QUẢ -->
     <div class="bg-white rounded-[2rem] shadow-xl border border-gray-200 overflow-hidden mt-10">
-        <div class="grid grid-cols-1 lg:grid-cols-2">
+        <div class="grid grid-cols-1 lg:grid-cols-3">
             
-            <!-- NHẬP THÔNG TIN DỰ TUYỂN -->
-            <div class="p-6 md:p-10 border-b lg:border-b-0 lg:border-r border-gray-100 bg-white">
-                <h2 class="text-xl font-black text-gray-900 uppercase mb-8 flex items-center tracking-tight">
-                    <span class="bg-hvu-red/10 text-hvu-red w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm"><i class="fas fa-user-graduate"></i></span>
+            <!-- CỘT 1: NHẬP THÔNG TIN DỰ TUYỂN -->
+            <div class="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 bg-white">
+                <h2 class="text-lg font-black text-gray-900 uppercase mb-8 flex items-center tracking-tight">
+                    <span class="bg-hvu-red/10 text-hvu-red w-8 h-8 rounded-full flex items-center justify-center mr-3 text-xs"><i class="fas fa-user-graduate"></i></span>
                     Thông tin dự tuyển
                 </h2>
                 
                 <div class="space-y-6">
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Ngành đào tạo mong muốn</label>
+                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Ngành đào tạo</label>
                         <div class="relative">
-                            <select x-model="form.majorCode" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-4 transition-all appearance-none cursor-pointer bg-gray-50 hover:bg-white text-gray-900 text-sm font-semibold">
+                            <select x-model="form.majorCode" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all appearance-none cursor-pointer bg-gray-50 hover:bg-white text-gray-900 text-sm font-semibold">
                                 <option value="">-- Tính tất cả các ngành --</option>
                                 <?php foreach ($majors as $major): ?>
                                     <option value="<?= htmlspecialchars($major['ma_nganh']) ?>">
@@ -203,127 +196,107 @@ button:active { transform: scale(0.98); }
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Đối tượng ưu tiên</label>
-                            <select x-model="form.doiTuong" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-4 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
-                                <option value="">Không có ưu tiên (0đ)</option>
-                                <optgroup label="Nhóm ưu tiên 1 (+2.0đ)">
-                                    <option value="DT1">Đối tượng 01; 02; 03; 04</option>
-                                </optgroup>
-                                <optgroup label="Nhóm ưu tiên 2 (+1.0đ)">
-                                    <option value="DT2">Đối tượng 05; 06; 07</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Khu vực ưu tiên</label>
-                            <select x-model="form.khuVuc" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-4 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
-                                <option value="KV3">KV3 (0 điểm)</option>
-                                <option value="KV2">KV2 (+0.25 điểm)</option>
-                                <option value="KV2-NT">KV2-NT (+0.5 điểm)</option>
-                                <option value="KV1">KV1 (+0.75 điểm)</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Đối tượng ưu tiên</label>
+                        <select x-model="form.doiTuong" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
+                            <option value="">Không có ưu tiên (0đ)</option>
+                            <optgroup label="Nhóm ưu tiên 1 (+2.0đ)">
+                                <option value="DT1">Đối tượng 01; 02; 03; 04</option>
+                            </optgroup>
+                            <optgroup label="Nhóm ưu tiên 2 (+1.0đ)">
+                                <option value="DT2">Đối tượng 05; 06; 07</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 mb-2 ml-1 uppercase tracking-widest">Khu vực ưu tiên</label>
+                        <select x-model="form.khuVuc" class="w-full rounded-xl border border-gray-200 shadow-sm focus:border-hvu-red focus:ring-hvu-red p-3.5 transition-all bg-gray-50 hover:bg-white text-gray-900 text-sm font-medium">
+                            <option value="KV3">KV3 (0 điểm)</option>
+                            <option value="KV2">KV2 (+0.25 điểm)</option>
+                            <option value="KV2-NT">KV2-NT (+0.5 điểm)</option>
+                            <option value="KV1">KV1 (+0.75 điểm)</option>
+                        </select>
                     </div>
                 </div>
                 
-                <div class="mt-12">
-                    <button @click="calculateBestResult" class="btn-hvu-calculate px-12 py-6 font-black rounded-2xl shadow-2xl transition-all uppercase tracking-[0.15em] text-xs w-full md:w-full text-white flex items-center justify-center group overflow-hidden relative">
+                <div class="mt-8">
+                    <button @click="calculateBestResult" class="btn-hvu-calculate px-8 py-5 font-black rounded-xl shadow-2xl transition-all uppercase tracking-[0.1em] text-[10px] w-full text-white flex items-center justify-center group overflow-hidden relative">
                         <span class="relative z-10 flex items-center">
-                            <i class="fas fa-calculator mr-3 group-hover:rotate-12 transition-transform"></i>
+                            <i class="fas fa-calculator mr-2 group-hover:rotate-12 transition-transform"></i>
                             Tính điểm xét tuyển
                         </span>
                         <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform skew-x-12 duration-500"></div>
                     </button>
                 </div>
             </div>
-            
-            <!-- KẾT QUẢ TỐI ƯU NHẤT (THE CARDS) -->
-            <div class="p-4 md:p-10 bg-gray-50/50 flex flex-col justify-center border-l border-gray-100">
-                <div x-show="!bestItem" class="text-center py-24 select-none group text-gray-400">
-                    <div class="mb-4"><i class="fas fa-chart-line text-4xl opacity-20"></i></div>
-                    <p class="text-xs uppercase font-bold tracking-widest">Vui lòng nhấn nút tính điểm</p>
+
+            <!-- CỘT 2: BẢNG TỔ HỢP ĐỦ ĐIỂM -->
+            <div class="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 bg-gray-50/20 flex flex-col min-h-[400px]">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase mb-6 flex items-center tracking-[0.2em] ml-1">
+                    <i class="fas fa-list-ol text-hvu-red mr-2 text-xs opacity-50"></i> Tổ hợp đủ điểm vào ngành
+                </h3>
+                
+                <div x-show="!bestItem" class="flex-1 flex flex-col items-center justify-center text-center opacity-30 select-none py-20">
+                    <i class="fas fa-table text-3xl mb-3 text-gray-300"></i>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Đang chờ tính toán...</p>
                 </div>
-                <div x-show="bestItem" x-cloak x-transition class="space-y-5">
+
+                <div x-show="bestItem" x-cloak x-transition class="space-y-4">
+                    <div class="overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white">
+                        <table class="w-full text-[11px]">
+                            <thead class="bg-gray-50/80 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
+                                <tr>
+                                    <th class="px-3 py-3 text-left border-b">Tổ hợp</th>
+                                    <th class="px-2 py-3 text-center border-b">TS01</th>
+                                    <th class="px-2 py-3 text-center border-b">TS02</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 text-black">
+                                <template x-for="item in validCombinations" :key="item.ma_to_hop">
+                                    <tr class="hover:bg-blue-50/50 transition-colors" :class="bestItem && bestItem.ma_to_hop === item.ma_to_hop ? 'bg-green-50/80' : ''">
+                                        <td class="px-3 py-3 font-black text-gray-700" x-text="item.ma_to_hop"></td>
+                                        <td class="px-2 py-3 text-center font-mono font-bold text-gray-900" x-text="item.ts01.toFixed(2)"></td>
+                                        <td class="px-2 py-3 text-center font-mono font-bold text-gray-900" x-text="item.ts02.toFixed(2)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT 3: KẾT QUẢ TỐI ƯU NHẤT -->
+            <div class="p-6 md:p-8 bg-gray-50/50 flex flex-col justify-center">
+                <div x-show="!bestItem" class="text-center py-20 select-none group text-gray-400 opacity-30">
+                    <div class="mb-4"><i class="fas fa-chart-line text-3xl"></i></div>
+                    <p class="text-[10px] uppercase font-bold tracking-widest">Kết quả tối ưu</p>
+                </div>
+                <div x-show="bestItem" x-cloak x-transition class="space-y-4">
                     <!-- BEST COMBINATION CARD -->
-                    <div class="bg-white p-7 rounded-[2rem] shadow-2xl border border-gray-100 relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 -mr-16 -mt-16 rounded-full blur-3xl"></div>
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
-                            <div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700 uppercase tracking-widest mb-3 border border-green-200">
-                                    <i class="fas fa-star mr-1"></i> Tổ hợp điểm cao nhất
-                                </span>
-                                <h3 class="text-4xl font-black text-gray-900 score-number" x-text="bestItem.score.toFixed(3)"></h3>
-                                <div class="mt-1 flex items-center text-gray-500">
-                                    <span class="font-bold text-sm" x-text="bestItem.ma_to_hop"></span>
-                                    <span class="mx-2 text-gray-300">•</span>
-                                    <span class="text-xs font-medium" x-text="bestItem.details"></span>
+                    <div class="bg-white p-5 rounded-[1.5rem] shadow-xl border border-gray-100 relative overflow-hidden group">
+                        <div class="flex flex-col relative z-10">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black bg-green-100 text-green-700 uppercase tracking-widest mb-2 border border-green-200 w-fit">
+                                <i class="fas fa-star mr-1"></i> KHUYÊN DÙNG
+                            </span>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h3 class="text-3xl font-black text-gray-900 score-number" x-text="bestItem.score.toFixed(2)"></h3>
+                                    <div class="mt-0.5 text-[10px] font-bold text-gray-500 uppercase" x-text="bestItem.ma_to_hop"></div>
                                 </div>
+                                <div class="text-[9px] font-medium text-gray-400 text-right italic" x-text="bestItem.methodName"></div>
                             </div>
-                            <div class="mt-4 md:mt-0">
-                                <div class="bg-green-500 text-white px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-tighter shadow-lg shadow-green-500/30 flex items-center">
-                                    <span class="animate-pulse mr-2 w-2 h-2 bg-white rounded-full"></span>
-                                    Khuyên dùng
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100">
-                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Phương thức</div>
-                            <div class="text-sm font-black text-gray-800 leading-tight" x-text="bestItem.methodName"></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 text-right">
-                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Ưu tiên gốc</div>
-                            <div class="text-xl font-black text-blue-600" x-text="bestItem.rawPrio.toFixed(2)"></div>
                         </div>
                     </div>
 
-                    <div class="result-gradient p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(190,30,45,0.3)] text-white relative overflow-hidden text-center">
-                        <h4 class="text-[11px] text-white/70 font-black uppercase tracking-[0.3em] mb-4">Tổng điểm xét tuyển đề xuất</h4>
-                        <div class="text-6xl font-black score-number shimmer-text" x-text="bestItem.finalTotal.toFixed(3)"></div>
-                        <div class="mt-4 inline-flex items-center bg-black/20 px-4 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-sm">
-                            Ưu tiên quy đổi: <span class="ml-1 text-white" x-text="bestItem.convPrio.toFixed(3)"></span>
+                    <div class="result-gradient p-6 rounded-[2rem] shadow-[0_15px_35px_rgba(190,30,45,0.25)] text-white relative overflow-hidden text-center">
+                        <h4 class="text-[9px] text-white/70 font-black uppercase tracking-[0.2em] mb-2">Tổng điểm xét tuyển</h4>
+                        <div class="text-5xl font-black score-number shimmer-text" x-text="bestItem.finalTotal.toFixed(2)"></div>
+                        <div class="mt-3 inline-flex items-center bg-black/20 px-3 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm">
+                            Hệ số: <span class="ml-1 text-white" x-text="bestItem.convPrio.toFixed(2)"></span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- DANH SÁCH TỔ HỢP ĐỦ ĐIỂM (Image 2 style) -->
-        <div x-show="bestItem" x-cloak x-transition class="border-t border-gray-100 p-8 md:p-10 bg-gray-50/30">
-            <h3 class="text-sm font-black text-gray-900 uppercase mb-6 flex items-center tracking-widest">
-                <i class="fas fa-list-ol text-hvu-red mr-3"></i> Tổ hợp đủ điểm vào ngành
-            </h3>
-            <div class="overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="bg-gray-100/50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
-                            <th class="px-6 py-4 text-left border-b">Tổ hợp môn</th>
-                            <th class="px-6 py-4 text-center border-b">Điểm PT TS01</th>
-                            <th class="px-6 py-4 text-center border-b">Điểm PT TS02</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 text-black">
-                        <template x-for="item in validCombinations" :key="item.ma_to_hop">
-                            <tr class="hover:bg-blue-50/30 transition-colors" :class="bestItem && bestItem.ma_to_hop === item.ma_to_hop ? 'bg-green-50/50' : ''">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3 font-black text-gray-700" x-text="item.ma_to_hop"></div>
-                                        <div class="text-xs font-semibold text-gray-500" x-text="item.details"></div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-center font-mono font-bold text-gray-900" x-text="item.ts01.toFixed(3)"></td>
-                                <td class="px-6 py-4 text-center font-mono font-bold text-gray-900" x-text="item.ts02.toFixed(3)"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4 text-[10px] text-gray-400 italic">
-                * TS01: Xét dựa trên điểm thi tốt nghiệp THPT. TS02: Xét dựa trên điểm học bạ quy đổi.
             </div>
         </div>
     </div>
