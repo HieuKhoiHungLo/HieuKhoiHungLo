@@ -1005,10 +1005,10 @@ class ScoreCalculationService {
             if ($hocLuc12) {
                 // Chuyển tất cả về chữ thường và cắt khoảng trắng để so sánh chính xác tuyệt đối
                 $hocLucRank = [
-                    'gioi' => 4, 'giỏi' => 4, 'tốt' => 4, 'tot' => 4,
-                    'kha' => 3, 'khá' => 3,
-                    'trungbinh' => 2, 'trung bình' => 2, 'tb' => 2,
-                    'yeu' => 1, 'yếu' => 1
+                    'tốt' => 4, 'tốt' => 4, 'giỏi' => 4, 'gioi' => 4, 'tot' => 4,
+                    'đạt' => 3, 'dat' => 3, 'khá' => 3, 'kha' => 3,
+                    'trung bình' => 2, 'trung bình' => 2, 'trungbinh' => 2, 'tb' => 2,
+                    'chưa đạt' => 1, 'yếu' => 1, 'yeu' => 1, 'chua dat' => 1, 'kém' => 1, 'kem' => 1
                 ];
                 
                 $searchRank = mb_strtolower(trim($hocLuc12), 'UTF-8');

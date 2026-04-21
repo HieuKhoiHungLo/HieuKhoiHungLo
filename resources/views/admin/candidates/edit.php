@@ -297,14 +297,28 @@ function submitForm() {
                                     <td class="px-3 py-2 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
                                     <?php foreach ([10, 11, 12] as $g): ?>
                                         <td class="p-1 border text-center">
+                                            <?php 
+                                                $val1 = $recMap[$g]["diem_{$key}_hk1"] ?? '';
+                                                // Fallback for GDCD/KTPL
+                                                if ($key === 'gdcd' && ($val1 === '' || $val1 === null)) {
+                                                    $val1 = $recMap[$g]["diem_ktpl_hk1"] ?? '';
+                                                }
+                                            ?>
                                             <input type="number" step="0.1" min="0" max="10" class="w-full text-center border-none focus:ring-0 p-1 rounded hover:bg-gray-50" 
                                                 name="grade_<?= $g ?>_<?= $key ?>_hk1" 
-                                                value="<?= $recMap[$g]["diem_{$key}_hk1"] ?? '' ?>">
+                                                value="<?= $val1 ?>">
                                         </td>
                                         <td class="p-1 border text-center">
+                                            <?php 
+                                                $val2 = $recMap[$g]["diem_{$key}_hk2"] ?? '';
+                                                // Fallback for GDCD/KTPL
+                                                if ($key === 'gdcd' && ($val2 === '' || $val2 === null)) {
+                                                    $val2 = $recMap[$g]["diem_ktpl_hk2"] ?? '';
+                                                }
+                                            ?>
                                             <input type="number" step="0.1" min="0" max="10" class="w-full text-center border-none focus:ring-0 p-1 rounded hover:bg-gray-50" 
                                                 name="grade_<?= $g ?>_<?= $key ?>_hk2" 
-                                                value="<?= $recMap[$g]["diem_{$key}_hk2"] ?? '' ?>">
+                                                value="<?= $val2 ?>">
                                         </td>
                                     <?php endforeach; ?>
                                 </tr>
@@ -334,16 +348,16 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hoc_luc_hk1">
                                                 <option value="">--</option>
-                                                <?php foreach(['Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'TB', 'Yeu' => 'Yếu'] as $v => $l): $val = is_numeric($v) ? $l : $v; ?>
-                                                    <option value="<?= $val ?>" <?= ($recMap[$g]["hoc_luc_hk1"] ?? '') == $val ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($recMap[$g]["hoc_luc_hk1"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hoc_luc_hk2">
                                                 <option value="">--</option>
-                                                <?php foreach(['Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'TB', 'Yeu' => 'Yếu'] as $v => $l): $val = is_numeric($v) ? $l : $v; ?>
-                                                    <option value="<?= $val ?>" <?= ($recMap[$g]["hoc_luc_hk2"] ?? '') == $val ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($recMap[$g]["hoc_luc_hk2"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>
@@ -357,16 +371,16 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hanh_kiem_hk1">
                                                 <option value="">--</option>
-                                                <?php foreach(['Tot' => 'Tốt', 'Kha' => 'Khá', 'TrungBinh' => 'TB', 'Yeu' => 'Yếu'] as $v => $l): $val = is_numeric($v) ? $l : $v; ?>
-                                                    <option value="<?= $val ?>" <?= ($recMap[$g]["hanh_kiem_hk1"] ?? '') == $val ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($recMap[$g]["hanh_kiem_hk1"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>
                                         <td class="p-1 border text-center">
                                              <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hanh_kiem_hk2">
                                                 <option value="">--</option>
-                                                <?php foreach(['Tot' => 'Tốt', 'Kha' => 'Khá', 'TrungBinh' => 'TB', 'Yeu' => 'Yếu'] as $v => $l): $val = is_numeric($v) ? $l : $v; ?>
-                                                    <option value="<?= $val ?>" <?= ($recMap[$g]["hanh_kiem_hk2"] ?? '') == $val ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($recMap[$g]["hanh_kiem_hk2"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>

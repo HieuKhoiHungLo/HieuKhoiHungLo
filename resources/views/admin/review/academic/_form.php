@@ -1,10 +1,5 @@
 <?php
-$mapDisplay = function($v) {
-    return [
-        'Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'T.Bình', 'Yeu' => 'Yếu',
-        'Tot' => 'Tốt'
-    ][$v] ?? $v;
-};
+// Display mapping is no longer needed as we store standard Vietnamese strings
 ?>
 <style>
     /* Hide spin buttons for input type number */
@@ -41,11 +36,20 @@ $mapDisplay = function($v) {
                                     </td>
                                     <?php foreach ([10, 11, 12] as $g):
                                         $gradeRow = $rowsByGrade[$g] ?? [];
-                                        $val = is_numeric($gradeRow['diem_'.$code.'_cn']) ? number_format((float)$gradeRow['diem_'.$code.'_cn'], 3, '.', '') : ($gradeRow['diem_'.$code.'_cn'] ?? '');
+                                        $val = $gradeRow['diem_'.$code.'_cn'] ?? '';
+                                        $inputName = "diem_{$code}_cn";
+
+                                        // Fallback for GDCD/KTPL
+                                        if ($code === 'gdcd' && ($val === null || $val === '')) {
+                                            $val = $gradeRow['diem_ktpl_cn'] ?? '';
+                                            $inputName = "diem_ktpl_cn";
+                                        }
+
+                                        if (is_numeric($val)) $val = number_format((float)$val, 3, '.', '');
                                     ?>
                                         <td style="padding: 0; text-align: center; border-right: 1px solid #e2e8f0; background: #fff;" class="last:border-r-0">
                                             <input type="number" step="0.1" min="0" max="10"
-                                                name="scores[<?= $g ?>][diem_<?= $code ?>_cn]"
+                                                name="scores[<?= $g ?>][<?= $inputName ?>]"
                                                 value="<?= $val ?>"
                                                 placeholder="—"
                                                 style="width: 100%; height: 25px; padding: 0; text-align: center; padding-left: 0; padding-right: 0; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; display: block; transition: all 0.2s;"
@@ -87,8 +91,8 @@ $mapDisplay = function($v) {
                                         <select name="scores[<?= $g ?>][hoc_luc_ca_nam]"
                                             style="width: 100%; height: 26px; padding: 0; text-align: center; text-align-last: center; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; appearance: none; cursor: pointer; display: block; transition: all 0.2s;">
                                             <option value="">—</option>
-                                            <?php foreach (['Gioi', 'Kha', 'TrungBinh', 'Yeu'] as $v): ?>
-                                                <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
+                                            <?php foreach (['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
+                                                <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $v ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </td>
@@ -107,8 +111,8 @@ $mapDisplay = function($v) {
                                         <select name="scores[<?= $g ?>][hanh_kiem_ca_nam]"
                                             style="width: 100%; height: 26px; padding: 0; text-align: center; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; appearance: none; cursor: pointer; display: block; transition: all 0.2s;">
                                             <option value="">—</option>
-                                            <?php foreach (['Tot', 'Kha', 'TrungBinh', 'Yeu'] as $v): ?>
-                                                <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $mapDisplay($v) ?></option>
+                                            <?php foreach (['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
+                                                <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $v ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </td>

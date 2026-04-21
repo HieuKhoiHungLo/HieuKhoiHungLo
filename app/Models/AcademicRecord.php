@@ -14,6 +14,31 @@ class AcademicRecord extends \App\Core\Model
         parent::__construct();
     }
 
+    /**
+     * Normalize ratings (Hoc luc / Hanh kiem) to standard Vietnamese codes
+     * TỐT, ĐẠT, TRUNG BÌNH, CHƯA ĐẠT
+     */
+    public function normalizeRating($text)
+    {
+        if ($text === null || $text === '') return null;
+        
+        $raw = mb_strtolower(trim($text), 'UTF-8');
+        
+        // Remove accents for fuzzy matching if needed, but here we list common variations
+        $map = [
+            // TỐT
+            'tốt' => 'TỐT', 'tot' => 'TỐT', 'giỏi' => 'TỐT', 'gioi' => 'TỐT', 'xuất sắc' => 'TỐT', 'xuat sac' => 'TỐT',
+            // ĐẠT
+            'khá' => 'ĐẠT', 'kha' => 'ĐẠT', 'đạt' => 'ĐẠT', 'dat' => 'ĐẠT',
+            // TRUNG BÌNH
+            'trung bình' => 'TRUNG BÌNH', 'trung binh' => 'TRUNG BÌNH', 'tb' => 'TRUNG BÌNH', 'trungbinh' => 'TRUNG BÌNH',
+            // CHƯA ĐẠT
+            'yếu' => 'CHƯA ĐẠT', 'yeu' => 'CHƯA ĐẠT', 'chưa đạt' => 'CHƯA ĐẠT', 'chua dat' => 'CHƯA ĐẠT', 'kém' => 'CHƯA ĐẠT', 'kem' => 'CHƯA ĐẠT'
+        ];
+
+        return $map[$raw] ?? mb_strtoupper($text, 'UTF-8');
+    }
+
     public function getByCCCD($cccd)
     {
         $sql = "SELECT * FROM {$this->table} WHERE so_cccd = :cccd ORDER BY lop ASC";
@@ -66,6 +91,9 @@ class AcademicRecord extends \App\Core\Model
             $fields = [];
             $params = ['cccd' => $cccd, 'grade' => $grade];
             foreach ($data as $key => $value) {
+                if (in_array($key, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
+                    $value = $this->normalizeRating($value);
+                }
                 $fields[] = "$key = :$key";
                 $params[$key] = $value;
             }
@@ -79,6 +107,13 @@ class AcademicRecord extends \App\Core\Model
             $vals = ':' . implode(', :', array_keys($data));
 
             $sql = "INSERT INTO {$this->table} ($cols) VALUES ($vals)";
+            
+            // Normalize in INSERT as well
+            foreach ($data as $key => $value) {
+                if (in_array($key, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
+                    $data[$key] = $this->normalizeRating($value);
+                }
+            }
             $params = $data;
         }
 
@@ -105,7 +140,7 @@ class AcademicRecord extends \App\Core\Model
                 if (empty($gradeData)) continue;
 
                 $saveData = [];
-                $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'cong_nghe', 'tin_hoc'];
+                $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'ktpl', 'cong_nghe', 'tin_hoc'];
                 
                 foreach ($subjects as $sub) {
                     $val = $gradeData[$sub] ?? null;
@@ -121,10 +156,10 @@ class AcademicRecord extends \App\Core\Model
                     $saveData['diem_tb_ca_nam'] = (float)$gradeData['diem_tb'];
                 }
                 if (isset($gradeData['hoc_luc']) && $gradeData['hoc_luc'] !== '') {
-                    $saveData['hoc_luc_ca_nam'] = $gradeData['hoc_luc'];
+                    $saveData['hoc_luc_ca_nam'] = $this->normalizeRating($gradeData['hoc_luc']);
                 }
                 if (isset($gradeData['hanh_kiem']) && $gradeData['hanh_kiem'] !== '') {
-                    $saveData['hanh_kiem_ca_nam'] = $gradeData['hanh_kiem'];
+                    $saveData['hanh_kiem_ca_nam'] = $this->normalizeRating($gradeData['hanh_kiem']);
                 }
                 if (isset($gradeData['file_hoc_ba']) && !empty($gradeData['file_hoc_ba'])) {
                     $saveData['file_hoc_ba'] = $gradeData['file_hoc_ba'];
@@ -169,10 +204,6 @@ class AcademicRecord extends \App\Core\Model
     private function syncToNormalizedTable($cccd)
     {
         try {
-            // Get Subject Mapping
-            $stmt = $this->db->query("SELECT id, ma_mon FROM dm_mon WHERE loai_mon = 'Mon_hoc_ba'");
-            $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             // Map ma_mon to column suffix in ket_qua_hoc_tap
             $monToCol = [
                 'toan' => 'toan',
@@ -184,9 +215,17 @@ class AcademicRecord extends \App\Core\Model
                 'su' => 'su',
                 'dia' => 'dia',
                 'gdcd' => 'gdcd',
+                'GDKTPL' => 'ktpl',
                 'cong_nghe' => 'cong_nghe',
                 'tin_hoc' => 'tin_hoc'
             ];
+
+            // Get Subject Mapping based on our defined columns
+            $monCodes = array_keys($monToCol);
+            $placeholders = implode(',', array_fill(0, count($monCodes), '?'));
+            $stmt = $this->db->prepare("SELECT id, ma_mon FROM dm_mon WHERE ma_mon IN ($placeholders)");
+            $stmt->execute($monCodes);
+            $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $insertValues = [];
             $insertParams = [];
@@ -208,6 +247,10 @@ class AcademicRecord extends \App\Core\Model
                     $score = $record[$dbCol] ?? null;
 
                     if ($score !== null && $score !== '') {
+                        // DB only supports L12 scores in diem_chi_tiet via check constraint
+                        $allowedTypes = ['HB_CN_12', 'HB_HK1_12', 'HB_HK2_12', 'THPT', 'NK', 'CC_NN'];
+                        if (!in_array($loaiDiem, $allowedTypes)) continue;
+
                         $insertValues[] = "(?, ?, ?, ?)";
                         $insertParams[] = $cccd;
                         $insertParams[] = $s['id'];

@@ -287,7 +287,11 @@ class ScoreCalculator {
             $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
             
             if ($hocLuc12) {
-                $hocLucRank = ['Gioi' => 4, 'Kha' => 3, 'TrungBinh' => 2, 'Yeu' => 1];
+                $hocLucRank = [
+                    'TỐT' => 4, 'ĐẠT' => 3, 'TRUNG BÌNH' => 2, 'CHƯA ĐẠT' => 1,
+                    'Gioi' => 4, 'Kha' => 3, 'TrungBinh' => 2, 'Yeu' => 1,
+                    'Giỏi' => 4, 'Khá' => 3, 'Trung bình' => 2, 'Yếu' => 1
+                ];
                 $requiredRank = $hocLucRank[$nguongHocLuc] ?? 0;
                 $actualRank = $hocLucRank[$hocLuc12] ?? 0;
                 

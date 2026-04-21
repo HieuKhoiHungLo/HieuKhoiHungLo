@@ -173,14 +173,15 @@ $getVal = function ($grade, $sem, $field) use ($records) {
                             <!-- Summary Row: Học Lực -->
                             <tr class="bg-gray-50 border-t border-gray-200">
                                 <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-gray-50 z-10 font-medium">Học Lực</td>
-                                <?php foreach ([10, 11, 12] as $g): foreach (['hk1', 'hk2'] as $s): ?>
+                                <?php foreach ([10, 11, 12] as $g): foreach (['hk1', 'hk2'] as $s): 
+                                    $currentHl = $getVal($g, $s, 'hoc_luc');
+                                ?>
                                         <td class="p-1 border text-center">
                                             <select class="hvu-input-sm font-bold" name="grades[<?= $g ?>][<?= $s ?>][hoc_luc]">
                                                 <option value="">--</option>
-                                                <option value="Gioi" <?= $getVal($g, $s, 'hoc_luc') == 'Gioi' ? 'selected' : '' ?>>Giỏi</option>
-                                                <option value="Kha" <?= $getVal($g, $s, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                <option value="TrungBinh" <?= $getVal($g, $s, 'hoc_luc') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                                <option value="Yeu" <?= $getVal($g, $s, 'hoc_luc') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($currentHl == $l || $currentHl == array_search($l, ['Gioi'=>'TỐT', 'Kha'=>'ĐẠT', 'TrungBinh'=>'TRUNG BÌNH', 'Yeu'=>'CHƯA ĐẠT'])) ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php endforeach; ?>
                                             </select>
                                         </td>
                                 <?php endforeach;
@@ -190,14 +191,15 @@ $getVal = function ($grade, $sem, $field) use ($records) {
                             <!-- Summary Row: Hạnh Kiểm -->
                             <tr class="bg-white border-t border-gray-200">
                                 <td class="px-3 py-2 text-gray-700 text-left border-r sticky left-0 bg-white z-10 font-medium">Hạnh Kiểm</td>
-                                <?php foreach ([10, 11, 12] as $g): foreach (['hk1', 'hk2'] as $s): ?>
+                                <?php foreach ([10, 11, 12] as $g): foreach (['hk1', 'hk2'] as $s): 
+                                    $currentHk = $getVal($g, $s, 'hanh_kiem');
+                                ?>
                                         <td class="p-1 border text-center">
                                             <select class="hvu-input-sm font-bold" name="grades[<?= $g ?>][<?= $s ?>][hanh_kiem]">
                                                 <option value="">--</option>
-                                                <option value="Tot" <?= $getVal($g, $s, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                                <option value="Kha" <?= $getVal($g, $s, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                <option value="TrungBinh" <?= $getVal($g, $s, 'hanh_kiem') == 'TrungBinh' ? 'selected' : '' ?>>TB</option>
-                                                <option value="Yeu" <?= $getVal($g, $s, 'hanh_kiem') == 'Yeu' ? 'selected' : '' ?>>Yếu</option>
+                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                    <option value="<?= $l ?>" <?= ($currentHk == $l || $currentHk == array_search($l, ['Tot'=>'TỐT', 'Kha'=>'ĐẠT', 'TrungBinh'=>'TRUNG BÌNH', 'Yeu'=>'CHƯA ĐẠT'])) ? 'selected' : '' ?>><?= $l ?></option>
+                                                <?php endforeach; ?>
                                             </select>
                                         </td>
                                 <?php endforeach;

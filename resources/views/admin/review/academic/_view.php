@@ -14,14 +14,19 @@
                 }
                 $getScore = function ($grade, $field) use ($rowsByGrade) {
                     $val = $rowsByGrade[$grade][$field] ?? null;
+                    
+                    // Fallback for GDCD/KTPL: if field is diem_gdcd_cn and it's null, try diem_ktpl_cn
+                    if ($field === 'diem_gdcd_cn' && ($val === null || $val === '')) {
+                        $val = $rowsByGrade[$grade]['diem_ktpl_cn'] ?? null;
+                    }
+
                     if ($val === null || $val === '') return '<span class="text-slate-300">—</span>';
                     if (is_numeric($val)) return str_replace('.', ',', number_format((float)$val, 3, '.', ''));
                     return $val;
                 };
                 $mapDisplay = function ($val) {
-                    $map = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'Trung binh' => 'Trung bình', 'TB' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt', 'TrungBinh' => 'Trung bình'];
-                    $display = $map[$val] ?? $val;
-                    return ($display !== null && $display !== '') ? $display : '<span class="text-slate-300">—</span>';
+                    // Data is already normalized to TỐT, ĐẠT, TRUNG BÌNH, CHƯA ĐẠT in DB
+                    return ($val !== null && $val !== '') ? $val : '<span class="text-slate-300">—</span>';
                 };
                 ?>
 

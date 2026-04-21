@@ -808,7 +808,7 @@ class CandidateController extends Controller
             // 3. Update Academic Records
             $academicRepo = new \App\Repositories\AcademicRepository();
             $grades = [10, 11, 12];
-            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'cong_nghe', 'tin_hoc'];
+            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'ktpl', 'cong_nghe', 'tin_hoc'];
             foreach ($grades as $g) {
                 $record = [];
                 foreach ($subjects as $s) {
@@ -1071,7 +1071,7 @@ class CandidateController extends Controller
                             ];
 
                             // Map subjects
-                            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tin_hoc', 'cong_nghe'];
+                            $subjects = ['toan', 'van', 'ngoai_ngu', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'ktpl', 'tin_hoc', 'cong_nghe'];
                             foreach ($subjects as $s) {
                                 if (isset($gradeInputs["diem_{$s}_cn"])) {
                                     $record[$s] = $gradeInputs["diem_{$s}_cn"] !== '' ? (float)$gradeInputs["diem_{$s}_cn"] : null;
@@ -1755,7 +1755,16 @@ class CandidateController extends Controller
                 }
                 foreach ($textCols as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
-                    $scoreData[$dbCol] = ($val === '') ? null : $val;
+                    if ($val === '') {
+                        $scoreData[$dbCol] = null;
+                    } else {
+                        // Apply normalization for ratings
+                        if (in_array($dbCol, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
+                            $scoreData[$dbCol] = $academicModel->normalizeRating($val);
+                        } else {
+                            $scoreData[$dbCol] = $val;
+                        }
+                    }
                 }
 
                 $academicModel->save($cccd, (int)$lop, $scoreData);
