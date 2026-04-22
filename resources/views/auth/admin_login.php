@@ -16,7 +16,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
-            background-image: url('<?= url('/assets/img/hero-bg.jpg') ?>');
+            /* background-image: url('<?= url('/assets/img/hero-bg.jpg') ?>'); */
             /* Fallback or specific bg */
             background-size: cover;
             background-position: center;

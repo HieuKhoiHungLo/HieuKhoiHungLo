@@ -213,6 +213,11 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 
+    // Admission Exceptions
+    $router->get('/admin/admission/exceptions', 'NgoaiLeController@index');
+    $router->post('/admin/admission/exceptions/save', 'NgoaiLeController@save');
+    $router->post('/admin/admission/exceptions/delete', 'NgoaiLeController@delete');
+
     // Virtual Filter Dashboard (New Grid UI)
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
     $router->get('/admin/api/vf/load', 'VirtualAdmissionController@loadBatchData');
@@ -261,6 +266,14 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/settings/email-templates/edit', 'EmailTemplateController@edit');
     $router->post('/admin/settings/email-templates/save', 'EmailTemplateController@save');
     $router->get('/admin/settings/email-templates/preview', 'EmailTemplateController@preview');
+
+    // Admission Letters
+    $router->get('/admin/admission-letters', 'AdmissionLetterController@index');
+    $router->get('/admin/admission-letters/import', 'AdmissionLetterController@importForm');
+    $router->post('/admin/admission-letters/import', 'AdmissionLetterController@import');
+    $router->get('/admin/admission-letters/template', 'AdmissionLetterController@template');
+    $router->get('/admin/admission-letters/preview', 'AdmissionLetterController@preview');
+    $router->post('/admin/admission-letters/bulk-action', 'AdmissionLetterController@bulkAction');
 
     // Scoring & Audit
     $router->get('/admin/settings/scoring', 'ScoringSettingsController@index');

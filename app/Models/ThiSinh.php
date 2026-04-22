@@ -318,7 +318,7 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai IILIKE ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
             $params[] = "%$status%";
         }
 
@@ -419,8 +419,8 @@ class ThiSinh extends Model {
 
         $sqlHS = "SELECT 
             COUNT(*) as total,
-            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Đã duyệt%') as approved,
-            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Yêu cầu sửa%') as require_edit,
+            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Đã duyệt%' OR trang_thai ILIKE '%approved%' OR trang_thai ILIKE '%DaDuyet%') as approved,
+            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Yêu cầu sửa%' OR trang_thai ILIKE '%require_edit%' OR trang_thai ILIKE '%Yêu cầu chỉnh sửa%') as require_edit,
             COUNT(*) FILTER (WHERE yeu_cau_chinh_sua = TRUE) as edit_requests
             FROM ho_so_xet_tuyen $hsWhere";
 

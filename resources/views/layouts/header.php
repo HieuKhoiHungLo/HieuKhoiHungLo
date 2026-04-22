@@ -92,8 +92,10 @@
                             <i class="fas fa-file-alt mr-1.5 opacity-80"></i> Hồ sơ Xét tuyển
                         </a>
                     <?php else: ?>
+                        <a href="<?= url('/tinh-diem') ?>" class="text-gray-700 hover:text-hvu-red font-medium px-4 py-2">Tính điểm XT</a>
+                        <span class="text-gray-300">|</span>
                         <a href="<?= url('/login') ?>" class="text-gray-700 hover:text-hvu-red font-medium px-4 py-2">Đăng nhập</a>
-                        <a href="<?= url('/register') ?>" class="bg-hvu-red text-white px-5 py-2 rounded-full hover:bg-red-700 transition shadow-md font-medium">Đăng ký ngay</a>
+                        <a href="<?= url('/register') ?>" class="bg-hvu-red text-white px-5 py-2 rounded-full hover:bg-red-700 transition shadow-md font-medium ml-2">Đăng ký ngay</a>
                     <?php endif; ?>
                 </nav>
 
@@ -272,6 +274,7 @@
                     <a href="<?= url('/profile/change-password') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium text-blue-600 bg-blue-50">Đổi mật khẩu</a>
                     <a href="<?= url('/logout') ?>" class="block px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg">Đăng xuất</a>
                 <?php else: ?>
+                    <a href="<?= url('/tinh-diem') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center">Tính điểm XT</a>
                     <a href="<?= url('/login') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center">Đăng nhập</a>
                     <a href="<?= url('/register') ?>" class="block px-4 py-3 bg-hvu-red text-white font-bold rounded-lg text-center shadow">Đăng ký ngay</a>
                 <?php endif; ?>

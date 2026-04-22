@@ -6,7 +6,7 @@
         <a href="<?= url('/admin/settings/email-templates') ?>" class="text-[#0066FF] text-xs font-bold uppercase tracking-widest hover:underline transition inline-flex items-center mb-2">
             <i class="fas fa-arrow-left mr-2"></i> Danh sách Mẫu
         </a>
-        <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">Chỉnh sửa: <?= htmlspecialchars($template['name']) ?></h2>
+        <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">Chỉnh sửa: <?= htmlspecialchars($template['subject'] ?? '') ?></h2>
     </header>
 
     <form action="<?= url('/admin/settings/email-templates/save') ?>" method="POST" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -25,7 +25,7 @@
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <span class="text-gray-500 dark:text-gray-400">Mã Template:</span>
-                        <code class="ml-2 bg-gray-200 dark:bg-gray-600 dark:text-white px-2 py-1 rounded"><?= htmlspecialchars($template['slug']) ?></code>
+                        <code class="ml-2 bg-gray-200 dark:bg-gray-600 dark:text-white px-2 py-1 rounded"><?= htmlspecialchars($template['code'] ?? '') ?></code>
                     </div>
                     <div>
                         <span class="text-gray-500 dark:text-gray-400">Biến có thể dùng:</span>
@@ -37,7 +37,7 @@
             <!-- Subject -->
             <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Tiêu đề Email (Subject)</label>
-                <input type="text" name="subject" value="<?= htmlspecialchars($template['subject']) ?>" 
+                <input type="text" name="subject" value="<?= htmlspecialchars($template['subject'] ?? '') ?>" 
                        class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition text-sm font-medium dark:text-white"
                        required>
             </div>
@@ -47,7 +47,7 @@
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Nội dung Email (HTML)</label>
                 <textarea name="body" rows="20" 
                           class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-transparent outline-none transition text-sm font-mono dark:text-white"
-                          required><?= htmlspecialchars($template['body']) ?></textarea>
+                          required><?= htmlspecialchars($template['body'] ?? '') ?></textarea>
                 <p class="text-xs text-gray-400 mt-2">
                     <i class="fas fa-info-circle mr-1"></i> Sử dụng HTML để định dạng. Dùng <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{tên_biến}}</code> để chèn dữ liệu.
                 </p>
@@ -55,7 +55,7 @@
         </div>
 
         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 flex justify-between items-center">
-            <a href="<?= url('/admin/settings/email-templates/preview?slug=' . $template['slug']) ?>" target="_blank" 
+            <a href="<?= url('/admin/settings/email-templates/preview?slug=' . ($template['code'] ?? '')) ?>" target="_blank" 
                class="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                 <i class="fas fa-eye mr-1"></i> Xem trước
             </a>

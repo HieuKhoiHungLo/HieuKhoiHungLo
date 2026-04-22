@@ -48,6 +48,15 @@ class VirtualFilterService {
             $stmtGetAll->execute([$batchId]);
             $allChoices = $stmtGetAll->fetchAll(PDO::FETCH_ASSOC);
 
+            // Tải danh sách Ngoại lệ xét tuyển (Ép buộc trạng thái)
+            $stmtEx = $this->db->prepare("SELECT so_cccd, ma_nganh, trang_thai_ep_buoc FROM ngoai_le_xet_tuyen WHERE dot_tuyen_sinh_id = ?");
+            $stmtEx->execute([$batchId]);
+            $exceptionsRaw = $stmtEx->fetchAll(PDO::FETCH_ASSOC);
+            $exceptions = [];
+            foreach ($exceptionsRaw as $ex) {
+                $exceptions[$ex['so_cccd'] . '_' . $ex['ma_nganh']] = $ex['trang_thai_ep_buoc'];
+            }
+
             // Bước 3: Thuật toán Trượt dây chuyền (Cascading Filter)
             $processedCandidates = []; 
             $successfulNvIds = [];   
@@ -65,7 +74,23 @@ class VirtualFilterService {
 
                 if (isset($processedCandidates[$cccd])) continue;
                 
-                // ĐIỀU KIỆN ĐẠT: Điểm >= Điểm chuẩn VÀ Trạng thái đạt ngưỡng (Học lực/Ngành)
+                // --- Kiểm tra Ngoại lệ xét tuyển (Ép buộc) ---
+                $exKey = $cccd . '_' . $major;
+                if (isset($exceptions[$exKey])) {
+                    if ($exceptions[$exKey] === 'Truot') {
+                        // ÉP TRƯỢT: Bỏ qua nguyện vọng này. 
+                        // KHÔNG đánh dấu $processedCandidates để hệ thống tiếp tục xét các NV thấp hơn (NV2, NV3).
+                        continue;
+                    } elseif ($exceptions[$exKey] === 'TrungTuyen') {
+                        // ÉP ĐỖ: Bỏ qua kiểm tra điểm chuẩn và ngưỡng, đưa thẳng vào danh sách đỗ.
+                        $processedCandidates[$cccd] = true;
+                        $successfulNvIds[] = $nvId;
+                        continue;
+                    }
+                }
+                // --- Kết thúc Ngoại lệ ---
+
+                // ĐIỀU KIỆN ĐẠT BÌNH THƯỜNG: Điểm >= Điểm chuẩn VÀ Trạng thái đạt ngưỡng (Học lực/Ngành)
                 if (!isset($benchmarks[$major])) continue; // Nếu ngành chưa có điểm chuẩn thì bỏ qua
                 
                 $benchmarkScore = (float) $benchmarks[$major];

@@ -230,13 +230,15 @@
         :class="{ 'collapsed': sidebarCollapsed, 'mobile-open': mobileMenuOpen }">
         <!-- Brand -->
         <div class="h-16 flex items-center px-5 border-b border-white/10 bg-black/10 flex-shrink-0">
-            <div class="flex items-center justify-center flex-shrink-0">
-                <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-9 w-auto object-contain">
-            </div>
-            <div class="ml-3 sidebar-text min-w-0">
-                <h1 class="font-black text-[9px] tracking-wider text-white/70 font-heading uppercase leading-none">QUẢN TRỊ HỆ THỐNG</h1>
-                <p class="text-[13px] text-sky-200 uppercase tracking-widest font-bold leading-tight mt-0.5">TUYỂN SINH</p>
-            </div>
+            <a href="<?= url('/') ?>" class="flex items-center group/brand overflow-hidden">
+                <div class="flex items-center justify-center flex-shrink-0 transition-transform group-hover/brand:scale-105 duration-300">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="h-9 w-auto object-contain">
+                </div>
+                <div class="ml-3 sidebar-text min-w-0 transition-opacity group-hover/brand:opacity-80">
+                    <h1 class="font-black text-[9px] tracking-wider text-white/70 font-heading uppercase leading-none">QUẢN TRỊ HỆ THỐNG</h1>
+                    <p class="text-[13px] text-sky-200 uppercase tracking-widest font-bold leading-tight mt-0.5">TUYỂN SINH</p>
+                </div>
+            </a>
             <!-- Mobile Close Button -->
             <button @click="mobileMenuOpen = false" class="lg:hidden ml-auto text-white/50 hover:text-white">
                 <i class="fas fa-times text-lg"></i>
@@ -276,6 +278,7 @@
                     'items' => [
                         ['url' => '/admin/admission/management',     'icon' => 'fa-cog',           'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/virtual-filter', 'icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
+                        ['url' => '/admin/admission/exceptions',     'icon' => 'fa-star-half-alt', 'label' => 'Ngoại lệ xét tuyển',   'perm' => 'settings.edit'],
                         ['url' => '/admin/admission/results',        'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
                         ['url' => '/admin/aptitude-scores',          'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
                         ['url' => '/admin/certificate-scores',       'icon' => 'fa-file-signature', 'label' => 'Điểm chứng chỉ',       'perm' => 'aptitude.view'],
@@ -285,7 +288,8 @@
                     'group' => 'TIN TỨC & THÔNG BÁO',
                     'icon'  => 'fa-bullhorn',
                     'items' => [
-                        ['url' => '/admin/notifications',           'icon' => 'fa-bell',          'label' => 'Gửi Thông báo',        'perm' => 'candidate.view'],
+                        ['url' => '/admin/notifications',           'icon' => 'fa-bell',          'label' => 'Gửi Thông báo hệ thống','perm' => 'candidate.view'],
+                        ['url' => '/admin/admission-letters',       'icon' => 'fa-envelope-open-text', 'label' => 'Thư báo trúng tuyển', 'perm' => 'candidate.view'],
                         ['url' => '/admin/posts',                   'icon' => 'fa-newspaper',     'label' => 'Tin tức & Bài viết',   'perm' => 'posts.view'],
                     ]
                 ],

@@ -21,11 +21,28 @@
                     <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Trạng thái hồ sơ</span>
                     <span class="text-lg font-black text-gray-800">
                         <?php 
+                        $rawStatus = $currentApp->trang_thai ?? '';
+                        $displayStatus = $rawStatus;
+                        
+                        // Mapping for legacy or English values
+                        $statusMap = [
+                            'approved' => 'Đã duyệt',
+                            'DaDuyet' => 'Đã duyệt',
+                            'pending' => 'Chờ duyệt',
+                            'ChoDuyet' => 'Chờ duyệt',
+                            'rejected' => 'Từ chối',
+                            'require_edit' => 'Yêu cầu chỉnh sửa'
+                        ];
+                        
+                        if (isset($statusMap[$rawStatus])) {
+                            $displayStatus = $statusMap[$rawStatus];
+                        }
+
                         $statusClass = 'text-blue-600';
-                        if ($currentApp->trang_thai == 'Đã duyệt') $statusClass = 'text-green-600';
-                        if ($currentApp->trang_thai == 'Yêu cầu chỉnh sửa') $statusClass = 'text-red-600';
+                        if ($displayStatus == 'Đã duyệt') $statusClass = 'text-green-600';
+                        if ($displayStatus == 'Yêu cầu chỉnh sửa' || $displayStatus == 'Yêu cầu sửa') $statusClass = 'text-red-600';
                         ?>
-                        <span class="<?= $statusClass ?>"><?= htmlspecialchars($currentApp->trang_thai) ?></span>
+                        <span class="<?= $statusClass ?>"><?= htmlspecialchars($displayStatus) ?></span>
                     </span>
                 </div>
                 <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-hvu-red">

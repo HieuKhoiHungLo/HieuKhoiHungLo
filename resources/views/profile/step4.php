@@ -134,7 +134,7 @@ include __DIR__ . '/../layouts/header.php';
                                                     <td class="p-1.5 border text-center">
                                                         <input type="number" step="0.01" min="0" max="10" name="<?= $key ?>"
                                                             value="<?= isset($scores[$key]) ? $scores[$key] : '' ?>"
-                                                            class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg" placeholder="0.00">
+                                                            class="hvu-input-sm w-32 mx-auto text-center font-bold text-lg score-input" placeholder="0.00">
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -213,6 +213,29 @@ include __DIR__ . '/../layouts/header.php';
                     inputArea.classList.remove('hidden');
                 } else {
                     inputArea.classList.add('hidden');
+                }
+            });
+        });
+
+        // Fast score input logic
+        document.querySelectorAll('.score-input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.select();
+            });
+
+            input.addEventListener('blur', function() {
+                let val = this.value;
+                if (!val || val.includes('.') || val.includes(',')) return;
+                
+                let num = parseInt(val);
+                if (isNaN(num)) return;
+
+                if (num > 10) {
+                    if (num <= 100) {
+                        this.value = (num / 10).toFixed(2);
+                    } else if (num <= 1000) {
+                        this.value = (num / 100).toFixed(2);
+                    }
                 }
             });
         });

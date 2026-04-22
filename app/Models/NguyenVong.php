@@ -55,7 +55,9 @@ class NguyenVong extends Model {
             $stmt->execute([$cccd, $dotTuyenSinhId]);
 
             // 3. Determine status
-            $newStatus = ($hsStatus && (stripos($hsStatus, 'Đã duyệt') !== false || $hsStatus === 'DaDuyet')) ? 'DaDuyet' : 'ChoDuyet';
+            $newStatus = ($hsStatus && (stripos($hsStatus, 'Đã duyệt') !== false || stripos($hsStatus, 'approved') !== false || $hsStatus === 'DaDuyet')) 
+                ? \App\Core\UserStatus::APPROVED 
+                : \App\Core\UserStatus::PENDING;
 
             if (!empty($data)) {
                 $insertValues = [];

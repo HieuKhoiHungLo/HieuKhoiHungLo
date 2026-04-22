@@ -427,10 +427,12 @@
         try {
             const canvas = document.getElementById(id);
             if (canvas) {
-                console.log(`Checking chart ${id}: ${canvas.offsetWidth}x${canvas.offsetHeight}`);
+            /* console.log(`Checking chart ${id}: ${canvas.offsetWidth}x${canvas.offsetHeight}`); */
+            if (canvas) {
                 if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
-                    console.warn(`!!!! Warning: Chart ${id} has zero dimensions.`);
+                    /* console.warn(`!!!! Warning: Chart ${id} has zero dimensions.`); */
                 }
+            }
             }
             fn();
         } catch (e) {
@@ -444,9 +446,9 @@
         const ctx = canvas.getContext('2d');
         if (window.charts[canvasId]) window.charts[canvasId].destroy();
 
-        console.log(`Updating ${canvasId} (Line) with data:`, data);
+        /* console.log(`Updating ${canvasId} (Line) with data:`, data); */
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.warn(`No data for ${canvasId}`);
+            /* console.warn(`No data for ${canvasId}`); */
             return;
         }
 
@@ -505,9 +507,9 @@
         const ctx = canvas.getContext('2d');
         if (window.charts[canvasId]) window.charts[canvasId].destroy();
 
-        console.log(`Updating ${canvasId} (Pie/Status) with data:`, overview);
+        /* console.log(`Updating ${canvasId} (Pie/Status) with data:`, overview); */
         if (!overview || (parseInt(overview.approved) === 0 && parseInt(overview.pending) === 0 && parseInt(overview.require_edit) === 0)) {
-            console.warn(`No data for ${canvasId}`);
+            /* console.warn(`No data for ${canvasId}`); */
             return;
         }
 
@@ -546,9 +548,9 @@
         const ctx = canvas.getContext('2d');
         if (window.charts[canvasId]) window.charts[canvasId].destroy();
 
-        console.log(`Updating ${canvasId} (Bar) with data:`, data);
+        /* console.log(`Updating ${canvasId} (Bar) with data:`, data); */
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.warn(`No data for ${canvasId}`);
+            /* console.warn(`No data for ${canvasId}`); */
             return;
         }
 
@@ -608,9 +610,9 @@
         const ctx = canvas.getContext('2d');
         if (window.charts[canvasId]) window.charts[canvasId].destroy();
 
-        console.log(`Updating ${canvasId} with data:`, data);
+        /* console.log(`Updating ${canvasId} with data:`, data); */
         if (!data || !Array.isArray(data) || data.length === 0) {
-            console.warn(`No data for ${canvasId}`);
+            /* console.warn(`No data for ${canvasId}`); */
             return;
         }
 
@@ -647,11 +649,11 @@
     window.renderChartsByTab = function(tabName) {
         if (!window.lastStatsData) return;
         if (typeof Chart === 'undefined') {
-            console.error("Chart.js is not loaded yet!");
+            /* console.error("Chart.js is not loaded yet!"); */
             return;
         }
         const data = window.lastStatsData;
-        console.log(`Rendering charts for tab: ${tabName}`);
+        /* console.log(`Rendering charts for tab: ${tabName}`); */
 
         // Use a longer delay to ensure Alpine.js transition is complete
         setTimeout(() => {
@@ -670,7 +672,7 @@
             // Trigger resize twice to handle fluid layout shifts
             window.dispatchEvent(new Event('resize'));
             setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
-            console.log(`Charts for tab ${tabName} rendered successfully.`);
+            /* console.log(`Charts for tab ${tabName} rendered successfully.`); */
         }, 500);
     };
 
@@ -718,7 +720,7 @@
                 return response.json();
             })
             .then(data => {
-                console.log(`Stats Data (${type}) Received:`, data);
+                /* console.log(`Stats Data (${type}) Received:`, data); */
                 // Merge into global persistent data
                 window.lastStatsData = { ...window.lastStatsData, ...data };
                 updateUI(data, type);

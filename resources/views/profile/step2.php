@@ -166,9 +166,9 @@ $getVal = function ($grade, $field) use ($records) {
                                         <td class="px-3 py-2.5 font-bold text-gray-800 text-left border-r sticky left-0 bg-white z-10 whitespace-nowrap"><?= $name ?></td>
                                         <?php foreach ([10, 11, 12] as $g): ?>
                                             <td class="p-1.5 border text-center">
-                                                <input type="number" step="0.1" min="0" max="10" class="hvu-input-sm w-20"
+                                                <input type="number" step="0.01" min="0" max="10" class="hvu-input-sm w-20 score-input"
                                                     name="records[<?= $g ?>][<?= $key ?>]"
-                                                    value="<?= $getVal($g, $key) ?>" placeholder="0.0">
+                                                    value="<?= $getVal($g, $key) ?>" placeholder="0.00">
                                             </td>
                                         <?php endforeach; ?>
                                     </tr>
@@ -179,9 +179,9 @@ $getVal = function ($grade, $field) use ($records) {
                                     <td class="px-3 py-3 text-blue-800 text-left border-r sticky left-0 bg-blue-50/50 z-10">Điểm TB cả năm <br><span class="text-[10px] font-normal italic text-blue-600">(nếu có)</span></td>
                                     <?php foreach ([10, 11, 12] as $g): ?>
                                         <td class="p-1.5 border text-center">
-                                            <input type="number" step="0.01" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700 w-20"
+                                            <input type="number" step="0.01" min="0" max="10" class="hvu-input-sm bg-white font-bold text-blue-700 w-20 score-input"
                                                 name="records[<?= $g ?>][diem_tb]"
-                                                value="<?= $getVal($g, 'diem_tb') ?>">
+                                                value="<?= $getVal($g, 'diem_tb') ?>" placeholder="0.00">
                                         </td>
                                     <?php endforeach; ?>
                                 </tr>
@@ -314,9 +314,9 @@ $getVal = function ($grade, $field) use ($records) {
                                             <tr>
                                                 <td class="px-3 py-2 font-semibold text-gray-800 text-left text-[13px]"><?= $name ?></td>
                                                 <td class="p-1.5 text-center">
-                                                    <input type="number" step="0.1" min="0" max="10" inputmode="decimal"
-                                                        class="w-full text-center text-sm font-semibold rounded-lg border border-gray-200 py-2 focus:border-hvu-red focus:ring-1 focus:ring-hvu-red/30 outline-none transition"
-                                                        name="records[<?= $g ?>][<?= $key ?>]" value="<?= $getVal($g, $key) ?>" placeholder="0.0">
+                                                    <input type="number" step="0.01" min="0" max="10" inputmode="decimal"
+                                                        class="w-full text-center text-sm font-semibold rounded-lg border border-gray-200 py-2 focus:border-hvu-red focus:ring-1 focus:ring-hvu-red/30 outline-none transition score-input"
+                                                        name="records[<?= $g ?>][<?= $key ?>]" value="<?= $getVal($g, $key) ?>" placeholder="0.00">
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -326,8 +326,8 @@ $getVal = function ($grade, $field) use ($records) {
                                             <td class="px-3 py-2.5 font-bold text-blue-800 text-left text-[13px]">Điểm TB cả năm <br><span class="text-[10px] font-normal italic text-blue-600">(nếu có)</span></td>
                                             <td class="p-1.5 text-center">
                                                 <input type="number" step="0.01" min="0" max="10" inputmode="decimal"
-                                                    class="w-full text-center text-sm font-bold text-blue-700 rounded-lg border border-blue-200 py-2 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-300 outline-none transition"
-                                                    name="records[<?= $g ?>][diem_tb]" value="<?= $getVal($g, 'diem_tb') ?>">
+                                                    class="w-full text-center text-sm font-bold text-blue-700 rounded-lg border border-blue-200 py-2 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-300 outline-none transition score-input"
+                                                    name="records[<?= $g ?>][diem_tb]" value="<?= $getVal($g, 'diem_tb') ?>" placeholder="0.00">
                                             </td>
                                         </tr>
 
@@ -516,10 +516,26 @@ $getVal = function ($grade, $field) use ($records) {
         const form = document.getElementById('academicForm');
         if (!form) return;
 
-        // Auto-select input content on focus
-        document.querySelectorAll('input[type="number"]').forEach(input => {
+        // Auto-select input content on focus & Handle fast score input
+        document.querySelectorAll('.score-input').forEach(input => {
             input.addEventListener('focus', function() {
                 this.select();
+            });
+
+            input.addEventListener('blur', function() {
+                let val = this.value;
+                if (!val || val.includes('.') || val.includes(',')) return;
+                
+                let num = parseInt(val);
+                if (isNaN(num)) return;
+
+                if (num > 10) {
+                    if (num <= 100) {
+                        this.value = (num / 10).toFixed(2);
+                    } else if (num <= 1000) {
+                        this.value = (num / 100).toFixed(2);
+                    }
+                }
             });
         });
 

@@ -37,10 +37,10 @@ require_once __DIR__ . '/../app/Helpers/functions.php';
 // Secure session setup
 \App\Middleware\SecurityMiddleware::secureSession();
 
-// Fix session path for cross-platform compatibility
-$sessionPath = (PHP_OS_FAMILY === 'Windows') ? 'D:\\xampp\\tmp' : sys_get_temp_dir();
+// Fix session path for cross-platform compatibility and permission issues
+$sessionPath = __DIR__ . '/../storage/framework/sessions';
 if (!is_dir($sessionPath)) {
-    $sessionPath = sys_get_temp_dir();
+    mkdir($sessionPath, 0777, true);
 }
 if (is_writable($sessionPath)) {
     session_save_path($sessionPath);
