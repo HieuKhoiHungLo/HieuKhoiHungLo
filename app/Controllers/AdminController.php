@@ -743,7 +743,7 @@ class AdminController extends Controller
 
             $result['meta'] = [
                 'type'          => $type,
-                'version_debug' => '1.0.8-PRECISION-LOGIC',
+                'version_debug' => '1.0.9-PRECISION-LOGIC',
                 'year'          => $selectedYear,
                 'session_id'    => $sessionId,
                 'start'         => $startDate,
