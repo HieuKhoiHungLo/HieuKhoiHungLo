@@ -298,16 +298,16 @@ main { padding-top: 0 !important; }
                     </div>
                     <div class="flex items-start space-x-2">
                         <span class="text-[11px] text-gray-500 font-bold w-36 flex-shrink-0 tracking-tight">Điểm tổ hợp (quy đổi):</span>
-                        <span class="text-[11px] text-blue-600 font-black" x-text="bestItem.score.toFixed(2)"></span>
+                        <span class="text-[11px] text-blue-600 font-black" x-text="bestItem.score.toFixed(3)"></span>
                     </div>
                     <div class="flex items-start space-x-2">
                         <span class="text-[11px] text-gray-500 font-bold w-36 flex-shrink-0 tracking-tight">Điểm ưu tiên (quy đổi):</span>
-                        <span class="text-[11px] text-blue-600 font-black" x-text="bestItem.convPrio.toFixed(2)"></span>
+                        <span class="text-[11px] text-blue-600 font-black" x-text="bestItem.convPrio.toFixed(3)"></span>
                     </div>
                     <div class="pt-1">
                         <div class="flex items-start space-x-2">
                             <span class="text-[11px] text-red-700 font-bold w-36 flex-shrink-0 tracking-tight uppercase">Điểm xét tuyển:</span>
-                            <span class="text-[11px] font-black text-red-600 uppercase" x-text="bestItem.finalTotal.toFixed(2)"></span>
+                            <span class="text-[11px] font-black text-red-600 uppercase" x-text="bestItem.finalTotal.toFixed(3)"></span>
                         </div>
                     </div>
                 </div>

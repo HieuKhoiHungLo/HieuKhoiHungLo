@@ -61,7 +61,7 @@ while (true) {
 
         try {
             // Attempt to send
-            $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true);
+            $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true, $email['category'] ?? 'system');
 
             if ($result === true) {
                 // Success

@@ -8,8 +8,11 @@
             <p class="text-sm text-gray-500 mt-1">Quản lý và gửi thư thông báo linh hoạt cho thí sinh</p>
         </div>
         <div class="flex gap-2">
-            <a href="<?= url('/admin/admission-letters/import') ?>" class="px-4 py-2 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-lg shadow transition">
-                <i class="fas fa-file-import mr-2"></i> Import Mới
+            <a href="<?= url('/admin/admission-letters/senders') ?>" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition flex items-center">
+                <i class="fas fa-envelope-open-text mr-2"></i> Cấu hình Email
+            </a>
+            <a href="<?= url('/admin/admission-letters/import') ?>" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center">
+                <i class="fas fa-file-import mr-2"></i> Nhập dữ liệu
             </a>
         </div>
     </header>
@@ -37,40 +40,38 @@
         </div>
     <?php endif; ?>
 
-    <!-- Filter Bar -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
-        <form method="GET" action="<?= url('/admin/admission-letters') ?>" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tìm kiếm</label>
-                <input type="text" name="q" value="<?= htmlspecialchars($filters['q'] ?? '') ?>" placeholder="Họ tên, CCCD, Email..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Đợt gửi</label>
-                <select name="batch_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Tất cả các đợt --</option>
-                    <?php foreach($batches as $b): ?>
-                        <option value="<?= htmlspecialchars($b['batch_id']) ?>" <?= ($filters['batch_id'] ?? '') == $b['batch_id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($b['batch_id']) ?> (<?= $b['total'] ?>)
-                        </option>
+    <!-- Toolbar & Pagination Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-500 uppercase flex items-center">
+                <i class="fas fa-cog mr-2"></i> Chức năng:
+            </span>
+            <button type="button" onclick="window.location.href='<?= url('/admin/admission-letters/trash') ?>'" 
+                class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-sm transition flex items-center">
+                <i class="fas fa-trash-alt mr-2 text-slate-400"></i> Thùng rác
+            </button>
+        </div>
+
+        <?php if (isset($pagination)): ?>
+            <div class="flex items-center gap-4">
+                <div class="text-xs text-slate-500">
+                    Trang <span class="font-bold text-slate-700"><?= $pagination['current_page'] ?></span> / <span class="font-bold text-slate-700"><?= $pagination['total_pages'] ?></span> 
+                    &nbsp;(<span class="font-medium"><?= number_format($pagination['total_items']) ?> bản ghi</span>)
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold mr-1">Hiển thị:</span>
+                    <?php foreach ([10, 15, 20, 50, 100] as $opt): ?>
+                        <a href="<?= url('/admin/admission-letters?' . http_build_query(array_merge($filters, ['limit' => $opt, 'page' => 1]))) ?>"
+                           class="px-2 py-1 rounded text-[10px] font-bold border transition
+                                  <?= $opt == ($filters['limit'] ?? 10)
+                                      ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                            <?= $opt ?>
+                        </a>
                     <?php endforeach; ?>
-                </select>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Trạng thái</label>
-                <select name="status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Tất cả trạng thái --</option>
-                    <option value="pending" <?= ($filters['status'] ?? '') == 'pending' ? 'selected' : '' ?>>Chờ gửi</option>
-                    <option value="queued" <?= ($filters['status'] ?? '') == 'queued' ? 'selected' : '' ?>>Trong hàng đợi</option>
-                    <option value="sent" <?= ($filters['status'] ?? '') == 'sent' ? 'selected' : '' ?>>Đã gửi</option>
-                    <option value="failed" <?= ($filters['status'] ?? '') == 'failed' ? 'selected' : '' ?>>Lỗi gửi</option>
-                </select>
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="w-full px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition">
-                    <i class="fas fa-filter mr-2"></i> Lọc dữ liệu
-                </button>
-            </div>
-        </form>
+        <?php endif; ?>
     </div>
 
     <!-- Bulk Action Toolbar -->
@@ -80,16 +81,16 @@
             <div class="h-6 w-px bg-blue-400 mx-2"></div>
             <div class="flex items-center">
                 <label class="text-xs font-bold uppercase mr-2 opacity-80">Chọn mẫu thư:</label>
-                <select id="bulk-template-id" class="bg-blue-700 border-none rounded-lg text-sm px-3 py-1.5 focus:ring-2 focus:ring-white outline-none">
-                    <option value="">-- Chọn mẫu email --</option>
+                <select id="bulk-template-id" class="bg-white border border-blue-200 rounded-lg text-sm font-medium px-3 py-1.5 focus:ring-2 focus:ring-white outline-none cursor-pointer" style="color: #1e293b !important;">
+                    <option value="" style="color: #1e293b !important;">-- Chọn mẫu email --</option>
                     <?php foreach($templates as $t): ?>
-                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['subject']) ?> (<?= $t['code'] ?>)</option>
+                        <option value="<?= $t['id'] ?>" style="color: #1e293b !important;"><?= htmlspecialchars($t['subject']) ?> (<?= $t['code'] ?>)</option>
                     <?php endforeach; ?>
                 </select>
             </div>
         </div>
         <div class="flex gap-2">
-            <button onclick="handleBulkAction('send_email')" class="px-4 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition flex items-center">
+            <button type="button" onclick="handleBulkAction('send')" class="px-4 py-2 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition flex items-center">
                 <i class="fas fa-paper-plane mr-2"></i> Gửi Thư
             </button>
             <button onclick="handleBulkAction('delete')" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition flex items-center">
@@ -103,61 +104,114 @@
         <input type="hidden" name="action" id="form-action" value="">
         <input type="hidden" name="template_id" id="form-template-id" value="">
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm whitespace-nowrap">
+                <table class="w-full text-left text-sm border-collapse min-w-[1100px]">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 text-xs uppercase tracking-wider">
-                            <th class="px-6 py-4 w-10">
+                        <tr class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200 text-[10px] uppercase tracking-wider">
+                            <th class="px-4 py-3 w-10 text-center border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
                                 <input type="checkbox" id="select-all" class="rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
                             </th>
-                            <th class="px-6 py-4">Họ Tên / CCCD</th>
-                            <th class="px-6 py-4">Đợt / Ngành</th>
-                            <th class="px-6 py-4">Email / SĐT</th>
-                            <th class="px-6 py-4">Trạng thái</th>
-                            <th class="px-6 py-4 text-right">Hành động</th>
+                            <th class="px-4 py-3 w-10 text-center border-r border-slate-200">
+                                <i class="fas fa-info-circle" title="Trạng thái"></i>
+                            </th>
+                            <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">Họ Tên / CCCD</th>
+                            <th class="px-4 py-3 border-r border-slate-200 w-32 text-center">Ghi chú</th>
+                            <th class="px-4 py-3 border-r border-slate-200 w-32 text-center">Ngày sinh</th>
+                            <th class="px-4 py-3 border-r border-slate-200 w-36">Điện thoại</th>
+                            <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">Email</th>
+                            <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">Ngành Xét Tuyển</th>
+                            <th class="px-4 py-3 text-center w-20 sticky right-0 bg-slate-50 z-10">Xem</th>
+                        </tr>
+                        <!-- Row 2: Search Filters -->
+                        <tr class="bg-slate-50/50 border-b border-slate-200">
+                            <th class="px-4 py-1 border-r border-slate-200 sticky left-0 bg-slate-50"></th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <select data-filter-key="status" onchange="applyFilters()" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white font-normal">
+                                    <option value="">(Tất cả)</option>
+                                    <option value="pending" <?= ($filters['status'] ?? '') == 'pending' ? 'selected' : '' ?>>Chờ gửi</option>
+                                    <option value="queued" <?= ($filters['status'] ?? '') == 'queued' ? 'selected' : '' ?>>Hàng đợi</option>
+                                    <option value="sent" <?= ($filters['status'] ?? '') == 'sent' ? 'selected' : '' ?>>Đã gửi</option>
+                                    <option value="failed" <?= ($filters['status'] ?? '') == 'failed' ? 'selected' : '' ?>>Lỗi</option>
+                                </select>
+                            </th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <input type="text" data-filter-key="f_name" placeholder="Tên / CCCD..." value="<?= htmlspecialchars($filters['f_name'] ?? '') ?>"
+                                    class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal">
+                            </th>
+                            <th class="px-4 py-1 border-r border-slate-200"></th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <input type="text" data-filter-key="f_dob" placeholder="Ngày sinh..." value="<?= htmlspecialchars($filters['f_dob'] ?? '') ?>"
+                                    class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal text-center">
+                            </th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <input type="text" data-filter-key="f_phone" placeholder="Số ĐT..." value="<?= htmlspecialchars($filters['f_phone'] ?? '') ?>"
+                                    class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal">
+                            </th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <input type="text" data-filter-key="f_email" placeholder="Email..." value="<?= htmlspecialchars($filters['f_email'] ?? '') ?>"
+                                    class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal">
+                            </th>
+                            <th class="px-4 py-1 border-r border-slate-200">
+                                <input type="text" data-filter-key="f_major" placeholder="Ngành học..." value="<?= htmlspecialchars($filters['f_major'] ?? '') ?>"
+                                    class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal">
+                            </th>
+                            <th class="px-4 py-1 sticky right-0 bg-slate-50"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($candidates)): ?>
-                            <tr><td colspan="6" class="py-10 text-center text-slate-400">Không tìm thấy thí sinh nào. Hãy import thêm hồ sơ.</td></tr>
+                            <tr><td colspan="9" class="py-12 text-center text-slate-400 bg-slate-50/50 italic">Không tìm thấy thí sinh nào phù hợp.</td></tr>
                         <?php else: ?>
                             <?php foreach($candidates as $c): ?>
-                                <tr class="hover:bg-slate-50 transition">
-                                    <td class="px-6 py-4">
+                                <tr class="hover:bg-blue-50/30 transition-colors group">
+                                    <td class="px-4 py-3 text-center border-r border-slate-50 sticky left-0 bg-white group-hover:bg-blue-50/30 transition-colors">
                                         <input type="checkbox" name="ids[]" value="<?= $c['id'] ?>" class="item-checkbox rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-800"><?= htmlspecialchars($c['ho_ten']) ?></div>
-                                        <div class="text-xs text-slate-500"><?= htmlspecialchars($c['so_cccd']) ?></div>
+                                    <td class="px-4 py-3 text-center border-r border-slate-50">
+                                        <?php if($c['status'] == 'pending'): ?>
+                                            <i class="fas fa-clock text-amber-500" title="Chờ gửi"></i>
+                                        <?php elseif($c['status'] == 'queued'): ?>
+                                            <i class="fas fa-spinner fa-spin text-blue-500" title="Trong hàng đợi"></i>
+                                        <?php elseif($c['status'] == 'sent'): ?>
+                                            <i class="fas fa-check-circle text-emerald-500" title="Đã gửi"></i>
+                                        <?php elseif($c['status'] == 'failed'): ?>
+                                            <i class="fas fa-exclamation-circle text-rose-500" title="Lỗi"></i>
+                                        <?php endif; ?>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block mb-1"><?= htmlspecialchars($c['batch_id']) ?></div>
-                                        <div class="font-bold text-[#0066FF] text-xs truncate w-48" title="<?= htmlspecialchars($c['ten_nganh']) ?>">
+                                    <td class="px-4 py-3 border-r border-slate-50">
+                                        <div class="flex items-center">
+                                            <div class="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 mr-3 overflow-hidden shrink-0">
+                                                <?= mb_substr($c['ho_ten'], 0, 1) ?>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <div class="font-bold text-slate-800 leading-tight uppercase text-[12px] truncate"><?= htmlspecialchars($c['ho_ten']) ?></div>
+                                                <div class="text-[11px] font-medium text-slate-400 mt-0.5"><?= htmlspecialchars($c['so_cccd']) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-center">
+                                        <span class="text-slate-300 italic text-[10px]">Trống</span>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-center text-slate-600 font-medium">
+                                        <?= htmlspecialchars($c['ngay_sinh'] ?: '-') ?>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-slate-700 font-bold">
+                                        <?= htmlspecialchars($c['sdt']) ?>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-slate-500 text-[11px] truncate" title="<?= htmlspecialchars($c['email']) ?>">
+                                        <?= htmlspecialchars($c['email']) ?>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50">
+                                        <div class="font-semibold text-slate-700 text-xs truncate w-56" title="<?= htmlspecialchars($c['ten_nganh']) ?>">
                                             <?= htmlspecialchars($c['ten_nganh']) ?>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-slate-600"><?= htmlspecialchars($c['email']) ?></div>
-                                        <div class="text-xs text-slate-400"><?= htmlspecialchars($c['sdt']) ?></div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <?php if($c['status'] == 'pending'): ?>
-                                            <span class="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded">Chờ gửi</span>
-                                        <?php elseif($c['status'] == 'queued'): ?>
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded"><i class="fas fa-spinner fa-spin mr-1"></i> Đang chờ</span>
-                                        <?php elseif($c['status'] == 'sent'): ?>
-                                            <span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded"><i class="fas fa-check mr-1"></i> Đã gửi</span>
-                                        <?php elseif($c['status'] == 'failed'): ?>
-                                            <span class="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold uppercase rounded"><i class="fas fa-times mr-1"></i> Lỗi</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <a href="<?= url('/admin/admission-letters/preview?id=' . $c['id']) ?>" target="_blank" class="text-indigo-600 hover:text-indigo-900 font-bold text-xs p-2 rounded hover:bg-indigo-50 transition" title="Xem mẫu mặc định">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </div>
+                                    <td class="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 transition-colors">
+                                        <a href="<?= url('/admin/admission-letters/preview?id=' . $c['id']) ?>" target="_blank" 
+                                           class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-slate-200" title="Xem trước">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -166,6 +220,32 @@
                 </table>
             </div>
         </div>
+
+        <!-- Bottom Pagination -->
+        <?php if (isset($pagination) && $pagination['total_pages'] > 1): ?>
+            <div class="flex justify-center mt-6 gap-1">
+                <?php if ($pagination['current_page'] > 1): ?>
+                    <a href="<?= url('/admin/admission-letters?' . http_build_query(array_merge($filters, ['page' => $pagination['current_page'] - 1]))) ?>" 
+                       class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:bg-slate-50 transition shadow-sm">Trước</a>
+                <?php endif; ?>
+
+                <?php 
+                $start = max(1, $pagination['current_page'] - 2);
+                $end = min($pagination['total_pages'], $pagination['current_page'] + 2);
+                for ($i = $start; $i <= $end; $i++): 
+                ?>
+                    <a href="<?= url('/admin/admission-letters?' . http_build_query(array_merge($filters, ['page' => $i]))) ?>" 
+                       class="w-9 h-9 flex items-center justify-center border rounded-xl font-bold text-xs transition <?= $i == $pagination['current_page'] ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+                    <a href="<?= url('/admin/admission-letters?' . http_build_query(array_merge($filters, ['page' => $pagination['current_page'] + 1]))) ?>" 
+                       class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:bg-slate-50 transition shadow-sm">Sau</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </form>
 </div>
 
@@ -174,50 +254,75 @@
     const checkboxes = document.querySelectorAll('.item-checkbox');
     const bulkToolbar = document.getElementById('bulk-toolbar');
     const selectedCount = document.getElementById('selected-count');
-    const bulkForm = document.getElementById('bulk-form');
 
     function updateBulkUI() {
         const checked = document.querySelectorAll('.item-checkbox:checked');
         selectedCount.innerText = checked.length;
         if (checked.length > 0) {
             bulkToolbar.classList.remove('hidden');
-            bulkToolbar.classList.add('flex');
         } else {
             bulkToolbar.classList.add('hidden');
-            bulkToolbar.classList.remove('flex');
         }
     }
 
-    selectAll.addEventListener('change', function() {
-        checkboxes.forEach(cb => cb.checked = this.checked);
-        updateBulkUI();
-    });
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateBulkUI();
+        });
+    }
 
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateBulkUI);
-    });
+    checkboxes.forEach(cb => cb.addEventListener('change', updateBulkUI));
 
     function handleBulkAction(action) {
-        const checked = document.querySelectorAll('.item-checkbox:checked');
-        if (checked.length === 0) return;
+        const templateId = document.getElementById('bulk-template-id').value;
+        const checkedCount = document.querySelectorAll('.item-checkbox:checked').length;
 
-        if (action === 'send_email') {
-            const templateId = document.getElementById('bulk-template-id').value;
+        if (action === 'send') {
             if (!templateId) {
-                alert('Vui lòng chọn một mẫu email trước khi gửi!');
+                alert('Vui lòng chọn mẫu thư muốn gửi!');
                 return;
             }
-            if (!confirm(`Bạn có chắc chắn muốn đưa ${checked.length} thí sinh này vào hàng đợi gửi thư?`)) return;
-            document.getElementById('form-template-id').value = templateId;
+            if (confirm(`Bạn có chắc chắn muốn gửi thư trúng tuyển cho ${checkedCount} thí sinh đã chọn?`)) {
+                document.getElementById('form-action').value = 'send_email';
+                document.getElementById('form-template-id').value = templateId;
+                if (typeof Loading !== 'undefined') Loading.show();
+                document.getElementById('bulk-form').submit();
+            }
+        } else if (action === 'delete') {
+            if (confirm(`Hành động này sẽ XÓA ${checkedCount} thí sinh đã chọn. Bạn có chắc chắn?`)) {
+                document.getElementById('form-action').value = 'delete';
+                if (typeof Loading !== 'undefined') Loading.show();
+                document.getElementById('bulk-form').submit();
+            }
         }
-
-        if (action === 'delete') {
-            if (!confirm(`Bạn có chắc chắn muốn XÓA ${checked.length} thí sinh đã chọn khỏi danh sách import? Thao tác này không thể hoàn tác.`)) return;
-        }
-
-        document.getElementById('form-action').value = action;
-        bulkForm.submit();
     }
+
+    function applyFilters() {
+        const filters = {};
+        document.querySelectorAll('[data-filter-key]').forEach(i => {
+            if (i.value) filters[i.getAttribute('data-filter-key')] = i.value;
+        });
+        
+        const currentUrl = new URL(window.location.href);
+        const params = new URLSearchParams();
+        
+        // Keep persistent params
+        if (currentUrl.searchParams.has('batch_id')) params.set('batch_id', currentUrl.searchParams.get('batch_id'));
+        if (currentUrl.searchParams.has('limit')) params.set('limit', currentUrl.searchParams.get('limit'));
+        
+        for (const [key, val] of Object.entries(filters)) {
+            params.set(key, val);
+        }
+        
+        window.location.href = window.location.pathname + '?' + params.toString();
+    }
+
+    document.querySelectorAll('input[data-filter-key]').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') applyFilters();
+        });
+    });
 </script>
 
 <?php 

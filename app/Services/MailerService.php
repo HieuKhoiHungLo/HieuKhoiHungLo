@@ -30,7 +30,15 @@ class MailerService {
         }
     }
 
-    public function send($to, $subject, $body, $isHtml = true) {
+    public function send($to, $subject, $body, $isHtml = true, $category = 'system') {
+        // If category is admission_letter, use rotating SMTP senders
+        if ($category === 'admission_letter') {
+            $sender = $this->getRotatingSender();
+            if ($sender) {
+                return $this->sendSmtpWithConfig($to, $subject, $body, $isHtml, $sender);
+            }
+        }
+
         $this->loadSettings(); // Lazy-load SMTP settings only when actually sending
         $host = $this->settings['smtp_host'];
         
@@ -39,14 +47,114 @@ class MailerService {
             return $this->sendBasicMail($to, $subject, $body, $isHtml);
         }
 
-        // Use socket-based SMTP
+        // Use socket-based SMTP from settings
         return $this->sendSmtp($to, $subject, $body, $isHtml);
     }
 
-    public function enqueue($to, $subject, $body, $isHtml = true) {
+    protected function getRotatingSender() {
         $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->prepare("INSERT INTO email_queue (recipient, subject, body, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
-        return $stmt->execute([$to, $subject, $body]);
+        
+        // Pick an active sender that hasn't reached daily limit, sorted by oldest last_sent_at (Round Robin)
+        $stmt = $db->prepare("
+            SELECT * FROM email_senders 
+            WHERE is_active = TRUE 
+            AND category = 'admission_letter'
+            AND sent_today < daily_limit
+            ORDER BY last_sent_at ASC NULLS FIRST
+            LIMIT 1
+        ");
+        $stmt->execute();
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    protected function sendSmtpWithConfig($to, $subject, $body, $isHtml, $config) {
+        $host = $config['smtp_host'];
+        $port = (int)$config['smtp_port'];
+        $user = $config['smtp_user'];
+        $pass = str_replace(' ', '', $config['smtp_pass']);
+        $secure = $config['smtp_encryption'];
+        $from = $config['email'];
+        $fromName = $config['name'] ?: $this->settings['email_from_name'];
+
+        $result = $this->executeSmtpSend($to, $subject, $body, $isHtml, $host, $port, $user, $pass, $secure, $from, $fromName);
+
+        if ($result === true) {
+            // Update sender stats
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $upd = $db->prepare("UPDATE email_senders SET sent_today = sent_today + 1, last_sent_at = NOW() WHERE id = ?");
+            $upd->execute([$config['id']]);
+        }
+
+        return $result;
+    }
+
+    protected function executeSmtpSend($to, $subject, $body, $isHtml, $host, $port, $user, $pass, $secure, $from, $fromName) {
+        $log = [];
+        try {
+            if ($secure === 'ssl') {
+                $prefix = 'ssl://';
+            } else {
+                $prefix = ''; 
+            }
+            
+            $socket = @fsockopen($prefix . $host, $port, $errno, $errstr, 30);
+            if (!$socket) return "Connection failed: $errstr ($errno)";
+
+            stream_set_timeout($socket, 30);
+            $this->getResponse($socket);
+
+            fwrite($socket, "EHLO localhost\r\n");
+            $this->getResponse($socket);
+            
+            if ($secure === 'tls') {
+                fwrite($socket, "STARTTLS\r\n");
+                $response = $this->getResponse($socket);
+                if (strpos($response, '220') === false) { fclose($socket); return "STARTTLS failed"; }
+                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)) { fclose($socket); return "TLS failed"; }
+                fwrite($socket, "EHLO localhost\r\n");
+                $this->getResponse($socket);
+            }
+
+            fwrite($socket, "AUTH LOGIN\r\n");
+            $this->getResponse($socket);
+            fwrite($socket, base64_encode($user) . "\r\n");
+            $this->getResponse($socket);
+            fwrite($socket, base64_encode($pass) . "\r\n");
+            $response = $this->getResponse($socket);
+            if (strpos($response, '235') === false) { fclose($socket); return "Auth failed: $response"; }
+
+            fwrite($socket, "MAIL FROM:<$from>\r\n");
+            $this->getResponse($socket);
+            fwrite($socket, "RCPT TO:<$to>\r\n");
+            $this->getResponse($socket);
+            fwrite($socket, "DATA\r\n");
+            $this->getResponse($socket);
+
+            $contentType = $isHtml ? "text/html" : "text/plain";
+            $message = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <$from>\r\n";
+            $message .= "To: $to\r\n";
+            $message .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
+            $message .= "MIME-Version: 1.0\r\n";
+            $message .= "Content-Type: $contentType; charset=UTF-8\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n\r\n";
+            $message .= chunk_split(base64_encode($body));
+            $message .= "\r\n.\r\n";
+            
+            fwrite($socket, $message);
+            $response = $this->getResponse($socket);
+            fwrite($socket, "QUIT\r\n");
+            fclose($socket);
+
+            return (strpos($response, '250') !== false) ? true : "Send failed: $response";
+        } catch (\Exception $e) {
+            return "SMTP Error: " . $e->getMessage();
+        }
+    }
+
+    public function enqueue($to, $subject, $body, $isHtml = true, $category = 'system') {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES (?, ?, ?, 'pending', ?, NOW())");
+        return $stmt->execute([$to, $subject, $body, $category]);
     }
 
     protected function sendBasicMail($to, $subject, $body, $isHtml) {

@@ -91,7 +91,7 @@ class ApiController extends Controller
             // Mark as processing
             $db->prepare("UPDATE email_queue SET status = 'processing' WHERE id = ?")->execute([$id]);
 
-            $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true);
+            $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true, $email['category'] ?? 'system');
 
             if ($result === true) {
                 $db->prepare("UPDATE email_queue SET status = 'sent', sent_at = NOW() WHERE id = ?")->execute([$id]);

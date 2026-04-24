@@ -19,16 +19,25 @@ class AdmissionLetterController extends Controller {
         
         $filters = [
             'batch_id' => $_GET['batch_id'] ?? '',
-            'status' => $_GET['status'] ?? '',
-            'q' => $_GET['q'] ?? ''
+            'status'   => $_GET['status'] ?? '',
+            'q'        => $_GET['q'] ?? '',
+            'page'     => $_GET['page'] ?? 1,
+            'limit'    => $_GET['limit'] ?? 10,
+            'f_name'   => $_GET['f_name'] ?? '',
+            'f_cccd'   => $_GET['f_cccd'] ?? '',
+            'f_phone'  => $_GET['f_phone'] ?? '',
+            'f_email'  => $_GET['f_email'] ?? '',
+            'f_dob'    => $_GET['f_dob'] ?? '',
+            'f_major'  => $_GET['f_major'] ?? '',
         ];
 
-        $candidates = $this->service->getCandidates($filters);
+        $result = $this->service->getCandidates($filters);
         $templates = $this->service->getTemplates();
         $batches = $this->service->getBatches();
         
         $this->view('admin/admission_letters/index', [
-            'candidates' => $candidates,
+            'candidates' => $result['items'],
+            'pagination' => $result['pagination'],
             'templates' => $templates,
             'batches' => $batches,
             'filters' => $filters
@@ -154,4 +163,71 @@ class AdmissionLetterController extends Controller {
         exit;
     }
 
+    /**
+     * Danh sách các tài khoản email gửi thư (Rotating SMTP)
+     */
+    public function senders() {
+        $this->requireAdmin();
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $stmt = $db->query("SELECT * FROM email_senders ORDER BY created_at DESC");
+        $senders = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $this->view('admin/admission_letters/senders', [
+            'title' => 'Cấu hình Email Gửi thư',
+            'senders' => $senders
+        ]);
+    }
+
+    /**
+     * Lưu/Cập nhật tài khoản email
+     */
+    public function saveSender() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        
+        $id = (int)($_POST['id'] ?? 0);
+        $data = [
+            'name' => $_POST['name'] ?? '',
+            'email' => $_POST['email'] ?? '',
+            'smtp_host' => $_POST['smtp_host'] ?? 'smtp.gmail.com',
+            'smtp_port' => (int)($_POST['smtp_port'] ?? 587),
+            'smtp_user' => $_POST['smtp_user'] ?? '',
+            'smtp_pass' => $_POST['smtp_pass'] ?? '',
+            'smtp_encryption' => $_POST['smtp_encryption'] ?? 'tls',
+            'daily_limit' => (int)($_POST['daily_limit'] ?? 1500),
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'category' => 'admission_letter'
+        ];
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        if ($id > 0) {
+            $sql = "UPDATE email_senders SET name=?, email=?, smtp_host=?, smtp_port=?, smtp_user=?, smtp_pass=?, smtp_encryption=?, daily_limit=?, is_active=? WHERE id=?";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$data['name'], $data['email'], $data['smtp_host'], $data['smtp_port'], $data['smtp_user'], $data['smtp_pass'], $data['smtp_encryption'], $data['daily_limit'], $data['is_active'], $id]);
+        } else {
+            $sql = "INSERT INTO email_senders (name, email, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_encryption, daily_limit, is_active, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$data['name'], $data['email'], $data['smtp_host'], $data['smtp_port'], $data['smtp_user'], $data['smtp_pass'], $data['smtp_encryption'], $data['daily_limit'], $data['is_active'], $data['category']]);
+        }
+        
+        $this->redirect(url('/admin/admission-letters/senders?success=1'));
+    }
+
+    /**
+     * Xóa tài khoản email
+     */
+    public function deleteSender() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $db->prepare("DELETE FROM email_senders WHERE id = ?")->execute([$id]);
+        }
+        
+        $this->redirect(url('/admin/admission-letters/senders?success=1'));
+    }
 }

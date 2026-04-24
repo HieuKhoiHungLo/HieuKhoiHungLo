@@ -1,0 +1,261 @@
+<?php
+namespace App\Services;
+
+use App\Core\Database;
+use PDO;
+
+/**
+ * Service layer for Talent Test (Năng Khiếu) module.
+ * Handles creation of sessions, subjects, rooms, candidate synchronization,
+ * automatic exam number generation and score management.
+ *
+ * This service does NOT modify any existing tables – it works only with the
+ * newly created `talent_test_*` tables.
+ */
+class TalentTestService
+{
+    /** @var PDO */
+    private $db;
+
+    public function __construct()
+    {
+        $this->db = Database::getInstance()->getConnection();
+    }
+
+    // ---------------------------------------------------------------------
+    // Session management
+    // ---------------------------------------------------------------------
+    public function createSession(array $data)
+    {
+        $sql = "INSERT INTO talent_test_sessions (year, session_name, start_date, end_date, description, created_at, updated_at)
+                VALUES (:year, :name, :start, :end, :desc, NOW(), NOW())";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':year' => $data['year'],
+            ':name' => $data['session_name'],
+            ':start' => $data['start_date'],
+            ':end' => $data['end_date'],
+            ':desc' => $data['description'] ?? null,
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    public function updateSession(int $id, array $data)
+    {
+        $sql = "UPDATE talent_test_sessions SET year=:year, session_name=:name, start_date=:start, end_date=:end, description=:desc, updated_at=NOW() WHERE id=:id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':year' => $data['year'],
+            ':name' => $data['session_name'],
+            ':start' => $data['start_date'],
+            ':end' => $data['end_date'],
+            ':desc' => $data['description'] ?? null,
+            ':id' => $id,
+        ]);
+        return $stmt->rowCount();
+    }
+
+    // ---------------------------------------------------------------------
+    // Subject (môn thi) management
+    // ---------------------------------------------------------------------
+    public function addSubject(int $sessionId, array $data)
+    {
+        $sql = "INSERT INTO talent_test_subjects (session_id, major_code, subject_name, max_score, created_at, updated_at)
+                VALUES (:sid, :code, :name, :max, NOW(), NOW())";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':sid' => $sessionId,
+            ':code' => $data['major_code'],
+            ':name' => $data['subject_name'],
+            ':max' => $data['max_score'] ?? 100,
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    // ---------------------------------------------------------------------
+    // Room management
+    // ---------------------------------------------------------------------
+    public function addRoom(int $sessionId, array $data)
+    {
+        $sql = "INSERT INTO talent_test_rooms (session_id, room_name, capacity, created_at, updated_at)
+                VALUES (:sid, :name, :cap, NOW(), NOW())";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':sid' => $sessionId,
+            ':name' => $data['room_name'],
+            ':cap' => $data['capacity'],
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    // ---------------------------------------------------------------------
+    // Candidate synchronization (đồng bộ thí sinh đã duyệt)
+    // ---------------------------------------------------------------------
+    /**
+     * Pull candidates that have been approved and whose desired major is among
+     * the given $majorCodes (array of strings, e.g. ['7140201','7140206']).
+     * Creates an assignment record for each candidate and generates an exam
+     * number following the pattern TNH-{year}-{majorCode}-{seq} where seq is
+     * incremental per subject.
+     */
+    public function syncCandidates(int $sessionId, array $majorCodes)
+    {
+        // 1. Lấy danh sách thí sinh đã duyệt (giả sử có bảng candidates với status='approved')
+        $placeholders = implode(',', array_fill(0, count($majorCodes), '?'));
+        $sql = "SELECT id, name, email, major_code FROM candidates WHERE status='approved' AND major_code IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($majorCodes);
+        $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($candidates as $cand) {
+            // Kiểm tra đã tồn tại assignment cho cùng session và subject chưa
+            $subjectSql = "SELECT id FROM talent_test_subjects WHERE session_id = ? AND major_code = ?";
+            $subStmt = $this->db->prepare($subjectSql);
+            $subStmt->execute([$sessionId, $cand['major_code']]);
+            $subject = $subStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$subject) continue; // không có môn cho ngành này trong đợt này
+
+            // Đếm số học sinh đã có exam_number cho subject để sinh số tiếp theo
+            $cntSql = "SELECT COUNT(*) FROM talent_test_assignments WHERE subject_id = ?";
+            $cntStmt = $this->db->prepare($cntSql);
+            $cntStmt->execute([$subject['id']]);
+            $seq = $cntStmt->fetchColumn() + 1;
+
+            $examNumber = sprintf('TNH-%s-%s-%04d', date('Y'), $cand['major_code'], $seq);
+
+            // Chọn phòng ngẫu nhiên dựa trên capacity còn trống
+            $roomSql = "SELECT r.id FROM talent_test_rooms r
+                       LEFT JOIN talent_test_assignments a ON a.room_id = r.id AND a.status='not_taken'
+                       WHERE r.session_id = ?
+                       GROUP BY r.id
+                       HAVING COUNT(a.id) < r.capacity
+                       ORDER BY RAND() LIMIT 1";
+            $roomStmt = $this->db->prepare($roomSql);
+            $roomStmt->execute([$sessionId]);
+            $room = $roomStmt->fetch(PDO::FETCH_ASSOC);
+            $roomId = $room['id'] ?? null;
+
+            $insSql = "INSERT INTO talent_test_assignments (candidate_id, subject_id, room_id, exam_number, status, created_at, updated_at)
+                       VALUES (:cid, :sid, :rid, :ex, 'not_taken', NOW(), NOW())";
+            $insStmt = $this->db->prepare($insSql);
+            $insStmt->execute([
+                ':cid' => $cand['id'],
+                ':sid' => $subject['id'],
+                ':rid' => $roomId,
+                ':ex' => $examNumber,
+            ]);
+        }
+        return count($candidates);
+    }
+
+    // ---------------------------------------------------------------------
+    // Score handling
+    // ---------------------------------------------------------------------
+    public function saveScore(int $assignmentId, float $score, ?string $note = null)
+    {
+        $sql = "INSERT INTO talent_test_scores (assignment_id, score, note, created_at, updated_at)
+                VALUES (:aid, :sc, :nt, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE score=:sc, note=:nt, updated_at=NOW()";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':aid' => $assignmentId,
+            ':sc' => $score,
+            ':nt' => $note,
+        ]);
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Phân phòng thi tự động cho tất cả thí sinh chưa có phòng trong đợt thi
+     */
+    public function autoAssignRooms(int $sessionId)
+    {
+        // 1. Lấy danh sách các phòng thi của đợt này và sức chứa hiện tại
+        $sqlRooms = "SELECT r.id, r.capacity, 
+                    (SELECT COUNT(*) FROM talent_test_assignments a WHERE a.room_id = r.id) as current_count
+                    FROM talent_test_rooms r 
+                    WHERE r.session_id = ? 
+                    ORDER BY r.id ASC";
+        $stmtRooms = $this->db->prepare($sqlRooms);
+        $stmtRooms->execute([$sessionId]);
+        $rooms = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($rooms)) return 0;
+
+        // 2. Lấy danh sách thí sinh chưa được phân phòng trong đợt này
+        $sqlCandidates = "SELECT a.id 
+                         FROM talent_test_assignments a
+                         JOIN talent_test_subjects s ON s.id = a.subject_id
+                         WHERE s.session_id = ? AND a.room_id IS NULL
+                         ORDER BY a.exam_number ASC";
+        $stmtCandidates = $this->db->prepare($sqlCandidates);
+        $stmtCandidates->execute([$sessionId]);
+        $assignments = $stmtCandidates->fetchAll(PDO::FETCH_ASSOC);
+
+        $assignedCount = 0;
+        $roomIndex = 0;
+
+        foreach ($assignments as $a) {
+            // Tìm phòng còn chỗ
+            while ($roomIndex < count($rooms) && $rooms[$roomIndex]['current_count'] >= $rooms[$roomIndex]['capacity']) {
+                $roomIndex++;
+            }
+
+            if ($roomIndex >= count($rooms)) break; // Hết phòng còn chỗ
+
+            // Gán phòng cho thí sinh
+            $updSql = "UPDATE talent_test_assignments SET room_id = ?, updated_at = NOW() WHERE id = ?";
+            $updStmt = $this->db->prepare($updSql);
+            $updStmt->execute([$rooms[$roomIndex]['id'], $a['id']]);
+
+            $rooms[$roomIndex]['current_count']++;
+            $assignedCount++;
+        }
+
+        return $assignedCount;
+    }
+
+    /**
+     * Đánh số túi bài thi tự động theo phòng
+     */
+    public function assignBagNumbers(int $sessionId, string $prefix = 'TUI-')
+    {
+        // 1. Lấy danh sách các phòng thi
+        $sqlRooms = "SELECT id, room_name FROM talent_test_rooms WHERE session_id = ? ORDER BY id ASC";
+        $stmtRooms = $this->db->prepare($sqlRooms);
+        $stmtRooms->execute([$sessionId]);
+        $rooms = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalUpdated = 0;
+        foreach ($rooms as $index => $room) {
+            $bagNumber = $prefix . sprintf('%03d', $index + 1);
+            
+            $updSql = "UPDATE talent_test_assignments a
+                       SET bag_number = ?, updated_at = NOW()
+                       FROM talent_test_subjects s
+                       WHERE a.subject_id = s.id 
+                       AND s.session_id = ? 
+                       AND a.room_id = ?";
+            $updStmt = $this->db->prepare($updSql);
+            $updStmt->execute([$bagNumber, $sessionId, $room['id']]);
+            $totalUpdated += $updStmt->rowCount();
+        }
+
+        return $totalUpdated;
+    }
+
+    public function listAssignments(int $sessionId)
+    {
+        $sql = "SELECT a.id, c.name AS candidate_name, s.subject_name, r.room_name, a.exam_number, a.status
+                FROM talent_test_assignments a
+                JOIN candidates c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN talent_test_rooms r ON r.id = a.room_id
+                WHERE s.session_id = ?
+                ORDER BY a.exam_number";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+?>

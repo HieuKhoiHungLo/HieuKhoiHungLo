@@ -486,7 +486,30 @@ class ApplicationController extends Controller
         $this->view('application/results', [
             'results' => $results,
             'user' => $user,
-            'enableResults' => $enableResults
+            'enableResults' => $enableResults,
+            'talentResults' => $this->getTalentTestResults($cccd)
         ]);
+    }
+
+    /**
+     * Lấy kết quả thi năng khiếu (nếu có và đã công bố)
+     */
+    private function getTalentTestResults(string $cccd)
+    {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("
+            SELECT a.exam_number, s.subject_name, r.room_name, sc.score, sc.note,
+                   sess.session_name, sess.is_published
+            FROM talent_test_assignments a
+            JOIN candidates c ON c.id = a.candidate_id
+            JOIN talent_test_subjects s ON s.id = a.subject_id
+            JOIN talent_test_sessions sess ON sess.id = s.session_id
+            LEFT JOIN talent_test_rooms r ON r.id = a.room_id
+            LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
+            WHERE c.cccd = ? AND sess.is_published = 1
+            ORDER BY sess.year DESC
+        ");
+        $stmt->execute([$cccd]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

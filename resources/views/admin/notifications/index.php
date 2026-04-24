@@ -62,7 +62,12 @@
                             <span class="text-xs text-gray-500 dark:text-gray-400"><?= $targetLabels[$notif['target_type']] ?? '' ?></span>
                         </div>
                         <h4 class="font-bold text-gray-800 dark:text-white text-lg"><?= htmlspecialchars($notif['title']) ?></h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2"><?= htmlspecialchars(strip_tags($notif['content'])) ?></p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                            <?php 
+                            $cleanContent = strip_tags(html_entity_decode($notif['content'], ENT_QUOTES, 'UTF-8'));
+                            echo htmlspecialchars(mb_substr($cleanContent, 0, 200) . (mb_strlen($cleanContent) > 200 ? '...' : ''));
+                            ?>
+                        </p>
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
                             <i class="fas fa-clock mr-1"></i> <?= date('d/m/Y H:i', strtotime($notif['created_at'])) ?>
                             <?php if (!empty($notif['admin_name'])): ?>

@@ -188,7 +188,11 @@ class AdmissionLetterService {
      * Lấy danh sách thí sinh với bộ lọc
      */
     public function getCandidates($filters = []) {
-        $sql = "SELECT * FROM thu_trung_tuyen WHERE 1=1";
+        $page = (int)($filters['page'] ?? 1);
+        $limit = (int)($filters['limit'] ?? 10);
+        $offset = ($page - 1) * $limit;
+
+        $sql = "FROM thu_trung_tuyen WHERE 1=1";
         $params = [];
 
         if (!empty($filters['batch_id'])) {
@@ -202,18 +206,61 @@ class AdmissionLetterService {
         }
 
         if (!empty($filters['q'])) {
-            $sql .= " AND (ho_ten ILIKE ? OR so_cccd ILIKE ? OR email ILIKE ?)";
+            $sql .= " AND (ho_ten ILIKE ? OR so_cccd ILIKE ? OR email ILIKE ? OR sdt ILIKE ?)";
             $q = "%" . $filters['q'] . "%";
+            $params[] = $q;
             $params[] = $q;
             $params[] = $q;
             $params[] = $q;
         }
 
-        $sql .= " ORDER BY created_at DESC";
+        // Detailed filters from table header
+        if (!empty($filters['f_name'])) {
+            $sql .= " AND ho_ten ILIKE ?";
+            $params[] = "%" . $filters['f_name'] . "%";
+        }
+        if (!empty($filters['f_cccd'])) {
+            $sql .= " AND so_cccd ILIKE ?";
+            $params[] = "%" . $filters['f_cccd'] . "%";
+        }
+        if (!empty($filters['f_phone'])) {
+            $sql .= " AND sdt ILIKE ?";
+            $params[] = "%" . $filters['f_phone'] . "%";
+        }
+        if (!empty($filters['f_email'])) {
+            $sql .= " AND email ILIKE ?";
+            $params[] = "%" . $filters['f_email'] . "%";
+        }
+        if (!empty($filters['f_dob'])) {
+            $sql .= " AND ngay_sinh ILIKE ?";
+            $params[] = "%" . $filters['f_dob'] . "%";
+        }
+        if (!empty($filters['f_major'])) {
+            $sql .= " AND ten_nganh ILIKE ?";
+            $params[] = "%" . $filters['f_major'] . "%";
+        }
 
-        $stmt = $this->db->prepare($sql);
+        // Get total count
+        $countStmt = $this->db->prepare("SELECT COUNT(*) " . $sql);
+        $countStmt->execute($params);
+        $totalItems = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalItems / $limit);
+
+        // Get data
+        $dataSql = "SELECT * " . $sql . " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $stmt = $this->db->prepare($dataSql);
         $stmt->execute($params);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return [
+            'items' => $items,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_items' => $totalItems,
+                'limit' => $limit
+            ]
+        ];
     }
 
     /**
@@ -243,9 +290,9 @@ class AdmissionLetterService {
             $subject = $template['subject'] ?? 'Thông báo';
             $body = $this->renderTemplate($template['body'], $candidate);
             
-            $this->mailer->enqueue($candidate['email'], $subject, $body, true);
+            $this->mailer->enqueue($candidate['email'], $subject, $body, true, 'admission_letter');
             
-            $upd = $this->db->prepare("UPDATE thu_trung_tuyen SET status = 'queued', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $upd = $this->db->prepare("UPDATE thu_trung_tuyen SET status = 'queued' WHERE id = ?");
             $upd->execute([$candidate['id']]);
 
             $enqueuedCount++;
@@ -309,6 +356,7 @@ class AdmissionLetterService {
     public function renderTemplate($templateHtml, $data) {
         $replacements = [
             '{{HoTen}}' => $data['ho_ten'] ?? '',
+            '{{name}}' => $data['ho_ten'] ?? '',
             '{{SBD}}' => $data['sbd'] ?? '',
             '{{NgaySinh}}' => $data['ngay_sinh'] ?? '',
             '{{CCCD}}' => $data['so_cccd'] ?? '',
@@ -324,6 +372,7 @@ class AdmissionLetterService {
             '{{UTQ}}' => $data['ut_quy_doi'] ?? '',
             '{{DiemXT}}' => $data['diem_xt'] ?? '',
             '{{Nganh}}' => $data['ten_nganh'] ?? '',
+            '{{major}}' => $data['ten_nganh'] ?? '',
             '{{MaNganh}}' => $data['ma_nganh'] ?? '',
             '{{SoTien}}' => number_format((float)($data['so_tien'] ?? 0), 0, ',', '.'),
         ];

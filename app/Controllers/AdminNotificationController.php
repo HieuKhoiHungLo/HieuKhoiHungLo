@@ -92,6 +92,11 @@ class AdminNotificationController extends Controller {
 
         $notifications = $this->notificationModel->getAll(20);
         
+        // Clean content for JSON output
+        foreach ($notifications as &$n) {
+            $n['content_preview'] = mb_substr(strip_tags(html_entity_decode($n['content'], ENT_QUOTES, 'UTF-8')), 0, 100) . '...';
+        }
+        
         echo json_encode([
             'success' => true,
             'notifications' => $notifications,

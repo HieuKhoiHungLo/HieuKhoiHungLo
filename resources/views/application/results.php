@@ -18,6 +18,45 @@ include __DIR__ . '/../layouts/header.php';
         </div>
     </div>
 
+    <!-- Talent Test Results -->
+    <?php if (!empty($talentResults)): ?>
+        <div class="space-y-4">
+            <h2 class="text-xl font-black text-gray-800 flex items-center">
+                <i class="fas fa-star-of-life mr-3 text-blue-500"></i> KẾT QUẢ THI NĂNG KHIẾU
+            </h2>
+            <?php foreach ($talentResults as $talent): ?>
+                <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-white/20 transition-colors"></div>
+                    <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <div class="text-xs font-bold uppercase tracking-widest opacity-80 mb-2"><?= htmlspecialchars($talent['session_name']) ?></div>
+                            <h3 class="text-2xl font-black mb-4"><?= htmlspecialchars($talent['subject_name']) ?></h3>
+                            <div class="grid grid-cols-2 gap-8">
+                                <div>
+                                    <div class="text-[10px] font-bold opacity-60 uppercase tracking-wider">Số báo danh</div>
+                                    <div class="text-lg font-black font-mono"><?= htmlspecialchars($talent['exam_number']) ?></div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-bold opacity-60 uppercase tracking-wider">Phòng thi</div>
+                                    <div class="text-lg font-bold"><?= htmlspecialchars($talent['room_name'] ?: 'Chưa phân') ?></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 text-center min-w-[150px]">
+                            <div class="text-[10px] font-bold opacity-60 uppercase tracking-wider mb-1">Điểm số</div>
+                            <div class="text-5xl font-black"><?= $talent['score'] !== null ? number_format($talent['score'], 1) : '--' ?></div>
+                            <?php if ($talent['note']): ?>
+                                <div class="mt-4 text-[10px] font-medium italic opacity-80 border-t border-white/20 pt-2">
+                                    <?= htmlspecialchars($talent['note']) ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <!-- Results List -->
     <div class="space-y-6">
         <?php if (empty($enableResults)): ?>

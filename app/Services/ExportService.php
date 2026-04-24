@@ -35,6 +35,39 @@ class ExportService {
     }
 
     /**
+     * Format Area (Khu vực) to standard notation (KV1, KV2, KV2-NT, KV3)
+     */
+    private function formatArea($value): string {
+        if ($value === null || $value === '') return 'KV3'; // Default to KV3 if empty
+        $val = trim((string)$value);
+        $map = [
+            '1' => 'KV1',
+            '2' => 'KV2',
+            '2NT' => 'KV2-NT',
+            '3' => 'KV3',
+            'KV1' => 'KV1',
+            'KV2' => 'KV2',
+            'KV2-NT' => 'KV2-NT',
+            'KV2NT' => 'KV2-NT',
+            'KV3' => 'KV3'
+        ];
+        return $map[$val] ?? $val;
+    }
+
+    /**
+     * Format Priority Object (Đối tượng) to 2-digit notation (01, 02, etc.)
+     */
+    private function formatObject($value): string {
+        if ($value === null || $value === '' || $value == '0') return '';
+        $val = trim((string)$value);
+        // If it's a single digit 1-9, prefix with 0
+        if (preg_match('/^[1-9]$/', $val)) {
+            return '0' . $val;
+        }
+        return $val;
+    }
+
+    /**
      * Format decimal score: replace '.' with ',' for Vietnamese locale.
      * Returns '' when null.
      */
@@ -86,8 +119,11 @@ class ExportService {
         // Normalize
         foreach ($rows as &$r) {
             $r["Số CCCD"]   = $this->textCell($r["Số CCCD"]);
+            $r["Họ và Tên"]  = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
             $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
+            $r["Khu vực"]    = $this->formatArea($r["Khu vực"]);
+            $r["Đối tượng"]  = $this->formatObject($r["Đối tượng"]);
         }
         return $rows;
     }
@@ -146,8 +182,11 @@ class ExportService {
 
         foreach ($rows as &$r) {
             $r["Số CCCD"]   = $this->textCell($r["Số CCCD"]);
+            $r["Họ và Tên"]  = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
             $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
+            $r["Khu vực"]    = $this->formatArea($r["Khu vực"]);
+            $r["Đối tượng"]  = $this->formatObject($r["Đối tượng"]);
             $r["Mã Phương Thức"] = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($r["Mã Phương Thức"], [
                 'co_xet_chung_chi' => $r['co_xet_chung_chi'],
                 'co_diem_nangkhieu_thpt' => $r['co_diem_nangkhieu_thpt'],
@@ -196,6 +235,7 @@ class ExportService {
 
         foreach ($rows as &$r) {
             $r["Số CCCD"]   = $this->textCell($r["Số CCCD"]);
+            $r["Họ và Tên"]  = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
             $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
             $r["Điểm xét tuyển"] = $this->formatDecimal($r["Điểm xét tuyển"]);
@@ -235,6 +275,7 @@ class ExportService {
 
         foreach ($rows as &$r) {
             $r["Số CCCD"]  = $this->textCell($r["Số CCCD"]);
+            $r["Họ và Tên"] = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Ngày Sinh"] = $this->formatDate($r["Ngày Sinh"]);
         }
         return $rows;
@@ -284,6 +325,7 @@ class ExportService {
 
         foreach ($rows as &$r) {
             $r["Số CCCD"]  = $this->textCell($r["Số CCCD"]);
+            $r["Họ và Tên"] = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Ngày Sinh"] = $this->formatDate($r["Ngày Sinh"]);
         }
         return $rows;
@@ -354,7 +396,7 @@ class ExportService {
                        dt.toan as dt_toan, dt.van as dt_van, dt.ly as dt_ly, dt.hoa as dt_hoa,
                        dt.sinh as dt_sinh, dt.su as dt_su, dt.dia as dt_dia, dt.gdcd as dt_gdcd,
                        dt.tieng_anh as dt_anh, dt.tieng_trung as dt_trung, dt.ktpl as dt_ktpl,
-                       dt.tin_hoc as dt_tin, dt.cnnn as dt_cnnn
+                       dt.tin_hoc as dt_tin, dt.cnnn as dt_cnnn, hs.created_at
                 FROM thi_sinh t
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN dm_xa x ON t.ma_xa_thuong_tru = x.ma_xa
@@ -392,49 +434,64 @@ class ExportService {
                 $diemNgoaiNgu = $c['dt_trung'];
             }
 
+            // Normalize academic status
+            $mapAcademic = [
+                'Tot' => 'Tốt', 'TOT' => 'Tốt', 'TỐT' => 'Tốt',
+                'Kha' => 'Khá', 'KHA' => 'Khá', 'KHÁ' => 'Khá',
+                'Trung binh' => 'Trung bình', 'TB' => 'Trung bình',
+                'Yeu' => 'Yếu', 'Kem' => 'Kém',
+                'Gioi' => 'Giỏi', 'GIOI' => 'Giỏi', 'GIỎI' => 'Giỏi'
+            ];
+            $hocLuc = $mapAcademic[$c['hoc_luc_12']] ?? $c['hoc_luc_12'];
+            $hanhKiem = $mapAcademic[$c['hanh_kiem_12']] ?? $c['hanh_kiem_12'];
+
             $data[] = [
-                'stt'             => $stt++,
-                'sbd'             => '',
-                'ho_ten'          => mb_strtoupper($c['ho_va_ten'], 'UTF-8'),
-                'ddcn'            => ($c['so_cccd'] ?? ''),
-                'ngay_sinh'       => $this->formatDate($c['ngay_sinh']),
-                'gioi_tinh'       => $c['gioi_tinh'],
-                'dtu'             => $c['doi_tuong_uu_tien'] ?: '0',
-                'kvu'             => $c['khu_vuc_uu_tien'] ?: '3',
-                'nam_tn_thpt'     => $c['nam_tot_nghiep'],
-                'hoc_luc'         => $c['hoc_luc_12'],
-                'hanh_kiem'       => $c['hanh_kiem_12'],
-                'diem_tb_12'      => $this->formatDecimal($c['diem_tb_12']),
-                'tn_cao_dang'     => '',
-                'tn_trung_cap'    => '',
-                'ma_tinh_tt'      => $c['ma_tinh_thuong_tru'],
-                'ten_tinh_tt'     => $c['ten_tinh_tt'],
-                'ma_huyen_tt'     => $c['ma_huyen_thuong_tru'] ?? '',
-                'ten_huyen_tt'    => '',
-                'ma_xa_tt'        => $c['ma_xa_thuong_tru'],
-                'ten_xa_tt'       => $c['ten_xa_tt'],
-                'ma_tinh_lop12'   => $c['ma_tinh_lop_12'],
-                'ma_truong_lop12' => $c['ma_truong_lop_12'],
-                'kq_so_tuyen'     => '',
-                'toan'            => $this->formatDecimal($c['dt_toan']),
-                'van'             => $this->formatDecimal($c['dt_van']),
-                'ly'              => $this->formatDecimal($c['dt_ly']),
-                'hoa'             => $this->formatDecimal($c['dt_hoa']),
-                'sinh'            => $this->formatDecimal($c['dt_sinh']),
-                'su'              => $this->formatDecimal($c['dt_su']),
-                'dia'             => $this->formatDecimal($c['dt_dia']),
-                'gdcd'            => $this->formatDecimal($c['dt_gdcd']),
-                'ngoai_ngu'       => $this->formatDecimal($diemNgoaiNgu),
-                'ma_mon_nn'       => $maMonNgoaiNgu,
-                'ktpl'            => $this->formatDecimal($c['dt_ktpl']),
-                'tin_hoc'         => $this->formatDecimal($c['dt_tin']),
-                'cncn'            => '', 
-                'cnnn'            => $this->formatDecimal($c['dt_cnnn']),
-                'chuong_trinh_hoc'=> '',
-                'diem_xet_tn'     => '',
-                'dan_toc'         => $c['dan_toc'],
-                'ma_dan_toc'      => '',
-                'noi_sinh'        => '',
+                'STT'                               => (string)$stt++,
+                'SBD'                               => '',
+                'Họ Tên'                            => mb_strtoupper($c['ho_va_ten'], 'UTF-8'),
+                'ĐDCN'                              => $this->textCell($c['so_cccd'] ?? ''),
+                'Ngày sinh'                         => $this->formatDate($c['ngay_sinh']),
+                'Giới tính'                         => $c['gioi_tinh'],
+                'ĐTƯT'                              => $this->formatObject($c['doi_tuong_uu_tien']),
+                'KVƯT'                              => $this->formatArea($c['khu_vuc_uu_tien']),
+                'Năm TN THPT'                       => (string)$c['nam_tot_nghiep'],
+                'Học lực/Kết quả học tập'           => $hocLuc,
+                'Hạnh kiểm/Kết quả rèn luyện'       => $hanhKiem,
+                'Điểm TB Lớp 12/Điểm TB các năm học' => $this->formatDecimal($c['diem_tb_12']),
+                'TN Cao Đẳng'                       => '',
+                'TN Trung Cấp'                      => '',
+                'Nơi thường trú - Mã tỉnh'          => (string)$c['ma_tinh_thuong_tru'],
+                'Nơi thường trú - Tên tỉnh'         => $c['ten_tinh_tt'],
+                'Nơi thường trú - Mã Quận huyện'    => (string)($c['ma_huyen_thuong_tru'] ?? ''),
+                'Nơi thường trú - Tên Quận huyện'   => '',
+                'Nơi thường trú - Mã xã phường'     => (string)$c['ma_xa_thuong_tru'],
+                'Nơi thường trú - Tên xã phường'    => $c['ten_xa_tt'],
+                'Mã tỉnh lớp 12'                    => (string)$c['ma_tinh_lop_12'],
+                'Mã trường lớp 12'                  => (string)$c['ma_truong_lop_12'],
+                'KQ Sơ Tuyển'                       => '',
+                'TO'                                => $this->formatDecimal($c['dt_toan']),
+                'VA'                                => $this->formatDecimal($c['dt_van']),
+                'LI'                                => $this->formatDecimal($c['dt_ly']),
+                'HO'                                => $this->formatDecimal($c['dt_hoa']),
+                'SI'                                => $this->formatDecimal($c['dt_sinh']),
+                'SU'                                => $this->formatDecimal($c['dt_su']),
+                'DI'                                => $this->formatDecimal($c['dt_dia']),
+                'GDCD'                              => $this->formatDecimal($c['dt_gdcd']),
+                'NN'                                => $this->formatDecimal($diemNgoaiNgu),
+                'Mã môn NN'                         => $maMonNgoaiNgu,
+                'KTPL'                              => $this->formatDecimal($c['dt_ktpl']),
+                'TI'                                => $this->formatDecimal($c['dt_tin']),
+                'CNCN'                              => '', 
+                'CNNN'                              => $this->formatDecimal($c['dt_cnnn']),
+                'Chương trình học'                  => '',
+                'NK1'                               => '', 'NK2' => '', 'NK3' => '', 'NK4' => '', 'NK5' => '',
+                'NK6'                               => '', 'NK7' => '', 'NK8' => '', 'NK9' => '', 'NK10' => '',
+                'Điểm xét tốt nghiệp'               => '',
+                'Người tạo'                         => 'Hệ thống',
+                'Ngày tạo'                          => !empty($c['created_at']) ? date('d/m/Y', strtotime($c['created_at'])) : date('d/m/Y'),
+                'Dân tộc'                           => $c['dan_toc'],
+                'Mã dân tộc'                        => '',
+                'Nơi sinh'                          => '',
             ];
         }
         return $data;
@@ -476,9 +533,9 @@ class ExportService {
             }
 
             $data[] = [
-                'STT'                   => $stt++,
-                'Số ĐDCN'               => ($w['so_cccd'] ?? ''),
-                'Thứ tự nguyện vọng'    => $w['thu_tu_nv_bo'] ?? $w['thu_tu_nguyen_vong'],
+                'STT'                   => (string)$stt++,
+                'Số ĐDCN'               => $this->textCell($w['so_cccd'] ?? ''),
+                'Thứ tự nguyện vọng'    => (string)($w['thu_tu_nv_bo'] ?? $w['thu_tu_nguyen_vong']),
                 'Mã trường'             => 'THV',
                 'Tên trường'            => 'Trường Đại học Hùng Vương',
                 'Mã xét tuyển'          => $w['ma_nganh'],
@@ -501,11 +558,14 @@ class ExportService {
         return $data;
     }
 
+    /**
+     * Dữ liệu điểm học bạ (MOET format) - Lấy tất cả các lớp 10, 11, 12.
+     */
     public function exportMoetTranscriptsCsv($filters = []) {
         $sql = "SELECT hs.so_cccd, t.ho_va_ten, t.ngay_sinh, t.gioi_tinh, kq.*
                 FROM ho_so_xet_tuyen hs
                 JOIN thi_sinh t ON hs.so_cccd = t.so_cccd
-                LEFT JOIN ket_qua_hoc_tap kq ON hs.so_cccd = kq.so_cccd AND kq.lop = 12
+                LEFT JOIN ket_qua_hoc_tap kq ON hs.so_cccd = kq.so_cccd
                 WHERE 1=1";
         $params = [];
         if (!empty($filters['session_id'])) {
@@ -516,7 +576,7 @@ class ExportService {
             $sql .= " AND hs.trang_thai = ?";
             $params[] = $filters['status'];
         }
-        $sql .= " ORDER BY t.ho_va_ten";
+        $sql .= " ORDER BY t.ho_va_ten, kq.lop ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -525,29 +585,16 @@ class ExportService {
         $data = [];
         $stt  = 1;
 
-        $map_diem    = [
-            'toan' => 'Toán', 
-            'van' => 'Văn', 
-            'ly' => 'Vật lí', 
-            'hoa' => 'Hóa học', 
-            'sinh' => 'Sinh học', 
-            'su' => 'Lịch sử', 
-            'dia' => 'Địa lí', 
-            'gdcd' => 'GDCD', 
-            'tin_hoc' => 'Tin học', 
-            'cong_nghe' => 'CNCN',
-            'ngoai_ngu' => 'Ngoại ngữ'
-        ];
-        $moet_subjects = ['Toán', 'Văn', 'Vật lí', 'Hóa học', 'Sinh học', 'Lịch sử', 'Địa lí', 'GDCD', 'KTPL', 'Tin học', 'CNCN', 'CNNN', 'Ngoại ngữ'];
-
         foreach ($records as $r) {
+            if (!$r['lop']) continue; // Skip if no transcript record
+
             $row = [
-                'STT'                      => $stt++,
-                'Số ĐDCN'                  => ($r['so_cccd'] ?? ''),
+                'STT'                      => (string)$stt++,
+                'Số ĐDCN'                  => $this->textCell($r['so_cccd'] ?? ''),
                 'Họ và tên'                => mb_strtoupper($r['ho_va_ten'], 'UTF-8'),
                 'Ngày sinh'                => $this->formatDate($r['ngay_sinh']),
                 'Giới tính'                => $r['gioi_tinh'],
-                'Lớp'                      => '12',
+                'Lớp'                      => (string)$r['lop'],
                 'Chương trình học'         => '',
                 'Điểm trung bình năm'      => $this->formatDecimal($r['diem_tb_ca_nam'] ?? null),
                 'Điểm tổng kết HK I'       => $this->formatDecimal($r['diem_tb_hk1'] ?? null),
@@ -567,17 +614,29 @@ class ExportService {
                 'Kết quả rèn luyện CN'     => '',
             ];
 
-            foreach ($moet_subjects as $msub) {
-                $internal_key = array_search($msub, $map_diem);
-                if ($internal_key) {
-                    $row[$msub . ' HK I']  = $this->formatDecimal($r['diem_' . $internal_key . '_hk1'] ?? null);
-                    $row[$msub . ' HK II'] = $this->formatDecimal($r['diem_' . $internal_key . '_hk2'] ?? null);
-                    $row[$msub . ' CN']    = $this->formatDecimal($r['diem_' . $internal_key . '_cn'] ?? null);
-                } else {
-                    $row[$msub . ' HK I']  = '';
-                    $row[$msub . ' HK II'] = '';
-                    $row[$msub . ' CN']    = '';
-                }
+            // Primary subjects mapping
+            $subjects_map = [
+                'Toán' => 'toan', 'Văn' => 'van', 'Vật lí' => 'ly', 'Hóa học' => 'hoa',
+                'Sinh học' => 'sinh', 'Lịch sử' => 'su', 'Địa lí' => 'dia', 'GDCD' => 'gdcd',
+                'KTPL' => 'ktpl', 'Tin học' => 'tin_hoc', 'CNCN' => 'cong_nghe', 
+                'CNNN' => 'cnnn', 'Ngoại ngữ' => 'ngoai_ngu'
+            ];
+
+            foreach ($subjects_map as $label => $key) {
+                $row[$label . ' HK I']  = $this->formatDecimal($r['diem_' . $key . '_hk1'] ?? null);
+                $row[$label . ' HK II'] = $this->formatDecimal($r['diem_' . $key . '_hk2'] ?? null);
+                $row[$label . ' CN']    = $this->formatDecimal($r['diem_' . $key . '_cn'] ?? null);
+            }
+
+            // Additional required columns (empty as per template)
+            $row['Môn ngoại ngữ'] = '';
+            $extra_fields = [
+                'Tự chọn song ngữ', 'QPAN', 'Tiếng dân tộc', 'Ngoại ngữ 2', 'Toán Pháp'
+            ];
+            foreach ($extra_fields as $field) {
+                $row[$field . ' HK I'] = '';
+                $row[$field . ' HK II'] = '';
+                $row[$field . ' CN'] = '';
             }
 
             $data[] = $row;
@@ -644,7 +703,15 @@ class ExportService {
                     $type = 'String';
                     $style = 'sText';
                     
-                    if (is_numeric($cell) && strpos((string)$cell, ',') === false && !in_array($key, ['Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại'])) {
+                    if (is_numeric($cell) && strpos((string)$cell, ',') === false && !in_array($key, [
+                        'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng',
+                        'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
+                        'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
+                        'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT',
+                        'Nơi thường trú - Mã tỉnh', 'Nơi thường trú - Mã Quận huyện', 'Nơi thường trú - Mã xã phường',
+                        'Mã tỉnh lớp 12', 'Mã trường lớp 12',
+                        'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp'
+                    ])) {
                         $type = 'Number';
                         $style = 'sNum';
                     }

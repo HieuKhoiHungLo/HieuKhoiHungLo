@@ -42,6 +42,7 @@ class Notification {
             SELECT n.*, q.ho_ten as admin_name
             FROM notifications n
             LEFT JOIN quan_tri_vien q ON n.created_by = q.id
+            WHERE n.title NOT LIKE '[Email]%'
             ORDER BY n.created_at DESC
             LIMIT ? OFFSET ?
         ");
