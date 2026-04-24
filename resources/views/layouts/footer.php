@@ -17,39 +17,39 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">LIÊN KẾT NHANH</h3>
+                    <?php
+                    $footerQuickMenus = (new \App\Models\Menu())->getActiveMenus('footer_quick');
+                    if (empty($footerQuickMenus)) {
+                        $footerQuickMenus = [
+                            ['title' => 'Trang chủ HVU', 'url' => 'https://hvu.edu.vn', 'icon' => 'fas fa-angle-right'],
+                            ['title' => 'Thông tin tuyển sinh 2026', 'url' => 'https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1700635044.hvu', 'icon' => 'fas fa-angle-right'],
+                            ['title' => 'Quy chế tuyển sinh', 'url' => 'https://www.hvu.edu.vn/file/1268204397/Quychetuyensinhdaihoc.pdf', 'icon' => 'fas fa-angle-right'],
+                            ['title' => 'Điểm trúng tuyển các năm', 'url' => 'https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1458613815.hvu', 'icon' => 'fas fa-angle-right'],
+                            ['title' => 'Thông báo', 'url' => 'https://www.hvu.edu.vn/tin-tuc/thong-bao-tuyen-sinh.hvu', 'icon' => 'fas fa-angle-right'],
+                        ];
+                    }
+                    ?>
                     <ul class="space-y-3 text-sm text-gray-400">
-                        <li><a href="https://hvu.edu.vn" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Trang chủ HVU</a></li>
-                        <li><a href="https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1700635044.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Thông tin tuyển sinh 2026</a></li>
-                        <li><a href="https://www.hvu.edu.vn/file/1268204397/Quychetuyensinhdaihoc.pdf" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Quy chế tuyển sinh</a></li>
-                        <li><a href="https://www.hvu.edu.vn/tin-tuc/so-lieu-tuyen-sinh/1458613815.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Điểm trúng tuyển các năm</a></li>
-                        <li><a href="https://www.hvu.edu.vn/tin-tuc/thong-bao-tuyen-sinh.hvu" target="_blank" class="hover:text-white transition flex items-center"><i class="fas fa-angle-right mr-2 text-hvu-red"></i> Thông báo</a></li>
+                        <?php foreach ($footerQuickMenus as $fl): ?>
+                            <li><a href="<?= url($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?: 'fas fa-angle-right') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['title']) ?></a></li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold font-heading mb-6 border-l-4 border-hvu-red pl-4">HỖ TRỢ THÍ SINH</h3>
                     <?php
-                    $footerLinks = \App\Core\Cache::remember('footer_support_links', 60, function () {
-                        try {
-                            $__db = \App\Core\Database::getInstance()->getConnection();
-                            $__stmt = $__db->prepare("SELECT value FROM settings WHERE \"key\" = ?");
-                            $__stmt->execute(['footer_support_links']);
-                            $__json = $__stmt->fetchColumn();
-                            return $__json ? json_decode($__json, true) : [];
-                        } catch (\Exception $e) {
-                            return [];
-                        }
-                    });
+                    $footerMenus = (new \App\Models\Menu())->getActiveMenus('footer');
 
-                    if (empty($footerLinks)) {
-                        $footerLinks = [
-                            ['label' => 'Đăng ký xét tuyển', 'url' => url('/register'), 'icon' => 'fas fa-check-circle'],
-                            ['label' => 'Tra cứu hồ sơ', 'url' => url('/login'), 'icon' => 'fas fa-check-circle'],
+                    if (empty($footerMenus)) {
+                        $footerMenus = [
+                            ['title' => 'Đăng ký xét tuyển', 'url' => '/register', 'icon' => 'fas fa-check-circle'],
+                            ['title' => 'Tra cứu hồ sơ', 'url' => '/login', 'icon' => 'fas fa-check-circle'],
                         ];
                     }
                     ?>
                     <ul class="space-y-3 text-sm text-gray-400">
-                        <?php foreach ($footerLinks as $fl): ?>
-                            <li><a href="<?= htmlspecialchars($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?? 'fas fa-check-circle') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['label']) ?></a></li>
+                        <?php foreach ($footerMenus as $fl): ?>
+                            <li><a href="<?= url($fl['url']) ?>" <?= (strpos($fl['url'], 'http') === 0) ? 'target="_blank"' : '' ?> class="hover:text-white transition flex items-center"><i class="<?= htmlspecialchars($fl['icon'] ?: 'fas fa-check-circle') ?> mr-2 text-hvu-red"></i> <?= htmlspecialchars($fl['title'] ?? $fl['label'] ?? '') ?></a></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>

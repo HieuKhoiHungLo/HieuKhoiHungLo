@@ -90,6 +90,10 @@ $router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
     $router->post('/admin/login', 'AuthController@adminLogin');
 });
 
+// Talent Test Public Lookup
+$router->get('/tra-cuu-nang-khieu', 'TalentTestPublicController@index');
+$router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search');
+
 // Nhóm các route bảo mật bằng AuthMiddleware
 $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin', function () {
@@ -148,9 +152,16 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/accounts/update', 'AdminAccountController@update');
     $router->get('/admin/accounts/delete', 'AdminAccountController@delete');
 
-    // Homepage Settings
+    // Homepage & Menu Settings
     $router->get('/admin/settings/home', 'AdminController@homeSettings');
     $router->post('/admin/settings/home', 'AdminController@homeSettings');
+    
+    $router->get('/admin/menus', 'AdminMenuController@index');
+    $router->get('/admin/menus/create', 'AdminMenuController@create');
+    $router->post('/admin/menus/store', 'AdminMenuController@store');
+    $router->get('/admin/menus/edit', 'AdminMenuController@edit');
+    $router->post('/admin/menus/update', 'AdminMenuController@update');
+    $router->get('/admin/menus/delete', 'AdminMenuController@delete');
 
     // Master Data Management
     $router->get('/admin/master-data', 'SubjectController@index');
@@ -274,6 +285,26 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission-letters/template', 'AdmissionLetterController@template');
     $router->get('/admin/admission-letters/preview', 'AdmissionLetterController@preview');
     $router->post('/admin/admission-letters/bulk-action', 'AdmissionLetterController@bulkAction');
+    $router->get('/admin/admission-letters/senders', 'AdmissionLetterController@senders');
+    $router->post('/admin/admission-letters/senders/save', 'AdmissionLetterController@saveSender');
+    $router->post('/admin/admission-letters/senders/delete', 'AdmissionLetterController@deleteSender');
+
+    // Talent Test (Năng khiếu)
+    $router->get('/admin/talent-tests', 'TalentTestController@index');
+    $router->get('/admin/talent-tests/create', 'TalentTestController@create');
+    $router->post('/admin/talent-tests/store', 'TalentTestController@store');
+    $router->get('/admin/talent-tests/edit', 'TalentTestController@edit');
+    $router->post('/admin/talent-tests/sync', 'TalentTestController@sync');
+    $router->post('/admin/talent-tests/toggle-publish', 'TalentTestController@togglePublish');
+    $router->post('/admin/talent-tests/rooms/save', 'TalentTestController@saveRoom');
+    $router->post('/admin/talent-tests/auto-assign', 'TalentTestController@autoAssignRooms');
+    $router->post('/admin/talent-tests/assign-bags', 'TalentTestController@assignBags');
+    $router->get('/admin/talent-tests/scores', 'TalentTestController@scores');
+    $router->post('/admin/talent-tests/scores/save', 'TalentTestController@saveScore');
+    $router->get('/admin/talent-tests/print-cards', 'TalentTestController@printCards');
+    $router->get('/admin/talent-tests/print-photos', 'TalentTestController@printPhotos');
+    $router->get('/admin/talent-tests/export-excel', 'TalentTestController@exportExcel');
+    $router->get('/admin/talent-tests/dashboard', 'TalentTestController@dashboard');
 
     // Scoring & Audit
     $router->get('/admin/settings/scoring', 'ScoringSettingsController@index');

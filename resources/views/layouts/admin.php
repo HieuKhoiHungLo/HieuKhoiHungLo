@@ -252,84 +252,52 @@
             // ... (rest of menu structure remains same)
             ?>
             <?php
-            // Menu structure: groups with collapsible children
-            $menuGroups = [
-                [
-                    'group' => 'TỔNG QUAN',
-                    'icon'  => 'fa-chart-line',
-                    'items' => [
-                        ['url' => '/admin/dashboard',  'icon' => 'fa-chart-pie',  'label' => 'Báo cáo Thống kê', 'perm' => 'stats'],
-                        ['url' => '/admin/candidates', 'icon' => 'fa-th-list',    'label' => 'Danh sách Hồ sơ',  'perm' => 'dashboard'],
+            // Lấy menu động từ Database
+            $dbMenus = (new \App\Models\Menu())->getActiveMenus('admin_sidebar');
+            $menuGroups = [];
+            
+            if (!empty($dbMenus)) {
+                foreach ($dbMenus as $mGroup) {
+                    $items = [];
+                    foreach ($mGroup['children'] ?? [] as $mItem) {
+                        $items[] = [
+                            'url' => $mItem['url'],
+                            'icon' => $mItem['icon'] ?: 'fa-circle',
+                            'label' => $mItem['title'],
+                            'perm' => $mItem['permission_required']
+                        ];
+                    }
+                    
+                    // Nếu là menu cha không có con, tự thêm chính nó làm 1 item
+                    if (empty($items) && !empty($mGroup['url']) && $mGroup['url'] !== '#') {
+                        $items[] = [
+                            'url' => $mGroup['url'],
+                            'icon' => $mGroup['icon'] ?: 'fa-circle',
+                            'label' => $mGroup['title'],
+                            'perm' => $mGroup['permission_required']
+                        ];
+                    }
+
+                    $menuGroups[] = [
+                        'group' => mb_strtoupper($mGroup['title'], 'UTF-8'),
+                        'icon' => $mGroup['icon'] ?: 'fa-folder',
+                        'items' => $items,
+                        'perm' => $mGroup['permission_required']
+                    ];
+                }
+            } else {
+                // Fallback nếu chưa có dữ liệu trong DB
+                $menuGroups = [
+                    [
+                        'group' => 'HỆ THỐNG (Chưa có Menu động)',
+                        'icon'  => 'fa-exclamation-triangle',
+                        'items' => [
+                            ['url' => '/admin/menus?position=admin_sidebar', 'icon' => 'fa-list', 'label' => 'Cấu hình Menu Sidebar', 'perm' => 'settings.edit'],
+                            ['url' => '/admin/dashboard', 'icon' => 'fa-home', 'label' => 'Về Dashboard', 'perm' => 'dashboard'],
+                        ]
                     ]
-                ],
-                [
-                    'group' => 'QUẢN LÝ HỒ SƠ',
-                    'icon'  => 'fa-clipboard-check',
-                    'items' => [
-                        ['url' => '/admin/candidate-management',    'icon' => 'fa-user-friends',    'label' => 'Thí sinh chưa nhập hồ sơ',    'perm' => 'candidate.view'],
-                        ['url' => '/admin/review-management',       'icon' => 'fa-user-check',      'label' => 'Xét duyệt Hồ sơ',     'perm' => 'candidate.view'],
-                        ['url' => '/admin/reports',                 'icon' => 'fa-file-export',     'label' => 'Xuất dữ liệu hồ sơ',  'perm' => 'report.export'],
-                        ['url' => '/admin/candidates/trash',        'icon' => 'fa-trash-alt',       'label' => 'Thùng rác',           'perm' => 'candidates.delete'],
-                    ]
-                ],
-                [
-                    'group' => 'XÉT TUYỂN LỌC ẢO',
-                    'icon'  => 'fa-shield-halved',
-                    'items' => [
-                        ['url' => '/admin/admission/management',     'icon' => 'fa-cog',           'label' => 'Thiết lập Điểm chuẩn', 'perm' => 'settings.edit'],
-                        ['url' => '/admin/admission/virtual-filter', 'icon' => 'fa-filter',        'label' => 'Xét tuyển Lọc ảo',     'perm' => 'settings.edit'],
-                        ['url' => '/admin/admission/exceptions',     'icon' => 'fa-star-half-alt', 'label' => 'Ngoại lệ xét tuyển',   'perm' => 'settings.edit'],
-                        ['url' => '/admin/admission/results',        'icon' => 'fa-list-ol',       'label' => 'Kết quả Trúng tuyển',  'perm' => 'candidate.view'],
-                        ['url' => '/admin/aptitude-scores',          'icon' => 'fa-music',         'label' => 'Điểm Năng khiếu',      'perm' => 'aptitude.view'],
-                        ['url' => '/admin/certificate-scores',       'icon' => 'fa-file-signature', 'label' => 'Điểm chứng chỉ',       'perm' => 'aptitude.view'],
-                    ]
-                ],
-                [
-                    'group' => 'TIN TỨC & THÔNG BÁO',
-                    'icon'  => 'fa-bullhorn',
-                    'items' => [
-                        ['url' => '/admin/notifications',           'icon' => 'fa-bell',          'label' => 'Gửi Thông báo hệ thống','perm' => 'candidate.view'],
-                        ['url' => '/admin/admission-letters',       'icon' => 'fa-envelope-open-text', 'label' => 'Thư báo trúng tuyển', 'perm' => 'candidate.view'],
-                        ['url' => '/admin/posts',                   'icon' => 'fa-newspaper',     'label' => 'Tin tức & Bài viết',   'perm' => 'posts.view'],
-                    ]
-                ],
-                [
-                    'group' => 'CẤU HÌNH TUYỂN SINH',
-                    'icon'  => 'fa-sliders-h',
-                    'items' => [
-                        ['url' => '/admin/master-data/sessions',    'icon' => 'fa-calendar-alt',  'label' => 'Đợt tuyển sinh',       'perm' => 'settings.edit'],
-                        ['url' => '/admin/rules',                   'icon' => 'fa-gavel',         'label' => 'Điều kiện Xét tuyển',  'perm' => 'settings.edit'],
-                        ['url' => '/admin/master-data/zones',       'icon' => 'fa-map-marker-alt', 'label' => 'Cấu hình Vùng',        'perm' => 'settings.edit'],
-                        ['url' => '/admin/settings/scoring',        'icon' => 'fa-calculator',    'label' => 'Cấu hình Điểm',        'perm' => 'settings.edit'],
-                    ]
-                ],
-                [
-                    'group' => 'QUẢN LÝ DANH MỤC',
-                    'icon'  => 'fa-folder-open',
-                    'items' => [
-                        ['url' => '/admin/master-data/majors',       'icon' => 'fa-graduation-cap', 'label' => 'Ngành đào tạo',       'perm' => 'major.view'],
-                        ['url' => '/admin/master-data/combinations', 'icon' => 'fa-layer-group',   'label' => 'Tổ hợp xét tuyển',   'perm' => 'major.view'],
-                        ['url' => '/admin/master-data/subjects',     'icon' => 'fa-book',          'label' => 'Môn học',             'perm' => 'major.view'],
-                        ['url' => '/admin/master-data/schools',      'icon' => 'fa-school',        'label' => 'Trường THPT',         'perm' => 'major.view'],
-                        ['url' => '/admin/master-data/phuong-thuc',  'icon' => 'fa-clipboard-list','label' => 'Phương thức TS',      'perm' => 'major.view'],
-                    ]
-                ],
-                [
-                    'group' => 'HỆ THỐNG',
-                    'icon'  => 'fa-cogs',
-                    'items' => [
-                        ['url' => '/admin/accounts',                    'icon' => 'fa-user-shield',      'label' => 'Tài khoản Admin',      'perm' => 'role.view'],
-                        ['url' => '/admin/roles',                       'icon' => 'fa-users-cog',        'label' => 'Quản lý Vai trò',      'perm' => 'role.view'],
-                        ['url' => '/admin/settings/home',               'icon' => 'fa-home',             'label' => 'Cài đặt Trang chủ',    'perm' => 'settings.edit'],
-                        ['url' => '/admin/master-data/settings',        'icon' => 'fa-cog',              'label' => 'Cấu hình Chung',       'perm' => 'settings.edit'],
-                        ['url' => '/admin/settings/email',              'icon' => 'fa-envelope',         'label' => 'Cấu hình Email',       'perm' => 'settings.edit'],
-                        ['url' => '/admin/settings/email-templates',    'icon' => 'fa-file-alt',         'label' => 'Mẫu Email',            'perm' => 'settings.edit'],
-                        ['url' => '/admin/import',                      'icon' => 'fa-cloud-upload-alt', 'label' => 'Nhập dữ liệu GD&ĐT',  'perm' => 'settings.edit'],
-                        ['url' => '/admin/system/backup',               'icon' => 'fa-database',         'label' => 'Sao lưu dữ liệu',      'perm' => 'settings.edit'],
-                        ['url' => '/admin/audit',                       'icon' => 'fa-history',          'label' => 'Nhật ký Hoạt động',    'perm' => 'audit.view'],
-                    ]
-                ],
-            ];
+                ];
+            }
 
             // Load current user once for sidebar permission checks - Prioritize cached session
             static $_sidebarUser = null;
@@ -349,13 +317,13 @@
             };
 
             foreach ($menuGroups as $gi => $group):
-                // Admin request: Hide "Xét tuyển lọc ảo" menu for "Cán bộ xét tuyển" (Role ID 2)
-                $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
-                $userRoleId = $_SESSION['admin_role_id'] ?? 0;
-                
-                if (($userRoleId == 2 || in_array($userRole, ['cán bộ xét tuyển', 'can bo xet tuyen'])) && $group['group'] === 'XÉT TUYỂN LỌC ẢO') {
+                // Filter items by permission (Group level permission check first)
+                if (!empty($group['perm']) && !$canSee($group['perm'])) {
                     continue;
                 }
+                
+                $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
+                $userRoleId = $_SESSION['admin_role_id'] ?? 0;
 
                 // Filter items by permission
                 $visibleItems = array_filter($group['items'], function ($item) use ($canSee, $userRole, $userRoleId) {
@@ -591,8 +559,17 @@
         if (urlParams.get('msg') === 'bulk_success') showToast(`Cập nhật thành công ${urlParams.get('count') || ''} hồ sơ!`, 'success');
         
         // Handle common success patterns
-        if (urlParams.get('success') === 'password_changed') showToast('Đổi mật khẩu thành công! Thông báo đã được gửi đến email thí sinh.', 'success');
-        else if (urlParams.get('success')) showToast(decodeURIComponent(urlParams.get('success')), 'success');
+        if (urlParams.get('success') === 'password_changed') {
+            showToast('Đổi mật khẩu thành công! Thông báo đã được gửi đến email thí sinh.', 'success');
+        } else if (urlParams.get('success') && urlParams.get('msg') === 'queued') {
+            const count = urlParams.get('count') || '0';
+            showToast(`Đã đưa ${count} email vào hàng đợi gửi thư trúng tuyển.`, 'success');
+        } else if (urlParams.get('success')) {
+            const successVal = urlParams.get('success');
+            // Nếu success=1 thì hiển thị thông báo mặc định, nếu là text thì hiển thị text đó
+            const message = successVal === '1' ? 'Thao tác thành công!' : decodeURIComponent(successVal);
+            showToast(message, 'success');
+        }
         
         if (urlParams.get('error')) {
             showToast(decodeURIComponent(urlParams.get('error')), 'error');

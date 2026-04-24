@@ -541,12 +541,12 @@ class CandidateController extends Controller
                 // Send Email Notification
                 if (!empty($candidate['email'])) {
                     $mailer = new \App\Services\MailerService();
-                    $subject = "ThÃ´ng bÃ¡o thay Ä‘á»•i máº­t kháº©u - Há»‡ thá»‘ng Tuyá»ƒn sinh";
-                    $body = "ChÃ o báº¡n <b>{$candidate['ho_va_ten']}</b>,<br><br>
-                            NgÆ°á»i quáº£n trá»‹ Ä‘Ã£ thay Ä‘á»•i máº­t kháº©u Ä‘Äƒng nháº­p cá»§a báº¡n trÃªn há»‡ thá»‘ng Tuyá»ƒn sinh.<br>
-                            Máº­t kháº©u má»›i cá»§a báº¡n lÃ : <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
-                            Vui lÃ²ng sá»­ dá»¥ng máº­t kháº©u nÃ y Ä‘á»ƒ Ä‘Äƒng nháº­p vÃ  Ä‘á»•i láº¡i máº­t kháº©u cÃ¡ nhÃ¢n sau khi truy cáº­p.<br>
-                            TrÃ¢n trá»ng!";
+                    $subject = "Thông báo thay đổi mật khẩu - Hệ thống Tuyển sinh";
+                    $body = "Chào bạn <b>{$candidate['ho_va_ten']}</b>,<br><br>
+                            Người quản trị đã thay đổi mật khẩu đăng nhập của bạn trên hệ thống Tuyển sinh.<br>
+                            Mật khẩu mới của bạn là: <b style='color: #0066FF; font-size: 1.2em;'>{$newPassword}</b><br><br>
+                            Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
+                            Trân trọng!";
                     
                     $mailer->enqueue($candidate['email'], $subject, $body);
                 }

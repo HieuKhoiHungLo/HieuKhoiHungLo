@@ -86,17 +86,26 @@
 
                 <!-- Desktop Nav -->
                 <nav class="hidden md:flex items-center space-x-1 ml-auto">
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                        <!-- <a href="<?= url('/application/results') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">Tra cứu Kết quả</a> -->
-                        <a href="<?= url('/application/index') ?>" class="hvu-btn-primary hover:bg-red-700 text-white font-bold px-4 py-2 rounded-full shadow-md transition ml-2 text-sm">
-                            <i class="fas fa-file-alt mr-1.5 opacity-80"></i> Hồ sơ Xét tuyển
+                    <?php 
+                    $headerMenus = (new \App\Models\Menu())->getActiveMenus('header_public');
+                    $isLoggedIn = isset($_SESSION['user_id']);
+                    
+                    foreach ($headerMenus as $idx => $menu):
+                        // Check visibility
+                        if ($menu['visibility'] == 'guest_only' && $isLoggedIn) continue;
+                        if ($menu['visibility'] == 'auth_only' && !$isLoggedIn) continue;
+                        if ($menu['visibility'] == 'admin_only') continue; // Only for admin sidebar
+
+                        $cssClass = $menu['css_class'] ?: 'text-gray-700 hover:text-hvu-red font-medium px-4 py-2';
+                        $iconHtml = $menu['icon'] ? "<i class='fas {$menu['icon']} mr-1.5 opacity-80'></i> " : '';
+                    ?>
+                        <a href="<?= url($menu['url']) ?>" class="<?= htmlspecialchars($cssClass) ?>">
+                            <?= $iconHtml ?><?= htmlspecialchars($menu['title']) ?>
                         </a>
-                    <?php else: ?>
-                        <a href="<?= url('/tinh-diem') ?>" class="text-gray-700 hover:text-hvu-red font-medium px-4 py-2">Tính điểm XT</a>
-                        <span class="text-gray-300">|</span>
-                        <a href="<?= url('/login') ?>" class="text-gray-700 hover:text-hvu-red font-medium px-4 py-2">Đăng nhập</a>
-                        <a href="<?= url('/register') ?>" class="bg-hvu-red text-white px-5 py-2 rounded-full hover:bg-red-700 transition shadow-md font-medium ml-2">Đăng ký ngay</a>
-                    <?php endif; ?>
+                        
+                        <?php if ($idx == 0 && !$isLoggedIn): // Optional separator logic if needed, or remove completely ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 </nav>
 
                 <!-- Action Icons (Notification & Mobile Menu) -->
@@ -268,15 +277,36 @@
                     <div class="py-3 px-2 text-gray-500 text-sm border-b border-gray-100 mb-2">
                         Xin chào, <b class="text-gray-800"><?= htmlspecialchars($_SESSION['user_name']) ?></b>
                     </div>
-                    <!-- <a href="<?= url('/application/results') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Tra cứu Kết quả</a> -->
-                    <a href="<?= url('/application/index') ?>" class="block px-4 py-3 bg-red-50 text-hvu-red font-bold rounded-lg mb-1">Hồ sơ Xét tuyển</a>
-                    <a href="<?= url('/profile/step1') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">Thông tin cá nhân</a>
-                    <a href="<?= url('/profile/change-password') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium text-blue-600 bg-blue-50">Đổi mật khẩu</a>
-                    <a href="<?= url('/logout') ?>" class="block px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg">Đăng xuất</a>
-                <?php else: ?>
-                    <a href="<?= url('/tinh-diem') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center">Tính điểm XT</a>
-                    <a href="<?= url('/login') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center">Đăng nhập</a>
-                    <a href="<?= url('/register') ?>" class="block px-4 py-3 bg-hvu-red text-white font-bold rounded-lg text-center shadow">Đăng ký ngay</a>
+                <?php endif; ?>
+
+                <?php 
+                foreach ($headerMenus as $menu):
+                    // Check visibility
+                    if ($menu['visibility'] == 'guest_only' && $isLoggedIn) continue;
+                    if ($menu['visibility'] == 'auth_only' && !$isLoggedIn) continue;
+                    if ($menu['visibility'] == 'admin_only') continue; 
+                    
+                    // Simplify classes for mobile view
+                    $mobileClass = 'block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-center font-medium';
+                    if (strpos($menu['css_class'], 'bg-hvu-red') !== false) {
+                        $mobileClass = 'block px-4 py-3 bg-hvu-red text-white font-bold rounded-lg text-center shadow mt-2';
+                    } elseif (strpos($menu['css_class'], 'hvu-btn-primary') !== false) {
+                        $mobileClass = 'block px-4 py-3 bg-blue-50 text-blue-700 font-bold rounded-lg mb-1 mt-2';
+                    }
+
+                    $iconHtml = $menu['icon'] ? "<i class='fas {$menu['icon']} mr-1.5 opacity-80'></i> " : '';
+                ?>
+                    <a href="<?= url($menu['url']) ?>" class="<?= $mobileClass ?>">
+                        <?= $iconHtml ?><?= htmlspecialchars($menu['title']) ?>
+                    </a>
+                <?php endforeach; ?>
+
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <div class="border-t border-gray-100 mt-2 pt-2">
+                        <a href="<?= url('/profile/step1') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"><i class="fas fa-user-circle mr-2"></i> Thông tin cá nhân</a>
+                        <a href="<?= url('/profile/change-password') ?>" class="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg"><i class="fas fa-key mr-2"></i> Đổi mật khẩu</a>
+                        <a href="<?= url('/logout') ?>" class="block px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-lg"><i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
