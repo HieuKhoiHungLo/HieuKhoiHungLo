@@ -713,6 +713,7 @@ class AdminController extends Controller
                     $data['recent']   = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
                     $data['latest']   = $this->thiSinhRepo->getLatestCandidates(5, $sessionId);
                     $data['major']    = $this->getNguyenVongRepo()->getMajorStats(30, $startDate, $endDate, $sessionId);
+                    $data['reviewers'] = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);
                 }
 
                 if ($type === 'majors' || $type === 'all') {

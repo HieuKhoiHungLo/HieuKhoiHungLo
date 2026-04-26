@@ -875,7 +875,7 @@
             }
         }
 
-        if (type === 'demographics') {
+        if (type === 'demographics' || type === 'overview') {
             // Reviewer Stats Table Update
             const rb = document.getElementById('reviewerTableBody');
             if (rb && data.reviewers) {
