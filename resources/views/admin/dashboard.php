@@ -401,8 +401,8 @@
                             <tr>
                                 <th>Họ tên cán bộ</th>
                                 <th>Tên đăng nhập</th>
-                                <th style="width: 120px" class="text-right">Đã duyệt</th>
-                                <th style="width: 120px" class="text-right">Yêu cầu sửa</th>
+                                <th style="width: 120px" class="text-center">Đã duyệt</th>
+                                <th style="width: 120px" class="text-center">Yêu cầu sửa</th>
                             </tr>
                         </thead>
                         <tbody id="reviewerTableBody">
@@ -885,10 +885,10 @@
                         const r = document.createElement('tr');
                         r.className = 'hover:bg-slate-50/50 transition';
                         r.innerHTML = `
-                        <td class="text-slate-800 font-medium">${v.ho_ten}</td>
-                        <td class="text-slate-500 font-mono text-xs">${v.ten_dang_nhap}</td>
-                        <td class="text-right font-bold text-emerald-600">${v.approved_count}</td>
-                        <td class="text-right font-bold text-orange-600">${v.edit_count}</td>
+                        <td class="text-slate-700">${v.ho_ten}</td>
+                        <td class="text-slate-500 text-xs">${v.ten_dang_nhap}</td>
+                        <td class="text-center text-emerald-600">${v.approved_count}</td>
+                        <td class="text-center text-orange-600">${v.edit_count}</td>
                     `;
                         rb.appendChild(r);
                     });
