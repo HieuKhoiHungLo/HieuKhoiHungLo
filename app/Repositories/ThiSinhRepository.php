@@ -460,7 +460,8 @@ class ThiSinhRepository
                 FROM quan_tri_vien qtv
                 JOIN ho_so_xet_tuyen hs ON qtv.id = hs.nguoi_duyet_id
                 LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL 
+                AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
 
         if ($sessionId) {

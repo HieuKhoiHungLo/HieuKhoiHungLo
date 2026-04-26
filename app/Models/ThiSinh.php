@@ -455,7 +455,7 @@ class ThiSinh extends Model {
         ];
 
         // 1. Get Application Related Stats (total, pending, approved, etc.)
-        $hsWhere = " WHERE 1=1";
+        $hsWhere = " WHERE hs.deleted_at IS NULL";
         $params = [];
         
         // Use JOIN instead of EXISTS for better performance
@@ -675,7 +675,7 @@ class ThiSinh extends Model {
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
                 LEFT JOIN dm_truong_thpt truong ON ts.ma_truong_lop_12 = truong.ma_truong 
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
@@ -698,7 +698,7 @@ class ThiSinh extends Model {
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
                 JOIN dm_tinh p ON ts.ma_tinh_ho_khau = p.ma_tinh
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
@@ -721,7 +721,7 @@ class ThiSinh extends Model {
         $sql = "SELECT CASE WHEN ts.gioi_tinh = 'Nam' THEN 'Nam' WHEN ts.gioi_tinh = 'Nữ' THEN 'Nữ' ELSE 'Khác' END as label, COUNT(DISTINCT ts.so_cccd) as count 
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
@@ -743,7 +743,7 @@ class ThiSinh extends Model {
         $sql = "SELECT COALESCE(ts.khu_vuc_uu_tien, 'Không') as label, COUNT(DISTINCT ts.so_cccd) as count 
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
@@ -765,7 +765,7 @@ class ThiSinh extends Model {
         $sql = "SELECT COALESCE(ts.doi_tuong_uu_tien, 'Không') as label, COUNT(DISTINCT ts.so_cccd) as count 
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $sql .= " AND hs.created_at >= ? AND hs.created_at <= ?";
@@ -788,7 +788,7 @@ class ThiSinh extends Model {
      * Uses a single JOIN to ho_so_xet_tuyen with conditional counts.
      */
     public function getCombinedDemographicStats($startDate = null, $endDate = null, $sessionId = null): array {
-        $where  = "WHERE 1=1";
+        $where  = "WHERE hs.deleted_at IS NULL AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
         $params = [];
         if ($startDate && $endDate) {
             $where   .= " AND hs.created_at >= ? AND hs.created_at <= ?";
