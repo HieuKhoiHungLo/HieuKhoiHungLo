@@ -299,16 +299,16 @@
                     <table class="premium-table min-w-[600px] lg:min-w-full">
                         <thead>
                             <tr>
-                                <th style="width: 120px" rowspan="2">Mã ngành</th>
-                                <th rowspan="2">Tên ngành</th>
+                                <th style="width: 120px" class="text-center" rowspan="2">Mã ngành</th>
+                                <th class="text-center" rowspan="2">Tên ngành</th>
                                 <th style="width: 100px" class="text-center" rowspan="2">Chỉ tiêu</th>
-                                <th class="text-center" colspan="4">Thống kê NV</th>
+                                <th class="text-center" colspan="4">Thống kê nguyện vọng</th>
                             </tr>
                             <tr>
                                 <th style="width: 80px" class="text-center">Tổng</th>
-                                <th style="width: 80px" class="text-center">NV1</th>
-                                <th style="width: 80px" class="text-center">NV2</th>
-                                <th style="width: 80px" class="text-center">C.Lại</th>
+                                <th style="width: 120px" class="text-center">Nguyện vọng 1</th>
+                                <th style="width: 120px" class="text-center">Nguyện vọng 2</th>
+                                <th style="width: 140px" class="text-center">Nguyện vọng còn lại</th>
                             </tr>
                         </thead>
                         <tbody id="detailedMajorStatsBody">
@@ -868,10 +868,10 @@
                         n2 += nv2;
                         cl += c;
                         r.className = 'hover:bg-slate-50/50 transition';
-                        r.innerHTML = `<td class="text-slate-800">${m.ma_nganh}</td><td class="text-slate-800">${m.ten_nganh}</td><td class="text-center text-slate-800">${t>0?t:'-'}</td><td class="text-center text-slate-800">${tn}</td><td class="text-center text-red-600 font-bold">${nv1}</td><td class="text-center text-slate-800">${nv2}</td><td class="text-center text-slate-800">${c}</td>`;
+                        r.innerHTML = `<td class="text-center text-slate-800">${m.ma_nganh}</td><td class="text-slate-800">${m.ten_nganh}</td><td class="text-center text-slate-800">${t>0?t:'-'}</td><td class="text-center text-slate-800">${tn}</td><td class="text-center text-red-600 font-bold">${nv1}</td><td class="text-center text-slate-800">${nv2}</td><td class="text-center text-slate-800">${c}</td>`;
                         db.appendChild(r);
                     });
-                    df.innerHTML = `<tr><td class="text-right font-black" colspan="2">TỔNG CỘNG</td><td class="text-center text-slate-800 font-black">${tt>0?tt:'-'}</td><td class="text-center text-slate-800 font-black">${ta}</td><td class="text-center text-red-600 font-black">${n1}</td><td class="text-center text-slate-800 font-black">${n2}</td><td class="text-center text-slate-800 font-black">${cl}</td></tr>`;
+                    df.innerHTML = `<tr><td class="text-right font-black pr-4" colspan="2">TỔNG CỘNG</td><td class="text-center text-slate-800 font-black">${tt>0?tt:'-'}</td><td class="text-center text-slate-800 font-black">${ta}</td><td class="text-center text-red-600 font-black">${n1}</td><td class="text-center text-slate-800 font-black">${n2}</td><td class="text-center text-slate-800 font-black">${cl}</td></tr>`;
                 } else {
                     db.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-medium">Chưa có dữ liệu.</td></tr>';
                     df.innerHTML = '';
