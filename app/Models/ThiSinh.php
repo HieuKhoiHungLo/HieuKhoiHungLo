@@ -36,9 +36,11 @@ class ThiSinh extends Model {
              FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as transcript_status";
         }
 
-        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name $transcriptStatusSql";
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, qtv_base.ho_ten as reviewer_name $transcriptStatusSql";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
-                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong";
+                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                       LEFT JOIN ho_so_xet_tuyen hs_base ON t.so_cccd = hs_base.so_cccd " . ($sessionId ? " AND hs_base.dot_tuyen_sinh_id = " . (int)$sessionId : "") . "
+                       LEFT JOIN quan_tri_vien qtv_base ON hs_base.nguoi_duyet_id = qtv_base.id";
 
         // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
         if ($applicationStatus === 'submitted') {
@@ -190,6 +192,10 @@ class ThiSinh extends Model {
                         END
                      FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
                     $params[] = $val;
+                } elseif ($field === 'reviewer') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?))";
+                    $params[] = "%$val%";
+                    $params[] = "%$val%";
                 }
             }
         }
@@ -444,6 +450,10 @@ class ThiSinh extends Model {
                         END
                      FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
                     $params[] = $val;
+                } elseif ($field === 'reviewer') {
+                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?))";
+                    $params[] = "%$val%";
+                    $params[] = "%$val%";
                 }
             }
         }

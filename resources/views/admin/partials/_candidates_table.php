@@ -158,6 +158,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             </a>
                         </div>
                     </th>
+                    <th x-show="showCols.reviewer_name" class="w-32">Người duyệt</th>
 
                     <th x-show="showCols.phone" class="w-40">
                         <div class="sort-trigger">
@@ -227,6 +228,12 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <th class="px-2 py-1">
                         <input type="text" id="f_dob_search" name="f_dob" data-filter-key="f_dob" aria-label="Tìm kiếm ngày sinh" placeholder="Ngày sinh..."
                             value="<?= htmlspecialchars($filters['f_dob'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <th x-show="showCols.reviewer_name" class="px-2 py-1">
+                        <input type="text" id="f_reviewer_search" name="f_reviewer" data-filter-key="f_reviewer" aria-label="Lọc người duyệt" placeholder="Người duyệt..."
+                            value="<?= htmlspecialchars($filters['f_reviewer'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
@@ -412,6 +419,9 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                             <td class="text-slate-600">
                                 <?= $c['ngay_sinh'] ? date('d/m/Y', strtotime($c['ngay_sinh'])) : '-' ?>
+                            </td>
+                            <td x-show="showCols.reviewer_name" class="text-slate-500 text-[11px]">
+                                <?= htmlspecialchars($c['reviewer_name'] ?: '-') ?>
                             </td>
 
                             <td x-show="showCols.phone" class="font-medium text-slate-700">
