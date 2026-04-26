@@ -5,9 +5,14 @@ use App\Core\Controller;
 use App\Services\ExportService;
 use App\Services\PermissionService;
 use App\Models\MasterData;
+use ZipStream\ZipStream;
 use App\Core\Database;
 
 class ReportController extends Controller {
+    // Configuration for parallel download
+    private const BATCH_SIZE = 100;
+    private const CURL_TIMEOUT = 30;
+    
     protected $exportService;
     protected $permissionService;
     protected $masterData;
@@ -27,13 +32,11 @@ class ReportController extends Controller {
         $majors   = $this->masterData->getMajors();
         $sessions = $this->masterData->getAll('dot_tuyen_sinh', 'nam_tuyen_sinh DESC, id DESC');
         
-        // Find active session to determine initial filters
         $activeSession = null;
         foreach ($sessions as $s) {
             if (!empty($s['kich_hoat'])) { $activeSession = $s; break; }
         }
 
-        // Determine current selected year
         $years = [];
         foreach ($sessions as $s) {
             $y = $s['nam_tuyen_sinh'] ?? null;
@@ -53,7 +56,6 @@ class ReportController extends Controller {
             }
         }
 
-        // Fetch stats filtered by the current selected session
         $stats = $this->exportService->getStatistics(['session_id' => $selectedSessionId]);
 
         $this->view('admin/reports/index', [
@@ -64,7 +66,7 @@ class ReportController extends Controller {
             'yearSessions'      => $yearSessions,
             'selectedYear'      => $selectedYear,
             'selectedSessionId' => $selectedSessionId,
-            'allSessions'       => $sessions, // for JS filtering
+            'allSessions'       => $sessions,
         ]);
     }
 
@@ -72,12 +74,10 @@ class ReportController extends Controller {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
-
         $filters = [
             'status'     => $_GET['status'] ?? null,
             'session_id' => $_GET['session_id'] ?? null,
         ];
-
         $data = $this->exportService->exportCandidatesToCsv($filters);
         $this->exportService->toExcel($data, 'danh_sach_thi_sinh_' . date('Ymd') . '.xls');
     }
@@ -86,17 +86,14 @@ class ReportController extends Controller {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
-
         $maNganh = $_GET['ma_nganh'] ?? null;
         if (!$maNganh) {
             die('Vui lòng chọn ngành.');
         }
-
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
             'status'     => $_GET['status'] ?? null,
         ];
-
         $data = $this->exportService->exportAdmittedByMajor($maNganh, $filters);
         $this->exportService->toExcel($data, 'trung_tuyen_' . $maNganh . '_' . date('Ymd') . '.xls');
     }
@@ -105,7 +102,6 @@ class ReportController extends Controller {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
-
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
             'status'     => $_GET['status'] ?? null,
@@ -118,7 +114,6 @@ class ReportController extends Controller {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
-
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
             'status'     => $_GET['status'] ?? null,
@@ -129,9 +124,7 @@ class ReportController extends Controller {
 
     public function statsApi() {
         header('Content-Type: application/json');
-        $filters = [
-            'session_id' => $_GET['session_id'] ?? null
-        ];
+        $filters = ['session_id' => $_GET['session_id'] ?? null];
         echo json_encode($this->exportService->getStatistics($filters));
         exit;
     }
@@ -188,17 +181,19 @@ class ReportController extends Controller {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
-        $filters = [
-            'session_id' => $_GET['session_id'] ?? null,
-        ];
+        $filters = ['session_id' => $_GET['session_id'] ?? null];
         $data = $this->exportService->exportAdmittedByMajor(null, $filters);
         $this->exportService->toExcel($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.xls');
     }
-    
+
     public function downloadAptitudePhotos() {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
+
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '1024M');
 
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
@@ -210,42 +205,67 @@ class ReportController extends Controller {
             die('Không có dữ liệu thí sinh năng khiếu để tải ảnh.');
         }
 
-        $zip = new \ZipArchive();
         $zipFileName = 'anh_the_nang_khieu_' . date('Ymd_His') . '.zip';
-        $zipFilePath = sys_get_temp_dir() . '/' . $zipFileName;
+        $zipFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
 
-        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             die('Không thể tạo file ZIP.');
         }
 
         $publicPath = __DIR__ . '/../../public';
         $addedFiles = 0;
+        $remoteFiles = [];
+        $localFiles = [];
 
-        foreach ($list as $c) {
-            $cccd = $c['Số CCCD'] ?? '';
-            $hoTen = $c['Họ và Tên'] ?? '';
+        foreach ($list as $idx => $c) {
             $path = $c['anh_dai_dien'] ?? '';
+            if (!$path) continue;
+            if (strpos($path, 'http') === 0) {
+                $remoteFiles[$idx] = $path;
+            } else {
+                $localFiles[$idx] = $path;
+            }
+        }
 
-            if (!$path || strpos($path, 'http') === 0) continue;
-
+        foreach ($localFiles as $idx => $path) {
+            $c = $list[$idx];
             $fullPath = $publicPath . $path;
             if (file_exists($fullPath) && is_file($fullPath)) {
-                $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
-                // Clean name for zip
-                $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($hoTen, 'ASCII', 'UTF-8'));
-                if (empty($safeName)) $safeName = 'thi_sinh';
-                
-                $zipName = "{$cccd}_{$safeName}.{$ext}";
+                $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg';
+                $safeName = $this->safeFileName($c['Họ và Tên'] ?? 'thi_sinh');
+                $zipName = "{$c['Số CCCD']}_{$safeName}.{$ext}";
                 $zip->addFile($fullPath, $zipName);
                 $addedFiles++;
             }
         }
 
-        $zip->close();
+        if (!empty($remoteFiles)) {
+            $chunks = array_chunk($remoteFiles, self::BATCH_SIZE, true);
+            foreach ($chunks as $chunk) {
+                set_time_limit(300);
+                $fastUrls = array_map([$this, 'getFastDownloadUrl'], $chunk);
+                $contents = $this->fetchUrlsParallel($fastUrls);
+                foreach ($contents as $idx => $content) {
+                    if (!$content) continue;
+                    $c = $list[$idx];
+                    $url = $remoteFiles[$idx];
+                    $ext = 'jpg';
+                    if (strpos($url, 'drive.google.com/thumbnail') === false) {
+                        $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                    }
+                    $safeName = $this->safeFileName($c['Họ và Tên'] ?? 'thi_sinh');
+                    $zipName = "{$c['Số CCCD']}_{$safeName}.{$ext}";
+                    $zip->addFromString($zipName, $content);
+                    $addedFiles++;
+                }
+            }
+        }
 
+        $zip->close();
         if ($addedFiles === 0) {
             @unlink($zipFilePath);
-            die('Không tìm thấy tệp ảnh nào trên máy chủ để nén.');
+            die('Không tìm thấy tệp ảnh nào để nén.');
         }
 
         header('Content-Type: application/zip');
@@ -254,7 +274,7 @@ class ReportController extends Controller {
         header('Pragma: no-cache');
         header('Expires: 0');
         readfile($zipFilePath);
-        unlink($zipFilePath);
+        @unlink($zipFilePath);
         exit;
     }
 
@@ -263,53 +283,89 @@ class ReportController extends Controller {
             die('Không có quyền xuất báo cáo.');
         }
 
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '1024M');
+
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
             'status'     => $_GET['status'] ?? null,
         ];
 
         $list = $this->exportService->exportCertificatesFiltered($filters);
+
         if (empty($list)) {
             die('Không có dữ liệu chứng chỉ để tải ảnh.');
         }
 
-        $zip = new \ZipArchive();
         $zipFileName = 'anh_minh_chung_cc_' . date('Ymd_His') . '.zip';
-        $zipFilePath = sys_get_temp_dir() . '/' . $zipFileName;
+        $zipFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
 
-        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             die('Không thể tạo file ZIP.');
         }
 
         $publicPath = __DIR__ . '/../../public';
         $addedFiles = 0;
+        $remoteQueue = [];
 
         foreach ($list as $c) {
-            $cccd = $c['Số CCCD'] ?? '';
-            $hoTen = $c['Họ và Tên'] ?? '';
-            $type = $c['Loại chứng chỉ'] ?? 'CC';
             $paths = $c['file_minh_chung_cc'] ?? '';
-
             if (!$paths) continue;
-
             $files = explode(',', $paths);
-            $i = 1;
-            foreach ($files as $path) {
+            foreach ($files as $i => $path) {
                 $path = trim($path);
-                if (!$path || strpos($path, 'http') === 0) continue;
+                if (!$path) continue;
+                if (strpos($path, 'http') === 0) {
+                    $remoteQueue[] = [
+                        'url'   => $path,
+                        'cccd'  => $c['Số CCCD'],
+                        'hoTen' => $c['Họ và Tên'],
+                        'type'  => $c['Loại chứng chỉ'] ?? 'CC',
+                        'index' => $i + 1,
+                        'total' => count($files),
+                    ];
+                } else {
+                    $fullPath = $publicPath . $path;
+                    if (file_exists($fullPath) && is_file($fullPath)) {
+                        $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg';
+                        $safeName = $this->safeFileName($c['Họ và Tên']);
+                        $safeType = $this->safeFileName($c['Loại chứng chỉ'] ?? 'CC');
+                        $suffix = count($files) > 1 ? "_" . ($i + 1) : "";
+                        $zipName = "{$c['Số CCCD']}_{$safeName}_{$safeType}{$suffix}.{$ext}";
+                        $zip->addFile($fullPath, $zipName);
+                        $addedFiles++;
+                    }
+                }
+            }
+        }
+        
+        if (!empty($remoteQueue)) {
+            $chunks = array_chunk($remoteQueue, self::BATCH_SIZE);
+            foreach ($chunks as $chunk) {
+                set_time_limit(300);
+                $urls = array_column($chunk, 'url');
+                $fastUrls = array_map([$this, 'getFastDownloadUrl'], $urls);
+                
+                $contents = $this->fetchUrlsParallel($fastUrls);
 
-                $fullPath = $publicPath . $path;
-                if (file_exists($fullPath) && is_file($fullPath)) {
-                    $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
-                    $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($hoTen, 'ASCII', 'UTF-8'));
-                    $safeType = preg_replace('/[^A-Za-z0-9_\-]/', '_', mb_convert_encoding($type, 'ASCII', 'UTF-8'));
-                    
-                    $suffix = count($files) > 1 ? "_{$i}" : "";
-                    $zipName = "{$cccd}_{$safeName}_{$safeType}{$suffix}.{$ext}";
-                    
-                    $zip->addFile($fullPath, $zipName);
+                foreach ($contents as $idx => $content) {
+                    if (!$content) {
+                        error_log("Failed to download: " . $chunk[$idx]['url']);
+                        continue;
+                    }
+                    $item = $chunk[$idx];
+                    $ext = 'jpg';
+                    if (strpos($item['url'], 'drive.google.com/thumbnail') === false) {
+                        $ext = pathinfo(parse_url($item['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                    }
+                    $safeName = $this->safeFileName($item['hoTen']);
+                    $safeType = $this->safeFileName($item['type']);
+                    $suffix = $item['total'] > 1 ? "_" . $item['index'] : "";
+                    $zipName = "{$item['cccd']}_{$safeName}_{$safeType}{$suffix}.{$ext}";
+                    $zip->addFromString($zipName, $content);
                     $addedFiles++;
-                    $i++;
                 }
             }
         }
@@ -318,7 +374,7 @@ class ReportController extends Controller {
 
         if ($addedFiles === 0) {
             @unlink($zipFilePath);
-            die('Không tìm thấy tệp ảnh minh chứng nào trên máy chủ để nén.');
+            die('Không tìm thấy tệp ảnh minh chứng nào để nén.');
         }
 
         header('Content-Type: application/zip');
@@ -327,7 +383,102 @@ class ReportController extends Controller {
         header('Pragma: no-cache');
         header('Expires: 0');
         readfile($zipFilePath);
-        unlink($zipFilePath);
+        @unlink($zipFilePath);
         exit;
+    }
+
+    private function fetchUrlsParallel(array $urls): array {
+        if (!function_exists('curl_multi_init')) {
+            $results = [];
+            foreach ($urls as $key => $url) {
+                $results[$key] = @file_get_contents($url);
+            }
+            return $results;
+        }
+
+        $mh = curl_multi_init();
+        $handles = [];
+        $results = [];
+
+        foreach ($urls as $key => $url) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, self::CURL_TIMEOUT);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+            curl_setopt($ch, CURLOPT_ENCODING, ''); // Hỗ trợ gzip/deflate để tải nhanh hơn
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdmissionsPortal/1.0');
+            curl_multi_add_handle($mh, $ch);
+            $handles[$key] = $ch;
+        }
+
+        $active = null;
+        $start_time = microtime(true);
+        do {
+            $mrc = curl_multi_exec($mh, $active);
+        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+
+        while ($active && $mrc == CURLM_OK) {
+            if (curl_multi_select($mh) === -1) {
+                usleep(10000); // 10ms
+            }
+            do {
+                $mrc = curl_multi_exec($mh, $active);
+            } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+        }
+
+        foreach ($handles as $key => $ch) {
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($code === 200) {
+                $results[$key] = curl_multi_getcontent($ch);
+            } else {
+                $results[$key] = null;
+            }
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($mh);
+
+        return $results;
+    }
+    private function getFastDownloadUrl($originalUrl): string {
+        if (strpos($originalUrl, 'drive.google.com') !== false) {
+            $id = '';
+            if (preg_match('/d\/([a-zA-Z0-9_-]+)/', $originalUrl, $matches)) {
+                $id = $matches[1];
+            } elseif (preg_match('/id=([a-zA-Z0-9_-]+)/', $originalUrl, $matches)) {
+                $id = $matches[1];
+            }
+            if ($id) {
+                return 'https://drive.google.com/thumbnail?id=' . $id . '&sz=w1000-h1000';
+            }
+        }
+        return $originalUrl;
+    }
+
+    private function safeFileName($str): string {
+        if (empty($str)) return 'file';
+        $unicode = [
+            'a' => 'á|à|ả|ã|ạ|ă|ắ|ặ|ằ|ẳ|ẵ|â|ấ|ầ|ẩ|ẫ|ậ',
+            'd' => 'đ',
+            'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+            'i' => 'í|ì|ỉ|ĩ|ị',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+            'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
+            'A' => 'Á|À|Ả|Ã|Ạ|Ă|Ắ|Ặ|Ằ|Ẳ|Ẵ|Â|Ấ|Ầ|Ẩ|Ẫ|Ậ',
+            'D' => 'Đ',
+            'E' => 'É|È|Ẻ|Ẽ|Ẹ|Ê|Ế|Ề|Ể|Ễ|Ệ',
+            'I' => 'Í|Ì|Ỉ|Ĩ|Ị',
+            'O' => 'Ó|Ò|Ỏ|Õ|Ọ|Ô|Ố|Ồ|Ổ|Ỗ|Ộ|Ơ|Ớ|Ờ|Ở|Ỡ|Ợ',
+            'U' => 'Ú|Ù|Ủ|Ũ|Ụ|Ư|Ứ|Ừ|Ử|Ữ|Ự',
+            'Y' => 'Ý|Ì|Ỷ|Ỹ|Ị',
+        ];
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/($uni)/i", $nonUnicode, $str);
+        }
+        $str = preg_replace('/[^A-Za-z0-9_\-]/', '_', $str);
+        return trim($str, '_');
     }
 }

@@ -105,8 +105,15 @@ class ThiSinh extends Model {
                     $sql .= " AND t.dien_thoai ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'dob') {
-                    $sql .= " AND t.ngay_sinh::text ILIKE ?";
-                    $params[] = "%$val%";
+                    // Optimized: Try to convert DD/MM/YYYY to YYYY-MM-DD for exact match
+                    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
+                        $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                        $sql .= " AND t.ngay_sinh = ?";
+                        $params[] = $formattedDate;
+                    } else {
+                        $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'province') {
                     $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
                     $params[] = "%$val%";
@@ -335,8 +342,15 @@ class ThiSinh extends Model {
                     $sql .= " AND t.dien_thoai ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'dob') {
-                    $sql .= " AND t.ngay_sinh::text ILIKE ?";
-                    $params[] = "%$val%";
+                    // Optimized: Try to convert DD/MM/YYYY to YYYY-MM-DD for exact match
+                    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
+                        $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                        $sql .= " AND t.ngay_sinh = ?";
+                        $params[] = $formattedDate;
+                    } else {
+                        $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'province') {
                     $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
                     $params[] = "%$val%";

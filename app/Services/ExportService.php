@@ -68,12 +68,34 @@ class ExportService {
     }
 
     /**
-     * Format decimal score: replace '.' with ',' for Vietnamese locale.
-     * Returns '' when null.
+     * Format decimal score to 3 decimal places.
+     * Returns raw string with dot so toExcel can treat it as Number.
      */
     private function formatDecimal($value): string {
-        if ($value === null || $value === '') return '';
-        return str_replace('.', ',', (string)$value);
+        if ($value === null || $value === '' || $value === false) return '';
+        return number_format((float)$value, 3, '.', '');
+    }
+
+    /**
+     * Normalize Academic labels (Học lực/Hạnh kiểm) to standard Vietnamese.
+     */
+    private function normalizeAcademic(?string $value): string {
+        if (empty($value)) return '';
+        $val = trim((string)$value);
+        $map = [
+            'Tot' => 'Tốt', 'TOT' => 'Tốt', 'TỐT' => 'Tốt',
+            'Kha' => 'Khá', 'KHA' => 'Khá', 'KHÁ' => 'Khá',
+            'Trung binh' => 'Trung bình', 'TB' => 'Trung bình',
+            'Yeu' => 'Yếu', 'Kem' => 'Kém',
+            'Gioi' => 'Giỏi', 'GIOI' => 'Giỏi', 'GIỎI' => 'Giỏi',
+            'Dat' => 'Đạt', 'DAT' => 'Đạt', 'ĐẠT' => 'Đạt'
+        ];
+        
+        $upper = mb_strtoupper($val, 'UTF-8');
+        foreach ($map as $k => $v) {
+            if (mb_strtoupper($k, 'UTF-8') === $upper) return $v;
+        }
+        return $val;
     }
 
     // ----------------------------------------------------------------
@@ -434,16 +456,8 @@ class ExportService {
                 $diemNgoaiNgu = $c['dt_trung'];
             }
 
-            // Normalize academic status
-            $mapAcademic = [
-                'Tot' => 'Tốt', 'TOT' => 'Tốt', 'TỐT' => 'Tốt',
-                'Kha' => 'Khá', 'KHA' => 'Khá', 'KHÁ' => 'Khá',
-                'Trung binh' => 'Trung bình', 'TB' => 'Trung bình',
-                'Yeu' => 'Yếu', 'Kem' => 'Kém',
-                'Gioi' => 'Giỏi', 'GIOI' => 'Giỏi', 'GIỎI' => 'Giỏi'
-            ];
-            $hocLuc = $mapAcademic[$c['hoc_luc_12']] ?? $c['hoc_luc_12'];
-            $hanhKiem = $mapAcademic[$c['hanh_kiem_12']] ?? $c['hanh_kiem_12'];
+            $hocLuc = $this->normalizeAcademic($c['hoc_luc_12']);
+            $hanhKiem = $this->normalizeAcademic($c['hanh_kiem_12']);
 
             $data[] = [
                 'STT'                               => (string)$stt++,
@@ -561,85 +575,108 @@ class ExportService {
     /**
      * Dữ liệu điểm học bạ (MOET format) - Lấy tất cả các lớp 10, 11, 12.
      */
+    /**
+     * Dữ liệu điểm học bạ (MOET format) - Luôn xuất đủ 3 dòng (lớp 10, 11, 12) cho mỗi thí sinh.
+     */
     public function exportMoetTranscriptsCsv($filters = []) {
-        $sql = "SELECT hs.so_cccd, t.ho_va_ten, t.ngay_sinh, t.gioi_tinh, kq.*
-                FROM ho_so_xet_tuyen hs
-                JOIN thi_sinh t ON hs.so_cccd = t.so_cccd
-                LEFT JOIN ket_qua_hoc_tap kq ON hs.so_cccd = kq.so_cccd
-                WHERE 1=1";
+        // 1. Lấy danh sách thí sinh thỏa mãn bộ lọc
+        $sqlC = "SELECT hs.so_cccd, t.ho_va_ten, t.ngay_sinh, t.gioi_tinh
+                 FROM ho_so_xet_tuyen hs
+                 JOIN thi_sinh t ON hs.so_cccd = t.so_cccd
+                 WHERE 1=1";
         $params = [];
         if (!empty($filters['session_id'])) {
-            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
+            $sqlC .= " AND hs.dot_tuyen_sinh_id = ?";
             $params[] = $filters['session_id'];
         }
         if (!empty($filters['status'])) {
-            $sql .= " AND hs.trang_thai = ?";
+            $sqlC .= " AND hs.trang_thai = ?";
             $params[] = $filters['status'];
         }
-        $sql .= " ORDER BY t.ho_va_ten, kq.lop ASC";
+        $sqlC .= " ORDER BY t.ho_va_ten";
+        
+        $stmtC = $this->db->prepare($sqlC);
+        $stmtC->execute($params);
+        $candidates = $stmtC->fetchAll(\PDO::FETCH_ASSOC);
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        if (empty($candidates)) return [];
+
+        // 2. Lấy dữ liệu điểm của các thí sinh này
+        $cccds = array_column($candidates, 'so_cccd');
+        // Chunk to avoid potential parameter limit issues if many candidates
+        $mapped = [];
+        $chunks = array_chunk($cccds, 500);
+        foreach ($chunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            $sqlK = "SELECT * FROM ket_qua_hoc_tap WHERE so_cccd IN ($placeholders)";
+            $stmtK = $this->db->prepare($sqlK);
+            $stmtK->execute($chunk);
+            $results = $stmtK->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($results as $kq) {
+                $mapped[$kq['so_cccd']][$kq['lop']] = $kq;
+            }
+        }
 
         $data = [];
         $stt  = 1;
 
-        foreach ($records as $r) {
-            if (!$r['lop']) continue; // Skip if no transcript record
+        // Subjects mapping
+        $subjects_map = [
+            'Toán' => 'toan', 'Văn' => 'van', 'Vật lí' => 'ly', 'Hóa học' => 'hoa',
+            'Sinh học' => 'sinh', 'Lịch sử' => 'su', 'Địa lí' => 'dia', 'GDCD' => 'gdcd',
+            'KTPL' => 'ktpl', 'Tin học' => 'tin_hoc', 'CNCN' => 'cong_nghe', 
+            'CNNN' => 'cnnn', 'Ngoại ngữ' => 'ngoai_ngu'
+        ];
 
-            $row = [
-                'STT'                      => (string)$stt++,
-                'Số ĐDCN'                  => $this->textCell($r['so_cccd'] ?? ''),
-                'Họ và tên'                => mb_strtoupper($r['ho_va_ten'], 'UTF-8'),
-                'Ngày sinh'                => $this->formatDate($r['ngay_sinh']),
-                'Giới tính'                => $r['gioi_tinh'],
-                'Lớp'                      => (string)$r['lop'],
-                'Chương trình học'         => '',
-                'Điểm trung bình năm'      => $this->formatDecimal($r['diem_tb_ca_nam'] ?? null),
-                'Điểm tổng kết HK I'       => $this->formatDecimal($r['diem_tb_hk1'] ?? null),
-                'Điểm tổng kết HK II'      => $this->formatDecimal($r['diem_tb_hk2'] ?? null),
-                'Điểm tổng kết CN'         => $this->formatDecimal($r['diem_tb_ca_nam'] ?? null),
-                'Học lực HK I'             => $r['hoc_luc_hk1'] ?? '',
-                'Học lực HK II'            => $r['hoc_luc_hk2'] ?? '',
-                'Học lực CN'               => $r['hoc_luc_ca_nam'] ?? '',
-                'Hạnh kiểm HK I'           => $r['hanh_kiem_hk1'] ?? '',
-                'Hạnh kiểm HK II'          => $r['hanh_kiem_hk2'] ?? '',
-                'Hạnh kiểm CN'             => $r['hanh_kiem_ca_nam'] ?? '',
-                'Kết quả học tập HK I'     => '',
-                'Kết quả học tập HK II'    => '',
-                'Kết quả học tập CN'       => '',
-                'Kết quả rèn luyện HK I'   => '',
-                'Kết quả rèn luyện HK II'  => '',
-                'Kết quả rèn luyện CN'     => '',
-            ];
+        foreach ($candidates as $c) {
+            $cccd = $c['so_cccd'];
+            
+            // Luôn xuất đủ 3 dòng cho 3 lớp
+            foreach ([10, 11, 12] as $lop) {
+                $r = $mapped[$cccd][$lop] ?? [];
+                
+                $row = [
+                    'STT'                      => (string)$stt++,
+                    'Số ĐDCN'                  => $this->textCell($cccd),
+                    'Họ và tên'                => mb_strtoupper($c['ho_va_ten'], 'UTF-8'),
+                    'Ngày sinh'                => $this->formatDate($c['ngay_sinh']),
+                    'Giới tính'                => $c['gioi_tinh'],
+                    'Lớp'                      => (string)$lop,
+                    'Chương trình học'         => '',
+                    'Điểm trung bình năm'      => $this->formatDecimal($r['diem_tb_ca_nam'] ?? null),
+                    'Điểm tổng kết HK I'       => $this->formatDecimal($r['diem_tb_hk1'] ?? null),
+                    'Điểm tổng kết HK II'      => $this->formatDecimal($r['diem_tb_hk2'] ?? null),
+                    'Điểm tổng kết CN'         => $this->formatDecimal($r['diem_tb_ca_nam'] ?? null),
+                    'Học lực HK I'             => $this->normalizeAcademic($r['hoc_luc_hk1'] ?? ''),
+                    'Học lực HK II'            => $this->normalizeAcademic($r['hoc_luc_hk2'] ?? ''),
+                    'Học lực CN'               => $this->normalizeAcademic($r['hoc_luc_ca_nam'] ?? ''),
+                    'Hạnh kiểm HK I'           => $this->normalizeAcademic($r['hanh_kiem_hk1'] ?? ''),
+                    'Hạnh kiểm HK II'          => $this->normalizeAcademic($r['hanh_kiem_hk2'] ?? ''),
+                    'Hạnh kiểm CN'             => $this->normalizeAcademic($r['hanh_kiem_ca_nam'] ?? ''),
+                    'Kết quả học tập HK I'     => '',
+                    'Kết quả học tập HK II'    => '',
+                    'Kết quả học tập CN'       => '',
+                    'Kết quả rèn luyện HK I'   => '',
+                    'Kết quả rèn luyện HK II'  => '',
+                    'Kết quả rèn luyện CN'     => '',
+                ];
 
-            // Primary subjects mapping
-            $subjects_map = [
-                'Toán' => 'toan', 'Văn' => 'van', 'Vật lí' => 'ly', 'Hóa học' => 'hoa',
-                'Sinh học' => 'sinh', 'Lịch sử' => 'su', 'Địa lí' => 'dia', 'GDCD' => 'gdcd',
-                'KTPL' => 'ktpl', 'Tin học' => 'tin_hoc', 'CNCN' => 'cong_nghe', 
-                'CNNN' => 'cnnn', 'Ngoại ngữ' => 'ngoai_ngu'
-            ];
+                foreach ($subjects_map as $label => $key) {
+                    $row[$label . ' HK I']  = $this->formatDecimal($r['diem_' . $key . '_hk1'] ?? null);
+                    $row[$label . ' HK II'] = $this->formatDecimal($r['diem_' . $key . '_hk2'] ?? null);
+                    $row[$label . ' CN']    = $this->formatDecimal($r['diem_' . $key . '_cn'] ?? null);
+                }
 
-            foreach ($subjects_map as $label => $key) {
-                $row[$label . ' HK I']  = $this->formatDecimal($r['diem_' . $key . '_hk1'] ?? null);
-                $row[$label . ' HK II'] = $this->formatDecimal($r['diem_' . $key . '_hk2'] ?? null);
-                $row[$label . ' CN']    = $this->formatDecimal($r['diem_' . $key . '_cn'] ?? null);
+                $row['Môn ngoại ngữ'] = '';
+                $extra_fields = ['Tự chọn song ngữ', 'QPAN', 'Tiếng dân tộc', 'Ngoại ngữ 2', 'Toán Pháp'];
+                foreach ($extra_fields as $field) {
+                    $row[$field . ' HK I'] = '';
+                    $row[$field . ' HK II'] = '';
+                    $row[$field . ' CN'] = '';
+                }
+
+                $data[] = $row;
             }
-
-            // Additional required columns (empty as per template)
-            $row['Môn ngoại ngữ'] = '';
-            $extra_fields = [
-                'Tự chọn song ngữ', 'QPAN', 'Tiếng dân tộc', 'Ngoại ngữ 2', 'Toán Pháp'
-            ];
-            foreach ($extra_fields as $field) {
-                $row[$field . ' HK I'] = '';
-                $row[$field . ' HK II'] = '';
-                $row[$field . ' CN'] = '';
-            }
-
-            $data[] = $row;
         }
         return $data;
     }
@@ -673,7 +710,7 @@ class ExportService {
         echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#334155"/></Style>' . "\n";
         echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#475569" ss:Bold="1"/><Interior ss:Color="#f8fafc" ss:Pattern="Solid"/></Style>' . "\n";
         echo '  <Style ss:ID="sText"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="@"/></Style>' . "\n";
-        echo '  <Style ss:ID="sNum"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="Fixed"/></Style>' . "\n";
+        echo '  <Style ss:ID="sNum"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="0.000"/></Style>' . "\n";
         echo ' </Styles>' . "\n";
 
         echo ' <Worksheet ss:Name="Report">' . "\n";
@@ -710,7 +747,8 @@ class ExportService {
                         'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT',
                         'Nơi thường trú - Mã tỉnh', 'Nơi thường trú - Mã Quận huyện', 'Nơi thường trú - Mã xã phường',
                         'Mã tỉnh lớp 12', 'Mã trường lớp 12',
-                        'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp'
+                        'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp',
+                        'Mã ngành', 'Thứ tự NV'
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';
