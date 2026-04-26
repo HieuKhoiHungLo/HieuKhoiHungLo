@@ -739,10 +739,10 @@ class AdminController extends Controller
 
             if ($forceRefresh) {
                 $result = $fetchData();
-                \App\Core\Cache::put($cacheKey, $result, 10);
+                \App\Core\Cache::put($cacheKey, $result, 1);
                 $result['refreshed'] = true;
             } else {
-                $result = \App\Core\Cache::remember($cacheKey, 10, $fetchData);
+                $result = \App\Core\Cache::remember($cacheKey, 1, $fetchData);
             }
 
             // Real-time Online Stats (Always fetch, never cache)

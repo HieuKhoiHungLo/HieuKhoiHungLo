@@ -46,16 +46,16 @@
 <div id="dashboardRoot" x-data="{
     activeTab: 'overview',
     loadedTabs: [],
-    initTab(tab) {
-        if (!this.loadedTabs.includes(tab)) {
-            window.fetchStats(tab);
-            this.loadedTabs.push(tab);
+    initTab(tab, force = false) {
+        if (force || !this.loadedTabs.includes(tab)) {
+            window.fetchStats(tab, force);
+            if (!this.loadedTabs.includes(tab)) this.loadedTabs.push(tab);
         }
         $nextTick(() => { if (window.renderChartsByTab) window.renderChartsByTab(tab); });
     },
     resetTabs() {
         this.loadedTabs = [];
-        this.initTab(this.activeTab);
+        this.initTab(this.activeTab, true);
     }
 }" x-init="$watch('activeTab', tab => initTab(tab)); $nextTick(() => initTab(activeTab));">
     <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -687,7 +687,7 @@
         }
     };
 
-    window.fetchStats = function(type = 'overview') {
+    window.fetchStats = function(type = 'overview', forceRefresh = false) {
         if (isFetching) return;
 
         const btnFilter = document.getElementById('btnFilter');
@@ -707,6 +707,10 @@
             start: document.getElementById('filterStart')?.value || '',
             end: document.getElementById('filterEnd')?.value || ''
         });
+
+        if (forceRefresh) {
+            params.append('refresh', '1');
+        }
 
         // Use a 20s timeout for slow network/Supabase cold start
         const controller = new AbortController();
