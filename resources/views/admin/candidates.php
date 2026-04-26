@@ -114,13 +114,15 @@
 
 <div x-data="{ 
     showCols: (function() {
-        let cols = JSON.parse(localStorage.getItem('admin_cols')) || { 
+        const defaults = { 
             cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
             gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false, transcript_status: true, reviewer_name: true
         };
+        const stored = JSON.parse(localStorage.getItem('admin_cols')) || {};
+        const cols = { ...defaults, ...stored };
         // Enforce fixed columns
         cols.cccd = true;
-        cols.ho_va_ten = true; // Added for name
+        cols.ho_va_ten = true;
         cols.dob = true;
         cols.phone = true;
         cols.nv1 = true;
