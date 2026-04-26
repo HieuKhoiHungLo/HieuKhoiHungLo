@@ -766,9 +766,9 @@ class AdminController extends Controller
             header('Content-Type: application/json');
             echo json_encode($result);
             exit;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
             exit;
         }
     }
