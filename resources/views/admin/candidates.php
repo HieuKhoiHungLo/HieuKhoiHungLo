@@ -116,7 +116,7 @@
     showCols: (function() {
         let cols = JSON.parse(localStorage.getItem('admin_cols')) || { 
             cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
-            gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false
+            gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false, transcript_status: true
         };
         // Enforce fixed columns
         cols.cccd = true;
@@ -146,7 +146,8 @@
             ethnicity: 'Dân tộc',
             area: 'Khu vực ƯT',
             object: 'Đối tượng ƯT',
-            grad_year: 'Năm tốt nghiệp'
+            grad_year: 'Năm tốt nghiệp',
+            transcript_status: 'Trạng thái học bạ'
         };
         return labels[col] || col;
     }

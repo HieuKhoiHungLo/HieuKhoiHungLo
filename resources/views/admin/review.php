@@ -221,6 +221,11 @@
         <button type="button" onclick="confirmResetReviewStatus()" class="px-8 py-3.5 bg-[#0066FF] text-white font-medium rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap">
             Hủy duyệt
         </button>
+
+        <!-- Quick Search CCCD (Refined Outline Style) -->
+        <input type="text" placeholder="Tìm CCCD..." 
+               class="py-3.5 bg-white border-2 border-[#0066FF] text-slate-800 placeholder-black font-medium rounded-xl shadow-sm focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm w-32 text-center"
+               onkeydown="if(event.key === 'Enter') { event.preventDefault(); const cccd = this.value.trim(); if(cccd) window.location.href = '<?= url('/admin/review') ?>?cccd=' + cccd; }">
     </div>
 
     <!-- Next -->

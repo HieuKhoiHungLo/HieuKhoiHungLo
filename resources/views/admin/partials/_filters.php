@@ -15,7 +15,7 @@
                 <button @click="open = !open" class="flex items-center gap-2 <?= isset($mode) && $mode === 'review' ? 'px-2 py-1' : 'px-3 py-2' ?> bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:text-[#0066FF] hover:border-indigo-300 transition shadow-sm">
                     <i class="fas fa-columns"></i> Cấu hình bảng
                 </button>
-                <div x-show="open" @click.away="open = false" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg z-20 p-2">
+                <div x-show="open" @click.away="open = false" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg z-50 p-2">
                     <template x-for="key in Object.keys(showCols)">
                         <label x-show="!fixedCols.includes(key)" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer">
                             <input type="checkbox" :checked="showCols[key]" @change="toggleCol(key)" class="rounded border-gray-300 text-[#0066FF] focus:ring-indigo-500" :disabled="fixedCols.includes(key)">

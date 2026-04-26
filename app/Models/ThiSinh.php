@@ -22,7 +22,16 @@ class ThiSinh extends Model {
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
         $params = [];
         
-        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name";
+        $transcriptStatusSql = "(SELECT 
+            CASE 
+                WHEN COUNT(*) = 0 THEN 'not_entered'
+                WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                ELSE 'partial'
+            END
+         FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as transcript_status";
+
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, $transcriptStatusSql";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
                        LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong";
 
@@ -160,6 +169,16 @@ class ThiSinh extends Model {
                         $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
+                } elseif ($field === 'transcript') {
+                    $sql .= " AND (SELECT 
+                        CASE 
+                            WHEN COUNT(*) = 0 THEN 'not_entered'
+                            WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                            WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                            ELSE 'partial'
+                        END
+                     FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
+                    $params[] = $val;
                 }
             }
         }
@@ -397,6 +416,16 @@ class ThiSinh extends Model {
                         $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
+                } elseif ($field === 'transcript') {
+                    $sql .= " AND (SELECT 
+                        CASE 
+                            WHEN COUNT(*) = 0 THEN 'not_entered'
+                            WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                            WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                            ELSE 'partial'
+                        END
+                     FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
+                    $params[] = $val;
                 }
             }
         }

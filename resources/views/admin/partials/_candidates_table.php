@@ -177,6 +177,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <th x-show="showCols.area" class="w-24 text-center">Khu vực</th>
                     <th x-show="showCols.object" class="w-28 text-center">Đối tượng</th>
                     <th x-show="showCols.grad_year" class="w-24 text-center">Năm TN</th>
+                    <th x-show="showCols.transcript_status" class="w-32 text-center">Học bạ</th>
                 </tr>
 
                 <!-- Row 2: Search Filters -->
@@ -290,6 +291,14 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             value="<?= htmlspecialchars($filters['f_grad_year'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <th x-show="showCols.transcript_status" class="bg-slate-50/10 px-2 py-1">
+                        <select onchange="window.applyCandidateFilters()" data-filter-key="f_transcript" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
+                            <option value="">(Tất cả)</option>
+                            <option value="full" <?= ($filters['f_transcript'] ?? '') == 'full' ? 'selected' : '' ?>>Đủ 3 năm</option>
+                            <option value="missing_12" <?= ($filters['f_transcript'] ?? '') == 'missing_12' ? 'selected' : '' ?>>Thiếu lớp 12</option>
+                            <option value="not_entered" <?= ($filters['f_transcript'] ?? '') == 'not_entered' ? 'selected' : '' ?>>Chưa nhập</option>
+                        </select>
                     </th>
                 </tr>
             </thead>
@@ -453,6 +462,15 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                             <td x-show="showCols.grad_year" class="text-center text-slate-600">
                                 <?= htmlspecialchars($c['nam_tot_nghiep'] ?? '') ?>
+                            </td>
+                            <td x-show="showCols.transcript_status" class="text-center text-slate-600">
+                                <?php
+                                $tStatus = $c['transcript_status'] ?? 'not_entered';
+                                if ($tStatus === 'full') echo 'Đủ 3 năm';
+                                elseif ($tStatus === 'missing_12') echo 'Thiếu lớp 12';
+                                elseif ($tStatus === 'not_entered') echo 'Chưa nhập';
+                                else echo htmlspecialchars($tStatus);
+                                ?>
                             </td>
                         </tr>
 <?php endforeach; ?>

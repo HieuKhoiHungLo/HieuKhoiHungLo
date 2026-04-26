@@ -702,7 +702,7 @@ class ExportService {
         $params = [];
 
         if (!empty($filters['session_id'])) {
-            $sql .= " AND t.dot_xet_tuyen_id = ?";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
             $params[] = $filters['session_id'];
         }
 
@@ -711,21 +711,34 @@ class ExportService {
                 $sql .= " AND (t.ngay_sinh IS NULL OR t.ngay_sinh = '2008-01-01')";
                 break;
             case 'wishes':
-                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen h WHERE h.so_cccd = t.so_cccd)";
+                $session_id = $filters['session_id'] ?? null;
+                if ($session_id) {
+                    $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.dot_tuyen_sinh_id = ?)";
+                    // We need to add session_id to params again for this specific subquery if needed, 
+                    // but the $sql construction here is a bit tricky since params are added at the end.
+                    // Let's refine the approach to use a single param or named params if possible.
+                    // For now, I will use a direct subquery that matches the session_id already in the where clause.
+                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$session_id . ")";
+                    $params[] = $session_id;
+                } else {
+                    $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd)";
+                }
                 break;
             case 'contact':
-                $sql .= " AND (t.email IS NULL OR t.email = '' OR t.dien_thoai IS NULL OR t.dien_thoai = '')";
+                $sql .= " AND (t.email IS NULL OR t.email = '' 
+                           OR t.dien_thoai IS NULL OR t.dien_thoai = ''
+                           OR NOT (t.dien_thoai ~ '^0[0-9]{9,10}$')
+                           OR NOT (t.email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'))";
                 break;
             case 'priority':
-                $sql .= " AND (t.doi_tuong_uu_tien IS NULL OR t.doi_tuong_uu_tien = '' 
-                           OR t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '' 
+                $sql .= " AND (t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '' 
                            OR t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '')";
                 break;
             case 'free':
                 $sql .= " AND t.ngay_sinh IS NOT NULL AND EXTRACT(YEAR FROM t.ngay_sinh) <= 2007";
                 break;
             case 'scores':
-                $sql .= " AND NOT EXISTS (SELECT 1 FROM diem_hoc_ba d WHERE d.so_cccd = t.so_cccd)";
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap d WHERE d.so_cccd = t.so_cccd)";
                 break;
             default:
                 return [];

@@ -26,7 +26,7 @@
                             <td style="padding: 5px 4px 5px 5px; width: 80px;" class="min-w-[80px] max-w-[80px] text-xs font-semibold text-slate-700 whitespace-nowrap align-middle">Ngày sinh:</td>
                             <td style="padding: 8px 10px 8px 0; width: 200px;" class="min-w-[200px] max-w-[200px] align-middle">
                                 <div class="w-full h-9 px-3 flex items-center bg-white border border-slate-300 rounded text-xs text-slate-700 font-medium">
-                                    <?= date('d/m/Y', strtotime($user['ngay_sinh'])) ?>
+                                    <?= !empty($user['ngay_sinh']) ? date('d/m/Y', strtotime($user['ngay_sinh'])) : '...' ?>
                                 </div>
                             </td>
                             <td style="padding: 5px 4px 5px 15px; width: 80px;" class="min-w-[80px] max-w-[80px] text-xs font-semibold text-slate-700 whitespace-nowrap align-middle">Giới tính:</td>
