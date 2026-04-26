@@ -694,7 +694,7 @@ class ExportService {
      */
     public function exportDataAudit($type, $filters = []) {
         $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
-                       t.ma_doi_tuong, t.ma_khu_vuc, t.ten_truong_thpt
+                       t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, t.ten_truong_thpt
                 FROM thi_sinh t
                 WHERE 1=1";
         $params = [];
@@ -715,8 +715,8 @@ class ExportService {
                 $sql .= " AND (t.email IS NULL OR t.email = '' OR t.dien_thoai IS NULL OR t.dien_thoai = '')";
                 break;
             case 'priority':
-                $sql .= " AND (t.ma_doi_tuong IS NULL OR t.ma_doi_tuong = '' 
-                           OR t.ma_khu_vuc IS NULL OR t.ma_khu_vuc = '' 
+                $sql .= " AND (t.doi_tuong_uu_tien IS NULL OR t.doi_tuong_uu_tien = '' 
+                           OR t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '' 
                            OR t.ten_truong_thpt IS NULL OR t.ten_truong_thpt = '')";
                 break;
             case 'free':
