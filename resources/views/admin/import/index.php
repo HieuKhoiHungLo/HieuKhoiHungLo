@@ -298,7 +298,7 @@ function importApp() {
             try {
                 const result = await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open('POST', '/TS/admin/import/upload', true);
+                    xhr.open('POST', '<?= url("/admin/import/upload") ?>', true);
 
                     xhr.upload.onprogress = (e) => {
                         if (e.lengthComputable) {
