@@ -299,16 +299,16 @@
                     <table class="premium-table min-w-[600px] lg:min-w-full">
                         <thead>
                             <tr>
-                                <th style="width: 120px" class="text-center" rowspan="2">Mã ngành</th>
-                                <th class="text-center" rowspan="2">Tên ngành</th>
-                                <th style="width: 100px" class="text-center" rowspan="2">Chỉ tiêu</th>
-                                <th class="text-center" colspan="4">Thống kê nguyện vọng</th>
+                                <th style="width: 120px;" class="!text-center" rowspan="2">Mã ngành</th>
+                                <th class="!text-center" rowspan="2">Tên ngành</th>
+                                <th style="width: 100px;" class="!text-center" rowspan="2">Chỉ tiêu</th>
+                                <th class="!text-center" colspan="4">Thống kê nguyện vọng</th>
                             </tr>
                             <tr>
-                                <th style="width: 80px" class="text-center">Tổng</th>
-                                <th style="width: 120px" class="text-center">Nguyện vọng 1</th>
-                                <th style="width: 120px" class="text-center">Nguyện vọng 2</th>
-                                <th style="width: 140px" class="text-center">Nguyện vọng còn lại</th>
+                                <th style="width: 80px;" class="!text-center">Tổng</th>
+                                <th style="width: 120px;" class="!text-center">Nguyện vọng 1</th>
+                                <th style="width: 120px;" class="!text-center">Nguyện vọng 2</th>
+                                <th style="width: 140px;" class="!text-center">NV còn lại</th>
                             </tr>
                         </thead>
                         <tbody id="detailedMajorStatsBody">
