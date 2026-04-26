@@ -101,10 +101,10 @@ class NguyenVong extends Model {
     }
 
     public function getMajorStats($limit = 10, $startDate = null, $endDate = null, $sessionId = null) {
-        $sql = "SELECT nv.ma_nganh, nv.ten_nganh, COUNT(*) as count 
+        $sql = "SELECT nv.ma_nganh, nv.ten_nganh, COUNT(DISTINCT hs.so_cccd) as count 
                 FROM {$this->table} nv
                 JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd
-                WHERE 1=1";
+                WHERE hs.deleted_at IS NULL";
         
         $params = [];
         if ($startDate && $endDate) {
@@ -128,46 +128,51 @@ class NguyenVong extends Model {
     }
 
     public function getDetailedMajorStats($startDate = null, $endDate = null, $sessionId = null) {
-        $params = [];
-        $hsFilter = "";
-        
-        if ($startDate && $endDate) {
-            $hsFilter .= " AND hs.created_at >= ? AND hs.created_at <= ?";
-            $params[] = $startDate . ' 00:00:00';
-            $params[] = $endDate . ' 23:59:59';
+        try {
+            $params = [];
+            $hsFilter = " AND hs.deleted_at IS NULL";
+            
+            if ($startDate && $endDate) {
+                $hsFilter .= " AND hs.created_at >= ? AND hs.created_at <= ?";
+                $params[] = $startDate . ' 00:00:00';
+                $params[] = $endDate . ' 23:59:59';
+            }
+
+            if ($sessionId) {
+                 $hsFilter .= " AND hs.dot_tuyen_sinh_id = ?";
+                 $params[] = $sessionId;
+            }
+
+            // Optimized Query using Subquery for Aggregation
+            $sql = "SELECT 
+                        n.ma_nganh, 
+                        n.ten_nganh, 
+                        n.chi_tieu,
+                        COALESCE(stats.tong_nv, 0) as tong_nv,
+                        COALESCE(stats.nv1, 0) as nv1,
+                        COALESCE(stats.nv2, 0) as nv2,
+                        COALESCE(stats.nv_con_lai, 0) as nv_con_lai
+                    FROM dm_nganh n
+                    LEFT JOIN (
+                        SELECT 
+                            nv.ma_nganh,
+                            COUNT(DISTINCT hs.so_cccd) as tong_nv,
+                            SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
+                            SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
+                            SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
+                        FROM nguyen_vong nv
+                        JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
+                        WHERE 1=1 $hsFilter
+                        GROUP BY nv.ma_nganh
+                    ) stats ON n.ma_nganh = stats.ma_nganh
+                    ORDER BY n.ma_nganh ASC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log("DETAILED MAJOR STATS ERROR: " . $e->getMessage());
+            return [];
         }
-
-        if ($sessionId) {
-             $hsFilter .= " AND hs.dot_tuyen_sinh_id = ?";
-             $params[] = $sessionId;
-        }
-
-        // Optimized Query using Subquery for Aggregation
-        $sql = "SELECT 
-                    n.ma_nganh, 
-                    n.ten_nganh, 
-                    n.chi_tieu,
-                    COALESCE(stats.tong_nv, 0) as tong_nv,
-                    COALESCE(stats.nv1, 0) as nv1,
-                    COALESCE(stats.nv2, 0) as nv2,
-                    COALESCE(stats.nv_con_lai, 0) as nv_con_lai
-                FROM dm_nganh n
-                LEFT JOIN (
-                    SELECT 
-                        nv.ma_nganh,
-                        COUNT(hs.so_cccd) as tong_nv,
-                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1,
-                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2,
-                        SUM(CASE WHEN nv.thu_tu_nguyen_vong > 2 THEN 1 ELSE 0 END) as nv_con_lai
-                    FROM nguyen_vong nv
-                    JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
-                    WHERE 1=1 $hsFilter
-                    GROUP BY nv.ma_nganh
-                ) stats ON n.ma_nganh = stats.ma_nganh
-                ORDER BY n.ma_nganh ASC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
