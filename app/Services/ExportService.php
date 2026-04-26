@@ -694,8 +694,10 @@ class ExportService {
      */
     public function exportDataAudit($type, $filters = []) {
         $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
-                       t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, t.ten_truong_thpt
+                       t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, 
+                       COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt
                 FROM thi_sinh t
+                LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
                 WHERE 1=1";
         $params = [];
 
@@ -717,7 +719,7 @@ class ExportService {
             case 'priority':
                 $sql .= " AND (t.doi_tuong_uu_tien IS NULL OR t.doi_tuong_uu_tien = '' 
                            OR t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '' 
-                           OR t.ten_truong_thpt IS NULL OR t.ten_truong_thpt = '')";
+                           OR t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '')";
                 break;
             case 'free':
                 $sql .= " AND t.ngay_sinh IS NOT NULL AND EXTRACT(YEAR FROM t.ngay_sinh) <= 2007";
