@@ -401,12 +401,13 @@
                             <tr>
                                 <th>Họ tên cán bộ</th>
                                 <th>Tên đăng nhập</th>
-                                <th style="width: 150px" class="text-right">Đã duyệt</th>
+                                <th style="width: 120px" class="text-right">Đã duyệt</th>
+                                <th style="width: 120px" class="text-right">Yêu cầu sửa</th>
                             </tr>
                         </thead>
                         <tbody id="reviewerTableBody">
                             <tr>
-                                <td colspan="3" class="py-10 text-center text-slate-400 font-medium text-xs">Đang tải dữ liệu...</td>
+                                <td colspan="4" class="py-10 text-center text-slate-400 font-medium text-xs">Đang tải dữ liệu...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -886,13 +887,14 @@
                         r.innerHTML = `
                         <td class="text-slate-800 font-medium">${v.ho_ten}</td>
                         <td class="text-slate-500 font-mono text-xs">${v.ten_dang_nhap}</td>
-                        <td class="text-right font-bold text-indigo-600">${v.review_count}</td>
+                        <td class="text-right font-bold text-emerald-600">${v.approved_count}</td>
+                        <td class="text-right font-bold text-orange-600">${v.edit_count}</td>
                     `;
                         rb.appendChild(r);
                     });
                     console.log(`Reviewer table updated with ${data.reviewers.length} rows.`);
                 } else {
-                    rb.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-400">Chưa có dữ liệu người duyệt.</td></tr>';
+                    rb.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-400">Chưa có dữ liệu người duyệt.</td></tr>';
                 }
             }
         }

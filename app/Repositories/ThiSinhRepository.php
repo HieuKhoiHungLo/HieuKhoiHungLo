@@ -456,12 +456,17 @@ class ThiSinhRepository
 
     public function getReviewerStats($sessionId = null, $year = null)
     {
-        $sql = "SELECT qtv.ho_ten, qtv.ten_dang_nhap, COUNT(hs.id) as review_count
+        $sql = "SELECT qtv.ho_ten, qtv.ten_dang_nhap, 
+                       COUNT(hs.id) FILTER (WHERE hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%') as approved_count,
+                       COUNT(hs.id) FILTER (WHERE hs.trang_thai ILIKE 'Yêu cầu sửa%' OR hs.trang_thai ILIKE 'edit%' OR hs.trang_thai ILIKE 'YeuCauSua%') as edit_count
                 FROM quan_tri_vien qtv
                 JOIN ho_so_xet_tuyen hs ON qtv.id = hs.nguoi_duyet_id
                 LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
                 WHERE hs.deleted_at IS NULL 
-                AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')";
+                AND (
+                    hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%'
+                    OR hs.trang_thai ILIKE 'Yêu cầu sửa%' OR hs.trang_thai ILIKE 'edit%' OR hs.trang_thai ILIKE 'YeuCauSua%'
+                )";
         $params = [];
 
         if ($sessionId) {
@@ -473,7 +478,7 @@ class ThiSinhRepository
             $params[] = $year;
         }
 
-        $sql .= " GROUP BY qtv.id, qtv.ho_ten, qtv.ten_dang_nhap ORDER BY review_count DESC";
+        $sql .= " GROUP BY qtv.id, qtv.ho_ten, qtv.ten_dang_nhap ORDER BY approved_count DESC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
