@@ -102,8 +102,14 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
-            $params[] = "%$status%";
+            if ($status === 'Đã duyệt') {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
+            } elseif ($status === 'Chờ duyệt') {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
+            } else {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND hs_st.trang_thai ILIKE ?)";
+                $params[] = "%$status%";
+            }
         }
 
         if ($hocBaStatus !== '') {
@@ -352,8 +358,14 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.trang_thai ILIKE ?)";
-            $params[] = "%$status%";
+            if ($status === 'Đã duyệt') {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
+            } elseif ($status === 'Chờ duyệt') {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
+            } else {
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND hs_st.trang_thai ILIKE ?)";
+                $params[] = "%$status%";
+            }
         }
 
         if ($hocBaStatus !== '') {
