@@ -67,6 +67,13 @@ class ApiController extends Controller
             return;
         }
 
+        // Release session lock immediately. 
+        // This script can take several seconds to send emails, 
+        // and we don't want to block the UI for the admin user.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $db = \App\Core\Database::getInstance()->getConnection();
         $mailer = new \App\Services\MailerService();
 

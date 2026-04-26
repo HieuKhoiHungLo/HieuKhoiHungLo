@@ -190,7 +190,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <?php if ($mode === 'all'): ?>
                     <th class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_note" placeholder="Tìm (nhập 'trống' để tìm trống)..."
+                        <input type="text" id="f_note_search" name="f_note" data-filter-key="f_note" aria-label="Tìm kiếm ghi chú" placeholder="Tìm (nhập 'trống' để tìm trống)..."
                             value="<?= htmlspecialchars($filters['note'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
@@ -199,7 +199,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <?php if ($mode !== 'all'): ?>
                     <th class="sticky-col sticky-col-trangthai bg-white px-2 py-1 relative">
-                        <select onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
+                        <select id="status_filter_select" name="status" aria-label="Lọc trạng thái" onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
@@ -210,7 +210,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <?php endif; ?>
 
                     <th class="sticky-col sticky-col-left-3 bg-white px-2 py-1">
-                        <input type="text" data-filter-key="search" placeholder="Tên / CCCD..."
+                        <input type="text" id="search_input_main" name="search" data-filter-key="search" aria-label="Tìm kiếm họ tên hoặc CCCD" placeholder="Tên / CCCD..."
                             value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
@@ -218,82 +218,82 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <?php if ($mode !== 'all'): ?>
                     <th class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_note" placeholder="Tìm (nhập 'trống' để tìm trống)..."
+                        <input type="text" id="f_note_search_review" name="f_note" data-filter-key="f_note" aria-label="Tìm kiếm ghi chú" placeholder="Tìm (nhập 'trống' để tìm trống)..."
                             value="<?= htmlspecialchars($filters['note'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <?php endif; ?>
 
                     <th class="px-2 py-1">
-                        <input type="text" data-filter-key="f_dob" placeholder="Ngày sinh..."
+                        <input type="text" id="f_dob_search" name="f_dob" data-filter-key="f_dob" aria-label="Tìm kiếm ngày sinh" placeholder="Ngày sinh..."
                             value="<?= htmlspecialchars($filters['f_dob'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.phone" class="px-2 py-1">
-                        <input type="text" data-filter-key="f_phone" placeholder="Số ĐT..."
+                        <input type="text" id="f_phone_search" name="f_phone" data-filter-key="f_phone" aria-label="Tìm kiếm số điện thoại" placeholder="Số ĐT..."
                             value="<?= htmlspecialchars($filters['f_phone'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.email" class="bg-white px-2 py-1">
-                        <input type="text" data-filter-key="f_email" placeholder="Email..."
+                        <input type="text" id="f_email_search" name="f_email" data-filter-key="f_email" aria-label="Tìm kiếm email" placeholder="Email..."
                             value="<?= htmlspecialchars($filters['email'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.province" class="px-2 py-1">
-                        <input type="text" data-filter-key="f_province" placeholder="Tỉnh/Tp..."
+                        <input type="text" id="f_province_search" name="f_province" data-filter-key="f_province" aria-label="Tìm kiếm tỉnh thành" placeholder="Tỉnh/Tp..."
                             value="<?= htmlspecialchars($filters['f_province'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.school" class="px-2 py-1">
-                        <input type="text" data-filter-key="f_school" placeholder="Tên trường..."
+                        <input type="text" id="f_school_search" name="f_school" data-filter-key="f_school" aria-label="Tìm kiếm trường học" placeholder="Tên trường..."
                             value="<?= htmlspecialchars($filters['f_school'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.nv1" class="px-2 py-1">
-                        <input type="text" data-filter-key="f_nv1" placeholder="NV1 (nhập 'chưa đk' để tìm trống)..."
+                        <input type="text" id="f_nv1_search" name="f_nv1" data-filter-key="f_nv1" aria-label="Tìm kiếm nguyện vọng 1" placeholder="NV1 (nhập 'chưa đk' để tìm trống)..."
                             value="<?= htmlspecialchars($filters['f_nv1'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
 
                     <th x-show="showCols.gender" class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_gender" placeholder="Giới tính..."
+                        <input type="text" id="f_gender_search" name="f_gender" data-filter-key="f_gender" aria-label="Tìm kiếm giới tính" placeholder="Giới tính..."
                             value="<?= htmlspecialchars($filters['f_gender'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <th x-show="showCols.ethnicity" class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_ethnicity" placeholder="Dân tộc..."
+                        <input type="text" id="f_ethnicity_search" name="f_ethnicity" data-filter-key="f_ethnicity" aria-label="Tìm kiếm dân tộc" placeholder="Dân tộc..."
                             value="<?= htmlspecialchars($filters['f_ethnicity'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <th x-show="showCols.area" class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_area" placeholder="Khu vực..."
+                        <input type="text" id="f_area_search" name="f_area" data-filter-key="f_area" aria-label="Tìm kiếm khu vực" placeholder="Khu vực..."
                             value="<?= htmlspecialchars($filters['f_area'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <th x-show="showCols.object" class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_object" placeholder="Đối tượng..."
+                        <input type="text" id="f_object_search" name="f_object" data-filter-key="f_object" aria-label="Tìm kiếm đối tượng" placeholder="Đối tượng..."
                             value="<?= htmlspecialchars($filters['f_object'] ?? '') ?>"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <th x-show="showCols.grad_year" class="bg-slate-50/10 px-2 py-1">
-                        <input type="text" data-filter-key="f_grad_year" placeholder="Năm TN..."
+                        <input type="text" id="f_grad_year_search" name="f_grad_year" data-filter-key="f_grad_year" aria-label="Tìm kiếm năm tốt nghiệp" placeholder="Năm TN..."
                             value="<?= htmlspecialchars($filters['f_grad_year'] ?? '') ?>"
                             onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
                             class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                     <th x-show="showCols.transcript_status" class="bg-slate-50/10 px-2 py-1">
-                        <select onchange="window.applyCandidateFilters()" data-filter-key="f_transcript" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
+                        <select id="f_transcript_select" name="f_transcript" aria-label="Lọc trạng thái học bạ" onchange="window.applyCandidateFilters()" data-filter-key="f_transcript" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
                             <option value="">(Tất cả)</option>
                             <option value="full" <?= ($filters['f_transcript'] ?? '') == 'full' ? 'selected' : '' ?>>Đủ 3 năm</option>
                             <option value="missing_12" <?= ($filters['f_transcript'] ?? '') == 'missing_12' ? 'selected' : '' ?>>Thiếu lớp 12</option>

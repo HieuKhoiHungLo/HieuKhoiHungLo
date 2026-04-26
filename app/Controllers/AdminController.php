@@ -644,6 +644,14 @@ class AdminController extends Controller
             exit;
         }
 
+        // Release session lock immediately after auth check.
+        // Without this, PHP on Windows/XAMPP holds the session file lock
+        // for the entire duration of this API call (which can take seconds),
+        // blocking ALL other requests from the same user (e.g. navigating to another page).
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $sessionModel = new AdmissionSession();
 
         $selectedYear = $_GET['year'] ?? null;

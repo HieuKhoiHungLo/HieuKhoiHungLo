@@ -167,7 +167,7 @@
             <button onclick="document.getElementById('modal-bulk-approve').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
         </div>
         <form action="<?= url('/admin/review/bulk-approve-file') ?>" method="POST" enctype="multipart/form-data" class="p-6">
-            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" id="bulk_approve_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
             
             <div class="mb-5">
@@ -194,7 +194,7 @@
 
             <div class="mb-5">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
-                <input type="file" name="approve_file" accept=".xlsx,.xls,.csv" required
+                <input type="file" id="approve_file_input" name="approve_file" accept=".xlsx,.xls,.csv" required
                     class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-xl">
             </div>
 
@@ -216,7 +216,7 @@
             <button onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
         </div>
         <form action="<?= url('/admin/review/bulk-update-transcript') ?>" method="POST" enctype="multipart/form-data" class="p-6">
-            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+            <input type="hidden" id="bulk_transcript_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
             
             <div class="mb-5">
                 <div class="flex justify-between items-center mb-3">
@@ -257,7 +257,7 @@
 
             <div class="mb-5">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
-                <input type="file" name="transcript_file" accept=".xlsx,.xls,.csv" required
+                <input type="file" id="transcript_file_input" name="transcript_file" accept=".xlsx,.xls,.csv" required
                     class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-xl">
             </div>
 
@@ -280,7 +280,7 @@
         <div class="p-6">
             <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn duyệt **TẤT CẢ** hồ sơ chưa duyệt trong đợt này không? Hành động này không thể hoàn tác.</p>
             <form action="<?= url('/admin/review/bulk-approve-all') ?>" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" id="bulk_approve_all_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="document.getElementById('modal-bulk-approve-all').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
@@ -302,7 +302,7 @@
         <div class="p-6">
             <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn **HỦY DUYỆT TẤT CẢ** hồ sơ đã duyệt trong đợt này không? Trạng thái sẽ được chuyển về "Chờ duyệt".</p>
             <form action="<?= url('/admin/review/bulk-unapprove-all') ?>" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" id="bulk_unapprove_all_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="document.getElementById('modal-bulk-unapprove-all').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>

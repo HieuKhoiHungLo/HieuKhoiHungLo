@@ -88,6 +88,9 @@ class AdminNotificationController extends Controller {
      * API: Get notifications as JSON (for admin bell dropdown)
      */
     public function api() {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
         header('Content-Type: application/json');
 
         $notifications = $this->notificationModel->getAll(20);

@@ -20,18 +20,23 @@ class ThiSinh extends Model {
     }
 
     public function getFiltered($search = '', $status = '', $hocBaStatus = '', $limit = 20, $offset = 0, $sessionId = null, $onlyEditRequests = false, $year = null, $sort = 'ngay_tao', $dir = 'DESC', $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
+        $startTime = microtime(true);
+        \App\Core\Logger::log("ThiSinh::getFiltered start. Status: $applicationStatus, Session: $sessionId");
         $params = [];
         
-        $transcriptStatusSql = "(SELECT 
-            CASE 
-                WHEN COUNT(*) = 0 THEN 'not_entered'
-                WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
-                WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
-                ELSE 'partial'
-            END
-         FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as transcript_status";
+        $transcriptStatusSql = "";
+        if (isset($extraFilters['transcript'])) {
+            $transcriptStatusSql = ", (SELECT 
+                CASE 
+                    WHEN COUNT(*) = 0 THEN 'not_entered'
+                    WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                    WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                    ELSE 'partial'
+                END
+             FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as transcript_status";
+        }
 
-        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, $transcriptStatusSql";
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name $transcriptStatusSql";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
                        LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong";
 
@@ -283,13 +288,16 @@ class ThiSinh extends Model {
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
         }
 
+        $duration = microtime(true) - $startTime;
+        \App\Core\Logger::log("ThiSinh::getFiltered end. Duration: " . round($duration, 4) . "s. Count: " . count($candidates));
         return $candidates;
     }
 
     public function countFiltered($search = '', $status = '', $hocBaStatus = '', $sessionId = null, $onlyEditRequests = false, $year = null, $excludeTrash = true, $extraFilters = [], $applicationStatus = 'all') {
+        $startTime = microtime(true);
+        \App\Core\Logger::log("ThiSinh::countFiltered start. Status: $applicationStatus");
         $params = [];
         
-        // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
         if ($applicationStatus === 'submitted') {
             $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
@@ -337,7 +345,7 @@ class ThiSinh extends Model {
         }
 
         if (!empty($search)) {
-            $sql .= " AND (t.ho_va_ten LIKE ? OR t.so_cccd LIKE ? OR t.email LIKE ?)";
+            $sql .= " AND (t.ho_va_ten ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
@@ -353,7 +361,6 @@ class ThiSinh extends Model {
             $params[] = ($hocBaStatus == '1' ? 'true' : 'false');
         }
 
-        // Extra column-specific filters
         if (!empty($extraFilters)) {
             foreach ($extraFilters as $field => $val) {
                 if ($val === '' || $val === null) continue;
@@ -361,7 +368,6 @@ class ThiSinh extends Model {
                     $sql .= " AND t.dien_thoai ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'dob') {
-                    // Optimized: Try to convert DD/MM/YYYY to YYYY-MM-DD for exact match
                     if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
                         $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
                         $sql .= " AND t.ngay_sinh = ?";
@@ -393,13 +399,13 @@ class ThiSinh extends Model {
                     $sql .= " AND t.gioi_tinh ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'ethnicity') {
-                    $sql .= " AND t.dan_toc LIKE ?";
+                    $sql .= " AND t.dan_toc ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'area') {
-                    $sql .= " AND t.khu_vuc_uu_tien LIKE ?";
+                    $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'object') {
-                    $sql .= " AND t.doi_tuong_uu_tien LIKE ?";
+                    $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'grad_year') {
                     $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
@@ -432,7 +438,10 @@ class ThiSinh extends Model {
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return (int)$stmt->fetchColumn();
+        $count = (int)$stmt->fetchColumn();
+        $duration = microtime(true) - $startTime;
+        \App\Core\Logger::log("ThiSinh::countFiltered end. Duration: " . round($duration, 4) . "s. Count: $count");
+        return $count;
     }
 
     public function getStats($sessionId = null, $year = null, $startDate = null, $endDate = null) {
@@ -448,24 +457,32 @@ class ThiSinh extends Model {
         // 1. Get Application Related Stats (total, pending, approved, etc.)
         $hsWhere = " WHERE 1=1";
         $params = [];
+        
+        // Use JOIN instead of EXISTS for better performance
+        $from = "ho_so_xet_tuyen hs";
         if ($sessionId) {
-            $hsWhere .= " AND dot_tuyen_sinh_id = " . (int)$sessionId;
+            $hsWhere .= " AND hs.dot_tuyen_sinh_id = ?";
+            $params[] = (int)$sessionId;
         } elseif ($year) {
-            $hsWhere .= " AND EXISTS (SELECT 1 FROM dot_tuyen_sinh dt WHERE dt.id = dot_tuyen_sinh_id AND dt.dm_nam_tuyen_sinh_nam = " . (int)$year . ")";
+            $from .= " INNER JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id";
+            $hsWhere .= " AND dt.dm_nam_tuyen_sinh_nam = ?";
+            $params[] = (int)$year;
         }
 
         if ($startDate && $endDate) {
-            $hsWhere .= " AND created_at >= ? AND created_at <= ?";
+            $hsWhere .= " AND hs.created_at >= ? AND hs.created_at <= ?";
             $params[] = $startDate . ' 00:00:00';
             $params[] = $endDate . ' 23:59:59';
         }
 
+        // Optimized status filtering: use simple case-insensitive comparison where possible or combine common strings
+        // Standardize status strings for the query
         $sqlHS = "SELECT 
             COUNT(*) as total,
-            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Đã duyệt%' OR trang_thai ILIKE '%approved%' OR trang_thai ILIKE '%DaDuyet%') as approved,
-            COUNT(*) FILTER (WHERE trang_thai ILIKE '%Yêu cầu sửa%' OR trang_thai ILIKE '%require_edit%' OR trang_thai ILIKE '%Yêu cầu chỉnh sửa%') as require_edit,
-            COUNT(*) FILTER (WHERE yeu_cau_chinh_sua = TRUE) as edit_requests
-            FROM ho_so_xet_tuyen $hsWhere";
+            COUNT(*) FILTER (WHERE hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%') as approved,
+            COUNT(*) FILTER (WHERE hs.trang_thai ILIKE 'Yêu cầu sửa%' OR hs.trang_thai ILIKE 'require_edit%' OR hs.trang_thai ILIKE 'Yêu cầu chỉnh sửa%') as require_edit,
+            COUNT(*) FILTER (WHERE hs.yeu_cau_chinh_sua = TRUE) as edit_requests
+            FROM $from $hsWhere";
 
         try {
             $stmt = $this->db->prepare($sqlHS);
@@ -476,14 +493,13 @@ class ThiSinh extends Model {
                 $stats['approved'] = (int)$result['approved'];
                 $stats['require_edit'] = (int)$result['require_edit'];
                 $stats['edit_requests'] = (int)$result['edit_requests'];
-                // Pending = everything that is NOT approved and NOT require_edit
                 $stats['pending'] = $stats['total'] - $stats['approved'] - $stats['require_edit'];
             }
         } catch (\PDOException $e) {
             error_log("Error in getStats (Application query): " . $e->getMessage());
         }
 
-        // 2. Get Ghost Candidates (Accounts without applications)
+        // 2. Get Ghost Candidates
         $ghostWhere = " WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd) AND t.deleted_at IS NULL";
         $ghostParams = [];
         if ($year) {

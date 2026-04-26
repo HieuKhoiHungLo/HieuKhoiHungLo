@@ -89,6 +89,13 @@ class CandidateController extends Controller
     protected function handleCandidateList($mode = 'dashboard')
     {
         $this->checkPermission('dashboard');
+        // Start timing for debugging
+        $requestStart = microtime(true);
+        error_log('Candidate list started at ' . $requestStart);
+        // Close session write to avoid lock during long queries
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
 
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
@@ -249,6 +256,9 @@ class CandidateController extends Controller
             'pagination' => ['current_page' => $page, 'total_pages' => $totalPages, 'total_items' => $total],
             'emailTemplates' => $emailTemplates
         ]);
+        // Log duration
+        $requestEnd = microtime(true);
+        error_log('Candidate list completed in ' . ($requestEnd - $requestStart) . ' seconds');
     }
 
     /**

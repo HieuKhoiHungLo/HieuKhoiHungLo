@@ -369,4 +369,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/profile/change-password', 'AdminProfileController@changePassword');
 
     $router->get('/admin/logout', 'AuthController@adminLogout');
+
+    // Email Queue Management
+    $router->get('/admin/email-queue', 'EmailQueueController@index');
+    $router->get('/admin/email-queue/retry', 'EmailQueueController@retry');
+    $router->get('/admin/email-queue/delete', 'EmailQueueController@delete');
+    $router->get('/admin/email-queue/clear-sent', 'EmailQueueController@clearSent');
 });
