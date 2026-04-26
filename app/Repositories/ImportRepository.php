@@ -62,8 +62,13 @@ class ImportRepository {
             $stmt->execute([$batchId]);
 
             // 6. Delete thi_sinh (Orphans)
-            // Delete candidates who no longer have ANY profiles in the system after the batch was cleared
-            $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)");
+            // Chỉ xóa thí sinh nếu họ không còn bất kỳ hồ sơ, học bạ hay điểm thi nào trong hệ thống
+            $stmt = $this->db->prepare("
+                DELETE FROM thi_sinh 
+                WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)
+                AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap WHERE so_cccd = thi_sinh.so_cccd)
+                AND NOT EXISTS (SELECT 1 FROM diem_thi_thpt WHERE so_cccd = thi_sinh.so_cccd)
+            ");
             $stmt->execute();
 
             $this->db->commit();
