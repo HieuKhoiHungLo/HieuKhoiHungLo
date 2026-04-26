@@ -75,7 +75,8 @@ class ImportController extends Controller {
             }
 
             if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-                $this->json(['status' => false, 'message' => 'Lỗi upload file hoặc file quá lớn so với cấu hình máy chủ.']);
+                $error_code = $_FILES['file']['error'] ?? 'No File';
+                $this->json(['status' => false, 'message' => "Lỗi upload file (Mã lỗi: $error_code). Vui lòng kiểm tra cấu hình máy chủ."]);
                 return;
             }
 
