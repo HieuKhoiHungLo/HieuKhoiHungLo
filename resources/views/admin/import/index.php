@@ -310,7 +310,7 @@ function importApp() {
                                 this.progress = Math.round(percentComplete * 0.1); // Small segment for upload
                                 this.currentLoadingMessage = `Đang tải file lên máy chủ: ${percentComplete}%`;
                             } else {
-                                this.currentLoadingMessage = 'Đang nạp file Excel vào bộ nhớ (32k+ dòng)...';
+                                this.currentLoadingMessage = 'Đang nạp file Excel vào bộ nhớ...';
                                 // Don't set progress to 100 here to avoid the jump. 
                                 // Keep it low until server data starts coming.
                                 this.progress = 10; 

@@ -78,7 +78,7 @@ class ImportService {
         if (!file_exists($filePath)) return ['status' => false, 'message' => 'File not found'];
 
         try {
-            $this->updateProgress($token, 0, 1, 'Đang phân tích cấu trúc file Thí sinh (Ultra Speed Mode)...');
+            $this->updateProgress($token, 0, 1, 'Đang phân tích cấu trúc file Thí sinh...');
             
             $dataArray = $this->loadArrayData($filePath, 'BB');
             $totalRows = count($dataArray);
@@ -373,7 +373,7 @@ class ImportService {
         if (!file_exists($filePath)) return ['status' => false, 'message' => 'File not found'];
 
         try {
-            $this->updateProgress($token, 0, 1, 'Đang phân tích cấu trúc file Học bạ 27k dòng (Ultra Fast JSON Mode)...');
+            $this->updateProgress($token, 0, 1, 'Đang phân tích cấu trúc file Học bạ...');
             
             $dataArray = $this->loadArrayData($filePath, 'BZ');
             $totalRows = count($dataArray);
