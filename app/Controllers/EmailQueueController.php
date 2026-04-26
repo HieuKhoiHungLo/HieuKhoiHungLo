@@ -30,14 +30,17 @@ class EmailQueueController extends Controller {
         ");
         $stats = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        // Sending speed (last 1 hour)
-        $stmtSpeed = $db->query("
-            SELECT COUNT(*) 
+        // Advanced Stats
+        $stmtAdv = $db->query("
+            SELECT 
+                COUNT(CASE WHEN sent_at > NOW() - INTERVAL '1 hour' THEN 1 END) as hour_count,
+                COUNT(CASE WHEN sent_at > CURRENT_DATE THEN 1 END) as today_count,
+                COUNT(CASE WHEN sent_at > NOW() - INTERVAL '24 hours' THEN 1 END) as last_24h_count,
+                COUNT(CASE WHEN sent_at > NOW() - INTERVAL '7 days' THEN 1 END) as week_count
             FROM email_queue 
-            WHERE status = 'sent' 
-            AND sent_at > NOW() - INTERVAL '1 hour'
+            WHERE status = 'sent'
         ");
-        $speed = $stmtSpeed->fetchColumn();
+        $advStats = $stmtAdv->fetch(\PDO::FETCH_ASSOC);
 
         // Recent failed emails
         $stmtFailed = $db->query("
@@ -50,7 +53,7 @@ class EmailQueueController extends Controller {
 
         $this->view('admin/system/email_queue', [
             'stats' => $stats,
-            'speed' => $speed,
+            'advStats' => $advStats,
             'failedEmails' => $failedEmails
         ]);
     }

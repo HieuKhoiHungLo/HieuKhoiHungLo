@@ -41,7 +41,7 @@
             </div>
             <p class="text-amber-500 text-[10px] font-black uppercase tracking-widest mb-1">Đang chờ</p>
             <h3 class="text-3xl font-black text-slate-800"><?= number_format($stats['pending']) ?></h3>
-            <p class="text-slate-400 text-xs mt-2 font-medium">Đang đợi xử lý</p>
+            <p class="text-slate-400 text-xs mt-2 font-medium">Sắp được gửi đi</p>
         </div>
 
         <!-- Sent -->
@@ -51,9 +51,17 @@
             </div>
             <p class="text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-1">Đã gửi</p>
             <h3 class="text-3xl font-black text-slate-800"><?= number_format($stats['sent']) ?></h3>
-            <p class="text-emerald-600/70 text-xs mt-2 font-bold flex items-center gap-1">
-                <i class="fas fa-bolt"></i> Speed: <?= $speed ?> thư/giờ
-            </p>
+            <div class="mt-2 space-y-1">
+                <p class="text-emerald-600/70 text-[10px] font-bold flex items-center gap-1">
+                    <i class="fas fa-bolt w-3"></i> Tốc độ: <?= number_format($advStats['hour_count']) ?> thư/giờ
+                </p>
+                <p class="text-slate-500 text-[10px] font-medium flex items-center gap-1">
+                    <i class="fas fa-calendar-day w-3"></i> Hôm nay: <?= number_format($advStats['today_count']) ?>
+                </p>
+                <p class="text-slate-500 text-[10px] font-medium flex items-center gap-1">
+                    <i class="fas fa-calendar-week w-3"></i> Tuần này: <?= number_format($advStats['week_count']) ?>
+                </p>
+            </div>
         </div>
 
         <!-- Failed -->
@@ -63,7 +71,7 @@
             </div>
             <p class="text-rose-600 text-[10px] font-black uppercase tracking-widest mb-1">Bị lỗi</p>
             <h3 class="text-3xl font-black text-slate-800"><?= number_format($stats['failed']) ?></h3>
-            <p class="text-rose-600/70 text-xs mt-2 font-medium">Cần kiểm tra lại</p>
+            <p class="text-rose-600/70 text-xs mt-2 font-medium">Cần kiểm tra danh sách dưới</p>
         </div>
     </div>
 
