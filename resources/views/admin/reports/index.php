@@ -251,6 +251,30 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                         </td>
                     </tr>
 
+                    <!-- Row 8: Data Audit -->
+                    <tr class="bg-slate-50/50">
+                        <td class="tt-cell">8</td>
+                        <td>
+                            <div class="font-semibold text-slate-700 text-sm">Kiểm tra dữ liệu hồ sơ</div>
+                            <div class="text-xs text-slate-400 mt-1 mb-2">Chọn tiêu chí để lọc danh sách các thí sinh cần kiểm tra lại thông tin</div>
+                            <div class="flex items-center gap-2">
+                                <select id="sel-audit-type" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-1 focus:ring-blue-400 w-full max-w-[400px]">
+                                    <option value="">-- Chọn danh sách cần kiểm tra --</option>
+                                    <option value="dob">Thí sinh cần kiểm tra lại ngày sinh (Trống hoặc 01/01/2008)</option>
+                                    <option value="wishes">Thí sinh chưa có nguyện vọng xét tuyển</option>
+                                    <option value="contact">Thí sinh thiếu thông tin liên hệ (Email/SĐT)</option>
+                                    <option value="priority">Thí sinh thiếu thông tin ưu tiên (Đối tượng/Khu vực/Trường THPT)</option>
+                                    <option value="free">Thí sinh tự do (Sinh năm 2007 trở về trước)</option>
+                                    <option value="scores">Thí sinh chưa có điểm học bạ</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="doAuditExport()" class="download-btn !bg-orange-500 hover:!bg-orange-600 shadow-sm">
+                                <i class="fas fa-file-excel"></i> Tải xuống
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -283,6 +307,24 @@ function doExport(baseUrl) {
     }
     
     window.location.href = url;
+}
+
+function doAuditExport() {
+    const selSession = document.getElementById('sel-session');
+    const sessionId = selSession ? selSession.value : '';
+    const selAudit = document.getElementById('sel-audit-type');
+    const auditType = selAudit ? selAudit.value : '';
+    
+    if (!sessionId) {
+        alert('Vui lòng chọn đợt tuyển sinh.');
+        return;
+    }
+    if (!auditType) {
+        alert('Vui lòng chọn loại danh sách cần kiểm tra.');
+        return;
+    }
+    
+    window.location.href = '<?= url('/admin/reports/download-data-audit') ?>?session_id=' + sessionId + '&type=' + auditType;
 }
 
 function updateLinks() {

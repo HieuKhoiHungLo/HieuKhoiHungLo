@@ -689,6 +689,69 @@ class ExportService {
      * Stream Excel file (XLS) using HTML representation.
      * Supports basic formatting and ensures data types (e.g. text for CCCD).
      */
+    /**
+     * Export data for auditing purposes (Feature 8)
+     */
+    public function exportDataAudit($type, $filters = []) {
+        $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
+                       t.ma_doi_tuong, t.ma_khu_vuc, t.ten_truong_thpt
+                FROM thi_sinh t
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($filters['session_id'])) {
+            $sql .= " AND t.dot_xet_tuyen_id = ?";
+            $params[] = $filters['session_id'];
+        }
+
+        switch ($type) {
+            case 'dob':
+                $sql .= " AND (t.ngay_sinh IS NULL OR t.ngay_sinh = '2008-01-01')";
+                break;
+            case 'wishes':
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen h WHERE h.so_cccd = t.so_cccd)";
+                break;
+            case 'contact':
+                $sql .= " AND (t.email IS NULL OR t.email = '' OR t.dien_thoai IS NULL OR t.dien_thoai = '')";
+                break;
+            case 'priority':
+                $sql .= " AND (t.ma_doi_tuong IS NULL OR t.ma_doi_tuong = '' 
+                           OR t.ma_khu_vuc IS NULL OR t.ma_khu_vuc = '' 
+                           OR t.ten_truong_thpt IS NULL OR t.ten_truong_thpt = '')";
+                break;
+            case 'free':
+                $sql .= " AND t.ngay_sinh IS NOT NULL AND EXTRACT(YEAR FROM t.ngay_sinh) <= 2007";
+                break;
+            case 'scores':
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM diem_hoc_ba d WHERE d.so_cccd = t.so_cccd)";
+                break;
+            default:
+                return [];
+        }
+
+        $sql .= " ORDER BY t.ho_va_ten ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $data = [];
+        foreach ($results as $i => $r) {
+            $data[] = [
+                'STT'               => $i + 1,
+                'Số CCCD'           => $this->textCell($r['so_cccd']),
+                'Họ và tên'         => $r['ho_va_ten'],
+                'Ngày sinh'         => $this->formatDate($r['ngay_sinh']),
+                'Điện thoại'        => $r['dien_thoai'],
+                'Email'             => $r['email'],
+                'Đối tượng'         => $this->formatObject($r['ma_doi_tuong']),
+                'Khu vực'           => $this->formatArea($r['ma_khu_vuc']),
+                'Trường THPT'       => $r['ten_truong_thpt'],
+            ];
+        }
+
+        return $data;
+    }
+
     public function toExcel($data, $filename) {
         // Ensure .xls extension for simple browser handling
         $filename = str_replace(['.csv', '.xlsx'], '', $filename) . '.xls';

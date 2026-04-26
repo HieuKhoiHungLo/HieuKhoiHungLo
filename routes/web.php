@@ -335,6 +335,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/reports/export-all-admitted', 'ReportController@exportAllAdmittedReport');
     $router->get('/admin/reports/download-photos-aptitude', 'ReportController@downloadAptitudePhotos');
     $router->get('/admin/reports/download-certs', 'ReportController@downloadCertificatePhotos');
+    $router->get('/admin/reports/download-data-audit', 'ReportController@downloadDataAudit');
 
 
     // Rules

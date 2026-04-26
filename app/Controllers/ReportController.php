@@ -233,8 +233,7 @@ class ReportController extends Controller {
             $fullPath = $publicPath . $path;
             if (file_exists($fullPath) && is_file($fullPath)) {
                 $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg';
-                $safeName = $this->safeFileName($c['Họ và Tên'] ?? 'thi_sinh');
-                $zipName = "{$c['Số CCCD']}_{$safeName}.{$ext}";
+                $zipName = "{$c['Số CCCD']}_avatar.{$ext}";
                 $zip->addFile($fullPath, $zipName);
                 $addedFiles++;
             }
@@ -254,8 +253,7 @@ class ReportController extends Controller {
                     if (strpos($url, 'drive.google.com/thumbnail') === false) {
                         $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
                     }
-                    $safeName = $this->safeFileName($c['Họ và Tên'] ?? 'thi_sinh');
-                    $zipName = "{$c['Số CCCD']}_{$safeName}.{$ext}";
+                    $zipName = "{$c['Số CCCD']}_avatar.{$ext}";
                     $zip->addFromString($zipName, $content);
                     $addedFiles++;
                 }
@@ -330,10 +328,7 @@ class ReportController extends Controller {
                     $fullPath = $publicPath . $path;
                     if (file_exists($fullPath) && is_file($fullPath)) {
                         $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg';
-                        $safeName = $this->safeFileName($c['Họ và Tên']);
-                        $safeType = $this->safeFileName($c['Loại chứng chỉ'] ?? 'CC');
-                        $suffix = count($files) > 1 ? "_" . ($i + 1) : "";
-                        $zipName = "{$c['Số CCCD']}_{$safeName}_{$safeType}{$suffix}.{$ext}";
+                        $zipName = "{$c['Số CCCD']}_Cert_" . ($i + 1) . ".{$ext}";
                         $zip->addFile($fullPath, $zipName);
                         $addedFiles++;
                     }
@@ -360,10 +355,7 @@ class ReportController extends Controller {
                     if (strpos($item['url'], 'drive.google.com/thumbnail') === false) {
                         $ext = pathinfo(parse_url($item['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
                     }
-                    $safeName = $this->safeFileName($item['hoTen']);
-                    $safeType = $this->safeFileName($item['type']);
-                    $suffix = $item['total'] > 1 ? "_" . $item['index'] : "";
-                    $zipName = "{$item['cccd']}_{$safeName}_{$safeType}{$suffix}.{$ext}";
+                    $zipName = "{$item['cccd']}_Cert_{$item['index']}.{$ext}";
                     $zip->addFromString($zipName, $content);
                     $addedFiles++;
                 }
@@ -442,6 +434,38 @@ class ReportController extends Controller {
 
         return $results;
     }
+    public function downloadDataAudit() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
+
+        $type = $_GET['type'] ?? '';
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+        ];
+
+        $typeNames = [
+            'dob'       => 'kiem_tra_ngay_sinh',
+            'wishes'    => 'chua_co_nguyen_vong',
+            'contact'   => 'thieu_thong_tin_lien_he',
+            'priority'  => 'thieu_thong_tin_uu_tien',
+            'free'      => 'thi_sinh_tu_do',
+            'scores'    => 'chua_co_diem_hoc_ba',
+        ];
+
+        if (!isset($typeNames[$type])) {
+            die('Loại kiểm tra không hợp lệ.');
+        }
+
+        $data = $this->exportService->exportDataAudit($type, $filters);
+        if (empty($data)) {
+            die('Không có dữ liệu cho tiêu chí này.');
+        }
+
+        $filename = 'danh_sach_' . $typeNames[$type] . '_' . date('Ymd_His') . '.xls';
+        $this->exportService->toExcel($data, $filename);
+    }
+
     private function getFastDownloadUrl($originalUrl): string {
         if (strpos($originalUrl, 'drive.google.com') !== false) {
             $id = '';
