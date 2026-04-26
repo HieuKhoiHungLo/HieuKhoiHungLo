@@ -722,6 +722,7 @@ class AdminController extends Controller
                 }
 
                 if ($type === 'demographics' || $type === 'all') {
+                    $data['overview']  = $this->thiSinhRepo->getStats($sessionId, $selectedYear, $startDate, $endDate);
                     $data['province']  = $this->thiSinhRepo->getProvinceStats(10, $startDate, $endDate, $sessionId);
                     $data['school']    = $this->thiSinhRepo->getSchoolStats(15, $startDate, $endDate, $sessionId);
                     $data['reviewers'] = $this->thiSinhRepo->getReviewerStats($sessionId, $selectedYear);

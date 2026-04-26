@@ -822,16 +822,16 @@ class ThiSinh extends Model {
             $params[] = $sessionId;
         }
 
-        $sqlGender = "SELECT 'gender' as type, COALESCE(ts.gioi_tinh, 'Khác') as label, COUNT(*) as count 
-                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.gioi_tinh";
+        $sqlGender = "SELECT 'gender' as type, COALESCE(ts.gioi_tinh, 'Khác') as label, COUNT(DISTINCT ts.so_cccd) as count 
+                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY 1, 2";
         
-        $sqlArea = "SELECT 'area' as type, COALESCE(ts.khu_vuc_uu_tien, 'Không') as label, COUNT(*) as count 
-                    FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.khu_vuc_uu_tien";
+        $sqlArea = "SELECT 'area' as type, COALESCE(ts.khu_vuc_uu_tien, 'Không') as label, COUNT(DISTINCT ts.so_cccd) as count 
+                    FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY 1, 2";
         
-        $sqlObject = "SELECT 'object' as type, COALESCE(ts.doi_tuong_uu_tien, 'Không') as label, COUNT(*) as count 
-                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY ts.doi_tuong_uu_tien";
+        $sqlObject = "SELECT 'object' as type, COALESCE(ts.doi_tuong_uu_tien, 'Không') as label, COUNT(DISTINCT ts.so_cccd) as count 
+                      FROM {$this->table} ts JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd $where GROUP BY 1, 2";
 
-        $combinedSql = "($sqlGender) UNION ALL ($sqlArea) UNION ALL ($sqlObject)";
+        $combinedSql = "$sqlGender UNION ALL $sqlArea UNION ALL $sqlObject";
         $allParams = array_merge($params, $params, $params);
         
         $stmt = $this->db->prepare($combinedSql);
