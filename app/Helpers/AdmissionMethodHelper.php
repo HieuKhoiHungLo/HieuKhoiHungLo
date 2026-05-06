@@ -13,17 +13,16 @@ class AdmissionMethodHelper {
         // Nếu đã là mã TSxx thì trả về luôn (tránh xử lý lại)
         if (strpos($ma_hien_tai, 'TS') === 0) return $ma_hien_tai;
 
-        // Ưu tiên TS03: Xét tuyển Chứng chỉ Quốc tế (nếu ngành có cấu hình)
-        if (!empty($major['co_xet_chung_chi'])) {
-            return 'TS03';
-        }
-
         if ($ma_hien_tai === '100') {
             // TS04: THPT + Năng khiếu
             return !empty($major['co_diem_nangkhieu_thpt']) ? 'TS04' : 'TS01';
         }
         
         if ($ma_hien_tai === '200') {
+            // TS03: Học bạ + Chứng chỉ Quốc tế
+            if (!empty($major['co_xet_chung_chi'])) {
+                return 'TS03';
+            }
             // TS05: Học bạ + Năng khiếu
             return !empty($major['co_diem_nangkhieu_hochba']) ? 'TS05' : 'TS02';
         }

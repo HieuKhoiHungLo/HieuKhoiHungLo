@@ -163,6 +163,11 @@ ob_start();
                                         <li>Điểm thi</li>
                                         <li>Ghi chú</li>
                                     </ol>
+                                    <div class="mt-2">
+                                        <a href="<?= url('/admin/aptitude-scores/template') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-xs font-medium">
+                                            <i class="fas fa-download mr-1"></i> Tải file mẫu (.csv)
+                                        </a>
+                                    </div>
                                 </div>
                                 <div class="mt-4">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Chọn file</label>

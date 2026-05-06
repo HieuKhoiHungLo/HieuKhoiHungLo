@@ -248,8 +248,19 @@ class AdmissionController extends Controller {
         arsort($chartDist['province']);
         arsort($chartDist['school']);
 
+        // 4. Page visit stats for Calculator
+        $visitStatsSql = "SELECT 
+                            COUNT(*) as total_visits,
+                            COUNT(*) FILTER (WHERE created_at >= date_trunc('week', CURRENT_DATE)) as weekly_visits,
+                            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as daily_visits
+                          FROM page_views 
+                          WHERE url = '/tinh-diem-xet-tuyen'";
+        $visitStatsStmt = $db->query($visitStatsSql);
+        $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
+
         $this->view('admin/admission/results', [
             'stats' => $stats,
+            'visitStats' => $visitStats,
             'majorStats' => $majorStats,
             'chartDist' => $chartDist,
             'majors' => $this->masterData->getMajors(),

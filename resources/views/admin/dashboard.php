@@ -386,6 +386,58 @@
             </div>
         </div>
 
+        <!-- Thống kê hệ thống -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center">
+                    <span class="w-1.5 h-4 bg-[#0066FF] rounded-full mr-2"></span>
+                    Thống kê hệ thống
+                </h3>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="premium-table w-full text-left border-collapse">
+                    <thead class="bg-[#F8FAFF] text-[10px] uppercase font-black text-slate-500 tracking-widest border-b border-slate-100">
+                        <tr>
+                            <th class="px-6 py-4" style="min-width: 300px;">Nội dung thống kê</th>
+                            <th class="px-6 py-4 text-center" style="width: 150px;">Tổng số</th>
+                            <th class="px-6 py-4 text-center" style="width: 150px;">Trong tuần</th>
+                            <th class="px-6 py-4 text-center" style="width: 150px;">Trong ngày</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50 text-slate-600">
+                        <!-- Trang tính điểm -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                        <i class="fas fa-eye text-[10px]"></i>
+                                    </div>
+                                    <span class="text-xs font-medium">Lượng truy cập trang tính điểm xét tuyển</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($visitStats['total_visits'] ?? 0) ?></td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($visitStats['weekly_visits'] ?? 0) ?></td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($visitStats['daily_visits'] ?? 0) ?></td>
+                        </tr>
+                        <!-- Email gửi -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <i class="fas fa-paper-plane text-[10px]"></i>
+                                    </div>
+                                    <span class="text-xs font-medium">Số email gửi thành công</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($emailStats['total_sent'] ?? 0) ?></td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($emailStats['weekly_sent'] ?? 0) ?></td>
+                            <td class="px-6 py-4 text-center text-sm font-medium"><?= number_format($emailStats['daily_sent'] ?? 0) ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="mb-8">
             <!-- Table: Thống kê người duyệt -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">

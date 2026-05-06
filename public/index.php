@@ -124,4 +124,15 @@ function url($path = '') {
 
 $app = new App\Core\App();
 $app->router = $router;
-$app->run();
+
+try {
+    $app->run();
+} catch (\PDOException $e) {
+    $errorViewPath = __DIR__ . '/../resources/views/errors/maintenance.php';
+    if (file_exists($errorViewPath)) {
+        http_response_code(503);
+        require $errorViewPath;
+        exit();
+    }
+    die("Hệ thống đang bảo trì hoặc mất kết nối cơ sở dữ liệu. Vui lòng thử lại sau.");
+}

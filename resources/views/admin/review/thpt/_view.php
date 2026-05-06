@@ -55,6 +55,23 @@
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <?php 
+                                $valXTN = $diemThi['diem_xet_tot_nghiep'] ?? null;
+                                if($valXTN !== null && $valXTN !== ''):
+                                    $displayXTN = is_numeric($valXTN) ? str_replace('.', ',', number_format((float)$valXTN, 2, '.', '')) : $valXTN;
+                            ?>
+                                <tr style="border-top: 2px solid #e2e8f0; background: #f0f9ff;" class="hover:bg-blue-50/20 transition-colors">
+                                    <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #e2e8f0; color: #0369a1; font-weight: 700;">
+                                        <i class="fas fa-star"></i>
+                                    </td>
+                                    <td style="padding: 5px 6px; border-right: 1px solid #e2e8f0; color: #0369a1; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em;">
+                                        Điểm xét tốt nghiệp
+                                    </td>
+                                    <td style="padding: 5px 6px; text-align: center; color: #0369a1; font-weight: 800; font-size: 13px;">
+                                        <?= $displayXTN ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

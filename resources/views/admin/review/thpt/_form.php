@@ -61,6 +61,26 @@
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <?php 
+                                $valXTN = isset($diemThi['diem_xet_tot_nghiep']) ? $diemThi['diem_xet_tot_nghiep'] : '';
+                                if ($valXTN !== '' && is_numeric($valXTN)) $valXTN = number_format((float)$valXTN, 2, '.', '');
+                            ?>
+                            <tr style="border-top: 2px solid #e2e8f0; background: #f0f9ff;" class="hover:bg-blue-50/20 transition-colors">
+                                <td style="padding: 5px 6px; text-align: center; border-right: 1px solid #e2e8f0; color: #0369a1; font-weight: 700;">
+                                    <i class="fas fa-star"></i>
+                                </td>
+                                <td style="padding: 5px 6px; border-right: 1px solid #e2e8f0; color: #0369a1; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em;">
+                                    Điểm xét tốt nghiệp
+                                </td>
+                                <td style="padding: 0; text-align: center;">
+                                    <input type="number" step="0.01" min="0" max="10" 
+                                        name="thpt_diem_xet_tot_nghiep" 
+                                        value="<?= $valXTN ?>" 
+                                        style="width: 100%; height: 26px; padding: 0; text-align: center; border: 1px solid transparent; background: transparent; font-size: 12px; font-weight: 800; color: #0369a1; outline: none;" 
+                                        class="hover:bg-blue-50/50 focus:border-[#0066FF] focus:bg-white focus:ring-0 placeholder-slate-300"
+                                        placeholder="0.00">
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

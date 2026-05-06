@@ -1,4 +1,4 @@
-<?php
+<?php ob_start();
 /**
  * @var string $title
  * @var array $sessions
@@ -206,3 +206,8 @@
         });
     }
 </script>
+
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../../layouts/admin.php';
+?>

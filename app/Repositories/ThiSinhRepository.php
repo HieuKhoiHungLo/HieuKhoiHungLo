@@ -244,6 +244,11 @@ class ThiSinhRepository
         if (empty($cccds)) return false;
         if (!is_array($cccds)) $cccds = [$cccds];
 
+        // Safety check: Prevent URL or long invalid strings from being saved as status
+        if (strpos($status, 'http') !== false || strpos($status, '/TS/') !== false || strlen($status) > 50) {
+            $status = 'Chờ duyệt';
+        }
+
         $placeholders = implode(',', array_fill(0, count($cccds), '?'));
 
         try {
@@ -357,6 +362,11 @@ class ThiSinhRepository
 
     public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null)
     {
+        // Safety check: Prevent URL or long invalid strings from being saved as status
+        if (strpos($status, 'http') !== false || strpos($status, '/TS/') !== false || strlen($status) > 50) {
+            $status = 'Chờ duyệt';
+        }
+
         $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, yeu_cau_chinh_sua = FALSE";
         $params = [$status];
 

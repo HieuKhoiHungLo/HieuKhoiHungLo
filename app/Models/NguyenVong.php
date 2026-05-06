@@ -170,7 +170,7 @@ class NguyenVong extends Model {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("DETAILED MAJOR STATS ERROR: " . $e->getMessage());
             return [];
         }

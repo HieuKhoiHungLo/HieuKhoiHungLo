@@ -381,6 +381,28 @@ $baseUrl = url('/admin/admission/results');
 
     <!-- TAB: CHARTS (Biểu đồ phân tích) -->
     <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
+        
+        <!-- Visit Stats Table -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-blue-500 mb-6">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                <i class="fas fa-eye text-blue-500 mr-2"></i> Thống kê truy cập trang Tính điểm (http://localhost/TS/tinh-diem-xet-tuyen)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng số lượt truy cập</span>
+                    <span class="text-3xl font-black text-blue-600"><?= number_format($visitStats['total_visits'] ?? 0) ?></span>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Số lượt trong tuần</span>
+                    <span class="text-3xl font-black text-indigo-600"><?= number_format($visitStats['weekly_visits'] ?? 0) ?></span>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Số lượt trong ngày</span>
+                    <span class="text-3xl font-black text-emerald-600"><?= number_format($visitStats['daily_visits'] ?? 0) ?></span>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Chart: Tỷ lệ theo nguyện vọng -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1 border-t-4 border-t-indigo-500">

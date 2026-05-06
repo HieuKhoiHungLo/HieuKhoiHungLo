@@ -618,6 +618,26 @@ class AdminController extends Controller
             $endDate   = $_GET['end']   ?? "$y-12-31";
         }
 
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $visitStatsSql = "SELECT 
+                            COUNT(*) as total_visits,
+                            COUNT(*) FILTER (WHERE created_at >= date_trunc('week', CURRENT_DATE)) as weekly_visits,
+                            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as daily_visits
+                          FROM page_views 
+                          WHERE url = '/tinh-diem-xet-tuyen'";
+        $visitStatsStmt = $db->query($visitStatsSql);
+        $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
+
+        // Fetch Email Sending Stats
+        $emailStatsSql = "SELECT 
+                            COUNT(*) as total_sent,
+                            COUNT(*) FILTER (WHERE sent_at >= date_trunc('week', CURRENT_DATE)) as weekly_sent,
+                            COUNT(*) FILTER (WHERE sent_at >= CURRENT_DATE) as daily_sent
+                          FROM email_queue 
+                          WHERE status = 'sent'";
+        $emailStatsStmt = $db->query($emailStatsSql);
+        $emailStats = $emailStatsStmt->fetch(\PDO::FETCH_ASSOC);
+
         $this->view('admin/dashboard', [
             'startDate'       => $startDate,
             'endDate'         => $endDate,
@@ -626,7 +646,9 @@ class AdminController extends Controller
             'selectedYear'    => $selectedYear,
             'currentSessionId' => $sessionId,
             'stats'           => ['total' => 0, 'pending' => 0, 'approved' => 0, 'require_edit' => 0, 'ghost' => 0],
-            'user'            => $this->currentUser
+            'user'            => $this->currentUser,
+            'visitStats'      => $visitStats,
+            'emailStats'      => $emailStats
         ]);
     }
 

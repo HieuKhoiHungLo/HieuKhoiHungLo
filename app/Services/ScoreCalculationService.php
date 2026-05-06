@@ -209,7 +209,7 @@ class ScoreCalculationService {
         $aptitudeScores = $this->getAptitudeScores($cccd);
         
         // 1b. Calculate Priority Points (Area + Object)
-        $priorityPoints = $this->calculatePriorityPoints($cccd);
+        $priorityPoints = $this->calculatePriorityPoints($cccd, $sessionId);
         
         // 1c. Dirty Checking (Incremental Calculation)
         $currentHash = $this->generateDataHash($cccd);
@@ -240,52 +240,71 @@ class ScoreCalculationService {
             $bestMethod = null;
             $bestDetails = [];
             $allCombinationsParams = [];
+            $bestAdmitted = false;
+            $thresholdResult = null;
 
             // 3. Iterate Combinations
             foreach ($combinations as $comboCode) {
                 $comboSubjects = $this->getComboSubjects($comboCode);
                 if (!$comboSubjects) continue;
 
+                // --- Kiểm tra phương thức HỌC BẠ (200) ---
                 $hbResult = $this->calculateMethodScore('HOC_BA', $comboSubjects, $transcriptavgs, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                 if ($hbResult) {
-                    // Lưu total_raw (điểm 3 môn thuần, không cộng ưu tiên) để hiển thị trong lưới
                     $allCombinationsParams["HB_{$comboCode}"] = $hbResult['total_raw'];
-                    if ($hbResult['total'] > $bestScore) {
+                    $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200');
+                    
+                    $isBetter = false;
+                    if ($hbThreshold['passed']) {
+                        // Nếu đạt ngưỡng, so sánh với bestScore hiện tại (nếu bestScore cũng đạt ngưỡng)
+                        if ($bestAdmitted && $hbResult['total'] > $bestScore) $isBetter = true;
+                        if (!$bestAdmitted) $isBetter = true; // Ưu tiên cái đạt ngưỡng đầu tiên
+                    } else if (!$bestAdmitted && $hbResult['total'] > $bestScore) {
+                        // Nếu chưa có cái nào đạt ngưỡng, chọn cái cao nhất
+                        $isBetter = true;
+                    }
+
+                    if ($isBetter) {
                         $bestScore = $hbResult['total'];
                         $bestCombo = $comboCode;
                         $bestMethod = '200';
                         $bestDetails = $hbResult['details'];
+                        $bestAdmitted = $hbThreshold['passed'];
+                        $thresholdResult = $hbThreshold;
                     }
                 }
 
+                // --- Kiểm tra phương thức ĐIỂM THI THPT (100) ---
                 if (!empty($thptScores)) {
                     $thptResult = $this->calculateMethodScore('DIEM_THI', $comboSubjects, $thptScores, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                     if ($thptResult) {
-                        // Lưu total_raw (điểm 3 môn thuần, không cộng ưu tiên) để hiển thị trong lưới
                         $allCombinationsParams["THPT_{$comboCode}"] = $thptResult['total_raw'];
-                        if ($thptResult['total'] > $bestScore) {
+                        $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100');
+                        
+                        $isBetter = false;
+                        if ($thptThreshold['passed']) {
+                            if ($bestAdmitted && $thptResult['total'] > $bestScore) $isBetter = true;
+                            if (!$bestAdmitted) $isBetter = true;
+                        } else if (!$bestAdmitted && $thptResult['total'] > $bestScore) {
+                            $isBetter = true;
+                        }
+
+                        if ($isBetter) {
                             $bestScore = $thptResult['total'];
                             $bestCombo = $comboCode;
                             $bestMethod = '100';
                             $bestDetails = $thptResult['details'];
+                            $bestAdmitted = $thptThreshold['passed'];
+                            $thresholdResult = $thptThreshold;
                         }
                     }
                 }
             }
 
-            // 4. Check Threshold (TT06/2026) and Update Summary Result
-            $thresholdResult = null;
-            // Cho phép chạy kiểm tra nếu có cấu hình trong CSDL HOẶC là khối ngành Sư phạm (71)
-            $isPedagogy = (strpos((string)$majorCode, '71') === 0);
-            if (!empty($majorDetails['nguong_hoc_luc']) || !empty($majorDetails['nguong_diem_thpt']) || $isPedagogy) {
-                $thresholdResult = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $bestScore);
-            }
-            // KHÔNG đưa bestScore về 0 nữa để hiển thị điểm thực tế trên Grid cho Admin đối soát
-            
             $details = $bestDetails;
             $details['all_combinations'] = $allCombinationsParams;
             
-            $admitted = true;
+            $admitted = $bestAdmitted;
             if ($thresholdResult && !$thresholdResult['passed']) {
                 $details['threshold_note'] = implode('; ', $thresholdResult['errors']);
                 $admitted = false;
@@ -427,7 +446,16 @@ class ScoreCalculationService {
         if ($this->cachedPriorityAreas === null) $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
         if ($this->cachedPriorityObjects === null) $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
         
+        // Lấy năm tuyển sinh từ session
         $currentYear = (int)date('Y');
+        static $sessionYearsCache = [];
+        if (!isset($sessionYearsCache[$sessionId])) {
+            $stmt = $this->db->prepare("SELECT nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+            $stmt->execute([$sessionId]);
+            $y = $stmt->fetchColumn();
+            $sessionYearsCache[$sessionId] = $y ? (int)$y : (int)date('Y');
+        }
+        $currentYear = $sessionYearsCache[$sessionId];
         
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $rawKV = $row['khu_vuc_uu_tien'] ?? '';
@@ -669,7 +697,7 @@ class ScoreCalculationService {
         return $s;
     }
 
-    protected function calculatePriorityPoints($cccd) {
+    protected function calculatePriorityPoints($cccd, $sessionId = null) {
         if ($this->bulkData) {
             return $this->bulkData['priority'][$cccd] ?? 0;
         }
@@ -693,7 +721,19 @@ class ScoreCalculationService {
 
         // Quy chế: Ưu tiên KV chỉ trong năm tốt nghiệp + 1 năm kế tiếp
         $namTN = $candidate['nam_tot_nghiep'] ?? null;
+        
         $currentYear = (int)date('Y');
+        if ($sessionId) {
+            static $sessionYears = [];
+            if (!isset($sessionYears[$sessionId])) {
+                $stmt = $this->db->prepare("SELECT nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+                $stmt->execute([$sessionId]);
+                $y = $stmt->fetchColumn();
+                $sessionYears[$sessionId] = $y ? (int)$y : (int)date('Y');
+            }
+            $currentYear = $sessionYears[$sessionId];
+        }
+        
         $kvEligible = ($namTN !== null && $namTN !== '' && ($currentYear - (int)$namTN) <= 1);
 
         // Get Area Points (chỉ nếu còn trong hạn)
@@ -901,6 +941,9 @@ class ScoreCalculationService {
             }
 
             $certScore = ($allowCert && isset($certs[$monId])) ? $certs[$monId] : 0;
+            if ($certScore > 0 && $method === 'HOC_BA') {
+                $certScore = round($certScore * $this->cachedHeSoHocBa, 3);
+            }
             $aptitudeScore = isset($aptitude[$monId]) ? $aptitude[$monId] : null;
 
             // Nhận diện môn năng khiếu dựa trên ID đã cache (nhanh hơn so sánh chuỗi)
@@ -929,7 +972,13 @@ class ScoreCalculationService {
             $totalRaw += $finalScore;
             
             // LƯU Ý: Hiển thị ĐIỂM GỐC (chưa quy đổi 95%) để người dùng dễ đối soát dữ liệu
-            $monScores['mon_'.$subjectIdx] = $scores[$monId] ?? 0;
+            if ($source === 'CERT') {
+                $monScores['mon_'.$subjectIdx] = $certs[$monId] ?? 0;
+            } else if ($source === 'APTITUDE') {
+                $monScores['mon_'.$subjectIdx] = $aptitudeScore ?? 0;
+            } else {
+                $monScores['mon_'.$subjectIdx] = $scores[$monId] ?? 0;
+            }
             $subjectIdx++;
             
             $details[$monId] = [
@@ -965,17 +1014,22 @@ class ScoreCalculationService {
      * @param float $bestScore Calculated best score for threshold comparison
      * @return array ['passed' => bool, 'errors' => string[]]
      */
-    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore) {
+    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore, $bestMethod = null) {
         $result = ['passed' => true, 'errors' => []];
         
         $nhomNganh = $majorDetails['nhom_nganh'] ?? 'Khac';
         $nguongHocLuc = $majorDetails['nguong_hoc_luc'] ?? null;
         $nguongDiemTHPT = $majorDetails['nguong_diem_thpt'] ?? null;
 
+        // Quy chế Bộ GD&ĐT: TS01 (100) và TS04 (THPT + Năng khiếu) KHÔNG xét học bạ Giỏi/Khá
+        // Chỉ áp dụng điều kiện học lực cho TS02 (200) và TS05 (Học bạ + Năng khiếu)
+        if ($bestMethod === '100') {
+            $nguongHocLuc = null;
+        }
+
         // TỰ ĐỘNG HÓA QUY CHẾ BỘ GD&ĐT CHO KHỐI NGÀNH SƯ PHẠM (PEDAGOGY)
-        // Ép kiểu (string) để đảm bảo nhận diện đúng mã ngành bắt đầu bằng 71
-        if (strpos((string)$ma_nganh, '71') === 0 && !$nguongHocLuc) {
-             // Mặc định là GIỎI (Bộ quy định Sư phạm xét học bạ phải Giỏi)
+        // Nếu là ngành Sư phạm (71) và chưa có ngưỡng trong DB, mặc định là GIỎI (chỉ áp dụng cho xét học bạ)
+        if ($bestMethod !== '100' && strpos((string)$ma_nganh, '71') === 0 && !$nguongHocLuc) {
              $nguongHocLuc = 'Gioi';
              
              // Các ngành đặc thù (Âm nhạc, Mỹ thuật, TDTT) - Cho phép mức KHÁ

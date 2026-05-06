@@ -491,25 +491,15 @@ class CandidateController extends Controller
                 
                 // If internal note provided, update the candidate's record
                 if (!empty($internalNote)) {
-                    // Wait, updateStatusAndNotes updates to specific status. 
-                    // I should probably just update the note without changing status if sending email.
-                    // Or keep the status as is.
-                    // $log->info("Saving internal note for target {$c['so_cccd']}: $internalNote"); // Assuming $log is defined, if not, I'll omit it or add a placeholder.
                     $db = \App\Core\Database::getInstance()->getConnection();
                     
-                    // Update thi_sinh (Main profile note)
-                    $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = CASE 
-                        WHEN ghi_chu IS NULL OR ghi_chu = '' THEN ? 
-                        ELSE CONCAT(ghi_chu, '\n', ?) 
-                    END WHERE so_cccd = ?");
-                    $upd->execute([$internalNote, $internalNote, $c['so_cccd']]);
+                    // Update thi_sinh (Main profile note) - Overwrite existing note
+                    $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+                    $upd->execute([$internalNote, $c['so_cccd']]);
 
                     // Also update ho_so_xet_tuyen if exists for consistency in filters
-                    $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = CASE 
-                        WHEN ghi_chu IS NULL OR ghi_chu = '' THEN ? 
-                        ELSE CONCAT(ghi_chu, '\n', ?) 
-                    END WHERE so_cccd = ?");
-                    $updHoso->execute([$internalNote, $internalNote, $c['so_cccd']]);
+                    $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
+                    $updHoso->execute([$internalNote, $c['so_cccd']]);
                 }
             }
         }
@@ -1178,7 +1168,7 @@ class CandidateController extends Controller
 
                 case 'thpt':
                     // THPT Scores Update
-                    $fields = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn'];
+                    $fields = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'diem_xet_tot_nghiep'];
                     $scores = [];
 
                     // Review.php uses thpt_ prefix for these inputs

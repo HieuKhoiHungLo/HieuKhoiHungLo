@@ -13,8 +13,8 @@ $router->get('/', 'HomeController@index');
 $router->get('/news/detail', 'NewsController@detail');
 
 // Calculator Module
-$router->get('/tinh-diem', 'CalculatorController@index');
-$router->post('/api/tinh-diem', 'CalculatorController@calculate');
+$router->get('/tinh-diem-xet-tuyen', 'CalculatorController@index');
+$router->post('/api/tinh-diem-xet-tuyen', 'CalculatorController@calculate');
 
 
 $router->group(['middleware' => 'rate_limit:30,1'], function ($router) {

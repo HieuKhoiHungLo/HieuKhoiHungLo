@@ -179,6 +179,10 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                     <th x-show="showCols.object" class="w-28 text-center">Đối tượng</th>
                     <th x-show="showCols.grad_year" class="w-24 text-center">Năm TN</th>
                     <th x-show="showCols.transcript_status" class="w-32 text-center">Học bạ</th>
+                    <th x-show="showCols.graduation_score" class="w-28 text-center">Điểm TN</th>
+                    <th x-show="showCols.tb_chung_12" class="w-28 text-center">TB L12</th>
+                    <th x-show="showCols.hoc_luc_12" class="w-28 text-center">Học lực L12</th>
+                    <th x-show="showCols.hanh_kiem_12" class="w-28 text-center">Hạnh kiểm L12</th>
                 </tr>
 
                 <!-- Row 2: Search Filters -->
@@ -200,7 +204,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <?php if ($mode !== 'all'): ?>
                     <th class="sticky-col sticky-col-trangthai bg-white px-2 py-1 relative">
-                        <select id="status_filter_select" name="status" aria-label="Lọc trạng thái" onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
+                        <select id="status_filter_select" aria-label="Lọc trạng thái" onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
                             <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
@@ -481,6 +485,18 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                 elseif ($tStatus === 'not_entered') echo 'Chưa nhập';
                                 else echo htmlspecialchars($tStatus);
                                 ?>
+                            </td>
+                            <td x-show="showCols.graduation_score" class="text-center text-slate-600 font-bold text-blue-600">
+                                <?= is_numeric($c['graduation_score']) ? number_format($c['graduation_score'], 2) : '-' ?>
+                            </td>
+                            <td x-show="showCols.tb_chung_12" class="text-center text-slate-600">
+                                <?= is_numeric($c['tb_chung_12']) ? number_format($c['tb_chung_12'], 2) : '-' ?>
+                            </td>
+                            <td x-show="showCols.hoc_luc_12" class="text-center text-slate-600">
+                                <?= htmlspecialchars($c['hoc_luc_12'] ?? '-') ?>
+                            </td>
+                            <td x-show="showCols.hanh_kiem_12" class="text-center text-slate-600">
+                                <?= htmlspecialchars($c['hanh_kiem_12'] ?? '-') ?>
                             </td>
                         </tr>
 <?php endforeach; ?>

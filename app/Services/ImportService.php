@@ -100,11 +100,13 @@ class ImportService {
             $this->db->beginTransaction();
             
             $candidateBatch = [];
+            $academicBatch = [];
             $scoresBatch = [];
             $hoSoBatch = [];
 
-            $flushBatches = function() use (&$candidateBatch, &$scoresBatch, &$hoSoBatch, $batchId) {
+            $flushBatches = function() use (&$candidateBatch, &$scoresBatch, &$hoSoBatch, &$academicBatch, $batchId) {
                 if (!empty($candidateBatch)) $this->thiSinhRepo->upsertBatch($candidateBatch);
+                if (!empty($academicBatch)) $this->flushTranscriptBuffer($academicBatch);
                 if (!empty($scoresBatch)) $this->diemThiModel->upsertBatch($scoresBatch);
                 if (!empty($hoSoBatch)) {
                     $cccds = array_unique($hoSoBatch);
@@ -125,6 +127,7 @@ class ImportService {
                     }
                 }
                 $candidateBatch = [];
+                $academicBatch = [];
                 $scoresBatch = [];
                 $hoSoBatch = [];
             };
@@ -158,8 +161,8 @@ class ImportService {
                     'doi_tuong_uu_tien' => $maDT,
                     'khu_vuc_uu_tien' => $maKV,
                     'nam_tot_nghiep' => (int)trim($row[8] ?? date('Y')),
-                    'hoc_luc' => trim($row[9] ?? ''),
-                    'hanh_kiem' => trim($row[10] ?? ''),
+                    'hoc_luc' => $this->normalizeTerm($row[9] ?? ''),
+                    'hanh_kiem' => $this->normalizeTerm($row[10] ?? ''),
                     'ma_tinh_ho_khau' => $maTinh,
                     'ma_huyen_ho_khau' => $this->nullIfEmpty(trim($row[16] ?? '')),
                     'ma_xa_ho_khau' => $maXa,
@@ -195,7 +198,8 @@ class ImportService {
                     'gdcd' => $this->parseFloat($row[30] ?? ''),
                     'cnnn' => $this->parseFloat($row[36] ?? ''), 
                     'ktpl' => $this->parseFloat($row[33] ?? ''), 
-                    'tin_hoc' => $this->parseFloat($row[34] ?? '') 
+                    'tin_hoc' => $this->parseFloat($row[34] ?? ''),
+                    'diem_xet_tot_nghiep' => $this->parseFloat($row[48] ?? '')
                 ];
 
                 $nnScore = $this->parseFloat($row[31] ?? '');
@@ -416,7 +420,16 @@ class ImportService {
                         $this->parseFloat($rowData[46] ?? ''), // GDCD
                         $this->parseFloat($rowData[49] ?? ''), // KTPL
                         $this->parseFloat($rowData[52] ?? ''), // Tin
+                        $this->parseFloat($rowData[55] ?? ''), // Công nghệ
+                        $this->parseFloat($rowData[68] ?? ''), // GDQP (QPAN)
                         $this->parseFloat($rowData[61] ?? '')  // Ngoại ngữ
+                    ],
+                    'summaries' => [
+                        'diem_tb_hk1' => $this->parseFloat($rowData[8] ?? ''),
+                        'diem_tb_hk2' => $this->parseFloat($rowData[9] ?? ''),
+                        'diem_tb_ca_nam' => $this->parseFloat($rowData[7] ?? ''),
+                        'hoc_luc_ca_nam' => $this->normalizeTerm($rowData[19] ?? ''),
+                        'hanh_kiem_ca_nam' => $this->normalizeTerm($rowData[22] ?? '')
                     ]
                 ];
 
@@ -460,7 +473,9 @@ class ImportService {
                 so_cccd, lop, 
                 diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
                 diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
-                diem_ktpl_cn, diem_tin_hoc_cn, diem_ngoai_ngu_cn
+                diem_ktpl_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_gdqp_cn, diem_ngoai_ngu_cn,
+                diem_tb_hk1, diem_tb_hk2, diem_tb_ca_nam,
+                hoc_luc_ca_nam, hanh_kiem_ca_nam
             )
             SELECT 
                 elem->>'cccd',
@@ -475,7 +490,14 @@ class ImportService {
                 (elem->'scores'->>7)::numeric,
                 (elem->'scores'->>8)::numeric,
                 (elem->'scores'->>9)::numeric,
-                (elem->'scores'->>10)::numeric
+                (elem->'scores'->>10)::numeric,
+                (elem->'scores'->>11)::numeric,
+                (elem->'scores'->>12)::numeric,
+                (elem->'summaries'->>'diem_tb_hk1')::numeric,
+                (elem->'summaries'->>'diem_tb_hk2')::numeric,
+                (elem->'summaries'->>'diem_tb_ca_nam')::numeric,
+                elem->'summaries'->>'hoc_luc_ca_nam',
+                elem->'summaries'->>'hanh_kiem_ca_nam'
             FROM json_array_elements(?::json) AS elem
             ON CONFLICT (so_cccd, lop) DO UPDATE SET
                 diem_toan_cn = EXCLUDED.diem_toan_cn,
@@ -488,7 +510,14 @@ class ImportService {
                 diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
                 diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
                 diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
-                diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn
+                diem_cong_nghe_cn = EXCLUDED.diem_cong_nghe_cn,
+                diem_gdqp_cn = EXCLUDED.diem_gdqp_cn,
+                diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
+                diem_tb_hk1 = EXCLUDED.diem_tb_hk1,
+                diem_tb_hk2 = EXCLUDED.diem_tb_hk2,
+                diem_tb_ca_nam = EXCLUDED.diem_tb_ca_nam,
+                hoc_luc_ca_nam = EXCLUDED.hoc_luc_ca_nam,
+                hanh_kiem_ca_nam = EXCLUDED.hanh_kiem_ca_nam
         ";
         $this->db->prepare($sql)->execute([$jsonParam]);
     }
@@ -501,5 +530,23 @@ class ImportService {
         if ($value === null || $value === '') return null;
         $val = str_replace(',', '.', (string)$value);
         return is_numeric($val) ? (float)$val : null;
+    }
+
+    private function normalizeTerm($value) {
+        if ($value === null || $value === '') return null;
+        $val = trim((string)$value);
+        if (empty($val)) return null;
+
+        $map = [
+            'G' => 'Giỏi', 'K' => 'Khá', 'TB' => 'Trung bình', 'Y' => 'Yếu',
+            'T' => 'Tốt', 'D' => 'Đạt', 'CD' => 'Chưa đạt',
+            'GIOI' => 'Giỏi', 'KHA' => 'Khá', 'TRUNG BINH' => 'Trung bình', 'YEU' => 'Yếu', 'KEM' => 'Kém',
+            'TOT' => 'Tốt'
+        ];
+        
+        $upper = mb_strtoupper($val, 'UTF-8');
+        if (isset($map[$upper])) return $map[$upper];
+        
+        return $val;
     }
 }

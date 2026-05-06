@@ -248,15 +248,20 @@ class AptitudeScoreController extends Controller {
     }
 
     public function template() {
-        $data = [[
-            'CCCD (Bat buoc)' => "\t123456789",
-            'SBD' => 'NK2024001',
-            'Ma mon (NK1, NK2, NK3, NK4)' => 'NK1',
-            'Diem (Bat buoc)' => '9.5',
-            'Ghi chu' => 'Vi du mau'
-        ]];
-
-        $exportService = new \App\Services\ExportService();
-        $exportService->toExcel($data, 'mau_import_diem_nang_khieu.xls');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=mau_import_diem_nang_khieu.csv');
+        $output = fopen('php://output', 'w');
+        
+        // Thêm BOM để Excel đọc đúng tiếng Việt (UTF-8)
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Ghi dòng tiêu đề
+        fputcsv($output, ['CCCD (Bắt buộc)', 'SBD', 'Mã môn (NK1, NK2, NK3, NK4)', 'Điểm (Bắt buộc)', 'Ghi chú']);
+        
+        // Ghi dữ liệu mẫu
+        fputcsv($output, ['123456789', 'NK2024001', 'NK1', '9.5', 'Ví dụ mẫu']);
+        
+        fclose($output);
+        exit;
     }
 }

@@ -16,7 +16,7 @@ class DiemThiTHPT extends Model {
     public function save($cccd, $data) {
         $fields = [
             'nam_thi', 'da_co_diem', 'toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 
-            'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan'
+            'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan', 'diem_xet_tot_nghiep'
         ];
         
         // Use a single query to check and update if needed, or insert
@@ -118,7 +118,7 @@ class DiemThiTHPT extends Model {
         
         $fields = [
             'so_cccd', 'nam_thi', 'da_co_diem', 'toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 
-            'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan'
+            'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'file_chung_nhan', 'diem_xet_tot_nghiep'
         ];
 
         $placeholders = [];

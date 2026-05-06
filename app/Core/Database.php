@@ -31,7 +31,13 @@ class Database {
         try {
             $this->pdo = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
-            die("DB Connection Error: " . $e->getMessage());
+            $errorViewPath = __DIR__ . '/../../resources/views/errors/maintenance.php';
+            if (file_exists($errorViewPath)) {
+                http_response_code(503);
+                require $errorViewPath;
+                exit();
+            }
+            die("DB Connection Error: Hệ thống đang bảo trì hoặc mất kết nối. Vui lòng thử lại sau.");
         }
     }
 

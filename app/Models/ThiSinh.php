@@ -36,7 +36,12 @@ class ThiSinh extends Model {
              FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as transcript_status";
         }
 
-        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, qtv_base.ho_ten as reviewer_name $transcriptStatusSql";
+        $baseSelect = "t.*, t.ghi_chu as base_ghi_chu, p.ten_tinh as province_name, s.ten_truong as school_name, qtv_base.ho_ten as reviewer_name,
+                         (SELECT dth.diem_xet_tot_nghiep FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd " . ($year ? " AND dth.nam_thi = " . (int)$year : "") . " LIMIT 1) as graduation_score,
+                         (SELECT hb.diem_tb_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as tb_chung_12,
+                         (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hoc_luc_12,
+                         (SELECT hb.hanh_kiem_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hanh_kiem_12
+                         $transcriptStatusSql";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
                        LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
                        LEFT JOIN ho_so_xet_tuyen hs_base ON t.so_cccd = hs_base.so_cccd " . ($sessionId ? " AND hs_base.dot_tuyen_sinh_id = " . (int)$sessionId : "") . "
@@ -44,12 +49,15 @@ class ThiSinh extends Model {
 
         // Optimize for 'submitted' mode by joining ho_so_xet_tuyen early
         if ($applicationStatus === 'submitted') {
-            $sql = "SELECT $baseSelect, COALESCE(dmn_nv1.ten_nganh, nv_first.ten_nganh) as nv1 
+            $sql = "SELECT $baseSelect, 
+                    (SELECT COALESCE(dmn_sub.ten_nganh, nv_sub.ten_nganh) 
+                     FROM nguyen_vong nv_sub 
+                     LEFT JOIN dm_nganh dmn_sub ON nv_sub.ma_nganh = dmn_sub.ma_nganh
+                     WHERE (nv_sub.ho_so_id = hs.id OR (nv_sub.so_cccd = t.so_cccd AND nv_sub.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_sub.ho_so_id IS NULL))
+                     ORDER BY nv_sub.thu_tu_nguyen_vong ASC LIMIT 1) as nv1 
                     FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
                     $baseJoins
-                    LEFT JOIN nguyen_vong nv_first ON (nv_first.ho_so_id = hs.id OR (nv_first.so_cccd = t.so_cccd AND nv_first.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_first.ho_so_id IS NULL)) AND nv_first.thu_tu_nguyen_vong = 1
-                    LEFT JOIN dm_nganh dmn_nv1 ON nv_first.ma_nganh = dmn_nv1.ma_nganh
                     WHERE 1=1";
             
             if ($sessionId) {
@@ -68,9 +76,11 @@ class ThiSinh extends Model {
                 $sql .= " AND hs.yeu_cau_chinh_sua = TRUE";
             }
         } else {
-            $sql = "SELECT $baseSelect, nv_first.ten_nganh as nv1 
+            $sql = "SELECT $baseSelect, 
+                    (SELECT nv_sub.ten_nganh FROM nguyen_vong nv_sub 
+                     WHERE nv_sub.so_cccd = t.so_cccd " . ($sessionId ? " AND nv_sub.dot_tuyen_sinh_id = " . (int)$sessionId : "") . "
+                     ORDER BY nv_sub.thu_tu_nguyen_vong ASC LIMIT 1) as nv1 
                     FROM {$this->table} t $baseJoins 
-                    LEFT JOIN nguyen_vong nv_first ON t.so_cccd = nv_first.so_cccd AND nv_first.thu_tu_nguyen_vong = 1
                     WHERE 1=1";
             
             if ($applicationStatus === 'trash') {

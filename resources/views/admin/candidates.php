@@ -116,7 +116,8 @@
     showCols: (function() {
         const defaults = { 
             cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
-            gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false, transcript_status: true, reviewer_name: true
+            gender: false, dob: false, ethnicity: false, area: false, object: false, grad_year: false, transcript_status: true, reviewer_name: true,
+            graduation_score: true, tb_chung_12: false, hoc_luc_12: false, hanh_kiem_12: false
         };
         const stored = JSON.parse(localStorage.getItem('admin_cols')) || {};
         const cols = { ...defaults, ...stored };
@@ -148,9 +149,13 @@
             ethnicity: 'Dân tộc',
             area: 'Khu vực ƯT',
             object: 'Đối tượng ƯT',
-            grad_year: 'Năm tốt nghiệp',
-            transcript_status: 'Trạng thái học bạ',
-            reviewer_name: 'Người duyệt'
+            grad_year: 'Năm TN',
+            transcript_status: 'Học bạ',
+            reviewer_name: 'Người duyệt',
+            graduation_score: 'Điểm tốt nghiệp',
+            tb_chung_12: 'TB chung L12',
+            hoc_luc_12: 'Học lực L12',
+            hanh_kiem_12: 'Hạnh kiểm L12'
         };
         return labels[col] || col;
     }

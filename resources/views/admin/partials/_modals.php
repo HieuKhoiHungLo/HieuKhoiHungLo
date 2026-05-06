@@ -136,7 +136,7 @@
 
                 <!-- Internal Note -->
                 <div class="px-5 py-2 border-b border-slate-100 flex items-center gap-3 bg-amber-50/10">
-                    <span class="text-[10px] font-black text-amber-600 w-20 shrink-0 uppercase tracking-tight">Ghi chú bộ</span>
+                    <span class="text-[10px] font-black text-amber-600 w-20 shrink-0 uppercase tracking-tight">Ghi chú nội bộ</span>
                     <input type="text" name="internal_note" id="email-modal-internal-note"
                         class="flex-1 bg-transparent border-none text-slate-900 text-sm font-medium placeholder:text-amber-200 focus:ring-0 p-0 outline-none"
                         placeholder="Nhập ghi chú hoặc lịch sử công việc...">

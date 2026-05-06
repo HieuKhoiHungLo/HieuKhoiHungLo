@@ -118,6 +118,7 @@ main { padding-top: 0 !important; }
                     <i class="fas fa-calculator text-hvu-red mr-2 text-xs"></i> Điểm học bạ quy đổi - Hệ số quy đổi: 
                     <input type="number" step="0.01" x-model.number="coefficient" 
                            class="ml-2 w-14 h-[24px] py-0 text-center border-2 border-blue-400 rounded-lg shadow-sm focus:border-hvu-red focus:ring-hvu-red font-black text-red-600 bg-yellow-50 outline-none transition-all text-[11px]">
+                    <span class="ml-2 text-blue-600 normal-case tracking-normal text-[10px]">(năm 2025)</span>
                 </h3>
             </div>
             <div class="overflow-x-auto flex-1 pt-[2px]">

@@ -7,6 +7,17 @@ use App\Services\ScoreCalculator;
 
 class CalculatorController extends Controller {
     public function index() {
+        // Track visit
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            $stmt = $db->prepare("INSERT INTO page_views (url, ip_address, user_agent) VALUES (?, ?, ?)");
+            $stmt->execute(['/tinh-diem-xet-tuyen', $ip, $ua]);
+        } catch (\Exception $e) {
+            // Ignore error
+        }
+
         $masterData = new MasterData();
         $majors = $masterData->getActiveMajorsWithCombinations();
         

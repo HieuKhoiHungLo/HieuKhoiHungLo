@@ -62,7 +62,7 @@ function renderParentOptions($items, $level = 0, $selectedId = null, $excludeId 
 
             <div class="col-span-1">
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Đường dẫn (URL) <span class="text-rose-500">*</span></label>
-                <input type="text" name="url" value="<?= $isEdit ? htmlspecialchars($menu['url']) : '' ?>" required placeholder="VD: /tinh-diem hoặc https://google.com"
+                <input type="text" name="url" value="<?= $isEdit ? htmlspecialchars($menu['url']) : '' ?>" required placeholder="VD: /tinh-diem-xet-tuyen hoặc https://google.com"
                        class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition">
             </div>
 
