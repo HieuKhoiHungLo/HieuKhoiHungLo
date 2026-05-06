@@ -13,12 +13,18 @@
             <button onclick="window.location.reload()" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
                 <i class="fas fa-sync-alt"></i>
             </button>
-            <a href="<?= url('/admin/email-queue/clear-sent') ?>" onclick="return confirm('Xóa toàn bộ các thư đã gửi thành công để làm sạch hàng đợi?')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
-                Làm sạch hàng đợi
-            </a>
-            <a href="<?= url('/admin/email-queue/retry') ?>" onclick="return confirm('Gửi lại toàn bộ các thư đang bị lỗi?')" class="px-4 py-2.5 bg-[#0066FF] text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 uppercase tracking-wider">
-                Gửi lại tất cả lỗi
-            </a>
+            <form method="POST" action="<?= url('/admin/email-queue/clear-sent') ?>" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <button type="submit" onclick="return confirm('Xóa toàn bộ các thư đã gửi thành công để làm sạch hàng đợi?')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
+                    Làm sạch hàng đợi
+                </button>
+            </form>
+            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <button type="submit" onclick="return confirm('Gửi lại toàn bộ các thư đang bị lỗi?')" class="px-4 py-2.5 bg-[#0066FF] text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 uppercase tracking-wider">
+                    Gửi lại tất cả lỗi
+                </button>
+            </form>
         </div>
     </div>
 
@@ -114,22 +120,22 @@
     <!-- Main Table -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-10">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-50/50 text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-50/80 text-[10px] uppercase font-bold text-slate-500 tracking-widest">
                     <tr>
-                        <th class="px-6 py-4">Thời gian</th>
-                        <th class="px-6 py-4">Người nhận</th>
-                        <th class="px-6 py-4">Tiêu đề</th>
+                        <th class="px-4 py-3 border border-slate-200 text-center" style="width: 140px;">THỜI GIAN</th>
+                        <th class="px-4 py-3 border border-slate-200">NGƯỜI NHẬN</th>
+                        <th class="px-4 py-3 border border-slate-200">TIÊU ĐỀ</th>
                         <?php if ($currentTab === 'failed'): ?>
-                            <th class="px-6 py-4">Lỗi / Lần thử</th>
+                            <th class="px-4 py-3 border border-slate-200">LỖI / LẦN THỬ</th>
                         <?php endif; ?>
-                        <th class="px-6 py-4 text-right">Thao tác</th>
+                        <th class="px-4 py-3 border border-slate-200 text-center" style="width: 100px;">THAO TÁC</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-50">
+                <tbody class="divide-y divide-slate-100">
                     <?php if (empty($items)): ?>
                         <tr>
-                            <td colspan="5" class="px-6 py-24 text-center">
+                            <td colspan="<?= ($currentTab === 'failed') ? '5' : '4' ?>" class="px-6 py-24 text-center">
                                 <div class="flex flex-col items-center justify-center text-slate-300">
                                     <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                         <i class="fas fa-inbox text-3xl opacity-20"></i>
@@ -141,45 +147,47 @@
                         </tr>
                     <?php else: ?>
                         <?php foreach ($items as $item): ?>
-                            <tr class="hover:bg-slate-50/80 transition-all group">
-                                <td class="px-6 py-4 text-xs text-slate-500 font-medium whitespace-nowrap">
+                            <tr class="hover:bg-slate-50/50 transition-all group">
+                                <td class="px-4 py-3 border border-slate-200 text-center text-xs text-slate-500 font-medium whitespace-nowrap">
                                     <?php 
                                         $time = ($currentTab === 'sent') ? $item['sent_at'] : $item['created_at'];
                                         echo date('d/m/Y H:i', strtotime($time));
                                     ?>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-slate-800 text-sm group-hover:text-[#0066FF] transition-colors"><?= htmlspecialchars($item['recipient']) ?></div>
-                                    <div class="text-[9px] text-slate-400 uppercase font-black mt-0.5 tracking-tighter">
-                                        <?= htmlspecialchars($item['category'] ?? 'Hệ thống') ?>
-                                    </div>
+                                <td class="px-4 py-3 border border-slate-200">
+                                    <div class="text-slate-600 text-sm"><?= htmlspecialchars($item['recipient']) ?></div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-xs text-slate-600 truncate max-w-xs font-medium group-hover:text-slate-900 transition-colors" title="<?= htmlspecialchars($item['subject']) ?>">
+                                <td class="px-4 py-3 border border-slate-200">
+                                    <div class="text-xs text-slate-500 truncate max-w-sm font-normal" title="<?= htmlspecialchars($item['subject']) ?>">
                                         <?= htmlspecialchars($item['subject']) ?>
                                     </div>
                                 </td>
                                 <?php if ($currentTab === 'failed'): ?>
-                                    <td class="px-6 py-4">
-                                        <div class="text-[10px] text-rose-600 font-bold leading-tight max-w-xs break-words">
+                                    <td class="px-4 py-3 border border-slate-200">
+                                        <div class="text-[10px] text-rose-500 font-medium leading-tight max-w-xs break-words">
                                             <?= htmlspecialchars($item['last_error'] ?: ($item['error'] ?: 'Lỗi không xác định')) ?>
                                         </div>
-                                        <div class="text-[9px] text-slate-400 mt-1 font-medium">Lần thử: <span class="text-slate-600"><?= $item['attempts'] ?>/3</span></div>
+                                        <div class="text-[9px] text-slate-400 mt-1">Lần thử: <?= $item['attempts'] ?>/3</div>
                                     </td>
                                 <?php endif; ?>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                <td class="px-4 py-3 border border-slate-200 text-center">
+                                    <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                                         <?php if ($currentTab === 'failed'): ?>
-                                            <a href="<?= url('/admin/email-queue/retry?id=' . $item['id']) ?>" 
-                                               class="w-8 h-8 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Gửi lại">
-                                                <i class="fas fa-redo-alt text-[10px]"></i>
-                                            </a>
+                                            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>" class="inline">
+                                                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                                <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                                <button type="submit" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Gửi lại">
+                                                    <i class="fas fa-redo-alt text-[9px]"></i>
+                                                </button>
+                                            </form>
                                         <?php endif; ?>
-                                        <a href="<?= url('/admin/email-queue/delete?id=' . $item['id']) ?>" 
-                                           onclick="return confirm('Xác nhận xóa bản ghi này?')"
-                                           class="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Xóa">
-                                            <i class="fas fa-trash-alt text-[10px]"></i>
-                                        </a>
+                                        <form method="POST" action="<?= url('/admin/email-queue/delete') ?>" class="inline" onsubmit="return confirm('Xác nhận xóa bản ghi này?')">
+                                            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                            <input type="hidden" name="id" value="<?= $item['id'] ?>">
+                                            <button type="submit" class="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all" title="Xóa">
+                                                <i class="fas fa-trash-alt text-[9px]"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

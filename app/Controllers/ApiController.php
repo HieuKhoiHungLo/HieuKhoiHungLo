@@ -59,9 +59,10 @@ class ApiController extends Controller
      */
     public function processEmailQueue()
     {
-        // Simple security for web access
+        // Security: verify cron key from .env (timing-safe comparison)
         $key = $_GET['key'] ?? '';
-        if ($key !== 'hvu_cron_2024') {
+        $expectedKey = $_ENV['CRON_SECRET_KEY'] ?? '';
+        if (empty($expectedKey) || !hash_equals($expectedKey, $key)) {
             header("HTTP/1.1 403 Forbidden");
             $this->json(['success' => false, 'error' => 'Forbidden']);
             return;

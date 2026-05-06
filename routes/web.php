@@ -372,7 +372,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     // Email Queue Management
     $router->get('/admin/email-queue', 'EmailQueueController@index');
-    $router->get('/admin/email-queue/retry', 'EmailQueueController@retry');
-    $router->get('/admin/email-queue/delete', 'EmailQueueController@delete');
-    $router->get('/admin/email-queue/clear-sent', 'EmailQueueController@clearSent');
+    $router->post('/admin/email-queue/retry', 'EmailQueueController@retry');
+    $router->post('/admin/email-queue/delete', 'EmailQueueController@delete');
+    $router->post('/admin/email-queue/clear-sent', 'EmailQueueController@clearSent');
 });

@@ -142,7 +142,9 @@ class AdmissionLetterController extends Controller {
         $candidate = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$candidate) {
-            die("Không tìm thấy thí sinh.");
+            http_response_code(404);
+            echo '<div style="text-align:center;padding:40px;color:#666;">Không tìm thấy thí sinh.</div>';
+            exit;
         }
 
         if ($templateId) {
@@ -154,8 +156,13 @@ class AdmissionLetterController extends Controller {
         }
 
         if (!$template) {
-            die("Không tìm thấy mẫu email.");
+            http_response_code(404);
+            echo '<div style="text-align:center;padding:40px;color:#666;">Không tìm thấy mẫu email.</div>';
+            exit;
         }
+
+        // CSP header to mitigate XSS from imported data
+        header("Content-Security-Policy: script-src 'none'");
 
         $html = $this->service->renderTemplate($template['body'], $candidate);
         

@@ -87,6 +87,9 @@ class AdmissionLetterService {
 
         $this->db->beginTransaction();
 
+        // Prepare duplicate check statement
+        $dupStmt = $this->db->prepare("SELECT COUNT(*) FROM thu_trung_tuyen WHERE so_cccd = ? AND batch_id = ?");
+
         try {
             for ($row = 2; $row <= $highestRow; $row++) {
                 $rowData = $data[$row];
@@ -94,8 +97,21 @@ class AdmissionLetterService {
                 $email = trim($rowData[$colMap['email']] ?? '');
                 $cccd = trim($rowData[$colMap['cccd']] ?? '');
                 
-                // Bỏ qua nếu email rỗng
+                // Bỏ qua nếu email/cccd rỗng
                 if (empty($email) || empty($cccd)) {
+                    $ignored++;
+                    continue;
+                }
+
+                // Validate email format
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $ignored++;
+                    continue;
+                }
+
+                // Kiểm tra trùng lặp CCCD trong cùng đợt
+                $dupStmt->execute([$cccd, $batchId]);
+                if ((int)$dupStmt->fetchColumn() > 0) {
                     $ignored++;
                     continue;
                 }

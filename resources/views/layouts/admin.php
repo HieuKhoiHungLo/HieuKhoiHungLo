@@ -673,7 +673,7 @@
         // Auto-process email queue in background (non-blocking) via API Route
         // DELAY execution by 3 seconds so it doesn't compete with primary render/assets
         setTimeout(() => {
-            fetch('<?= url("/api/cron/process_email_queue?key=hvu_cron_2024") ?>', {
+            fetch('<?= url("/api/cron/process_email_queue?key=" . ($_ENV["CRON_SECRET_KEY"] ?? "")) ?>', {
                 method: 'GET',
                 keepalive: true
             }).catch(() => {});
