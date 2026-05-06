@@ -23,56 +23,56 @@
 
     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse border border-slate-200">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200">
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SBD</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Thí sinh</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Môn thi</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phòng thi</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center" style="width: 150px;">Điểm số</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Ghi chú</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Trạng thái</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border border-slate-200">SBD</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border border-slate-200">Thí sinh</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border border-slate-200">Môn thi</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border border-slate-200">Phòng thi</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center border border-slate-200" style="width: 150px;">Điểm số</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border border-slate-200">Ghi chú</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right border border-slate-200">Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <?php if (empty($assignments)): ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-20 text-center text-slate-400 italic">
+                            <td colspan="7" class="px-6 py-20 text-center text-slate-400 italic border border-slate-200">
                                 Chưa có dữ liệu thí sinh. Hãy thực hiện đồng bộ thí sinh trước.
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($assignments as $a): ?>
                             <tr class="hover:bg-slate-50/50 transition-colors group">
-                                <td class="px-6 py-4">
-                                    <span class="font-mono font-bold text-blue-600"><?= htmlspecialchars($a['exam_number']) ?></span>
+                                <td class="px-6 py-4 border border-slate-200">
+                                    <span class="font-mono text-blue-600"><?= htmlspecialchars($a['exam_number']) ?></span>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="font-bold text-slate-800"><?= htmlspecialchars($a['name']) ?></div>
+                                <td class="px-6 py-4 border border-slate-200">
+                                    <div class="text-slate-800"><?= htmlspecialchars($a['name']) ?></div>
                                     <div class="text-xs text-slate-400">CCCD: <?= htmlspecialchars($a['cccd']) ?></div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-slate-600">
+                                <td class="px-6 py-4 text-sm text-slate-600 border border-slate-200">
                                     <?= htmlspecialchars($a['subject_name']) ?>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-slate-600">
+                                <td class="px-6 py-4 text-sm text-slate-600 border border-slate-200">
                                     <span class="px-2 py-1 bg-slate-100 rounded-lg"><?= htmlspecialchars($a['room_name'] ?: '--') ?></span>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 border border-slate-200">
                                     <input type="number" step="0.01" 
                                            onchange="saveScore(<?= $a['id'] ?>, this.value)"
                                            value="<?= $a['score'] ?>"
-                                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-center font-bold text-slate-700"
+                                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-center text-slate-700"
                                            placeholder="0.00">
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 border border-slate-200">
                                     <input type="text" 
                                            onchange="saveNote(<?= $a['id'] ?>, this.value)"
                                            value="<?= htmlspecialchars($a['note'] ?: '') ?>"
                                            class="w-full px-3 py-2 bg-transparent border-b border-transparent focus:border-slate-300 transition outline-none text-sm text-slate-600"
                                            placeholder="Thêm ghi chú...">
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-6 py-4 text-right border border-slate-200">
                                     <div id="status-<?= $a['id'] ?>">
                                         <?php if ($a['score'] !== null): ?>
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">

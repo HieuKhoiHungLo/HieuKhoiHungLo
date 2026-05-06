@@ -347,15 +347,23 @@ class TalentTestController extends Controller
         $sheet->setCellValue('F1', 'Điểm');
         $sheet->setCellValue('G1', 'Ghi chú');
 
+        // Prevent CSV Injection
+        $sanitize = function($value) {
+            if (is_string($value) && preg_match('/^[=\+\-@\t\r\n]/', $value)) {
+                return "'" . $value;
+            }
+            return $value;
+        };
+
         $row = 2;
         foreach ($data as $d) {
             $sheet->setCellValue('A' . $row, $d['exam_number']);
-            $sheet->setCellValue('B' . $row, $d['name']);
+            $sheet->setCellValue('B' . $row, $sanitize($d['name']));
             $sheet->setCellValue('C' . $row, $d['cccd']);
             $sheet->setCellValue('D' . $row, $d['major_code']);
             $sheet->setCellValue('E' . $row, $d['subject_name']);
             $sheet->setCellValue('F' . $row, $d['score']);
-            $sheet->setCellValue('G' . $row, $d['note']);
+            $sheet->setCellValue('G' . $row, $sanitize($d['note']));
             $row++;
         }
 

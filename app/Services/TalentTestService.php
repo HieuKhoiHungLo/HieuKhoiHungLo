@@ -100,52 +100,82 @@ class TalentTestService
      */
     public function syncCandidates(int $sessionId, array $majorCodes)
     {
-        // 1. Lấy danh sách thí sinh đã duyệt (giả sử có bảng candidates với status='approved')
+        if (empty($majorCodes)) return 0;
+        
+        // 1. Get subjects for this session
+        $subStmt = $this->db->prepare("SELECT id, major_code FROM talent_test_subjects WHERE session_id = ?");
+        $subStmt->execute([$sessionId]);
+        $subjects = [];
+        foreach ($subStmt->fetchAll(PDO::FETCH_ASSOC) as $sub) {
+            $subjects[$sub['major_code']] = $sub['id'];
+        }
+
+        if (empty($subjects)) return 0;
+
+        // 2. Get current sequence number for each subject to generate exam_number
+        $seqMap = [];
+        foreach ($subjects as $majorCode => $subjectId) {
+            $cntStmt = $this->db->prepare("SELECT COUNT(*) FROM talent_test_assignments WHERE subject_id = ?");
+            $cntStmt->execute([$subjectId]);
+            $seqMap[$subjectId] = (int)$cntStmt->fetchColumn();
+        }
+
+        // 3. Get approved candidates matching the major codes
         $placeholders = implode(',', array_fill(0, count($majorCodes), '?'));
         $sql = "SELECT id, name, email, major_code FROM candidates WHERE status='approved' AND major_code IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($majorCodes);
         $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($candidates as $cand) {
-            // Kiểm tra đã tồn tại assignment cho cùng session và subject chưa
-            $subjectSql = "SELECT id FROM talent_test_subjects WHERE session_id = ? AND major_code = ?";
-            $subStmt = $this->db->prepare($subjectSql);
-            $subStmt->execute([$sessionId, $cand['major_code']]);
-            $subject = $subStmt->fetch(PDO::FETCH_ASSOC);
-            if (!$subject) continue; // không có môn cho ngành này trong đợt này
-
-            // Đếm số học sinh đã có exam_number cho subject để sinh số tiếp theo
-            $cntSql = "SELECT COUNT(*) FROM talent_test_assignments WHERE subject_id = ?";
-            $cntStmt = $this->db->prepare($cntSql);
-            $cntStmt->execute([$subject['id']]);
-            $seq = $cntStmt->fetchColumn() + 1;
-
-            $examNumber = sprintf('TNH-%s-%s-%04d', date('Y'), $cand['major_code'], $seq);
-
-            // Chọn phòng ngẫu nhiên dựa trên capacity còn trống
-            $roomSql = "SELECT r.id FROM talent_test_rooms r
-                       LEFT JOIN talent_test_assignments a ON a.room_id = r.id AND a.status='not_taken'
-                       WHERE r.session_id = ?
-                       GROUP BY r.id
-                       HAVING COUNT(a.id) < r.capacity
-                       ORDER BY RAND() LIMIT 1";
-            $roomStmt = $this->db->prepare($roomSql);
-            $roomStmt->execute([$sessionId]);
-            $room = $roomStmt->fetch(PDO::FETCH_ASSOC);
-            $roomId = $room['id'] ?? null;
-
-            $insSql = "INSERT INTO talent_test_assignments (candidate_id, subject_id, room_id, exam_number, status, created_at, updated_at)
-                       VALUES (:cid, :sid, :rid, :ex, 'not_taken', NOW(), NOW())";
-            $insStmt = $this->db->prepare($insSql);
-            $insStmt->execute([
-                ':cid' => $cand['id'],
-                ':sid' => $subject['id'],
-                ':rid' => $roomId,
-                ':ex' => $examNumber,
-            ]);
+        // 4. Get candidates already synced to avoid duplicates
+        $existingStmt = $this->db->prepare("
+            SELECT a.candidate_id, s.major_code 
+            FROM talent_test_assignments a
+            JOIN talent_test_subjects s ON s.id = a.subject_id
+            WHERE s.session_id = ?
+        ");
+        $existingStmt->execute([$sessionId]);
+        $existing = [];
+        foreach ($existingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $existing[$row['candidate_id'] . '_' . $row['major_code']] = true;
         }
-        return count($candidates);
+
+        $this->db->beginTransaction();
+        try {
+            $insSql = "INSERT INTO talent_test_assignments (candidate_id, subject_id, room_id, exam_number, status, created_at, updated_at)
+                       VALUES (:cid, :sid, NULL, :ex, 'not_taken', NOW(), NOW())";
+            $insStmt = $this->db->prepare($insSql);
+
+            $syncedCount = 0;
+            $year = date('Y');
+
+            foreach ($candidates as $cand) {
+                $majorCode = $cand['major_code'];
+                $subjectId = $subjects[$majorCode] ?? null;
+
+                if (!$subjectId) continue;
+                
+                // Skip if already synced
+                if (isset($existing[$cand['id'] . '_' . $majorCode])) continue;
+
+                $seqMap[$subjectId]++;
+                $seq = $seqMap[$subjectId];
+                $examNumber = sprintf('TNH-%s-%s-%04d', $year, $majorCode, $seq);
+
+                $insStmt->execute([
+                    ':cid' => $cand['id'],
+                    ':sid' => $subjectId,
+                    ':ex' => $examNumber,
+                ]);
+                
+                $syncedCount++;
+            }
+            $this->db->commit();
+            return $syncedCount;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 
     // ---------------------------------------------------------------------

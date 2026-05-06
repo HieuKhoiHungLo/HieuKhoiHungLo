@@ -375,4 +375,25 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/email-queue/retry', 'EmailQueueController@retry');
     $router->post('/admin/email-queue/delete', 'EmailQueueController@delete');
     $router->post('/admin/email-queue/clear-sent', 'EmailQueueController@clearSent');
+
+    // Talent Test Management (Thi Năng Khiếu)
+    $router->get('/admin/talent-tests', 'TalentTestController@index');
+    $router->get('/admin/talent-tests/create', 'TalentTestController@create');
+    $router->post('/admin/talent-tests/store', 'TalentTestController@store');
+    $router->get('/admin/talent-tests/edit', 'TalentTestController@edit');
+    $router->post('/admin/talent-tests/sync', 'TalentTestController@sync');
+    $router->post('/admin/talent-tests/toggle-publish', 'TalentTestController@togglePublish');
+    $router->post('/admin/talent-tests/rooms/save', 'TalentTestController@saveRoom');
+    $router->post('/admin/talent-tests/auto-assign', 'TalentTestController@autoAssignRooms');
+    $router->post('/admin/talent-tests/assign-bags', 'TalentTestController@assignBags');
+    $router->get('/admin/talent-tests/print-cards', 'TalentTestController@printCards');
+    $router->get('/admin/talent-tests/print-photos', 'TalentTestController@printPhotos');
+    $router->get('/admin/talent-tests/scores', 'TalentTestController@scores');
+    $router->post('/admin/talent-tests/scores/save', 'TalentTestController@saveScore');
+    $router->get('/admin/talent-tests/export-excel', 'TalentTestController@exportExcel');
+    $router->get('/admin/talent-tests/dashboard', 'TalentTestController@dashboard');
 });
+
+// Public Talent Test Route
+$router->get('/tra-cuu-nang-khieu', 'TalentTestPublicController@index');
+$router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search');

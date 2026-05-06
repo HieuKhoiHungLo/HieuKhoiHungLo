@@ -22,6 +22,7 @@ class TalentTestPublicController extends Controller
      */
     public function search()
     {
+        $this->validateCsrf();
         $keyword = trim($_POST['keyword'] ?? '');
         
         if (empty($keyword)) {
