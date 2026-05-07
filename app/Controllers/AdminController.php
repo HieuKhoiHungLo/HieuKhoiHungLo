@@ -629,6 +629,9 @@ class AdminController extends Controller
         $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
 
         // Fetch Email Sending Stats
+        $historyStmt = $db->query("SELECT value FROM email_queue_stats WHERE key = 'cleared_sent_total'");
+        $clearedTotal = (int)($historyStmt->fetchColumn() ?: 0);
+
         $emailStatsSql = "SELECT 
                             COUNT(*) as total_sent,
                             COUNT(*) FILTER (WHERE sent_at >= date_trunc('week', CURRENT_DATE)) as weekly_sent,
@@ -637,6 +640,9 @@ class AdminController extends Controller
                           WHERE status = 'sent'";
         $emailStatsStmt = $db->query($emailStatsSql);
         $emailStats = $emailStatsStmt->fetch(\PDO::FETCH_ASSOC);
+        
+        // Cộng dồn lịch sử
+        $emailStats['total_sent'] += $clearedTotal;
 
         $this->view('admin/dashboard', [
             'startDate'       => $startDate,

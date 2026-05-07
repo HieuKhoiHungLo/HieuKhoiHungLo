@@ -85,8 +85,8 @@ class ApiController extends Controller
             $this->masterData->setSetting('last_audit_purge', $today);
         }
 
-        // Fetch pending emails (limit 10 per run to avoid timeout)
-        $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 10");
+        // Fetch pending emails (limit 50 per run to speed up delivery)
+        $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 50");
         $stmt->execute();
         $emails = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

@@ -137,6 +137,7 @@
             let currentFilter = 'all';
 
             // Fetch notifications
+            let currentNotifications = [];
             window.fetchNotifications = function(filter = 'all') {
                 currentFilter = filter;
                 list.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...</div>';
@@ -147,13 +148,13 @@
                         return r.json();
                     })
                     .then(data => {
-                        console.log('Notif Data:', data);
                         if (!data.success || !data.notifications || !data.notifications.length) {
                             const msg = filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Không có thông báo';
                             list.innerHTML = `<div class="p-6 text-center text-gray-400 text-sm"><i class="fas fa-bell-slash text-2xl mb-2"></i><p>${msg}</p></div>`;
                             return;
                         }
 
+                        currentNotifications = data.notifications;
                         const typeColors = {
                             'info': 'bg-blue-100 text-blue-600',
                             'warning': 'bg-yellow-100 text-yellow-600',
@@ -163,7 +164,7 @@
 
                         list.innerHTML = data.notifications.map(n => `
                             <div class="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition ${n.is_read ? 'opacity-60' : ''}" 
-                                 onclick="window.markNotificationRead(${n.id}, this)">
+                                 onclick="window.viewNotification(${n.id}, this)">
                                 <div class="flex items-start">
                                     <div class="w-8 h-8 rounded-full ${typeColors[n.type] || typeColors.info} flex items-center justify-center mr-3 flex-shrink-0">
                                         <i class="fas fa-${n.type === 'warning' ? 'exclamation-triangle' : n.type === 'success' ? 'check' : n.type === 'important' ? 'fire' : 'info'}"></i>
@@ -186,14 +187,46 @@
 
             // Tab Switching Logic
             window.switchNotifTab = function(filter) {
-                // Update UI tabs
                 document.querySelectorAll('.notif-tab').forEach(t => t.classList.remove('active'));
                 const targetTab = document.getElementById('tab-' + filter);
                 if (targetTab) targetTab.classList.add('active');
-
-                // Fetch filtered data
                 window.fetchNotifications(filter);
             }
+
+            // View full notification
+            window.viewNotification = function(id, el) {
+                const n = currentNotifications.find(item => item.id == id);
+                if (!n) return;
+
+                // Mark as read first
+                if (!n.is_read) {
+                    window.markNotificationRead(id, el);
+                    n.is_read = true;
+                }
+
+                // Show modal
+                const modal = document.getElementById('notificationDetailModal');
+                const titleEl = document.getElementById('notif-detail-title');
+                const contentEl = document.getElementById('notif-detail-content');
+                const dateEl = document.getElementById('notif-detail-date-val');
+
+                if (modal && titleEl && contentEl) {
+                    titleEl.textContent = n.title;
+                    contentEl.innerHTML = n.content; // Allow HTML content
+                    if (dateEl) dateEl.textContent = new Date(n.created_at).toLocaleString('vi-VN');
+                    
+                    modal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                }
+            };
+
+            window.closeNotificationModal = function() {
+                const modal = document.getElementById('notificationDetailModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            };
 
             // Mark as read
             window.markNotificationRead = function(id, el) {
@@ -205,8 +238,10 @@
                     },
                     body: 'id=' + id
                 }).then(() => {
-                    el.classList.add('opacity-60');
-                    el.querySelector('.bg-red-500')?.remove();
+                    if (el) {
+                        el.classList.add('opacity-60');
+                        el.querySelector('.bg-red-500')?.remove();
+                    }
                     fetchUnreadCount();
                 });
             };
@@ -259,6 +294,33 @@
             setInterval(fetchUnreadCount, 60000); // Refresh every minute
         })();
     </script>
+
+    <!-- Modal Xem Chi Tiết Thông Báo -->
+    <div id="notificationDetailModal" class="fixed inset-0 hidden" style="z-index: 999999 !important;">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeNotificationModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col pointer-events-auto animate-bounce-in relative">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                    <h3 class="font-bold text-gray-900 text-lg">Chi tiết thông báo</h3>
+                    <button onclick="closeNotificationModal()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                    <h2 id="notif-detail-title" class="text-2xl font-black text-gray-900 mb-2 leading-tight"></h2>
+                    <p id="notif-detail-date" class="text-xs text-gray-400 mb-6 flex items-center">
+                        <i class="far fa-clock mr-1.5"></i> <span id="notif-detail-date-val"></span>
+                    </p>
+                    <div id="notif-detail-content" class="text-gray-700 leading-relaxed space-y-4 text-[16px] prose prose-blue max-w-none">
+                        <!-- Content here -->
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t text-right bg-gray-50 rounded-b-2xl">
+                    <button onclick="closeNotificationModal()" class="px-8 py-2.5 bg-hvu-red text-white font-bold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-200">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <?php if (isset($_SESSION['user_id']) || isset($_SESSION['admin_id'])): ?>
         <!-- Session Idle Timeout Warning -->

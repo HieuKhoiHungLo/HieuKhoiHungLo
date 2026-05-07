@@ -17,6 +17,10 @@ class EmailQueueController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         
+        // Lấy số lượng đã xóa lịch sử
+        $historyStmt = $db->query("SELECT value FROM email_queue_stats WHERE key = 'cleared_sent_total'");
+        $clearedTotal = (int)($historyStmt->fetchColumn() ?: 0);
+
         // Combined Stats (gộp 2 truy vấn thành 1 để tối ưu hiệu năng)
         $stmt = $db->query("
             SELECT 
@@ -33,9 +37,9 @@ class EmailQueueController extends Controller {
         $allStats = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $stats = [
-            'total' => $allStats['total'],
+            'total' => $allStats['total'] + $clearedTotal,
             'pending' => $allStats['pending'],
-            'sent' => $allStats['sent'],
+            'sent' => $allStats['sent'] + $clearedTotal,
             'failed' => $allStats['failed'],
         ];
 
@@ -131,13 +135,29 @@ class EmailQueueController extends Controller {
     }
 
     /**
-     * Xóa toàn bộ email đã gửi (POST + CSRF)
+     * Xóa toàn bộ email đã gửi (POST + CSRF) - Giữ lại thống kê
      */
     public function clearSent() {
         $this->validateCsrf();
         
         $db = Database::getInstance()->getConnection();
-        $db->query("DELETE FROM email_queue WHERE status = 'sent'");
+        
+        // 1. Đếm số lượng sắp xóa (giữ lại 7 ngày gần nhất để stats Today/Week chính xác)
+        $countStmt = $db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '7 days'");
+        $toDelete = (int)$countStmt->fetchColumn();
+        
+        if ($toDelete > 0) {
+            // 2. Cập nhật vào bảng history
+            $db->prepare("
+                INSERT INTO email_queue_stats (key, value) 
+                VALUES ('cleared_sent_total', ?) 
+                ON CONFLICT (key) DO UPDATE SET value = email_queue_stats.value + EXCLUDED.value
+            ")->execute([$toDelete]);
+            
+            // 3. Thực hiện xóa
+            $db->query("DELETE FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '7 days'");
+        }
+        
         $this->redirect(url('/admin/email-queue?msg=cleared'));
     }
 }

@@ -87,6 +87,9 @@ class Database {
             // Set Role
             $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
             $stmt->execute([$role]);
+
+            // Set Timezone to Vietnam (UTC+7)
+            $this->pdo->exec("SET timezone = 'Asia/Ho_Chi_Minh'");
             
             $this->rlsContextSet = true;
         } catch (PDOException $e) {
