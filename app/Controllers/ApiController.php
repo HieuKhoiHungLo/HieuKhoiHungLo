@@ -117,8 +117,8 @@ class ApiController extends Controller
                 }
             }
 
-            // Throttling: Add 0.5s delay between emails to avoid being flagged by Gmail/SMTP
-            usleep(500000);
+            // Throttling: Add 1s delay between emails to avoid being flagged by Gmail/SMTP
+            sleep(1);
         }
 
         $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
