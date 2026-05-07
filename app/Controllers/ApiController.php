@@ -85,8 +85,8 @@ class ApiController extends Controller
             $this->masterData->setSetting('last_audit_purge', $today);
         }
 
-        // Fetch pending emails (limit 50 per run to speed up delivery)
-        $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 50");
+        // Fetch pending emails (limit 20 per run to prevent SMTP throttling)
+        $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 20");
         $stmt->execute();
         $emails = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -116,6 +116,9 @@ class ApiController extends Controller
                     $db->prepare("UPDATE email_queue SET status = 'pending', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
                 }
             }
+
+            // Throttling: Add 0.5s delay between emails to avoid being flagged by Gmail/SMTP
+            usleep(500000);
         }
 
         $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
