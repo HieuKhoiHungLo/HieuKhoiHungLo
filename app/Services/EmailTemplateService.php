@@ -81,7 +81,7 @@ class EmailTemplateService {
             return "Template '$slug' not found or inactive.";
         }
 
-        return $this->mailer->send($to, $rendered['subject'], $rendered['body'], true);
+        return $this->mailer->send($to, $rendered['subject'], $rendered['body'], true, 'system');
     }
 
     /**
@@ -93,7 +93,7 @@ class EmailTemplateService {
             return "Template '$slug' not found or inactive.";
         }
 
-        return $this->mailer->enqueue($to, $rendered['subject'], $rendered['body'], true);
+        return $this->mailer->enqueue($to, $rendered['subject'], $rendered['body'], true, 'bulk');
     }
 
     /**

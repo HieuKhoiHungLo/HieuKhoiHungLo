@@ -49,7 +49,7 @@ class EmailConfigController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $to = $_POST['test_email'];
             $mailer = new \App\Services\MailerService();
-            $result = $mailer->send($to, "Test Email from Admissions System", "<p>This is a test email to verify SMTP settings.</p>");
+            $result = $mailer->send($to, "Test Email from Admissions System", "<p>This is a test email to verify SMTP settings.</p>", true, 'system');
             
             if ($result === true) {
                 $this->redirect(url('/admin/settings/email?msg=test_success'));

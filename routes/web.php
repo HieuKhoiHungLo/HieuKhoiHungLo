@@ -268,10 +268,18 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/certificate-rules/update', 'CertificateRuleController@update');
     $router->post('/admin/certificate-rules/delete', 'CertificateRuleController@delete');
 
-    // Email Settings & Templates
-    $router->get('/admin/settings/email', 'EmailConfigController@index');
-    $router->post('/admin/settings/email/save', 'EmailConfigController@save');
+    // Email Settings (Redirect to centralized senders management)
+    $router->get('/admin/settings/email', function() {
+        header('Location: ' . url('/admin/settings/email-senders'));
+        exit;
+    });
+    $router->post('/admin/settings/email/save', 'EmailSenderController@save');
     $router->post('/admin/settings/email/test', 'EmailConfigController@test');
+
+    $router->get('/admin/settings/email-senders', 'EmailSenderController@index');
+    $router->post('/admin/settings/email-senders/save', 'EmailSenderController@save');
+    $router->post('/admin/settings/email-senders/delete', 'EmailSenderController@delete');
+    $router->post('/admin/settings/email-senders/test', 'EmailSenderController@test');
 
     $router->get('/admin/settings/email-templates', 'EmailTemplateController@index');
     $router->get('/admin/settings/email-templates/edit', 'EmailTemplateController@edit');
@@ -285,9 +293,14 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission-letters/template', 'AdmissionLetterController@template');
     $router->get('/admin/admission-letters/preview', 'AdmissionLetterController@preview');
     $router->post('/admin/admission-letters/bulk-action', 'AdmissionLetterController@bulkAction');
-    $router->get('/admin/admission-letters/senders', 'AdmissionLetterController@senders');
-    $router->post('/admin/admission-letters/senders/save', 'AdmissionLetterController@saveSender');
-    $router->post('/admin/admission-letters/senders/delete', 'AdmissionLetterController@deleteSender');
+    
+    // Legacy redirects for email senders
+    $router->get('/admin/admission-letters/senders', function() {
+        header('Location: ' . url('/admin/settings/email-senders'));
+        exit;
+    });
+    $router->post('/admin/admission-letters/senders/save', 'EmailSenderController@save');
+    $router->post('/admin/admission-letters/senders/delete', 'EmailSenderController@delete');
 
     // Talent Test (Năng khiếu)
     $router->get('/admin/talent-tests', 'TalentTestController@index');

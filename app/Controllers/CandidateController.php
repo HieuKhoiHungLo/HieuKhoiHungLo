@@ -486,7 +486,7 @@ class CandidateController extends Controller
             );
 
             // Enqueue to email_queue table so it shows in logs/queue
-            if ($mailer->enqueue($c['email'], $personalSubject, $personalBody)) {
+            if ($mailer->enqueue($c['email'], $personalSubject, $personalBody, true, 'bulk')) {
                 $sentNum++;
                 
                 // If internal note provided, update the candidate's record
@@ -550,7 +550,7 @@ class CandidateController extends Controller
                             Vui lòng sử dụng mật khẩu này để đăng nhập và đổi lại mật khẩu cá nhân sau khi truy cập.<br>
                             Trân trọng!";
                     
-                    $mailer->enqueue($candidate['email'], $subject, $body);
+                    $mailer->enqueue($candidate['email'], $subject, $body, true, 'system');
                 }
 
                 $this->auditService->log('RESET_PASSWORD', 'candidates', $candidate['so_cccd'], null, [
@@ -1443,7 +1443,7 @@ class CandidateController extends Controller
                         Vui lÃ²ng sá»­ dá»¥ng máº­t kháº©u nÃ y Ä‘á»ƒ Ä‘Äƒng nháº­p vÃ  Ä‘á»•i láº¡i máº­t kháº©u cÃ¡ nhÃ¢n sau khi truy cáº­p.<br>
                         TrÃ¢n trá»ng!";
                 
-                $mailer->enqueue($candidate['email'], $subject, $body);
+                $mailer->enqueue($candidate['email'], $subject, $body, true, 'system');
             }
 
             $this->auditService->log('RESET_PASSWORD', 'candidates', $cccd, null, [

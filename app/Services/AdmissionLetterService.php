@@ -354,7 +354,7 @@ class AdmissionLetterService {
             $body = $this->renderTemplate($template['body'], $candidate);
             
             // Queue via MailerService
-            $this->mailer->enqueue($candidate['email'], $subject, $body, true);
+            $this->mailer->enqueue($candidate['email'], $subject, $body, true, 'admission_letter');
             
             // Cập nhật trạng thái thành queue
             $upd = $this->db->prepare("UPDATE thu_trung_tuyen SET status = 'queued' WHERE id = ?");

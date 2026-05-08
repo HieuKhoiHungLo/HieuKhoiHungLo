@@ -79,7 +79,7 @@ class PasswordResetService {
         $subject = "Đặt lại mật khẩu - HVU Tuyển sinh";
         $body = $this->getEmailTemplate($resetUrl);
 
-        return $this->mailer->send($email, $subject, $body, true);
+        return $this->mailer->send($email, $subject, $body, true, 'critical');
     }
 
     /**

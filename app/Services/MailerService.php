@@ -31,43 +31,73 @@ class MailerService {
     }
 
     public function send($to, $subject, $body, $isHtml = true, $category = 'system') {
-        // If category is admission_letter, use rotating SMTP senders
-        if ($category === 'admission_letter') {
-            $sender = $this->getRotatingSender();
-            if ($sender) {
-                return $this->sendSmtpWithConfig($to, $subject, $body, $isHtml, $sender);
+        // 1. Critical/System emails — Use DEFAULT sender if configured
+        if (in_array($category, ['critical', 'system'])) {
+            $default = $this->getDefaultSender();
+            if ($default) {
+                return $this->sendSmtpWithConfig($to, $subject, $body, $isHtml, $default);
             }
+            // Fallback to legacy settings table
+            $this->loadSettings();
+            $host = $this->settings['smtp_host'] ?? '';
+            if (empty($host)) {
+                return $this->sendBasicMail($to, $subject, $body, $isHtml);
+            }
+            return $this->sendSmtp($to, $subject, $body, $isHtml);
         }
 
-        $this->loadSettings(); // Lazy-load SMTP settings only when actually sending
-        $host = $this->settings['smtp_host'];
-        
-        // If no SMTP host, use basic mail()
+        // 2. Bulk/Admission/Notification emails — Use ROTATING pool
+        $sender = $this->getRotatingSender($category);
+        if ($sender) {
+            return $this->sendSmtpWithConfig($to, $subject, $body, $isHtml, $sender);
+        }
+
+        // 3. Last fallback — Try default sender again or legacy settings
+        $default = $this->getDefaultSender();
+        if ($default) {
+            return $this->sendSmtpWithConfig($to, $subject, $body, $isHtml, $default);
+        }
+
+        $this->loadSettings();
+        $host = $this->settings['smtp_host'] ?? '';
         if (empty($host)) {
             return $this->sendBasicMail($to, $subject, $body, $isHtml);
         }
-
-        // Use socket-based SMTP from settings
         return $this->sendSmtp($to, $subject, $body, $isHtml);
     }
 
-    protected function getRotatingSender() {
+    protected function getDefaultSender() {
         $db = \App\Core\Database::getInstance()->getConnection();
-        
-        // Pick an active sender that hasn't reached daily limit, sorted by oldest last_sent_at (Round Robin)
-        $stmt = $db->prepare("
-            SELECT * FROM email_senders 
-            WHERE is_active = TRUE 
-            AND category = 'admission_letter'
-            AND sent_today < daily_limit
-            ORDER BY last_sent_at ASC NULLS FIRST
-            LIMIT 1
-        ");
-        $stmt->execute();
+        $stmt = $db->query("SELECT * FROM email_senders WHERE is_default = TRUE AND is_active = TRUE LIMIT 1");
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
-    protected function sendSmtpWithConfig($to, $subject, $body, $isHtml, $config) {
+    protected function getRotatingSender($category = null) {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        // Pick an active sender that hasn't reached daily limit, isn't default, sorted by oldest last_sent_at
+        // If category is provided, try matching it first, otherwise take any from 'all' or matching category
+        $sql = "
+            SELECT * FROM email_senders 
+            WHERE is_active = TRUE 
+            AND is_default = FALSE
+            AND sent_today < daily_limit
+        ";
+        
+        $params = [];
+        if ($category && $category !== 'all') {
+            $sql .= " AND (category = ? OR category = 'all')";
+            $params[] = $category;
+        }
+        
+        $sql .= " ORDER BY last_sent_at ASC NULLS FIRST LIMIT 1";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    public function sendSmtpWithConfig($to, $subject, $body, $isHtml, $config) {
         $host = $config['smtp_host'];
         $port = (int)$config['smtp_port'];
         $user = $config['smtp_user'];
