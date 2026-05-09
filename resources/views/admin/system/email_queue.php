@@ -10,12 +10,24 @@
             <p class="text-slate-500 text-sm font-medium mt-1">Theo dõi trạng thái và hiệu năng gửi thư tự động của hệ thống.</p>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="window.location.reload()" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+            <button onclick="window.location.reload()" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm" title="Làm mới">
                 <i class="fas fa-sync-alt"></i>
             </button>
-            <form method="POST" action="<?= url('/admin/email-queue/clear-sent') ?>" class="inline">
+            <form method="POST" action="<?= url('/admin/email-queue/toggle-pause') ?>" class="inline">
                 <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
-                <button type="submit" onclick="return confirm('Xóa toàn bộ các thư đã gửi thành công để làm sạch hàng đợi?')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
+                <?php if ($isPaused): ?>
+                    <button type="submit" class="px-4 py-2.5 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl hover:bg-emerald-200 transition-all uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-play"></i> Tiếp tục gửi
+                    </button>
+                <?php else: ?>
+                    <button type="submit" class="px-4 py-2.5 bg-amber-100 text-amber-700 font-bold text-xs rounded-xl hover:bg-amber-200 transition-all uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-pause"></i> Tạm dừng gửi
+                    </button>
+                <?php endif; ?>
+            </form>
+            <form method="POST" action="<?= url('/admin/email-queue/clear') ?>" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <button type="submit" onclick="return confirm('Xóa toàn bộ các thư ĐANG CHỜ và thư BỊ LỖI? (Thư đã gửi sẽ được giữ lại)')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
                     Làm sạch hàng đợi
                 </button>
             </form>
@@ -102,15 +114,24 @@
 
     <!-- Filters & Search -->
     <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
-        <form method="GET" action="<?= url('/admin/email-queue') ?>" class="flex-1 min-w-[300px] relative group">
-            <input type="hidden" name="tab" value="<?= $currentTab ?>">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i class="fas fa-search text-slate-400 group-focus-within:text-[#0066FF] transition-colors"></i>
+        <div class="flex items-center gap-4 flex-1 min-w-[300px]">
+            <form method="GET" action="<?= url('/admin/email-queue') ?>" class="flex-1 relative group">
+                <input type="hidden" name="tab" value="<?= $currentTab ?>">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-slate-400 group-focus-within:text-[#0066FF] transition-colors"></i>
+                </div>
+                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
+                       placeholder="Tìm kiếm theo email hoặc tiêu đề thư..." 
+                       class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-inner">
+            </form>
+
+            <!-- Bulk Actions (Hidden by default) -->
+            <div id="bulkActions" class="hidden flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                <button onclick="bulkDelete()" class="px-4 py-2.5 bg-rose-50 text-rose-600 font-bold text-xs rounded-xl hover:bg-rose-600 hover:text-white transition-all uppercase tracking-wider flex items-center gap-2 border border-rose-100">
+                    <i class="fas fa-trash-alt"></i> Xóa <span id="selectedCount">0</span> mục
+                </button>
             </div>
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
-                   placeholder="Tìm kiếm theo email hoặc tiêu đề thư..." 
-                   class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:border-[#0066FF] focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-inner">
-        </form>
+        </div>
         
         <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">
             Hiển thị <span class="text-slate-800"><?= count($items) ?></span> / <?= number_format($pagination['total_items']) ?> bản ghi
@@ -123,6 +144,9 @@
             <table class="w-full text-left border-collapse border border-slate-200">
                 <thead class="bg-slate-50/80 text-[10px] uppercase font-bold text-slate-500 tracking-widest">
                     <tr>
+                        <th class="px-4 py-3 border border-slate-200 text-center" style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="rounded border-slate-300 text-[#0066FF] focus:ring-[#0066FF]">
+                        </th>
                         <th class="px-4 py-3 border border-slate-200 text-center" style="width: 140px;">THỜI GIAN</th>
                         <th class="px-4 py-3 border border-slate-200">NGƯỜI NHẬN</th>
                         <th class="px-4 py-3 border border-slate-200">TIÊU ĐỀ</th>
@@ -148,6 +172,9 @@
                     <?php else: ?>
                         <?php foreach ($items as $item): ?>
                             <tr class="hover:bg-slate-50/50 transition-all group">
+                                <td class="px-4 py-3 border border-slate-200 text-center">
+                                    <input type="checkbox" name="item_ids[]" value="<?= $item['id'] ?>" class="item-checkbox rounded border-slate-300 text-[#0066FF] focus:ring-[#0066FF]">
+                                </td>
                                 <td class="px-4 py-3 border border-slate-200 text-center text-xs text-slate-500 font-medium whitespace-nowrap">
                                     <?php 
                                         $time = ($currentTab === 'sent') ? $item['sent_at'] : $item['created_at'];
@@ -233,6 +260,56 @@
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        updateBulkActions();
+    });
+
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkActions);
+    });
+
+    function updateBulkActions() {
+        const selected = document.querySelectorAll('.item-checkbox:checked');
+        const bulkActions = document.getElementById('bulkActions');
+        const selectedCount = document.getElementById('selectedCount');
+        
+        if (selected.length > 0) {
+            bulkActions.classList.remove('hidden');
+            selectedCount.textContent = selected.length;
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+    }
+
+    function bulkDelete() {
+        if (!confirm('Xác nhận xóa các bản ghi đã chọn?')) return;
+        
+        const selected = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<?= url("/admin/email-queue/delete") ?>';
+        
+        const csrf = document.createElement('input');
+        csrf.type = 'hidden';
+        csrf.name = 'csrf_token';
+        csrf.value = '<?= $this->csrfToken() ?>';
+        form.appendChild(csrf);
+        
+        const ids = document.createElement('input');
+        ids.type = 'hidden';
+        ids.name = 'ids';
+        ids.value = selected.join(',');
+        form.appendChild(ids);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
 
 <?php
 $content = ob_get_clean();

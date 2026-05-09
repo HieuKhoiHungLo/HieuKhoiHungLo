@@ -223,6 +223,79 @@ class ThiSinhRepository
         }
     }
 
+    /**
+     * Thay đổi số CCCD an toàn (Cập nhật đồng bộ tất cả các bảng liên quan)
+     */
+    public function changeCCCD($oldCccd, $newCccd)
+    {
+        if (empty($oldCccd) || empty($newCccd) || $oldCccd === $newCccd) return true;
+
+        $hasActiveTransaction = $this->db->inTransaction();
+        try {
+            if (!$hasActiveTransaction) {
+                $this->db->beginTransaction();
+            }
+
+            // 1. Kiểm tra CCCD mới đã tồn tại chưa
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table} WHERE so_cccd = ?");
+            $stmt->execute([$newCccd]);
+            if ($stmt->fetchColumn() > 0) {
+                throw new \Exception("Số CCCD mới ($newCccd) đã tồn tại trên hệ thống. Không thể đổi.");
+            }
+
+            // 2. Danh sách các bảng phụ thuộc cần cập nhật
+            $dependentTables = [
+                'nguyen_vong' => 'so_cccd',
+                'ho_so_xet_tuyen' => 'so_cccd',
+                'chung_chi_thi_sinh' => 'so_cccd',
+                'ket_qua_hoc_tap' => 'so_cccd',
+                'diem_chi_tiet' => 'so_cccd',
+                'diem_thi_thpt' => 'so_cccd',
+                'diem_nang_khieu' => 'so_cccd',
+                'notification_reads' => 'user_cccd'
+            ];
+
+            // Bước 3.1: Copy bản ghi chính sang CCCD mới (Shadow copy)
+            $stmt = $this->db->prepare("INSERT INTO {$this->table} (
+                so_cccd, ho_va_ten, mat_khau, email, dien_thoai, ngay_sinh, gioi_tinh, dan_toc, 
+                ma_tinh_ho_khau, ma_tinh_thuong_tru, ma_xa_thuong_tru, dia_chi_chi_tiet,
+                ma_truong_lop_12, ma_tinh_lop_12, nam_tot_nghiep, khu_vuc_uu_tien, doi_tuong_uu_tien,
+                is_custom_kv, is_custom_dt,
+                anh_dai_dien, anh_cccd_truoc, anh_cccd_sau, file_minh_chung_kv, file_minh_chung_dt,
+                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ngay_tao, updated_at
+            ) SELECT 
+                ?, ho_va_ten, mat_khau, email, dien_thoai, ngay_sinh, gioi_tinh, dan_toc, 
+                ma_tinh_ho_khau, ma_tinh_thuong_tru, ma_xa_thuong_tru, dia_chi_chi_tiet,
+                ma_truong_lop_12, ma_tinh_lop_12, nam_tot_nghiep, khu_vuc_uu_tien, doi_tuong_uu_tien,
+                is_custom_kv, is_custom_dt,
+                anh_dai_dien, anh_cccd_truoc, anh_cccd_sau, file_minh_chung_kv, file_minh_chung_dt,
+                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ngay_tao, NOW()
+            FROM {$this->table} WHERE so_cccd = ?");
+            $stmt->execute([$newCccd, $oldCccd]);
+
+            // Bước 3.2: Cập nhật các bảng phụ trỏ về CCCD mới
+            foreach ($dependentTables as $table => $column) {
+                $stmt = $this->db->prepare("UPDATE $table SET $column = ? WHERE $column = ?");
+                $stmt->execute([$newCccd, $oldCccd]);
+            }
+
+            // Bước 3.3: Xóa bản ghi cũ
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ?");
+            $stmt->execute([$oldCccd]);
+
+            if (!$hasActiveTransaction) {
+                $this->db->commit();
+            }
+            return true;
+        } catch (\Exception $e) {
+            if (!$hasActiveTransaction && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Lỗi khi đổi CCCD từ $oldCccd sang $newCccd: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
     public function findAll()
     {
         $stmt = $this->db->query("SELECT * FROM {$this->table} WHERE deleted_at IS NULL");

@@ -13,8 +13,17 @@ class EmailSenderController extends Controller {
 
     public function index() {
         $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->query("SELECT * FROM email_senders ORDER BY is_default DESC, created_at DESC");
-        $senders = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        // Cache sender list for 5 minutes (except when clear success msg is present)
+        $cacheKey = 'email_senders_list';
+        if (isset($_GET['success'])) {
+            \App\Core\Cache::forget($cacheKey);
+        }
+        
+        $senders = \App\Core\Cache::remember($cacheKey, 5, function() use ($db) {
+            $stmt = $db->query("SELECT * FROM email_senders ORDER BY is_default DESC, created_at DESC");
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        });
         
         $this->view('admin/settings/email_senders', [
             'title' => 'Cấu hình Email SMTP Rotating',

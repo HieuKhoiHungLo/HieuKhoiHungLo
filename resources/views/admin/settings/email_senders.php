@@ -18,85 +18,87 @@
         </div>
     <?php endif; ?>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-left border-collapse">
+    <div class="bg-white shadow-sm overflow-hidden border border-slate-200 rounded-xl">
+        <table class="w-full text-left border-collapse border border-slate-200">
             <thead>
-                <tr class="bg-slate-50 border-b border-slate-200">
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tên hiển thị / Email</th>
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SMTP Server</th>
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Hạn mức / Đã gửi (Ngày)</th>
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Vai trò / Loại</th>
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Trạng thái</th>
-                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                <tr class="bg-slate-50/80 text-[11px] uppercase font-bold text-slate-600 tracking-wider">
+                    <th class="px-4 py-3 border border-slate-200 text-center" style="width: 50px;">STT</th>
+                    <th class="px-4 py-3 border border-slate-200">EMAIL TÀI KHOẢN</th>
+                    <th class="px-4 py-3 border border-slate-200">SMTP SERVER</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center">HẠN MỨC NGÀY</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center">ĐÃ GỬI (NAY)</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center">VAI TRÒ</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center">LOẠI</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center">TRẠNG THÁI</th>
+                    <th class="px-4 py-3 border border-slate-200 text-center" style="width: 140px;">THAO TÁC</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
                 <?php if (empty($senders)): ?>
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-slate-400 italic">
+                        <td colspan="9" class="px-6 py-10 text-center text-slate-400 italic">
                             Chưa có tài khoản nào được cấu hình.
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($senders as $s): ?>
-                        <tr class="hover:bg-slate-50/50 transition-colors group <?= $s['is_default'] ? 'bg-blue-50/30' : '' ?>">
-                            <td class="px-6 py-4">
+                    <?php foreach ($senders as $index => $s): ?>
+                        <tr class="hover:bg-slate-50/50 transition-colors <?= $s['is_default'] ? 'bg-blue-50/20' : '' ?>">
+                            <td class="px-4 py-3 border border-slate-200 text-center text-slate-500">
+                                <?= $index + 1 ?>
+                            </td>
+                            <td class="px-4 py-3 border border-slate-200">
                                 <div class="flex items-center">
                                     <?php if ($s['is_default']): ?>
-                                        <i class="fas fa-star text-amber-400 mr-2" title="Tài khoản mặc định"></i>
+                                        <i class="fas fa-star text-amber-400 mr-2 text-xs" title="Mặc định"></i>
                                     <?php endif; ?>
-                                    <div class="font-bold text-slate-800"><?= htmlspecialchars($s['name']) ?></div>
-                                </div>
-                                <div class="text-sm text-slate-500"><?= htmlspecialchars($s['email']) ?></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-slate-700"><?= htmlspecialchars($s['smtp_host']) ?>:<?= $s['smtp_port'] ?></div>
-                                <div class="text-[10px] text-slate-400 uppercase"><?= htmlspecialchars($s['smtp_encryption']) ?> / <?= htmlspecialchars($s['smtp_user']) ?></div>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex flex-col items-center">
-                                    <div class="w-32 bg-slate-100 h-1.5 rounded-full overflow-hidden mb-1">
-                                        <?php 
-                                            $percent = min(100, ($s['sent_today'] / max(1, $s['daily_limit'])) * 100);
-                                            $color = $percent > 90 ? 'bg-rose-500' : ($percent > 70 ? 'bg-amber-500' : 'bg-emerald-500');
-                                        ?>
-                                        <div class="<?= $color ?> h-full" style="width: <?= $percent ?>%"></div>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-600"><?= number_format($s['sent_today']) ?> / <?= number_format($s['daily_limit']) ?></span>
+                                    <span class="font-medium text-slate-900"><?= htmlspecialchars($s['email']) ?></span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex flex-col gap-1 items-center">
-                                    <?php if ($s['is_default']): ?>
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">Mặc định</span>
-                                    <?php endif; ?>
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase"><?= htmlspecialchars($s['category'] ?? 'all') ?></span>
-                                </div>
+                            <td class="px-4 py-3 border border-slate-200">
+                                <span class="text-slate-600"><?= htmlspecialchars($s['smtp_host']) ?>:<?= $s['smtp_port'] ?></span>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                <?php if ($s['is_active']): ?>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                        Đang hoạt động
-                                    </span>
+                            <td class="px-4 py-3 border border-slate-200 text-center font-medium">
+                                <?= number_format($s['daily_limit']) ?>
+                            </td>
+                            <td class="px-4 py-3 border border-slate-200 text-center">
+                                <?php 
+                                    $percent = min(100, ($s['sent_today'] / max(1, $s['daily_limit'])) * 100);
+                                    $color = $percent > 90 ? 'text-rose-600' : ($percent > 70 ? 'text-amber-600' : 'text-emerald-600');
+                                ?>
+                                <span class="<?= $color ?> font-bold"><?= number_format($s['sent_today']) ?></span>
+                            </td>
+                            <td class="px-4 py-3 border border-slate-200 text-center">
+                                <?php if ($s['is_default']): ?>
+                                    <span class="text-[10px] font-bold text-blue-600 uppercase">Mặc định</span>
                                 <?php else: ?>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                                        Tạm dừng
-                                    </span>
+                                    <span class="text-[10px] text-slate-400 uppercase">Thông thường</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" class="p-2 text-slate-400 hover:text-sky-600 transition btn-test-connection" data-id="<?= $s['id'] ?>" title="Kiểm tra kết nối">
-                                        <i class="fas fa-paper-plane"></i>
+                            <td class="px-4 py-3 border border-slate-200 text-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">
+                                    <?= htmlspecialchars($s['category'] ?? 'all') ?>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 border border-slate-200 text-center">
+                                <?php if ($s['is_active']): ?>
+                                    <span class="text-emerald-600 font-medium">Hoạt động</span>
+                                <?php else: ?>
+                                    <span class="text-slate-400">Tạm dừng</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-3 border border-slate-200 text-center">
+                                <div class="flex justify-center gap-1">
+                                    <button type="button" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition btn-test-connection" data-id="<?= $s['id'] ?>" title="Test">
+                                        <i class="fas fa-paper-plane text-xs"></i>
                                     </button>
-                                    <button onclick='editSender(<?= json_encode($s) ?>)' class="p-2 text-slate-400 hover:text-blue-600 transition">
-                                        <i class="fas fa-edit"></i>
+                                    <button onclick='editSender(<?= json_encode($s) ?>)' class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa">
+                                        <i class="fas fa-edit text-xs"></i>
                                     </button>
                                     <form action="<?= url('/admin/settings/email-senders/delete') ?>" method="POST" onsubmit="return confirm('Xác nhận xóa tài khoản này?')" class="inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="id" value="<?= $s['id'] ?>">
-                                        <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 transition">
-                                            <i class="fas fa-trash-alt"></i>
+                                        <button type="submit" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Xóa">
+                                            <i class="fas fa-trash-alt text-xs"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -119,94 +121,98 @@
             </button>
         </div>
         
-        <form action="<?= url('/admin/settings/email-senders/save') ?>" method="POST" class="p-8">
+        <form action="<?= url('/admin/settings/email-senders/save') ?>" method="POST" class="p-6">
             <?= csrf_field() ?>
             <input type="hidden" name="id" id="field-id" value="">
             
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Tên hiển thị (Người gửi)</label>
+            <!-- Tên hiển thị -->
+            <div class="flex items-center mb-3">
+                <label class="w-32 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">Tên hiển thị</label>
+                <div class="flex-1">
                     <input type="text" name="name" id="field-name" required placeholder="VD: Tuyển sinh HVU"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
+                           value="Tổ tuyển sinh - Trường Đại học Hùng Vương"
+                           class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm">
                 </div>
-                
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email tài khoản</label>
+            </div>
+            
+            <!-- Email tài khoản -->
+            <div class="flex items-center mb-3">
+                <label class="w-32 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">Email tài khoản</label>
+                <div class="flex-1">
                     <input type="email" name="email" id="field-email" required placeholder="VD: tuyensinh01@gmail.com"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
+                           class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm">
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 mb-4">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">SMTP Host</label>
-                    <input type="text" name="smtp_host" id="field-smtp_host" required value="smtp.gmail.com"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Port</label>
-                    <input type="number" name="smtp_port" id="field-smtp_port" required value="587"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
-                </div>
+            <!-- SMTP Host & Port -->
+            <div class="flex items-center mb-3 gap-2">
+                <label class="w-28 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">SMTP Host</label>
+                <input type="text" name="smtp_host" id="field-smtp_host" required value="smtp.gmail.com"
+                       class="w-48 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm">
+                
+                <label class="w-12 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0 text-center">Port</label>
+                <input type="number" name="smtp_port" id="field-smtp_port" required value="587"
+                       class="w-20 px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm text-center">
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">SMTP User</label>
+            <!-- SMTP Credentials -->
+            <div class="flex items-center mb-3">
+                <label class="w-28 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">SMTP User</label>
+                <div class="flex-1">
                     <input type="text" name="smtp_user" id="field-smtp_user" required placeholder="Username email"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
+                           class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">SMTP Pass / App Password</label>
+            </div>
+
+            <div class="flex items-center mb-3">
+                <label class="w-28 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">SMTP Pass</label>
+                <div class="flex-1">
                     <input type="password" name="smtp_pass" id="field-smtp_pass" required placeholder="Mật khẩu ứng dụng"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
+                           class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm">
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mã hóa</label>
-                    <select name="smtp_encryption" id="field-smtp_encryption" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 transition">
-                        <option value="tls">TLS (Khuyên dùng)</option>
-                        <option value="ssl">SSL</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Hạn mức ngày</label>
-                    <input type="number" name="daily_limit" id="field-daily_limit" required value="1500"
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 font-medium">
-                </div>
+            <!-- Encryption & Limit -->
+            <div class="flex items-center mb-3 gap-2">
+                <label class="w-28 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">Mã hóa</label>
+                <select name="smtp_encryption" id="field-smtp_encryption" class="w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 transition text-sm">
+                    <option value="tls">TLS</option>
+                    <option value="ssl">SSL</option>
+                </select>
+
+                <label class="w-20 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0 text-center">Hạn mức</label>
+                <input type="number" name="daily_limit" id="field-daily_limit" required value="1000"
+                       class="w-24 px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition outline-none text-slate-700 text-sm text-center">
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phân loại (Category)</label>
-                    <select name="category" id="field-category" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 transition">
+            <!-- Category & Default -->
+            <div class="flex items-center mb-4">
+                <label class="w-32 text-[10px] font-bold text-slate-500 uppercase flex-shrink-0">Phân loại</label>
+                <div class="flex-1 flex items-center gap-4">
+                    <select name="category" id="field-category" class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 transition text-sm">
                         <option value="all">Tất cả (Round-robin)</option>
                         <option value="admission_letter">Thư trúng tuyển</option>
                         <option value="bulk">Gửi hàng loạt</option>
                     </select>
-                </div>
-                <div class="flex items-end pb-3">
-                    <label class="relative inline-flex items-center cursor-pointer">
+                    <label class="relative inline-flex items-center cursor-pointer ml-2">
                         <input type="checkbox" name="is_default" id="field-is_default" value="1" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        <span class="ml-3 text-sm font-bold text-slate-600">Mặc định hệ thống</span>
+                        <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                        <span class="ml-2 text-[10px] font-bold text-slate-500 uppercase">Mặc định</span>
                     </label>
                 </div>
             </div>
 
-            <div class="flex items-center mb-8">
+            <div class="flex items-center mb-6 pl-32">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_active" id="field-is_active" value="1" checked class="sr-only peer">
                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    <span class="ml-3 text-sm font-bold text-slate-600">Kích hoạt tài khoản này</span>
+                    <span class="ml-3 text-xs font-bold text-slate-600">Kích hoạt tài khoản này</span>
                 </label>
             </div>
 
-            <div class="flex gap-3">
-                <button type="button" onclick="closeModal()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">Lưu thông tin</button>
+            <div class="flex gap-3 pt-4 border-t border-slate-50">
+                <button type="button" onclick="closeModal()" class="flex-1 px-6 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition text-sm">Hủy</button>
+                <button type="submit" class="flex-1 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-sm">Lưu thông tin</button>
             </div>
         </form>
     </div>
@@ -216,8 +222,12 @@
     function openModal() {
         document.getElementById('modalTitle').innerText = 'Thêm tài khoản SMTP mới';
         document.getElementById('field-id').value = '';
-        document.getElementById('field-name').value = '';
+        document.getElementById('field-name').value = 'Tổ tuyển sinh - Trường Đại học Hùng Vương';
         document.getElementById('field-email').value = '';
+        document.getElementById('field-smtp_host').value = 'smtp.gmail.com';
+        document.getElementById('field-smtp_port').value = '587';
+        document.getElementById('field-smtp_encryption').value = 'tls';
+        document.getElementById('field-daily_limit').value = '1000';
         document.getElementById('field-smtp_user').value = '';
         document.getElementById('field-smtp_pass').value = '';
         document.getElementById('field-is_active').checked = true;

@@ -21,20 +21,22 @@ class EmailQueueController extends Controller {
         $historyStmt = $db->query("SELECT value FROM email_queue_stats WHERE key = 'cleared_sent_total'");
         $clearedTotal = (int)($historyStmt->fetchColumn() ?: 0);
 
-        // Combined Stats (gộp 2 truy vấn thành 1 để tối ưu hiệu năng)
-        $stmt = $db->query("
-            SELECT 
-                COUNT(*) as total,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
-                COUNT(CASE WHEN status = 'sent' THEN 1 END) as sent,
-                COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
-                COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '1 hour' THEN 1 END) as hour_count,
-                COUNT(CASE WHEN status = 'sent' AND sent_at > CURRENT_DATE THEN 1 END) as today_count,
-                COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '24 hours' THEN 1 END) as last_24h_count,
-                COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '7 days' THEN 1 END) as week_count
-            FROM email_queue
-        ");
-        $allStats = $stmt->fetch(\PDO::FETCH_ASSOC);
+        // Combined Stats with 2-minute caching to reduce DB load
+        $allStats = \App\Core\Cache::remember('email_queue_summary_stats', 2, function() use ($db) {
+            $stmt = $db->query("
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+                    COUNT(CASE WHEN status = 'sent' THEN 1 END) as sent,
+                    COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
+                    COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '1 hour' THEN 1 END) as hour_count,
+                    COUNT(CASE WHEN status = 'sent' AND sent_at > CURRENT_DATE THEN 1 END) as today_count,
+                    COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '24 hours' THEN 1 END) as last_24h_count,
+                    COUNT(CASE WHEN status = 'sent' AND sent_at > NOW() - INTERVAL '7 days' THEN 1 END) as week_count
+                FROM email_queue
+            ");
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        });
 
         $stats = [
             'total' => $allStats['total'] + $clearedTotal,
@@ -88,6 +90,7 @@ class EmailQueueController extends Controller {
             'items' => $items,
             'currentTab' => $tab,
             'search' => $search,
+            'isPaused' => (new \App\Models\MasterData())->getSetting('email_queue_paused') === '1',
             'pagination' => [
                 'current_page' => $page,
                 'total_pages' => $totalPages,
@@ -123,40 +126,50 @@ class EmailQueueController extends Controller {
     public function delete() {
         $this->validateCsrf();
         
-        $id = $_POST['id'] ?? null;
+        $ids = $_POST['ids'] ?? $_POST['id'] ?? null;
         $db = Database::getInstance()->getConnection();
         
-        if ($id) {
-            $stmt = $db->prepare("DELETE FROM email_queue WHERE id = ?");
-            $stmt->execute([(int)$id]);
+        if ($ids) {
+            if (!is_array($ids)) {
+                $ids = explode(',', $ids);
+            }
+            $ids = array_map('intval', $ids);
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            
+            $stmt = $db->prepare("DELETE FROM email_queue WHERE id IN ($placeholders)");
+            $stmt->execute($ids);
         }
         
         $this->redirect(url('/admin/email-queue?msg=deleted'));
     }
 
     /**
+     * Tạm dừng/Tiếp tục hàng đợi (POST + CSRF)
+     */
+    public function togglePause() {
+        $this->validateCsrf();
+        
+        $master = new \App\Models\MasterData();
+        $isPaused = $master->getSetting('email_queue_paused') === '1';
+        
+        $master->setSetting('email_queue_paused', $isPaused ? '0' : '1');
+        
+        $this->redirect(url('/admin/email-queue?msg=' . ($isPaused ? 'resumed' : 'paused')));
+    }
+
+    /**
      * Xóa toàn bộ email đã gửi (POST + CSRF) - Giữ lại thống kê
      */
-    public function clearSent() {
+    /**
+     * Làm sạch hàng đợi (Xóa các thư chưa gửi hoặc bị lỗi)
+     */
+    public function clearQueue() {
         $this->validateCsrf();
         
         $db = Database::getInstance()->getConnection();
         
-        // 1. Đếm số lượng sắp xóa (giữ lại 7 ngày gần nhất để stats Today/Week chính xác)
-        $countStmt = $db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '7 days'");
-        $toDelete = (int)$countStmt->fetchColumn();
-        
-        if ($toDelete > 0) {
-            // 2. Cập nhật vào bảng history
-            $db->prepare("
-                INSERT INTO email_queue_stats (key, value) 
-                VALUES ('cleared_sent_total', ?) 
-                ON CONFLICT (key) DO UPDATE SET value = email_queue_stats.value + EXCLUDED.value
-            ")->execute([$toDelete]);
-            
-            // 3. Thực hiện xóa
-            $db->query("DELETE FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '7 days'");
-        }
+        // Xóa các thư đang chờ (pending) hoặc bị lỗi (failed)
+        $db->query("DELETE FROM email_queue WHERE status IN ('pending', 'failed')");
         
         $this->redirect(url('/admin/email-queue?msg=cleared'));
     }

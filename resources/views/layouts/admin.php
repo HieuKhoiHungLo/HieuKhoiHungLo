@@ -671,13 +671,28 @@
         }
 
         // Auto-process email queue in background (non-blocking) via API Route
-        // DELAY execution by 3 seconds so it doesn't compete with primary render/assets
-        setTimeout(() => {
+        // DELAY execution by 3 seconds so it doesn't compete with primary render/assets.
+        // LOOP execution every 30 seconds as long as the tab is open.
+        function triggerEmailQueue() {
             fetch('<?= url("/api/cron/process_email_queue?key=" . ($_ENV["CRON_SECRET_KEY"] ?? "")) ?>', {
                 method: 'GET',
                 keepalive: true
-            }).catch(() => {});
-        }, 3000);
+            })
+            .then(response => response.json())
+            .then(data => {
+                // If there are still emails remaining, run again sooner (30s), 
+                // otherwise wait longer (5 minutes) to check for new work.
+                let nextRun = (data.remaining > 0) ? 30000 : 300000;
+                setTimeout(triggerEmailQueue, nextRun);
+            })
+            .catch(() => {
+                // On network error, try again in 1 minute
+                setTimeout(triggerEmailQueue, 60000);
+            });
+        }
+
+        // Initial trigger
+        setTimeout(triggerEmailQueue, 3000);
     </script>
     <!-- Global Modals -->
     <?php include __DIR__ . '/../admin/partials/_modals.php'; ?>

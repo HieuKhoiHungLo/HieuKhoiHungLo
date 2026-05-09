@@ -68,15 +68,36 @@ class ApiController extends Controller
             return;
         }
 
+        // Check if queue is paused
+        if ($this->masterData->getSetting('email_queue_paused') === '1') {
+            $this->json(['success' => true, 'message' => 'Hàng đợi đang tạm dừng.']);
+            return;
+        }
+
+        // --- CONCURRENCY LOCKING ---
+        // Use a file-based lock to prevent overlapping runs from multiple admin page loads.
+        // This is crucial to avoid "Too many login attempts" from SMTP providers like Google.
+        $lockFile = __DIR__ . '/../../storage/email_queue.lock';
+        if (!file_exists(dirname($lockFile))) mkdir(dirname($lockFile), 0777, true);
+        $fp = fopen($lockFile, 'w+');
+        if (!$fp || !flock($fp, LOCK_EX | LOCK_NB)) {
+            $this->json(['success' => true, 'message' => 'Một tiến trình khác đang chạy. Bỏ qua.']);
+            if ($fp) fclose($fp);
+            return;
+        }
+
         // Release session lock immediately. 
-        // This script can take several seconds to send emails, 
-        // and we don't want to block the UI for the admin user.
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
         }
 
         $db = \App\Core\Database::getInstance()->getConnection();
         $mailer = new \App\Services\MailerService();
+
+        // --- STUCK JOBS CLEANUP ---
+        // If emails are in 'processing' for more than 15 minutes, they likely crashed.
+        // Reset them to 'pending' so they can be retried.
+        $db->query("UPDATE email_queue SET status = 'pending' WHERE status = 'processing' AND (sent_at IS NULL OR sent_at < NOW() - INTERVAL '15 minutes')");
 
         // --- AUTOMATED AUDIT PURGE (Throttle: Once per day) ---
         $today = date('Y-m-d');
@@ -85,19 +106,39 @@ class ApiController extends Controller
             $this->masterData->setSetting('last_audit_purge', $today);
         }
 
-        // Fetch pending emails (limit 20 per run to prevent SMTP throttling)
-        $stmt = $db->prepare("SELECT * FROM email_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 20");
-        $stmt->execute();
-        $emails = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // --- ATOMIC QUEUE FETCH ---
+        // Use "FOR UPDATE SKIP LOCKED" (Postgres) to atomically pick jobs.
+        // This ensures no two processes ever try to send the same email.
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("
+                UPDATE email_queue 
+                SET status = 'processing' 
+                WHERE id IN (
+                    SELECT id FROM email_queue 
+                    WHERE status = 'pending' 
+                    ORDER BY created_at ASC 
+                    LIMIT 20 
+                    FOR UPDATE SKIP LOCKED
+                )
+                RETURNING *
+            ");
+            $stmt->execute();
+            $emails = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $db->commit();
+        } catch (\Exception $e) {
+            $db->rollBack();
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            $this->json(['success' => false, 'error' => $e->getMessage()]);
+            return;
+        }
 
         $processed = 0;
         $failed = 0;
 
         foreach ($emails as $email) {
             $id = $email['id'];
-
-            // Mark as processing
-            $db->prepare("UPDATE email_queue SET status = 'processing' WHERE id = ?")->execute([$id]);
 
             $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true, $email['category'] ?? 'system');
 
@@ -121,8 +162,11 @@ class ApiController extends Controller
             sleep(1);
         }
 
-        $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
+        // Release lock
+        flock($fp, LOCK_UN);
+        fclose($fp);
 
+        $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
         $this->json(['success' => true, 'message' => $msg]);
     }
 }

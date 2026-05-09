@@ -80,16 +80,13 @@ class Database {
         }
 
         try {
-            // Set CCCD
-            $stmt = $this->pdo->prepare("SELECT set_config('app.current_cccd', ?, false)");
-            $stmt->execute([$cccd]);
-            
-            // Set Role
-            $stmt = $this->pdo->prepare("SELECT set_config('app.current_role', ?, false)");
-            $stmt->execute([$role]);
-
-            // Set Timezone to Vietnam (UTC+7)
-            $this->pdo->exec("SET timezone = 'Asia/Ho_Chi_Minh'");
+            // Combine CCCD, Role and Timezone into a single query to reduce network round-trips.
+            // Critical optimization for remote databases (e.g. Supabase) where latency is high.
+            $stmt = $this->pdo->prepare("SELECT 
+                set_config('app.current_cccd', ?, false), 
+                set_config('app.current_role', ?, false),
+                set_config('timezone', 'Asia/Ho_Chi_Minh', false)");
+            $stmt->execute([$cccd, $role]);
             
             $this->rlsContextSet = true;
         } catch (PDOException $e) {

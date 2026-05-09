@@ -943,16 +943,19 @@ class CandidateController extends Controller
                     if (isset($_POST['dt_uu_tien'])) $data['doi_tuong_uu_tien'] = trim($_POST['dt_uu_tien']) !== '' ? trim($_POST['dt_uu_tien']) : null;
                     if (isset($_POST['is_custom_dt'])) $data['is_custom_dt'] = ($_POST['is_custom_dt'] ?? '0') == '1';
 
-                    // Xá»­ lÃ½ Ä‘á»•i Sá»‘ CCCD náº¿u cÃ³
+                    // Xử lý đổi Số CCCD nếu có (Giải pháp an toàn cho Ràng buộc dữ liệu)
+                    $newCccd = null;
                     if (!empty($_POST['so_cccd']) && trim($_POST['so_cccd']) !== $cccd) {
                         $newCccd = trim($_POST['so_cccd']);
-                        // Kiá»ƒm tra trÃ¹ng láº·p CCCD
-                        $existing = $this->thiSinhRepo->findByCCCD($newCccd);
-                        if ($existing) {
-                            $this->json(['success' => false, 'error' => 'Sá»‘ CCCD má»›i Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng. Vui lÃ²ng kiá»ƒm tra láº¡i.']);
+                        // Gọi phương thức đổi CCCD an toàn (cascade manual)
+                        try {
+                            $this->thiSinhRepo->changeCCCD($cccd, $newCccd);
+                            // Cập nhật lại biến $cccd để các thao tác phía sau (như upload file) dùng ID mới
+                            $cccd = $newCccd;
+                        } catch (\Exception $e) {
+                            $this->json(['success' => false, 'error' => $e->getMessage()]);
                             return;
                         }
-                        $data['so_cccd'] = $newCccd;
                     }
 
                     // Handle File Uploads â€” only if files are actually attached
