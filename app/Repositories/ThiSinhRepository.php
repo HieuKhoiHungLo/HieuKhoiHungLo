@@ -262,14 +262,16 @@ class ThiSinhRepository
                 ma_truong_lop_12, ma_tinh_lop_12, nam_tot_nghiep, khu_vuc_uu_tien, doi_tuong_uu_tien,
                 is_custom_kv, is_custom_dt,
                 anh_dai_dien, anh_cccd_truoc, anh_cccd_sau, file_minh_chung_kv, file_minh_chung_dt,
-                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ngay_tao, updated_at
+                loai_chung_chi, diem_chung_chi, file_minh_chung_cc,
+                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ghi_chu, ngay_tao
             ) SELECT 
                 ?, ho_va_ten, mat_khau, email, dien_thoai, ngay_sinh, gioi_tinh, dan_toc, 
                 ma_tinh_ho_khau, ma_tinh_thuong_tru, ma_xa_thuong_tru, dia_chi_chi_tiet,
                 ma_truong_lop_12, ma_tinh_lop_12, nam_tot_nghiep, khu_vuc_uu_tien, doi_tuong_uu_tien,
                 is_custom_kv, is_custom_dt,
                 anh_dai_dien, anh_cccd_truoc, anh_cccd_sau, file_minh_chung_kv, file_minh_chung_dt,
-                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ngay_tao, NOW()
+                loai_chung_chi, diem_chung_chi, file_minh_chung_cc,
+                da_du_6_ky, co_chung_chi_qt, remember_token, nguon_du_lieu, ghi_chu, ngay_tao
             FROM {$this->table} WHERE so_cccd = ?");
             $stmt->execute([$newCccd, $oldCccd]);
 
