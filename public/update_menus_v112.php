@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 // Load Env
 try {
-    $dotenv = new App\Core\DotEnv(__DIR__ . '/.env');
+    $dotenv = new App\Core\DotEnv(__DIR__ . '/../.env');
     $dotenv->load();
 } catch (\Exception $e) {}
 
