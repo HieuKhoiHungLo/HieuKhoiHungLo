@@ -6,7 +6,7 @@
     <div class="absolute -top-24 -right-24 w-96 h-96 bg-red-100 rounded-full blur-3xl opacity-50"></div>
 </div>
 
-<div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <!-- Breadcrumb -->
     <nav class="flex mb-8 text-xs font-bold uppercase tracking-widest text-gray-400 font-sans">
         <a href="<?= url('/') ?>" class="hover:text-hvu-red transition">Trang chủ</a>
