@@ -8,15 +8,17 @@ class Post extends Model {
     protected $table = 'posts';
 
     public function getLatest($limit = 5, $category = null) {
-        $sql = "SELECT * FROM {$this->table} WHERE status = 'Published'";
+        $sql = "SELECT p.* FROM {$this->table} p 
+                JOIN post_categories c ON p.category = c.name 
+                WHERE p.status = 'Published' AND c.is_active = true";
         $params = [];
         
         if ($category) {
-            $sql .= " AND category = ?";
+            $sql .= " AND p.category = ?";
             $params[] = $category;
         }
         
-        $sql .= " ORDER BY is_featured DESC, created_at DESC LIMIT ?";
+        $sql .= " ORDER BY p.is_featured DESC, p.created_at DESC LIMIT ?";
         $params[] = $limit;
         
         $stmt = $this->db->prepare($sql);
@@ -28,7 +30,11 @@ class Post extends Model {
     }
 
     public function getPaginated($limit = 3, $offset = 0) {
-        $sql = "SELECT * FROM {$this->table} WHERE status = 'Published' ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?";
+        $sql = "SELECT p.* FROM {$this->table} p 
+                JOIN post_categories c ON p.category = c.name 
+                WHERE p.status = 'Published' AND c.is_active = true 
+                ORDER BY p.is_featured DESC, p.created_at DESC 
+                LIMIT ? OFFSET ?";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);
         $stmt->bindValue(2, $offset, PDO::PARAM_INT);
@@ -37,7 +43,10 @@ class Post extends Model {
     }
 
     public function countPublished() {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->table} WHERE status = 'Published'");
+        $sql = "SELECT COUNT(p.*) FROM {$this->table} p 
+                JOIN post_categories c ON p.category = c.name 
+                WHERE p.status = 'Published' AND c.is_active = true";
+        $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchColumn();
     }
@@ -55,6 +64,38 @@ class Post extends Model {
 
     public function getAllAdmin() {
         $stmt = $this->db->prepare("SELECT * FROM {$this->table} ORDER BY created_at DESC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countAllAdmin($search = '') {
+        $sql = "SELECT COUNT(*) FROM {$this->table}";
+        $params = [];
+        if ($search) {
+            $sql .= " WHERE title ILIKE ?";
+            $params[] = "%{$search}%";
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn();
+    }
+
+    public function getAllAdminPaginated($limit, $offset, $search = '') {
+        $sql = "SELECT * FROM {$this->table}";
+        $params = [];
+        if ($search) {
+            $sql .= " WHERE title ILIKE ?";
+            $params[] = "%{$search}%";
+        }
+        $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $i = 1;
+        if ($search) {
+            $stmt->bindValue($i++, "%{$search}%", PDO::PARAM_STR);
+        }
+        $stmt->bindValue($i++, $limit, PDO::PARAM_INT);
+        $stmt->bindValue($i, $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

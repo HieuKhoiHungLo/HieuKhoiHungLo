@@ -223,8 +223,171 @@ if (isset($stepStatus)) {
     </div>
 <?php endif; ?>
 
+</div>
+
+<!-- Countdown Timer Block (Full Width) -->
+<?php if (!empty($homeSettings['countdown_enabled']) && $homeSettings['countdown_enabled'] == '1' && !empty($homeSettings['countdown_deadline'])): ?>
+    <div id="countdown-block" class="w-full relative overflow-hidden py-4 md:py-6 shadow-[inset_0_2px_10px_rgba(255,255,255,0.3),inset_0_-2px_10px_rgba(0,0,0,0.4)]" 
+         style="background: linear-gradient(180deg, #0066FF 0%, #0044CC 100%); border-top: 2px solid rgba(255,255,255,0.4); border-bottom: 2px solid rgba(0,0,0,0.5);">
+        <!-- Decorative Elements -->
+        <div class="absolute -top-40 -right-40 w-[500px] h-[500px] bg-white/10 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-black/20 rounded-full blur-[120px]"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <!-- Title -->
+            <div class="flex items-center justify-center gap-4 mb-3">
+                <i class="fas fa-bell text-yellow-400 text-xl md:text-2xl animate-pulse"></i>
+                <h3 class="text-yellow-400 text-xl md:text-4xl font-black tracking-widest uppercase font-heading" style="color: #FFD700; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                    <?= htmlspecialchars($homeSettings['countdown_title'] ?: 'Thời hạn quan trọng') ?>
+                </h3>
+            </div>
+
+            <!-- Countdown Numbers -->
+            <div id="countdown-timer" class="flex items-center justify-center gap-3 md:gap-8" data-deadline="<?= htmlspecialchars($homeSettings['countdown_deadline']) ?>">
+                <!-- Days -->
+                <div class="countdown-unit">
+                    <div class="countdown-number" id="cd-days">00</div>
+                    <div class="countdown-label">Ngày</div>
+                </div>
+                <div class="countdown-sep">:</div>
+                <!-- Hours -->
+                <div class="countdown-unit">
+                    <div class="countdown-number" id="cd-hours">00</div>
+                    <div class="countdown-label">Giờ</div>
+                </div>
+                <div class="countdown-sep">:</div>
+                <!-- Minutes -->
+                <div class="countdown-unit">
+                    <div class="countdown-number" id="cd-mins">00</div>
+                    <div class="countdown-label">Phút</div>
+                </div>
+                <div class="countdown-sep">:</div>
+                <!-- Seconds -->
+                <div class="countdown-unit">
+                    <div class="countdown-number cd-seconds" id="cd-secs">00</div>
+                    <div class="countdown-label">Giây</div>
+                </div>
+            </div>
+
+            <!-- Expired Message -->
+            <div id="countdown-expired" class="hidden mt-4">
+                <div class="inline-flex items-center gap-4 bg-white/5 border border-white/10 backdrop-blur-md px-8 py-4 rounded-2xl">
+                    <i class="fas fa-calendar-times text-red-400 text-2xl"></i>
+                    <span class="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Đã hết thời hạn</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .countdown-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .countdown-number {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem;
+            width: 55px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #b91c1c; /* Tailwind red-700 */
+            font-family: 'Inter', sans-serif;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .countdown-number.cd-seconds {
+            background: rgba(255,255,255,0.9);
+            border-color: rgba(255,255,255,0.3);
+        }
+        .countdown-label {
+            margin-top: 0.3rem;
+            font-size: 0.55rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .countdown-sep {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: rgba(255,255,255,0.2);
+            margin-bottom: 0.8rem;
+        }
+        @keyframes cdPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        .cd-seconds {
+            animation: cdPulse 1s ease-in-out infinite;
+        }
+        @media (min-width: 768px) {
+            .countdown-number {
+                width: 90px;
+                height: 60px;
+                font-size: 2rem;
+                border-radius: 1rem;
+            }
+            .countdown-sep {
+                font-size: 2rem;
+            }
+            .countdown-label {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+
+        <script>
+            (function() {
+                const timer = document.getElementById('countdown-timer');
+                const expired = document.getElementById('countdown-expired');
+                if (!timer) return;
+
+                const deadline = new Date(timer.dataset.deadline).getTime();
+                const daysEl = document.getElementById('cd-days');
+                const hoursEl = document.getElementById('cd-hours');
+                const minsEl = document.getElementById('cd-mins');
+                const secsEl = document.getElementById('cd-secs');
+
+                function pad(n) { return String(n).padStart(2, '0'); }
+
+                function update() {
+                    const now = Date.now();
+                    const diff = deadline - now;
+
+                    if (diff <= 0) {
+                        timer.classList.add('hidden');
+                        expired.classList.remove('hidden');
+                        return;
+                    }
+
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    const mins = Math.floor((diff % 3600000) / 60000);
+                    const secs = Math.floor((diff % 60000) / 1000);
+
+                    daysEl.textContent = pad(days);
+                    hoursEl.textContent = pad(hours);
+                    minsEl.textContent = pad(mins);
+                    secsEl.textContent = pad(secs);
+                }
+
+                update();
+                setInterval(update, 1000);
+            })();
+        </script>
+<?php endif; ?>
+
 <!-- Main Content Container -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 -mt-10 relative z-20">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-20">
 
     <!-- DASHBOARD VIEW (LOGGED IN) -->
     <?php if (isset($_SESSION['user_id'])): ?>
@@ -613,87 +776,139 @@ if (isset($stepStatus)) {
 
         <!-- Latest News -->
         <div class="mb-20">
-            <div class="flex justify-between items-end mb-6 sm:mb-10">
-                <div>
-                    <span class="text-hvu-red font-bold uppercase tracking-widest text-xs">Tin tức & Sự kiện</span>
-                    <h2 class="text-xl sm:text-3xl font-black font-heading text-gray-900 mt-1 sm:mt-2">THÔNG TIN TUYỂN SINH</h2>
-                </div>
-                <a href="<?= url('/news') ?>" class="text-gray-500 hover:text-hvu-red font-bold flex items-center transition text-sm">Xem tất cả <i class="fas fa-arrow-right ml-2"></i></a>
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                <span class="text-hvu-red font-bold uppercase tracking-widest text-sm">Tin tức & Sự kiện</span>
+                <a href="<?= url('/news') ?>" class="text-gray-400 hover:text-hvu-red font-bold flex items-center transition text-xs">Xem tất cả <i class="fas fa-arrow-right ml-2 text-[10px]"></i></a>
             </div>
 
-            <!-- Desktop: Grid 3 columns -->
-            <div class="hidden md:grid md:grid-cols-3 gap-8">
-                <?php foreach (array_slice($posts ?? [], 0, 3) as $post): ?>
-                    <a href="<?= url('/news/detail?slug=' . $post['slug']) ?>" class="group block">
-                        <div class="relative overflow-hidden rounded-2xl mb-4 shadow-md">
-                            <img loading="lazy" src="<?= $post['thumbnail'] ? (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) : url('/assets/img/Logo.png') ?>" class="w-full h-56 object-cover transform group-hover:scale-110 transition duration-700">
-                            <div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold uppercase text-hvu-red">
-                                <?= $post['category'] ?>
-                            </div>
+            <!-- Category-based Slideshow Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <?php foreach ($categories as $catIdx => $cat): ?>
+                    <?php $catPosts = $newsByCategory[$cat['name']] ?? []; ?>
+                    <div class="flex flex-col h-full news-column">
+                        <!-- Category Tab Header -->
+                        <div class="bg-hvu-red text-white px-4 py-2 rounded-t-xl font-bold uppercase text-[11px] tracking-widest shadow-sm self-start mb-0">
+                            <?= htmlspecialchars($cat['name']) ?>
                         </div>
-                        <p class="text-xs text-gray-400 font-bold mb-2 uppercase tracking-wide"><?= date('d/m/Y', strtotime($post['created_at'])) ?></p>
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-hvu-red transition leading-tight"><?= htmlspecialchars($post['title']) ?></h3>
-                    </a>
+                        
+                        <!-- Slideshow Container -->
+                        <div class="relative bg-white border border-gray-100 rounded-b-2xl rounded-tr-2xl shadow-lg overflow-hidden flex-grow news-slideshow-container group" data-slideshow-id="<?= $catIdx ?>">
+                            <?php if (empty($catPosts)): ?>
+                                <div class="flex items-center justify-center h-64 text-gray-400 italic text-sm">
+                                    Chưa có bài viết.
+                                </div>
+                            <?php else: ?>
+                                <div class="slides-wrapper relative h-full pb-10">
+                                    <?php foreach ($catPosts as $i => $post): ?>
+                                        <div class="news-slide absolute inset-0 transition-opacity duration-700 <?= $i === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0' ?>" data-slide-index="<?= $i ?>">
+                                            <a href="<?= url('/news/detail?slug=' . $post['slug']) ?>" class="block h-full flex flex-col">
+                                                <div class="relative overflow-hidden aspect-[4/3] bg-gray-100">
+                                                    <img loading="lazy" src="<?= $post['thumbnail'] ? (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
+                                                         class="w-full h-full object-cover transform group-hover:scale-105 transition duration-700">
+                                                </div>
+                                                <div class="p-4 flex-grow flex flex-col pb-6">
+                                                    <p class="text-[10px] text-gray-400 font-bold mb-2 uppercase tracking-wide">
+                                                        <i class="far fa-calendar-alt mr-1 text-hvu-red"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?>
+                                                    </p>
+                                                    <h3 class="text-sm font-bold text-gray-900 group-hover:text-hvu-red transition leading-tight line-clamp-3">
+                                                        <?= htmlspecialchars($post['title']) ?>
+                                                    </h3>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                
+                                <!-- Dot Indicators -->
+                                <?php if (count($catPosts) > 1): ?>
+                                    <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20">
+                                        <?php foreach ($catPosts as $i => $post): ?>
+                                            <button class="w-1.5 h-1.5 rounded-full transition-all slide-dot <?= $i === 0 ? 'bg-hvu-red scale-125 shadow-sm' : 'bg-gray-300 opacity-70' ?>" 
+                                                    data-go-to="<?= $i ?>" title="Xem bài <?= $i + 1 ?>"></button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
             </div>
 
-            <!-- Mobile: Horizontal Scroll Slider -->
-            <div class="md:hidden">
-                <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 news-slider">
-                    <?php foreach (array_slice($posts ?? [], 0, 3) as $i => $post): ?>
-                        <a href="<?= url('/news/detail?slug=' . $post['slug']) ?>" class="snap-center flex-shrink-0 block w-full">
-                            <div class="relative overflow-hidden rounded-2xl mb-3 shadow-md">
-                                <img loading="lazy" src="<?= $post['thumbnail'] ? (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) : url('/assets/img/Logo.png') ?>" class="w-full h-44 object-cover">
-                                <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase text-hvu-red">
-                                    <?= $post['category'] ?>
-                                </div>
-                            </div>
-                            <p class="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wide"><?= date('d/m/Y', strtotime($post['created_at'])) ?></p>
-                            <h3 class="text-sm font-bold text-gray-900 leading-tight line-clamp-2"><?= htmlspecialchars($post['title']) ?></h3>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-                <!-- Scroll indicators -->
-                <div class="flex justify-center gap-1.5 mt-2">
-                    <?php foreach (array_slice($posts ?? [], 0, 3) as $i => $post): ?>
-                        <div class="w-1.5 h-1.5 rounded-full <?= $i === 0 ? 'bg-hvu-red' : 'bg-gray-300' ?> news-dot" data-index="<?= $i ?>"></div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
             <style>
-                .news-slider {
-                    scrollbar-width: none;
-                    -ms-overflow-style: none;
-                }
-
-                .news-slider::-webkit-scrollbar {
-                    display: none;
-                }
-
-                .line-clamp-2 {
+                .line-clamp-3 {
                     display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    line-clamp: 2;
+                    -webkit-line-clamp: 3;
+                    line-clamp: 3;
                     -webkit-box-orient: vertical;
                     overflow: hidden;
+                    height: 3.75em; /* Exactly 3 lines assuming line-height is 1.25 */
+                    line-height: 1.25em;
+                }
+                .news-slideshow-container {
+                    min-height: 340px;
                 }
             </style>
+
             <script>
-                (function() {
-                    const slider = document.querySelector('.news-slider');
-                    if (!slider) return;
-                    const dots = document.querySelectorAll('.news-dot');
-                    slider.addEventListener('scroll', function() {
-                        const scrollLeft = slider.scrollLeft;
-                        const itemWidth = slider.firstElementChild?.offsetWidth || 1;
-                        const activeIndex = Math.round(scrollLeft / (itemWidth + 16));
-                        dots.forEach((dot, i) => {
-                            dot.classList.toggle('bg-hvu-red', i === activeIndex);
-                            dot.classList.toggle('bg-gray-300', i !== activeIndex);
+                document.querySelectorAll('.news-slideshow-container').forEach(container => {
+                    const slides = container.querySelectorAll('.news-slide');
+                    const dots = container.querySelectorAll('.slide-dot');
+                    if (slides.length <= 1) return;
+
+                    let currentIndex = 0;
+                    let interval;
+
+                    function showSlide(index) {
+                        slides.forEach((s, i) => {
+                            if (i === index) {
+                                s.classList.remove('opacity-0', 'z-0');
+                                s.classList.add('opacity-100', 'z-10');
+                            } else {
+                                s.classList.add('opacity-0', 'z-0');
+                                s.classList.remove('opacity-100', 'z-10');
+                            }
+                        });
+                        dots.forEach((d, i) => {
+                            if (i === index) {
+                                d.classList.add('bg-hvu-red', 'scale-125', 'shadow-sm');
+                                d.classList.remove('bg-gray-300', 'opacity-70');
+                            } else {
+                                d.classList.remove('bg-hvu-red', 'scale-125', 'shadow-sm');
+                                d.classList.add('bg-gray-300', 'opacity-70');
+                            }
+                        });
+                        currentIndex = index;
+                    }
+
+                    function nextSlide() {
+                        let next = (currentIndex + 1) % slides.length;
+                        showSlide(next);
+                    }
+
+                    function startAutoPlay() {
+                        interval = setInterval(nextSlide, 6000);
+                    }
+
+                    function stopAutoPlay() {
+                        clearInterval(interval);
+                    }
+
+                    // Dots click
+                    dots.forEach((dot, i) => {
+                        dot.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            showSlide(i);
+                            stopAutoPlay();
+                            startAutoPlay();
                         });
                     });
-                })();
+
+                    // Pause on hover
+                    container.addEventListener('mouseenter', stopAutoPlay);
+                    container.addEventListener('mouseleave', startAutoPlay);
+
+                    startAutoPlay();
+                });
             </script>
         </div>
     <?php endif; ?>

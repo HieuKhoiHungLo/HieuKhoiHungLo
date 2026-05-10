@@ -168,6 +168,7 @@ class PermissionService {
                 'posts.view'      => 'Xem danh sách bài viết',
                 'posts.edit'      => 'Chỉnh sửa bài viết',
                 'posts.delete'    => 'Xóa bài viết',
+                'posts.category'  => 'Quản lý chuyên mục',
             ],
             'Cài đặt' => [
                 'settings.view'   => 'Xem cài đặt hệ thống',
@@ -182,13 +183,4 @@ class PermissionService {
             ],
         ];
     }
-}
-
-// Helper function for views
-function can($permission) {
-    static $service = null;
-    if ($service === null) {
-        $service = new \App\Services\PermissionService();
-    }
-    return $service->can($permission);
 }

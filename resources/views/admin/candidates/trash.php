@@ -90,73 +90,72 @@ ob_start();
     </form>
 
     <!-- Table -->
-    <div class="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200">
+    <div class="overflow-x-auto rounded-xl shadow-sm bg-white border border-slate-200">
+        <table class="w-full border-collapse">
             <thead class="bg-slate-50">
                 <tr>
-                    <th scope="col" class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-12">
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wide border border-slate-200 w-12">
                         STT
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide border border-slate-200">
                         Họ và Tên
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide border border-slate-200">
                         CCCD
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide border border-slate-200">
                         Thời gian xóa
                     </th>
-                    <th scope="col" class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest w-40">
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wide border border-slate-200 w-40">
                         Thao tác
                     </th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
+            <tbody class="bg-white">
                 <?php if (empty($candidates)): ?>
                     <tr>
-                        <td colspan="5" class="px-6 py-20 text-center text-gray-400 italic">
+                        <td colspan="5" class="px-6 py-20 text-center text-gray-500 italic border border-slate-200">
                             <div class="flex flex-col items-center">
                                 <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                     <i class="fas fa-trash-restore text-4xl text-slate-200"></i>
                                 </div>
-                                <p class="text-sm font-medium">Thùng rác hiện đang trống!</p>
+                                <p class="text-sm">Thùng rác hiện đang trống!</p>
                             </div>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($candidates as $index => $c): ?>
-                        <tr class="hover:bg-red-50/30 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 text-center border border-slate-200">
                                 <div class="flex items-center justify-center gap-3">
                                     <input type="checkbox" name="cccds[]" value="<?= $c['so_cccd'] ?>" class="item-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
-                                    <span class="text-xs font-bold text-slate-400"><?= ($currentPage - 1) * 20 + $index + 1 ?></span>
+                                    <span class="text-[13px] text-slate-800"><?= ($currentPage - 1) * 20 + $index + 1 ?></span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="font-bold text-slate-800"><?= htmlspecialchars($c['ho_va_ten']) ?></div>
-                                <div class="text-[10px] font-bold text-slate-400 tracking-tight"><?= htmlspecialchars($c['email'] ?? 'Chưa có email') ?></div>
+                            <td class="px-4 py-3 border border-slate-200">
+                                <div class="text-[13px] text-black"><?= htmlspecialchars($c['ho_va_ten']) ?></div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-bold">
+                            <td class="px-4 py-3 border border-slate-200">
+                                <span class="text-[13px] text-black font-mono">
                                     <?= htmlspecialchars($c['so_cccd']) ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-3 text-sm border border-slate-200">
                                 <div class="flex items-center gap-2">
-                                    <i class="far fa-clock text-red-300 text-xs"></i>
-                                    <span class="text-xs font-bold text-slate-500 italic">
+                                    <i class="far fa-clock text-slate-400 text-xs"></i>
+                                    <span class="text-[13px] text-black">
                                         <?= date('H:i d/m/Y', strtotime($c['deleted_at'])) ?>
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <div class="flex items-center justify-center space-x-2">
+                            <td class="px-4 py-3 text-center border border-slate-200">
+                                <div class="flex items-center justify-center gap-2">
                                     <!-- Restore Button -->
                                     <form action="<?= url('/admin/candidates/restore') ?>" method="POST" class="inline-block" onsubmit="return confirm('Bạn có chắc chắn muốn khôi phục hồ sơ này?');">
                                         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <input type="hidden" name="cccd" value="<?= $c['so_cccd'] ?>">
-                                        <button type="submit" class="w-9 h-9 flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-xl transition-all shadow-sm border border-green-100" title="Khôi phục">
-                                            <i class="fas fa-trash-restore text-xs"></i>
+                                        <button type="submit" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 rounded-lg transition-all border border-emerald-100" title="Khôi phục">
+                                            <i class="fas fa-trash-restore text-[10px]"></i>
                                         </button>
                                     </form>
 
@@ -164,8 +163,8 @@ ob_start();
                                     <form action="<?= url('/admin/candidates/force-delete') ?>" method="POST" class="inline-block" onsubmit="return confirm('CẢNH BÁO: Hành động này KHÔNG THỂ hoàn tác! Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này?');">
                                         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                         <input type="hidden" name="cccd" value="<?= $c['so_cccd'] ?>">
-                                        <button type="submit" class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all shadow-sm border border-red-100" title="Xóa vĩnh viễn">
-                                            <i class="fas fa-times text-xs"></i>
+                                        <button type="submit" class="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-lg transition-all border border-rose-100" title="Xóa vĩnh viễn">
+                                            <i class="fas fa-times text-[10px]"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -229,16 +228,35 @@ ob_start();
     </script>
 
     <!-- Pagination -->
-    <?php if ($totalPages > 1): ?>
-        <div class="mt-6 flex justify-center">
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>"
-                        class="<?= $i == $currentPage ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50' ?> relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+    <?php if ($totalPages >= 1): ?>
+        <div class="flex items-center justify-between mt-6">
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+                <span>
+                    Trang <span class="font-bold text-slate-700"><?= $currentPage ?></span> / <span class="font-bold text-slate-700"><?= $totalPages ?></span>
+                    &nbsp;(<span class="font-medium"><?= isset($total) ? number_format($total) : count($candidates) ?></span> bản ghi)
+                </span>
+            </div>
+            <?php if ($totalPages > 1): ?>
+            <div class="flex gap-1.5">
+                <?php if ($currentPage > 1): ?>
+                    <a href="?page=<?= $currentPage - 1 ?>&search=<?= urlencode($search) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Trước</a>
+                <?php endif; ?>
+
+                <?php 
+                $start = max(1, $currentPage - 2);
+                $end = min($totalPages, $currentPage + 2);
+                for ($i = $start; $i <= $end; $i++): 
+                ?>
+                    <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>" class="w-8 h-8 flex items-center justify-center border rounded-lg font-bold text-xs transition <?= $i == $currentPage ? 'bg-[#0066FF] border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>
-            </nav>
+
+                <?php if ($currentPage < $totalPages): ?>
+                    <a href="?page=<?= $currentPage + 1 ?>&search=<?= urlencode($search) ?>" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-bold transition">Sau</a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

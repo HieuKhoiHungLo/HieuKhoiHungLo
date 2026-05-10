@@ -214,6 +214,18 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/posts/edit', 'AdminPostController@edit');
     $router->get('/admin/posts/delete', 'AdminPostController@delete');
 
+    // Category Management
+    $router->get('/admin/categories', 'AdminCategoryController@index');
+    $router->get('/admin/categories/create', 'AdminCategoryController@create');
+    $router->post('/admin/categories/save', 'AdminCategoryController@save');
+    $router->get('/admin/categories/delete', 'AdminCategoryController@delete');
+
+    // Media Management
+    $router->get('/admin/media', 'AdminMediaController@index');
+    $router->get('/admin/media/api', 'AdminMediaController@apiList');
+    $router->post('/admin/media/upload', 'AdminMediaController@upload');
+    $router->get('/admin/media/delete', 'AdminMediaController@delete');
+
     // Admission Process
     $router->get('/admin/admission/benchmarks', 'AdmissionController@benchmarks');
     $router->post('/admin/admission/benchmarks', 'AdmissionController@saveBenchmarks');

@@ -11,21 +11,40 @@ class AdminPostController extends Controller
 
     public function __construct()
     {
-        if (!isset($_SESSION['admin_id'])) {
-            $this->redirect(url('/admin/login'));
-        }
+        $this->requireAdmin();
         $this->postModel = new Post();
+        
+        if (!\can('posts.view')) {
+            die('Bạn không có quyền truy cập chức năng này.');
+        }
     }
 
     public function index()
     {
-        $posts = $this->postModel->getAllAdmin();
-        $this->view('admin/posts/index', ['posts' => $posts]);
+        $search = trim($_GET['search'] ?? '');
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $limit = 5;
+        $offset = ($page - 1) * $limit;
+
+        $total = $this->postModel->countAllAdmin($search);
+        $totalPages = ceil($total / $limit);
+        
+        $posts = $this->postModel->getAllAdminPaginated($limit, $offset, $search);
+
+        $this->view('admin/posts/index', [
+            'posts' => $posts,
+            'search' => $search,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total
+        ]);
     }
 
     public function create()
     {
-        $this->view('admin/posts/form', ['post' => null]);
+        $categoryModel = new \App\Models\PostCategory();
+        $categories = $categoryModel->getAllActive();
+        $this->view('admin/posts/form', ['post' => null, 'categories' => $categories]);
     }
 
     public function edit()
@@ -37,7 +56,9 @@ class AdminPostController extends Controller
             $this->redirect(url('/admin/posts'));
         }
 
-        $this->view('admin/posts/form', ['post' => $post]);
+        $categoryModel = new \App\Models\PostCategory();
+        $categories = $categoryModel->getAllActive();
+        $this->view('admin/posts/form', ['post' => $post, 'categories' => $categories]);
     }
 
     public function save()
@@ -49,6 +70,10 @@ class AdminPostController extends Controller
                     die('CSRF token validation failed');
                 }
 
+                if (!\can('posts.edit')) {
+                    die('Bạn không có quyền thực hiện chức năng này.');
+                }
+
                 // Handle Thumbnail Upload
                 $thumbnailPath = $_POST['thumbnail'] ?? '';
 
@@ -58,13 +83,10 @@ class AdminPostController extends Controller
                     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
                     if (in_array($ext, $allowed) && $_FILES['thumbnail_file']['size'] <= 5 * 1024 * 1024) { // 5MB
-                        $publicPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
-                        // Nếu có base path (VD: /TS), thêm vào document root
-                        $basePath = parse_url(url('/'), PHP_URL_PATH);
-                        $basePath = rtrim($basePath, '/');
+                        $rootDir = dirname(dirname(__DIR__));
                         $uploadRelative = 'uploads/posts/';
-                        $uploadDir = $publicPath . $basePath . '/' . $uploadRelative;
-
+                        $uploadDir = $rootDir . '/public/' . $uploadRelative;
+                        
                         if (!file_exists($uploadDir)) {
                             mkdir($uploadDir, 0777, true);
                         }
@@ -76,6 +98,13 @@ class AdminPostController extends Controller
                             $thumbnailPath = $uploadRelative . $newFilename;
                         }
                     }
+                }
+
+                $createdAt = trim($_POST['created_at'] ?? '');
+                if (!$createdAt) {
+                    $createdAt = date('Y-m-d H:i:s');
+                } else {
+                    $createdAt = date('Y-m-d H:i:s', strtotime($createdAt));
                 }
 
                 $id = $_POST['id'] ?? '';
@@ -90,13 +119,13 @@ class AdminPostController extends Controller
                     'status' => $_POST['status'] ?? 'Draft',
                     'is_featured' => isset($_POST['is_featured']), // PostgreSQL requires strict boolean
                     'thumbnail' => $thumbnailPath,
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'created_at' => $createdAt
                 ];
 
                 if ($id) {
                     $this->postModel->update($id, $data);
                 } else {
-                    $data['created_at'] = date('Y-m-d H:i:s');
                     $this->postModel->create($data);
                 }
 

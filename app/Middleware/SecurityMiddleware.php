@@ -224,6 +224,8 @@ public static function checkSessionTimeout($timeoutMinutes = 30) {
 }
 
 // Helper function for views
-function csrf_field() {
-    return \App\Middleware\SecurityMiddleware::csrfField();
+if (!function_exists('csrf_field')) {
+    function csrf_field() {
+        return \App\Middleware\SecurityMiddleware::csrfField();
+    }
 }

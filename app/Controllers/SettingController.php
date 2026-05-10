@@ -48,18 +48,28 @@ class SettingController extends Controller
             }
 
             // Sync certain settings to cau_hinh table for frontend logic compatibility
-            if (isset($_POST['settings']['home_announcement'])) {
+            if (isset($_POST['settings']['home_announcement']) || isset($_POST['settings']['countdown_enabled'])) {
                 $masterDataRepo = new \App\Repositories\MasterDataRepository();
                 $currentHomeSettings = $masterDataRepo->getHomeSettings();
+                
+                $announcement = $_POST['settings']['home_announcement'] ?? $currentHomeSettings['announcement'];
+                
+                $countdownData = [
+                    'enabled' => $_POST['settings']['countdown_enabled'] ?? $currentHomeSettings['countdown_enabled'],
+                    'title' => $_POST['settings']['countdown_title'] ?? $currentHomeSettings['countdown_title'],
+                    'deadline' => $_POST['settings']['countdown_deadline'] ?? $currentHomeSettings['countdown_deadline']
+                ];
+
                 $masterDataRepo->updateHomeSettings(
                     $currentHomeSettings['video_url'],
                     $currentHomeSettings['stats_majors'],
                     $currentHomeSettings['stats_quota'],
                     $currentHomeSettings['stats_employment'] ?? $currentHomeSettings['stats_employ'],
-                    $_POST['settings']['home_announcement']
+                    $announcement,
+                    $countdownData
                 );
 
-                // Clear homepage session cache
+                // Clear homepage session cache so countdown & announcement changes take effect immediately
                 unset($_SESSION['cache_home_settings']);
             }
 

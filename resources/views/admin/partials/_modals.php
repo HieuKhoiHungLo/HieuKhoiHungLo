@@ -203,17 +203,17 @@
 
                     <!-- Text Formatting Toolbar -->
                     <div class="flex items-center gap-1.5 text-slate-500 border-l border-slate-100 pl-4 ml-1">
-                        <button type="button" onclick="execCmd('bold')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="In đậm (Ctrl+B)"><i class="fas fa-bold text-xs"></i></button>
-                        <button type="button" onclick="execCmd('italic')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="In nghiêng (Ctrl+I)"><i class="fas fa-italic text-xs"></i></button>
-                        <button type="button" onclick="execCmd('underline')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Gạch chân (Ctrl+U)"><i class="fas fa-underline text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('bold')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="In đậm (Ctrl+B)"><i class="fas fa-bold text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('italic')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="In nghiêng (Ctrl+I)"><i class="fas fa-italic text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('underline')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Gạch chân (Ctrl+U)"><i class="fas fa-underline text-xs"></i></button>
                         <div class="h-4 w-px bg-slate-200 mx-1"></div>
-                        <button type="button" onclick="execCmd('justifyLeft')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn lề trái"><i class="fas fa-align-left text-xs"></i></button>
-                        <button type="button" onclick="execCmd('justifyCenter')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn giữa"><i class="fas fa-align-center text-xs"></i></button>
-                        <button type="button" onclick="execCmd('justifyRight')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn lề phải"><i class="fas fa-align-right text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('justifyLeft')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn lề trái"><i class="fas fa-align-left text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('justifyCenter')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn giữa"><i class="fas fa-align-center text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('justifyRight')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Căn lề phải"><i class="fas fa-align-right text-xs"></i></button>
                         <div class="h-4 w-px bg-slate-200 mx-1"></div>
-                        <button type="button" onclick="execCmd('insertUnorderedList')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Danh sách liệt kê"><i class="fas fa-list-ul text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('insertUnorderedList')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Danh sách liệt kê"><i class="fas fa-list-ul text-xs"></i></button>
                         <button type="button" onclick="promptLink()" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Chèn liên kết"><i class="fas fa-link text-xs"></i></button>
-                        <button type="button" onclick="execCmd('removeFormat')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Xóa định dạng"><i class="fas fa-eraser text-xs"></i></button>
+                        <button type="button" onclick="emailExecCmd('removeFormat')" class="w-8 h-8 rounded hover:bg-slate-100 flex items-center justify-center transition-all" title="Xóa định dạng"><i class="fas fa-eraser text-xs"></i></button>
                     </div>
                 </div>
 
@@ -227,22 +227,23 @@
     </div>
 </div>
 
-<!-- Simple Rich Text Logic -->
+<!-- Simple Rich Text Logic for Email Modal -->
 <script>
     // Ensure consistent paragraph structure
     if (document.queryCommandSupported('defaultParagraphSeparator')) {
         document.execCommand('defaultParagraphSeparator', false, 'p');
     }
 
-    function execCmd(command, value = null) {
+    function emailExecCmd(command, value = null) {
         const editor = document.getElementById('email-editor');
+        if (!editor) return;
         editor.focus();
         document.execCommand(command, false, value);
     }
     
     function promptLink() {
         const url = prompt("Nhập địa chỉ URL (ví dụ: https://hvu.edu.vn):", "https://");
-        if (url) execCmd('createLink', url);
+        if (url) emailExecCmd('createLink', url);
     }
 </script>
     </div>

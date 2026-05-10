@@ -9,6 +9,8 @@ use App\Models\NguyenVong;
 
 class HomeController extends Controller {
     public function index() {
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $offset = ($page - 1) * 10;
         // Redirect logged-in admins to the admin dashboard
         /*
         if (isset($_SESSION['admin_id'])) {
@@ -27,16 +29,19 @@ class HomeController extends Controller {
         $sessionModel = new \App\Models\AdmissionSession();
         $db = \App\Core\Database::getInstance()->getConnection();
 
-        // 1. Get Latest Posts/Announcements
-        // 1. Get Latest Posts/Announcements with Pagination
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        if ($page < 1) $page = 1;
-        $limit = 3;
-        $offset = ($page - 1) * $limit;
+        // 1. Get Latest Posts by Category for Slideshow
+        $categoryModel = new \App\Models\PostCategory();
+        $categories = array_slice($categoryModel->getAllActive(), 0, 3);
         
-        $posts = $postModel->getPaginated($limit, $offset);
+        $newsByCategory = [];
+        foreach ($categories as $cat) {
+            $newsByCategory[$cat['name']] = $postModel->getLatest(5, $cat['name']);
+        }
+        
+        // For fallback/other sections if needed
+        $posts = $postModel->getPaginated(10, $offset);
         $totalPosts = $postModel->countPublished();
-        $totalPages = ceil($totalPosts / $limit);
+        $totalPages = ceil($totalPosts / 10);
 
         // 2. Get Active Session for deadlines
         $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
@@ -113,11 +118,14 @@ class HomeController extends Controller {
                 'stats_majors' => '27',
                 'stats_quota' => '3070',
                 'stats_employ' => '98%',
-                'announcement' => ''
+                'announcement' => '',
+                'countdown_enabled' => '0',
+                'countdown_title' => '',
+                'countdown_deadline' => ''
             ];
 
             try {
-                $stmt = $db->prepare("SELECT key, value FROM cau_hinh WHERE key IN ('admission_conditions', 'home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement')");
+                $stmt = $db->prepare("SELECT key, value FROM cau_hinh WHERE key IN ('admission_conditions', 'home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement', 'countdown_enabled', 'countdown_title', 'countdown_deadline')");
                 $stmt->execute();
                 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                     if ($row['key'] === 'admission_conditions') $conditions = $row['value'];
@@ -126,6 +134,9 @@ class HomeController extends Controller {
                     if ($row['key'] === 'home_stats_quota') $homeSettings['stats_quota'] = $row['value'];
                     if ($row['key'] === 'home_stats_employment') $homeSettings['stats_employ'] = $row['value'];
                     if ($row['key'] === 'home_announcement') $homeSettings['announcement'] = $row['value'];
+                    if ($row['key'] === 'countdown_enabled') $homeSettings['countdown_enabled'] = $row['value'];
+                    if ($row['key'] === 'countdown_title') $homeSettings['countdown_title'] = $row['value'];
+                    if ($row['key'] === 'countdown_deadline') $homeSettings['countdown_deadline'] = $row['value'];
                 }
             } catch (\Exception $e) {}
             
@@ -143,6 +154,8 @@ class HomeController extends Controller {
 
         $this->view('home', [
             'posts' => $posts,
+            'categories' => $categories,
+            'newsByCategory' => $newsByCategory,
             'majors' => $majors,
             'activeSession' => $activeSession,
             'conditions' => $conditions,

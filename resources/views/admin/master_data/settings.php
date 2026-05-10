@@ -81,6 +81,7 @@
                         </label>
                     </div>
                 </div>
+            </div>
 
                 <div class="px-8 py-10 bg-slate-50 border-t border-slate-100 flex justify-end">
                     <button type="submit" class="px-12 py-5 bg-[#0066FF] text-white font-black rounded-2xl shadow-2xl shadow-blue-200 hover:bg-blue-700 transition transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-xs">
@@ -96,6 +97,9 @@
     /* Styling Switch toggle check */
     #enable_thpt:checked+label {
         background-color: #0066FF;
+    }
+    #countdown_toggle:checked+label {
+        background-color: #f97316;
     }
 </style>
 

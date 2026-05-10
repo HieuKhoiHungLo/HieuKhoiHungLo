@@ -72,3 +72,16 @@ if (!function_exists('normalize_name')) {
         return mb_strtoupper($name, 'UTF-8');
     }
 }
+
+if (!function_exists('can')) {
+    /**
+     * Global helper for permission check
+     */
+    function can($permission) {
+        static $service = null;
+        if ($service === null) {
+            $service = new \App\Services\PermissionService();
+        }
+        return $service->can($permission);
+    }
+}

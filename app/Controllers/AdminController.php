@@ -829,8 +829,14 @@ class AdminController extends Controller
                 return;
             }
 
+            $countdown = [
+                'enabled' => $_POST['countdown_enabled'] ?? '0',
+                'title' => $_POST['countdown_title'] ?? '',
+                'deadline' => $_POST['countdown_deadline'] ?? ''
+            ];
+
             // Update settings using Repository
-            if ($masterDataRepo->updateHomeSettings($videoId, $statsMajors, $statsQuota, $statsEmploy, $announcement)) {
+            if ($masterDataRepo->updateHomeSettings($videoId, $statsMajors, $statsQuota, $statsEmploy, $announcement, $countdown)) {
                 // Invalidate homepage session cache
                 unset($_SESSION['cache_home_settings']);
                 unset($_SESSION['cache_admission_conditions']);

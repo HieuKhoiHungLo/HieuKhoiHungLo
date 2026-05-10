@@ -195,24 +195,30 @@ class MasterDataRepository
             'stats_majors' => '27',
             'stats_quota' => '3070',
             'stats_employ' => '98%',
-            'announcement' => ''
+            'announcement' => '',
+            'countdown_enabled' => '0',
+            'countdown_title' => '',
+            'countdown_deadline' => ''
         ];
 
         try {
-            $stmt = $this->db->query("SELECT key, value FROM cau_hinh WHERE key IN ('home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement')");
+            $stmt = $this->db->query("SELECT key, value FROM cau_hinh WHERE key IN ('home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement', 'countdown_enabled', 'countdown_title', 'countdown_deadline')");
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['key'] === 'home_video_url') $settings['video_url'] = $row['value'];
                 if ($row['key'] === 'home_stats_majors') $settings['stats_majors'] = $row['value'];
                 if ($row['key'] === 'home_stats_quota') $settings['stats_quota'] = $row['value'];
                 if ($row['key'] === 'home_stats_employment') $settings['stats_employ'] = $row['value'];
                 if ($row['key'] === 'home_announcement') $settings['announcement'] = $row['value'];
+                if ($row['key'] === 'countdown_enabled') $settings['countdown_enabled'] = $row['value'];
+                if ($row['key'] === 'countdown_title') $settings['countdown_title'] = $row['value'];
+                if ($row['key'] === 'countdown_deadline') $settings['countdown_deadline'] = $row['value'];
             }
         } catch (\Exception $e) {
         }
         return $settings;
     }
 
-    public function updateHomeSettings($videoId, $statsMajors, $statsQuota, $statsEmploy, $announcement)
+    public function updateHomeSettings($videoId, $statsMajors, $statsQuota, $statsEmploy, $announcement, $countdown = [])
     {
         try {
             $stmt = $this->db->prepare("INSERT INTO cau_hinh (key, value) VALUES (?,?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
@@ -221,9 +227,20 @@ class MasterDataRepository
             $stmt->execute(['home_stats_quota', $statsQuota]);
             $stmt->execute(['home_stats_employment', $statsEmploy]);
             $stmt->execute(['home_announcement', $announcement]);
+            
+            if (!empty($countdown)) {
+                if (isset($countdown['enabled'])) $stmt->execute(['countdown_enabled', $countdown['enabled']]);
+                if (isset($countdown['title'])) $stmt->execute(['countdown_title', $countdown['title']]);
+                if (isset($countdown['deadline'])) $stmt->execute(['countdown_deadline', $countdown['deadline']]);
+            }
 
             // Sync back to settings table
             $this->model->setSetting('home_announcement', $announcement);
+            if (!empty($countdown)) {
+                if (isset($countdown['enabled'])) $this->model->setSetting('countdown_enabled', $countdown['enabled']);
+                if (isset($countdown['title'])) $this->model->setSetting('countdown_title', $countdown['title']);
+                if (isset($countdown['deadline'])) $this->model->setSetting('countdown_deadline', $countdown['deadline']);
+            }
 
             return true;
         } catch (\Exception $e) {

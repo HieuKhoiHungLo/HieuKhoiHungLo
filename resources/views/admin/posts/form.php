@@ -1,263 +1,304 @@
-<?php $pageTitle = ($post ? 'Cập nhật bài viết' : 'Viết bài mới'); ?>
+<?php $pageTitle = ($post ? 'Cập nhật bài viết' : 'Thêm mới bài viết'); ?>
 <?php ob_start(); ?>
 
 <style>
-    /* Clean UI Input Styles */
-    .ui-input {
-        display: block;
-        width: 100%;
-        background-color: #f8fafc;
-        /* slate-50 */
-        border: 1px solid #e2e8f0;
-        /* slate-200 */
-        border-radius: 0.75rem;
-        /* rounded-xl */
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        /* text-sm */
-        color: #1e293b;
-        /* slate-800 */
-        transition: all 0.2s ease;
-        outline: none;
-    }
-
-    .ui-input:focus {
-        background-color: #ffffff;
-        border-color: #3b82f6;
-        /* blue-500 */
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    }
-
-    .ui-label {
-        display: block;
-        font-size: 0.75rem;
-        /* text-xs */
-        font-weight: 700;
-        color: #64748b;
-        /* slate-500 */
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
-    }
-
-    /* Toggle Switch Style */
-    .toggle-checkbox:checked {
-        right: 0;
-        border-color: #10b981;
-        /* emerald-500 */
-    }
-
-    .toggle-checkbox:checked+.toggle-label {
-        background-color: #10b981;
-        /* emerald-500 */
-    }
-
-    .toggle-checkbox {
-        right: 0;
-        z-index: 1;
-        border-color: #e2e8f0;
-        transition: all 0.3s;
-    }
-
-    .toggle-label {
-        width: 3rem;
-        height: 1.5rem;
-        background-color: #cbd5e1;
-        border-radius: 9999px;
-        transition: all 0.3s;
-    }
-
-    .toggle-switch-handle {
-        width: 1.125rem;
-        height: 1.125rem;
-        background-color: white;
-        border-radius: 50%;
-        position: absolute;
-        top: 0.1875rem;
-        left: 0.1875rem;
-        transition: all 0.3s;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .toggle-checkbox:checked~.toggle-switch-handle {
-        transform: translateX(1.5rem);
-    }
+    main { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+    footer { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+    .media-item:hover { border-color: #0066FF; background-color: #f0f7ff; }
+    .we-visual { min-height: 80px; outline: none; padding: 10px; font-size: 13px; line-height: 1.7; background: #fafafa; }
+    .we-visual:focus { background: #fff; }
+    .we-visual img { max-width: 100%; height: auto; margin: 6px 0; }
+    .we-visual a { color: #2563eb; text-decoration: underline; }
+    .we-visual h2 { font-size: 1.3em; font-weight: 700; margin: 0.6em 0 0.3em; }
+    .we-visual h3 { font-size: 1.15em; font-weight: 700; margin: 0.5em 0 0.3em; }
+    .we-visual h4 { font-size: 1.05em; font-weight: 700; margin: 0.4em 0 0.2em; }
+    .we-visual ul, .we-visual ol { padding-left: 1.5em; margin: 0.4em 0; }
+    .we-visual li { margin-bottom: 2px; }
+    .we-source { display: none; width: 100%; min-height: 80px; font-family: monospace; font-size: 12px; padding: 10px; border: none; outline: none; resize: vertical; background: #1e293b; color: #e2e8f0; }
+    .tb-btn { padding: 2px 8px; cursor: pointer; border: none; background: transparent; }
+    .tb-btn:hover { background: #e5e5e5; }
+    .color-pick { width: 20px; height: 20px; border: 1px solid #ccc; cursor: pointer; padding: 0; vertical-align: middle; border-radius: 2px; }
 </style>
 
-<div class="mb-6 xl:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-        <a href="<?= url('/admin/posts') ?>" class="text-slate-500 hover:text-blue-600 text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center mb-2">
-            <i class="fas fa-arrow-left mr-2"></i> Quay lại
-        </a>
-        <h2 class="text-2xl xl:text-3xl font-black text-slate-800 uppercase tracking-tight font-heading"><?= $pageTitle ?></h2>
+<form id="postForm" action="<?= url('/admin/posts/save') ?>" method="POST" enctype="multipart/form-data" class="text-[13px] text-black font-sans">
+    <div class="flex flex-wrap justify-between items-center mb-2 gap-2">
+        <div>
+            <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-edit text-blue-500"></i> <?= $pageTitle ?>
+            </h1>
+        </div>
+        <div class="flex items-center gap-2 ml-auto">
+            <a href="<?= url('/admin/posts') ?>" class="px-3 py-1.5 border border-[#ccc] text-black bg-white hover:bg-[#f7f7f7] rounded shadow-sm text-[12px] flex items-center">
+                <i class="fas fa-arrow-left mr-1"></i> Quay lại
+            </a>
+            <button type="submit" class="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-[13px] shadow-sm border border-blue-700 transition-colors">
+                <i class="fas fa-check mr-1"></i> <?= $post ? 'Cập nhật' : 'Đăng bài' ?>
+            </button>
+        </div>
     </div>
-</div>
 
-<form action="<?= url('/admin/posts/save') ?>" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
     <input type="hidden" name="id" value="<?= $post['id'] ?? '' ?>">
+    <input type="hidden" id="hidden-summary" name="summary" value="">
+    <input type="hidden" id="hidden-content" name="content" value="">
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <!-- Main Content Column -->
+        <div class="lg:col-span-4 flex flex-col gap-3">
+            <!-- Title -->
+            <div>
+                <input type="text" name="title" value="<?= htmlspecialchars($post['title'] ?? '') ?>" required 
+                       class="w-full px-3 py-1.5 text-[13px] font-bold border border-[#ccc] bg-white focus:bg-[#fafafa] rounded shadow-inner outline-none focus:border-[#999] placeholder-gray-400" 
+                       placeholder="Nhập tiêu đề tại đây">
+            </div>
 
-        <!-- Main Content Area (Left: 8 cols) -->
-        <div class="lg:col-span-8 space-y-6">
-            <div class="bg-white p-6 xl:p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div class="space-y-6">
+            <!-- Permalink -->
+            <div class="flex items-center gap-2 text-[12px] text-gray-600 bg-white border border-[#ccc] px-2 py-1 shadow-sm rounded">
+                <span class="font-bold flex-shrink-0">Đường dẫn (URL):</span>
+                <span><?= url('/news/detail?slug=') ?></span>
+                <input type="text" name="slug" value="<?= htmlspecialchars($post['slug'] ?? '') ?>" 
+                       class="flex-grow px-2 py-0.5 border border-[#ccc] bg-[#fafafa] outline-none focus:bg-white text-blue-600 font-mono" 
+                       placeholder="de-trong-tu-dong-tao">
+            </div>
 
-                    <!-- Tiêu đề -->
-                    <div>
-                        <label class="ui-label">Tiêu đề bài viết <span class="text-red-500">*</span></label>
-                        <input type="text" name="title" value="<?= htmlspecialchars($post['title'] ?? '') ?>" required
-                            class="ui-input font-bold text-lg placeholder-slate-400" placeholder="Nhập tiêu đề sinh động...">
-                    </div>
-
-                    <!-- Slug -->
-                    <div>
-                        <label class="ui-label">Đường dẫn tĩnh (Slug)</label>
-                        <div class="relative flex items-center">
-                            <span class="absolute left-4 text-slate-400 font-mono text-xs select-none">/post/</span>
-                            <input type="text" name="slug" value="<?= htmlspecialchars($post['slug'] ?? '') ?>"
-                                class="ui-input font-mono text-sm pl-16 text-blue-600" placeholder="tu-dong-tao-tu-tieu-de">
+            <!-- ===== SUMMARY EDITOR (WYSIWYG) ===== -->
+            <div class="border border-[#ccc] bg-white shadow-sm overflow-hidden mt-1">
+                <div class="px-2 py-1 border-b border-[#ccc] bg-[#f5f5f5] flex items-center justify-between gap-2">
+                    <span class="font-bold text-[13px] text-black whitespace-nowrap">Trích dẫn</span>
+                    <div class="flex gap-1 items-center flex-wrap">
+                        <?php $eid = 'summary-visual'; ?>
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execCmd('<?=$eid?>','bold')" class="tb-btn font-bold" title="In đậm (Ctrl+B)">B</button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','italic')" class="tb-btn italic font-serif border-l border-[#ccc]" title="In nghiêng (Ctrl+I)">I</button>
                         </div>
-                        <p class="mt-1.5 text-xs text-slate-500 font-medium"><i class="fas fa-info-circle mr-1"></i>Để trống để hệ thống tự động tạo đường dẫn từ tiêu đề.</p>
-                    </div>
-
-                    <!-- Tóm tắt -->
-                    <div>
-                        <label class="ui-label">Tóm tắt nội dung</label>
-                        <textarea name="summary" rows="3" class="ui-input font-medium text-sm leading-relaxed resize-y"
-                            placeholder="Viết một đoạn ngắn gọn giới thiệu nội dung bài viết..."><?= htmlspecialchars($post['summary'] ?? '') ?></textarea>
-                    </div>
-
-                    <!-- Nội dung chi tiết -->
-                    <div>
-                        <label class="ui-label">Nội dung chi tiết <span class="text-red-500">*</span></label>
-                        <textarea name="content" rows="20" required class="ui-input font-normal leading-relaxed resize-y"
-                            placeholder="Soạn thảo nội dung bài viết chi tiết tại đây..."><?= htmlspecialchars($post['content'] ?? '') ?></textarea>
-                        <div class="mt-2 text-xs text-slate-500 font-medium">
-                            <i class="fab fa-markdown mr-1 text-slate-400"></i> Hỗ trợ định dạng HTML cơ bản cho bài viết.
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyLeft')" class="tb-btn" title="Căn trái"><i class="fas fa-align-left text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyCenter')" class="tb-btn border-l border-[#ccc]" title="Căn giữa"><i class="fas fa-align-center text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyRight')" class="tb-btn border-l border-[#ccc]" title="Căn phải"><i class="fas fa-align-right text-[#555]"></i></button>
+                        </div>
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" id="src-btn-<?=$eid?>" onclick="toggleSource('<?=$eid?>')" class="tb-btn" title="Xem mã HTML"><i class="fas fa-code text-[#555]"></i></button>
                         </div>
                     </div>
+                </div>
+                <div id="<?=$eid?>" contenteditable="true" class="we-visual" style="min-height:60px;" data-placeholder="Trích dẫn ngắn giới thiệu bài viết..."><?= $post['summary'] ?? '' ?></div>
+                <textarea id="summary-source" class="we-source" style="min-height:60px;"></textarea>
+            </div>
 
+            <!-- ===== CONTENT EDITOR (WYSIWYG) ===== -->
+            <div class="border border-[#ccc] bg-white shadow-sm overflow-hidden">
+                <div class="px-2 py-1 border-b border-[#ccc] bg-[#f5f5f5] flex items-center justify-between flex-wrap gap-2">
+                    <span class="font-bold text-[13px] text-black whitespace-nowrap">Nội dung chi tiết</span>
+                    <div class="flex gap-1 items-center flex-wrap">
+                        <?php $eid = 'content-visual'; ?>
+                        <!-- Bold / Italic -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execCmd('<?=$eid?>','bold')" class="tb-btn font-bold" title="In đậm">B</button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','italic')" class="tb-btn italic font-serif border-l border-[#ccc]" title="In nghiêng">I</button>
+                        </div>
+                        <!-- Heading -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execHeading('<?=$eid?>')" class="tb-btn font-bold text-[11px]" title="Heading (H2→H3→H4→P)">H</button>
+                        </div>
+                        <!-- Alignment -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyLeft')" class="tb-btn" title="Căn trái"><i class="fas fa-align-left text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyCenter')" class="tb-btn border-l border-[#ccc]" title="Căn giữa"><i class="fas fa-align-center text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyRight')" class="tb-btn border-l border-[#ccc]" title="Căn phải"><i class="fas fa-align-right text-[#555]"></i></button>
+                        </div>
+                        <!-- Lists -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execCmd('<?=$eid?>','insertUnorderedList')" class="tb-btn" title="Danh sách"><i class="fas fa-list-ul text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','insertOrderedList')" class="tb-btn border-l border-[#ccc]" title="Danh sách số"><i class="fas fa-list-ol text-[#555]"></i></button>
+                        </div>
+                        <!-- Colors -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm items-center">
+                            <label class="tb-btn flex items-center gap-1 cursor-pointer" title="Màu chữ">
+                                <i class="fas fa-font text-[#555]" style="font-size:11px;"></i>
+                                <input type="color" id="fc-<?=$eid?>" value="#000000" class="color-pick" onchange="execForeColor('<?=$eid?>')">
+                            </label>
+                            <label class="tb-btn flex items-center gap-1 cursor-pointer border-l border-[#ccc]" title="Màu nền chữ">
+                                <i class="fas fa-highlighter text-[#555]" style="font-size:11px;"></i>
+                                <input type="color" id="bc-<?=$eid?>" value="#ffff00" class="color-pick" onchange="execBackColor('<?=$eid?>')">
+                            </label>
+                        </div>
+                        <!-- Link & Image -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" onclick="execLink('<?=$eid?>')" class="tb-btn" title="Chèn liên kết"><i class="fas fa-link text-[#555]"></i></button>
+                            <button type="button" onclick="openMediaModal('content')" class="tb-btn border-l border-[#ccc]" title="Chèn ảnh từ thư viện"><i class="fas fa-image text-[#555]"></i></button>
+                        </div>
+                        <!-- Source -->
+                        <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
+                            <button type="button" id="src-btn-<?=$eid?>" onclick="toggleSource('<?=$eid?>')" class="tb-btn" title="Xem mã HTML"><i class="fas fa-code text-[#555]"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="<?=$eid?>" contenteditable="true" class="we-visual" style="min-height:300px;"><?= $post['content'] ?? '' ?></div>
+                <textarea id="content-source" class="we-source" style="min-height:300px;"></textarea>
+                <div class="border-t border-[#ccc] bg-[#f5f5f5] px-3 py-1 text-[11px] text-[#666] flex justify-end">
+                    <span>Words: <span id="word-count">0</span></span>
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar / Config Area (Right: 4 cols) -->
-        <div class="lg:col-span-4 space-y-6">
-
-            <!-- Publishing & Status -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center border-b border-slate-100 pb-3">
-                    <i class="fas fa-sliders-h text-blue-500 mr-2"></i> Thiết lập bài viết
-                </h3>
-
-                <div class="space-y-5">
-                    <!-- Category -->
-                    <div>
-                        <label class="ui-label">Chuyên mục</label>
-                        <div class="relative">
-                            <select name="category" class="ui-input appearance-none font-medium text-slate-700 cursor-pointer pr-10">
-                                <option value="Tin tức" <?= ($post['category'] ?? '') === 'Tin tức' ? 'selected' : '' ?>>📰 Tin tức tuyển sinh</option>
-                                <option value="Thông báo" <?= ($post['category'] ?? '') === 'Thông báo' ? 'selected' : '' ?>>🔔 Thông báo quan trọng</option>
-                                <option value="Hướng dẫn" <?= ($post['category'] ?? '') === 'Hướng dẫn' ? 'selected' : '' ?>>💡 Hướng dẫn nhập học</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
+        <!-- Right Sidebar -->
+        <div class="lg:col-span-1 flex flex-col gap-3">
+            <!-- Publish Box -->
+            <div class="border border-[#ccc] bg-white rounded shadow-sm">
+                <div class="px-3 py-2 border-b border-[#ccc] bg-[#f5f5f5] font-bold text-[13px] text-black">Thiết lập đăng bài</div>
+                <div class="p-3 space-y-3 bg-[#fafafa]">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[#666] font-medium">Trạng thái:</span>
+                        <select name="status" class="border border-[#ccc] bg-white px-1 py-0.5 outline-none text-[12px] rounded shadow-sm">
+                            <option value="Published" <?= ($post['status'] ?? '') === 'Published' ? 'selected' : '' ?>>Xuất bản</option>
+                            <option value="Draft" <?= ($post['status'] ?? '') === 'Draft' ? 'selected' : '' ?>>Lưu nháp</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[#666] font-medium">Nổi bật:</span>
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_featured" id="is_featured" value="1" <?= !empty($post['is_featured']) ? 'checked' : '' ?> class="mr-1">
+                            <label for="is_featured" class="cursor-pointer text-[12px]">Ghim bài</label>
                         </div>
                     </div>
-
-                    <!-- Status -->
-                    <div>
-                        <label class="ui-label">Trạng thái xuất bản</label>
-                        <div class="relative">
-                            <select name="status" class="ui-input appearance-none font-medium text-slate-700 cursor-pointer pr-10">
-                                <option value="Draft" <?= ($post['status'] ?? '') === 'Draft' ? 'selected' : '' ?>>📄 Lưu nháp</option>
-                                <option value="Published" <?= ($post['status'] ?? '') === 'Published' ? 'selected' : '' ?>>🚀 Xuất bản ngay</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
+                    <div class="flex items-center gap-1 border-t border-[#e5e5e5] pt-3">
+                        <span class="text-[#666] font-medium whitespace-nowrap text-[12px]">Ngày:</span>
+                        <input type="datetime-local" name="created_at" 
+                               value="<?= !empty($post['created_at']) ? date('Y-m-d\TH:i', strtotime($post['created_at'])) : date('Y-m-d\TH:i') ?>" 
+                               class="flex-1 min-w-0 border border-[#ccc] bg-white px-1 py-0.5 outline-none text-[11px] shadow-inner rounded">
                     </div>
-
-                    <!-- Featured Toggle -->
-                    <div class="pt-2">
-                        <div class="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
-                            <div>
-                                <span class="font-bold text-sm text-slate-800 block">Đánh dấu nổi bật</span>
-                                <span class="text-xs text-slate-500 mt-0.5 block">Ghim bài lên đầu trang chủ</span>
-                            </div>
-                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in cursor-pointer">
-                                <input type="checkbox" name="is_featured" id="is_featured" <?= ($post['is_featured'] ?? false) ? 'checked' : '' ?> class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer opacity-0" />
-                                <label for="is_featured" class="toggle-label block overflow-hidden cursor-pointer"></label>
-                                <span class="toggle-switch-handle pointer-events-none"></span>
-                            </div>
+                </div>
+            </div>
+            <!-- Categories Box -->
+            <div class="border border-[#ccc] bg-white rounded shadow-sm">
+                <div class="px-3 py-2 border-b border-[#ccc] bg-[#f5f5f5] font-bold text-[13px] text-black">Chuyên mục</div>
+                <div class="p-3">
+                    <div class="space-y-2 max-h-[120px] overflow-y-auto pr-2">
+                        <?php if (!empty($categories)): ?>
+                            <?php foreach ($categories as $index => $cat): ?>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="category" value="<?= htmlspecialchars($cat['name']) ?>" class="w-4 h-4 border-gray-300" 
+                                           <?= ($post['category'] ?? ($index === 0 ? $cat['name'] : '')) === $cat['name'] ? 'checked' : '' ?>>
+                                    <span class="text-sm font-medium text-gray-700"><?= htmlspecialchars($cat['name']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p class="text-xs text-gray-400 italic">Chưa có chuyên mục.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <!-- Featured Image Box -->
+            <div class="border border-[#ccc] bg-white rounded shadow-sm">
+                <div class="px-3 py-2 border-b border-[#ccc] bg-[#f5f5f5] font-bold text-[13px] text-black">Ảnh đại diện</div>
+                <div class="p-3 bg-[#fafafa]">
+                    <div id="thumbnail-preview-container" class="<?= empty($post['thumbnail']) ? 'hidden' : '' ?> mb-3">
+                        <img id="thumbnail-preview" src="<?= empty($post['thumbnail']) ? '' : (filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail'])) ?>" 
+                             class="w-full h-auto object-cover border border-[#ccc] p-0.5 bg-white shadow-sm">
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex gap-1">
+                            <label class="flex-grow flex items-center cursor-pointer group">
+                                <span class="px-2 py-1 border border-[#ccc] bg-white group-hover:bg-[#e5e5e5] text-[10px] text-black shadow-sm whitespace-nowrap font-bold">
+                                    <i class="fas fa-upload mr-1"></i> Tải lên
+                                </span>
+                                <input type="file" name="thumbnail_file" accept="image/*" class="hidden" onchange="document.getElementById('file-name-sidebar').innerText = this.files[0] ? this.files[0].name : ''">
+                            </label>
+                            <button type="button" onclick="openMediaModal('thumbnail')" class="px-2 py-1 border border-[#ccc] bg-white hover:bg-[#e5e5e5] text-[10px] text-black shadow-sm font-bold">
+                                <i class="fas fa-images mr-1"></i> Thư viện
+                            </button>
+                        </div>
+                        <div id="file-name-sidebar" class="text-[10px] text-blue-600 truncate font-medium h-3"></div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-[#666] font-bold uppercase whitespace-nowrap">Hoặc URL:</span>
+                            <input type="text" id="thumbnail-url-input" name="thumbnail" value="<?= htmlspecialchars($post['thumbnail'] ?? '') ?>" 
+                                   class="flex-grow w-full px-2 py-1 border border-[#ccc] bg-white outline-none shadow-inner text-[12px]" 
+                                   placeholder="Link ảnh..." oninput="updateThumbnailPreview(this.value)">
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Media / Thumbnail -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center border-b border-slate-100 pb-3">
-                    <i class="fas fa-image text-emerald-500 mr-2"></i> Ảnh đại diện (Thumbnail)
-                </h3>
-
-                <div class="space-y-4">
-                    <!-- Upload Area -->
-                    <div class="relative group">
-                        <input type="file" name="thumbnail_file" id="thumbnail_input" accept="image/*"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            onchange="if(this.files[0]) { document.getElementById('preview_msg').innerText = this.files[0].name; document.getElementById('preview_msg').classList.add('text-blue-600', 'font-bold'); }">
-                        <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-blue-50/50 hover:border-blue-400 transition-colors">
-                            <div class="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:scale-110 transition-transform mb-3">
-                                <i class="fas fa-cloud-upload-alt text-xl"></i>
-                            </div>
-                            <p id="preview_msg" class="text-xs font-medium text-slate-500 text-center">
-                                Trượt và Thả ảnh vào đây<br>hoặc <span class="text-blue-500">Tải lên từ máy tính</span>
-                            </p>
-                            <p class="text-[10px] text-slate-400 mt-2">Định dạng hỗ trợ: JPG, PNG, WEBP</p>
-                        </div>
-                    </div>
-
-                    <div class="relative flex items-center">
-                        <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase">Hoặc dán URL</span>
-                        <div class="flex-grow border-t border-slate-200"></div>
-                    </div>
-
-                    <!-- URL Input -->
-                    <div>
-                        <input type="text" name="thumbnail" value="<?= htmlspecialchars($post['thumbnail'] ?? '') ?>"
-                            class="ui-input text-xs font-mono" placeholder="https://example.com/image.jpg">
-                    </div>
-
-                    <!-- Preview if existing -->
-                    <?php if (!empty($post['thumbnail'])): ?>
-                        <div class="mt-4 border border-slate-200 rounded-xl p-2 bg-slate-50">
-                            <label class="ui-label !mb-2 !text-[10px]">Ảnh hiện tại</label>
-                            <img src="<?= filter_var($post['thumbnail'], FILTER_VALIDATE_URL) ? $post['thumbnail'] : url('/' . $post['thumbnail']) ?>"
-                                class="rounded-lg w-full h-32 object-cover border border-slate-200 shadow-sm" alt="Thumbnail Preview">
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3 sticky top-24">
-                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.2)] hover:shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center justify-center">
-                    <i class="fas fa-save mr-2"></i> Lưu bài viết
-                </button>
-                <a href="<?= url('/admin/posts') ?>" class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors flex items-center justify-center">
-                    Hủy bỏ
-                </a>
-            </div>
-
         </div>
     </div>
 </form>
+
+<!-- Media Library Modal -->
+<div id="mediaModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-images text-blue-500"></i> Thư viện Media</h3>
+            <button onclick="closeMediaModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="flex-grow overflow-y-auto p-6" id="media-list-container">
+            <div class="flex justify-center py-20"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end">
+            <button onclick="closeMediaModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold text-xs hover:bg-gray-300">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script src="<?= url('/assets/js/wysiwyg.js') ?>"></script>
+<script>
+let activeMediaTarget = 'thumbnail';
+
+document.addEventListener('DOMContentLoaded', function() {
+    initEditor('summary-visual', 'hidden-summary', 'summary-source');
+    initEditor('content-visual', 'hidden-content', 'content-source');
+});
+
+// Sync before submit
+document.getElementById('postForm').addEventListener('submit', function() {
+    document.getElementById('hidden-summary').value = document.getElementById('summary-visual').innerHTML;
+    document.getElementById('hidden-content').value = document.getElementById('content-visual').innerHTML;
+});
+
+function updateThumbnailPreview(url) {
+    const container = document.getElementById('thumbnail-preview-container');
+    const img = document.getElementById('thumbnail-preview');
+    if (url) {
+        img.src = url.startsWith('http') ? url : '<?= url("/") ?>' + url;
+        container.classList.remove('hidden');
+    } else { container.classList.add('hidden'); }
+}
+
+function openMediaModal(target) {
+    activeMediaTarget = target;
+    document.getElementById('mediaModal').classList.remove('hidden');
+    loadMediaImages();
+}
+
+function closeMediaModal() {
+    document.getElementById('mediaModal').classList.add('hidden');
+}
+
+async function loadMediaImages() {
+    const container = document.getElementById('media-list-container');
+    try {
+        const res = await fetch('<?= url("/admin/media/api?type=image") ?>');
+        const files = await res.json();
+        if (files.length === 0) { container.innerHTML = '<div class="text-center py-20 text-gray-400 italic">Chưa có ảnh nào.</div>'; return; }
+        let html = '<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">';
+        files.forEach(f => {
+            html += `<div class="media-item border border-gray-200 rounded-lg overflow-hidden cursor-pointer p-1 bg-white" onclick="selectMedia('${f.path}','${f.full_url}')">
+                <div class="aspect-square bg-gray-50 rounded overflow-hidden"><img src="${f.full_url}" class="w-full h-full object-cover"></div>
+                <p class="text-[9px] text-gray-500 truncate text-center mt-1">${f.original_name}</p></div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (e) { container.innerHTML = '<div class="text-center py-20 text-red-500 font-bold">Lỗi tải thư viện!</div>'; }
+}
+
+function selectMedia(path, fullUrl) {
+    if (activeMediaTarget === 'thumbnail') {
+        document.getElementById('thumbnail-url-input').value = path;
+        updateThumbnailPreview(path);
+    } else {
+        execInsertImage('content-visual', fullUrl);
+    }
+    closeMediaModal();
+}
+</script>
 
 <?php
 $content = ob_get_clean();
