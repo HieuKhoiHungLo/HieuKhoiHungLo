@@ -811,7 +811,15 @@ if (isset($stepStatus)) {
                                                         <i class="far fa-calendar-alt mr-1 text-hvu-red"></i> <?= date('d/m/Y', strtotime($post['created_at'])) ?>
                                                     </p>
                                                     <h3 class="text-sm font-bold text-gray-900 group-hover:text-hvu-red transition leading-tight line-clamp-3">
-                                                        <?= htmlspecialchars($post['title']) ?>
+                                                        <?php 
+                                                            $displayTitle = $post['title'];
+                                                            // If the title is all uppercase (at least 70% of chars), convert to normal case
+                                                            if (mb_strlen($displayTitle) > 5 && mb_strtoupper($displayTitle, 'UTF-8') === $displayTitle) {
+                                                                $displayTitle = mb_convert_case($displayTitle, MB_CASE_LOWER, 'UTF-8');
+                                                                $displayTitle = mb_strtoupper(mb_substr($displayTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($displayTitle, 1, null, 'UTF-8');
+                                                            }
+                                                            echo htmlspecialchars($displayTitle);
+                                                        ?>
                                                     </h3>
                                                 </div>
                                             </a>

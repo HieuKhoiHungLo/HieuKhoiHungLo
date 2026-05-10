@@ -82,75 +82,86 @@
         </article>
 
         <!-- Sidebar (4/12) -->
-        <aside class="lg:col-span-4 space-y-8">
-            <!-- Categories -->
-            <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-6 md:p-8">
-                <h3 class="text-lg font-black font-heading text-slate-900 uppercase border-l-4 border-red-600 pl-3 mb-6">Chuyên mục</h3>
-                <ul class="space-y-3">
-                    <li>
-                        <a href="<?= url('/news?category=Tin tức') ?>" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-all group shadow-sm">
-                            <span class="flex items-center"><i class="fas fa-newspaper text-slate-400 group-hover:text-red-500 mr-3 w-5 text-center"></i> Tin tức tuyển sinh</span>
-                            <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-red-500 transition-transform group-hover:translate-x-1"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<?= url('/news?category=Thông báo') ?>" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-all group shadow-sm">
-                            <span class="flex items-center"><i class="fas fa-bell text-slate-400 group-hover:text-red-500 mr-3 w-5 text-center"></i> Thông báo chung</span>
-                            <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-red-500 transition-transform group-hover:translate-x-1"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<?= url('/news?category=Hướng dẫn') ?>" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 text-slate-700 font-bold transition-all group shadow-sm">
-                            <span class="flex items-center"><i class="fas fa-book-open text-slate-400 group-hover:text-red-500 mr-3 w-5 text-center"></i> Hướng dẫn thí sinh</span>
-                            <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-red-500 transition-transform group-hover:translate-x-1"></i>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- CTA Card -->
-            <div class="bg-gradient-to-br from-red-600 to-red-800 rounded-[1.5rem] p-8 text-white shadow-lg relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/20 transition duration-500"></div>
+        <aside class="lg:col-span-4 space-y-6">
+            <!-- CTA Card (Top) -->
+            <div class="bg-gradient-to-br from-red-600 to-red-800 rounded-[1.5rem] p-6 text-white shadow-lg relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-white/20 transition duration-500"></div>
                 <div class="relative z-10">
-                    <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl mb-5 shadow-inner">
-                        <i class="fas fa-graduation-cap"></i>
+                    <div class="flex items-center gap-4 mb-5">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl shadow-inner flex-shrink-0">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="text-left">
+                            <h3 class="text-lg font-black font-heading leading-tight uppercase tracking-tight">
+                                <?= !empty($activeSession['ten_dot']) ? htmlspecialchars($activeSession['ten_dot']) : 'Đợt ghi danh sớm' ?>
+                            </h3>
+                            <p class="text-red-100 text-[10px] font-bold uppercase tracking-widest opacity-80 mt-0.5">Tuyển sinh <?= date('Y') ?></p>
+                        </div>
                     </div>
-                    <h3 class="text-2xl font-black font-heading mb-2 uppercase tracking-tight">Xét tuyển 2026</h3>
-                    <p class="text-red-100 text-sm mb-6 font-medium leading-relaxed">Nộp hồ sơ trực tuyến ngay hôm nay để nhận kết quả ưu tiên xét tuyển sớm nhất.</p>
                     
-                    <a href="<?= url('/register') ?>" class="block w-full py-3.5 bg-white text-red-700 rounded-xl font-black uppercase tracking-widest text-[13px] shadow-md hover:shadow-lg text-center hover:-translate-y-0.5 transition-all mb-3">
+                    <a href="<?= url('/register') ?>" class="block w-full py-3 bg-white text-red-700 rounded-xl font-black uppercase tracking-widest text-[12px] shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 text-center">
                         Đăng ký xét tuyển
-                    </a>
-                    <a href="<?= url('/login') ?>" class="block w-full py-3 border border-white/40 rounded-xl font-bold uppercase tracking-widest text-[13px] text-center hover:bg-white/10 transition-colors">
-                        Tra cứu hồ sơ
                     </a>
                 </div>
             </div>
 
-            <!-- Recent News -->
-            <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-6 md:p-8">
-                <h3 class="text-lg font-black font-heading text-slate-900 uppercase border-l-4 border-red-600 pl-3 mb-6">Tin tức mới nhất</h3>
-                <div class="space-y-5">
+            <!-- Recent News (Middle) -->
+            <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-6">
+                <h3 class="text-base font-black font-heading text-slate-900 uppercase mb-5 flex items-center">
+                    <span class="w-1.5 h-6 bg-hvu-red rounded-full mr-3"></span>
+                    Tin mới nhất
+                </h3>
+                <div class="space-y-6">
                     <?php if (isset($recentPosts) && is_array($recentPosts)): ?>
-                        <?php foreach ($recentPosts as $p): ?>
-                            <?php if ($p['id'] == $post['id']) continue; ?>
-                            <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>" class="group flex items-start gap-4">
-                                <div class="w-24 h-20 flex-shrink-0 rounded-xl overflow-hidden relative shadow-sm border border-slate-100">
-                                    <img src="<?= $p['thumbnail'] ? (filter_var($p['thumbnail'], FILTER_VALIDATE_URL) ? $p['thumbnail'] : url('/' . $p['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
-                                         class="w-full h-full object-cover transform group-hover:scale-110 transition duration-700">
-                                </div>
-                                <div class="flex flex-col justify-center">
-                                    <h4 class="text-[13px] sm:text-sm font-bold font-heading text-slate-800 group-hover:text-red-600 transition-colors line-clamp-2 leading-relaxed mb-2">
-                                        <?= htmlspecialchars($p['title']) ?>
-                                    </h4>
-                                    <span class="text-[10px] text-slate-400 uppercase font-bold tracking-widest flex items-center">
-                                        <i class="far fa-calendar-alt mr-1.5"></i> <?= date('d/m/Y', strtotime($p['created_at'])) ?>
-                                    </span>
+                        <?php 
+                            $count = 0;
+                            foreach ($recentPosts as $p): 
+                                if ($p['id'] == $post['id']) continue;
+                                if ($count >= 5) break; // Limit to 5
+                                $count++;
+                        ?>
+                            <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>" class="group block">
+                                <div class="flex items-start gap-4 mb-3">
+                                    <div class="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-slate-100 shadow-sm">
+                                        <img src="<?= $p['thumbnail'] ? (filter_var($p['thumbnail'], FILTER_VALIDATE_URL) ? $p['thumbnail'] : url('/' . $p['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
+                                             class="w-full h-full object-cover transform group-hover:scale-110 transition duration-500">
+                                    </div>
+                                    <div class="flex-grow">
+                                        <h4 class="text-[13px] font-bold text-slate-800 group-hover:text-hvu-red transition-colors line-clamp-2 leading-snug">
+                                            <?= htmlspecialchars($p['title']) ?>
+                                        </h4>
+                                        <span class="text-[10px] text-green-600 font-bold tracking-widest mt-1 block">
+                                            <?= date('d/m/Y', strtotime($p['created_at'])) ?>
+                                        </span>
+                                    </div>
                                 </div>
                             </a>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+            </div>
+
+            <!-- Categories (Bottom) -->
+            <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-100 p-6">
+                <h3 class="text-base font-black font-heading text-slate-900 uppercase mb-5 flex items-center">
+                    <span class="w-1.5 h-6 bg-slate-200 rounded-full mr-3"></span>
+                    Chuyên mục
+                </h3>
+                <ul class="space-y-2">
+                    <?php if (isset($categories) && is_array($categories)): ?>
+                        <?php foreach ($categories as $cat): ?>
+                            <li>
+                                <a href="<?= url('/news?category=' . urlencode($cat['name'])) ?>" class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-all group">
+                                    <span class="flex items-center text-sm font-bold text-slate-600 group-hover:text-hvu-red">
+                                        <i class="fas <?= $cat['name'] === 'Thông báo' ? 'fa-bell' : ($cat['name'] === 'Hướng dẫn' ? 'fa-book-open' : 'fa-newspaper') ?> text-slate-400 group-hover:text-hvu-red mr-3 opacity-70"></i> 
+                                        <?= htmlspecialchars($cat['name']) ?>
+                                    </span>
+                                    <i class="fas fa-chevron-right text-[10px] text-slate-300 group-hover:text-hvu-red group-hover:translate-x-1 transition-all"></i>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </ul>
             </div>
         </aside>
     </div>

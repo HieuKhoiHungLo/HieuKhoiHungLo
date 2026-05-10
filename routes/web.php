@@ -10,6 +10,7 @@ use App\Controllers\AdminController;
 $router = new App\Core\Router();
 
 $router->get('/', 'HomeController@index');
+$router->get('/news', 'NewsController@index');
 $router->get('/news/detail', 'NewsController@detail');
 
 // Calculator Module

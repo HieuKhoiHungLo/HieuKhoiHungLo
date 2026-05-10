@@ -75,6 +75,7 @@
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyLeft')" class="tb-btn" title="Căn trái"><i class="fas fa-align-left text-[#555]"></i></button>
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyCenter')" class="tb-btn border-l border-[#ccc]" title="Căn giữa"><i class="fas fa-align-center text-[#555]"></i></button>
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyRight')" class="tb-btn border-l border-[#ccc]" title="Căn phải"><i class="fas fa-align-right text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyFull')" class="tb-btn border-l border-[#ccc]" title="Căn đều 2 bên"><i class="fas fa-align-justify text-[#555]"></i></button>
                         </div>
                         <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
                             <button type="button" id="src-btn-<?=$eid?>" onclick="toggleSource('<?=$eid?>')" class="tb-btn" title="Xem mã HTML"><i class="fas fa-code text-[#555]"></i></button>
@@ -105,6 +106,7 @@
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyLeft')" class="tb-btn" title="Căn trái"><i class="fas fa-align-left text-[#555]"></i></button>
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyCenter')" class="tb-btn border-l border-[#ccc]" title="Căn giữa"><i class="fas fa-align-center text-[#555]"></i></button>
                             <button type="button" onclick="execCmd('<?=$eid?>','justifyRight')" class="tb-btn border-l border-[#ccc]" title="Căn phải"><i class="fas fa-align-right text-[#555]"></i></button>
+                            <button type="button" onclick="execCmd('<?=$eid?>','justifyFull')" class="tb-btn border-l border-[#ccc]" title="Căn đều 2 bên"><i class="fas fa-align-justify text-[#555]"></i></button>
                         </div>
                         <!-- Lists -->
                         <div class="flex border border-[#ccc] rounded bg-white overflow-hidden text-[13px] shadow-sm">
