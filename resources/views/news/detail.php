@@ -24,7 +24,14 @@
                     <?= $post['category'] ?>
                 </a>
                 <h1 class="text-3xl md:text-4xl lg:text-5xl font-black font-heading text-slate-900 leading-tight mb-6">
-                    <?= htmlspecialchars($post['title']) ?>
+                    <?php 
+                        $displayTitle = $post['title'];
+                        if (mb_strlen($displayTitle) > 5 && mb_strtoupper($displayTitle, 'UTF-8') === $displayTitle) {
+                            $displayTitle = mb_convert_case($displayTitle, MB_CASE_LOWER, 'UTF-8');
+                            $displayTitle = mb_strtoupper(mb_substr($displayTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($displayTitle, 1, null, 'UTF-8');
+                        }
+                        echo htmlspecialchars($displayTitle);
+                    ?>
                 </h1>
                 <div class="flex flex-wrap items-center gap-6 text-[13px] text-slate-500 font-medium font-sans mt-6">
                     <span class="flex items-center">
@@ -128,7 +135,14 @@
                                     </div>
                                     <div class="flex-grow">
                                         <h4 class="text-[13px] font-bold text-slate-800 group-hover:text-hvu-red transition-colors line-clamp-2 leading-snug">
-                                            <?= htmlspecialchars($p['title']) ?>
+                                            <?php 
+                                                $pTitle = $p['title'];
+                                                if (mb_strlen($pTitle) > 5 && mb_strtoupper($pTitle, 'UTF-8') === $pTitle) {
+                                                    $pTitle = mb_convert_case($pTitle, MB_CASE_LOWER, 'UTF-8');
+                                                    $pTitle = mb_strtoupper(mb_substr($pTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($pTitle, 1, null, 'UTF-8');
+                                                }
+                                                echo htmlspecialchars($pTitle);
+                                            ?>
                                         </h4>
                                         <span class="text-[10px] text-green-600 font-bold tracking-widest mt-1 block">
                                             <?= date('d/m/Y', strtotime($p['created_at'])) ?>

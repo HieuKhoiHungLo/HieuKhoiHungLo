@@ -52,7 +52,14 @@
                                 </div>
                                 <h2 class="text-xl md:text-2xl font-black font-heading text-slate-900 group-hover:text-hvu-red transition-colors mb-4 leading-tight">
                                     <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>">
-                                        <?= htmlspecialchars($p['title']) ?>
+                                        <?php 
+                                            $displayTitle = $p['title'];
+                                            if (mb_strlen($displayTitle) > 5 && mb_strtoupper($displayTitle, 'UTF-8') === $displayTitle) {
+                                                $displayTitle = mb_convert_case($displayTitle, MB_CASE_LOWER, 'UTF-8');
+                                                $displayTitle = mb_strtoupper(mb_substr($displayTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($displayTitle, 1, null, 'UTF-8');
+                                            }
+                                            echo htmlspecialchars($displayTitle);
+                                        ?>
                                     </a>
                                 </h2>
                                 <p class="text-slate-600 text-sm line-clamp-2 leading-relaxed mb-6">
