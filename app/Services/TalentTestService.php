@@ -122,7 +122,13 @@ class TalentTestService
 
         // 3. Get approved candidates matching the major codes
         $placeholders = implode(',', array_fill(0, count($majorCodes), '?'));
-        $sql = "SELECT id, name, email, major_code FROM candidates WHERE status='approved' AND major_code IN ($placeholders)";
+        $sql = "SELECT t.id, t.ho_va_ten AS name, t.email, nv.ma_nganh AS major_code 
+                FROM thi_sinh t
+                JOIN ho_so_xet_tuyen hs ON hs.so_cccd = t.so_cccd
+                JOIN nguyen_vong nv ON nv.ho_so_id = hs.id
+                WHERE (nv.trang_thai = 'Đã duyệt' OR hs.trang_thai = 'Đã duyệt') 
+                AND nv.ma_nganh IN ($placeholders)
+                AND t.deleted_at IS NULL AND hs.deleted_at IS NULL AND nv.deleted_at IS NULL";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($majorCodes);
         $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -183,9 +189,15 @@ class TalentTestService
     // ---------------------------------------------------------------------
     public function saveScore(int $assignmentId, float $score, ?string $note = null)
     {
-        $sql = "INSERT INTO talent_test_scores (assignment_id, score, note, created_at, updated_at)
-                VALUES (:aid, :sc, :nt, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE score=:sc, note=:nt, updated_at=NOW()";
+        $checkStmt = $this->db->prepare("SELECT id FROM talent_test_scores WHERE assignment_id = ?");
+        $checkStmt->execute([$assignmentId]);
+        if ($checkStmt->fetchColumn()) {
+            $sql = "UPDATE talent_test_scores SET score=:sc, note=:nt, updated_at=NOW() WHERE assignment_id=:aid";
+        } else {
+            $sql = "INSERT INTO talent_test_scores (assignment_id, score, note, created_at, updated_at)
+                    VALUES (:aid, :sc, :nt, NOW(), NOW())";
+        }
+        
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':aid' => $assignmentId,
@@ -260,14 +272,12 @@ class TalentTestService
         foreach ($rooms as $index => $room) {
             $bagNumber = $prefix . sprintf('%03d', $index + 1);
             
-            $updSql = "UPDATE talent_test_assignments a
+            $updSql = "UPDATE talent_test_assignments
                        SET bag_number = ?, updated_at = NOW()
-                       FROM talent_test_subjects s
-                       WHERE a.subject_id = s.id 
-                       AND s.session_id = ? 
-                       AND a.room_id = ?";
+                       WHERE room_id = ?
+                       AND subject_id IN (SELECT id FROM talent_test_subjects WHERE session_id = ?)";
             $updStmt = $this->db->prepare($updSql);
-            $updStmt->execute([$bagNumber, $sessionId, $room['id']]);
+            $updStmt->execute([$bagNumber, $room['id'], $sessionId]);
             $totalUpdated += $updStmt->rowCount();
         }
 
@@ -276,9 +286,9 @@ class TalentTestService
 
     public function listAssignments(int $sessionId)
     {
-        $sql = "SELECT a.id, c.name AS candidate_name, s.subject_name, r.room_name, a.exam_number, a.status
+        $sql = "SELECT a.id, c.ho_va_ten AS candidate_name, s.subject_name, r.room_name, a.exam_number, a.status
                 FROM talent_test_assignments a
-                JOIN candidates c ON c.id = a.candidate_id
+                JOIN thi_sinh c ON c.id = a.candidate_id
                 JOIN talent_test_subjects s ON s.id = a.subject_id
                 LEFT JOIN talent_test_rooms r ON r.id = a.room_id
                 WHERE s.session_id = ?

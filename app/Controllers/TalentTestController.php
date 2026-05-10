@@ -12,7 +12,6 @@ class TalentTestController extends Controller
 
     public function __construct()
     {
-        parent::__construct();
         $this->service = new TalentTestService();
     }
 
@@ -215,9 +214,9 @@ class TalentTestController extends Controller
         $session = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $stmt = $db->prepare("
-            SELECT a.*, c.name, c.cccd, c.birth_date, s.subject_name, r.room_name
+            SELECT a.*, c.ho_va_ten AS name, c.so_cccd AS cccd, c.ngay_sinh AS birth_date, s.subject_name, r.room_name
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             WHERE s.session_id = ?
@@ -246,9 +245,9 @@ class TalentTestController extends Controller
         $session = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $stmt = $db->prepare("
-            SELECT a.*, c.name, c.cccd, c.birth_date, s.subject_name, r.room_name
+            SELECT a.*, c.ho_va_ten AS name, c.so_cccd AS cccd, c.ngay_sinh AS birth_date, s.subject_name, r.room_name
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             WHERE s.session_id = ?
@@ -273,9 +272,9 @@ class TalentTestController extends Controller
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("
-            SELECT a.id, c.name, c.cccd, s.subject_name, r.room_name, a.exam_number, sc.score, sc.note
+            SELECT a.id, c.ho_va_ten AS name, c.so_cccd AS cccd, s.subject_name, r.room_name, a.exam_number, sc.score, sc.note
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
@@ -324,9 +323,9 @@ class TalentTestController extends Controller
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("
-            SELECT a.exam_number, c.name, c.cccd, s.major_code, s.subject_name, sc.score, sc.note
+            SELECT a.exam_number, c.ho_va_ten AS name, c.so_cccd AS cccd, s.major_code, s.subject_name, sc.score, sc.note
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
             WHERE s.session_id = ?
