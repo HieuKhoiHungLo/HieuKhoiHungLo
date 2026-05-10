@@ -36,7 +36,7 @@
                 <div class="space-y-8">
                     <?php foreach ($posts as $p): ?>
                         <article class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-xl transition-all duration-500 flex flex-col md:flex-row">
-                            <div class="md:w-60 relative overflow-hidden aspect-[4/3] md:aspect-auto md:h-44 bg-slate-50 flex-shrink-0">
+                            <div class="md:w-50 relative overflow-hidden aspect-[3/2] md:aspect-auto md:h-[133px] bg-slate-50 flex-shrink-0">
                                 <img loading="lazy" src="<?= $p['thumbnail'] ? (filter_var($p['thumbnail'], FILTER_VALIDATE_URL) ? $p['thumbnail'] : url('/' . $p['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
                                      class="w-full h-full <?= $p['thumbnail'] ? 'object-cover' : 'object-contain p-4' ?> transform group-hover:scale-110 transition duration-700">
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
