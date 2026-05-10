@@ -8,13 +8,21 @@ class NewsController extends Controller {
 
     public function index() {
         $category = $_GET['category'] ?? null;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = 6;
+        $offset = ($page - 1) * $limit;
+        
         $postModel = new Post();
         
         if ($category) {
-            $posts = $postModel->getLatest(20, $category);
+            $posts = $postModel->getPaginatedByCategory($category, $limit, $offset);
+            $totalPosts = $postModel->countByCategory($category);
         } else {
-            $posts = $postModel->getLatest(20);
+            $posts = $postModel->getPaginated($limit, $offset);
+            $totalPosts = $postModel->countPublished();
         }
+
+        $totalPages = ceil($totalPosts / $limit);
 
         $categoryModel = new \App\Models\PostCategory();
         $categories = $categoryModel->getAllActive();
@@ -23,6 +31,8 @@ class NewsController extends Controller {
             'posts' => $posts,
             'category' => $category,
             'categories' => $categories,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
             'recentPosts' => $postModel->getLatest(5)
         ]);
     }

@@ -14,11 +14,11 @@
         <span class="text-hvu-red"><?= $category ?: 'Tất cả tin tức' ?></span>
     </nav>
 
-    <div class="flex items-center justify-between mb-12">
-        <h1 class="text-3xl md:text-4xl font-black font-heading text-slate-900 uppercase tracking-tight">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-2xl md:text-3xl font-black font-heading text-hvu-red uppercase tracking-tight">
             <?= $category ?: 'Tin tức & Sự kiện' ?>
         </h1>
-        <div class="h-1 flex-grow ml-8 bg-gradient-to-r from-red-100 to-transparent rounded-full hidden md:block"></div>
+        <div class="h-1 flex-grow ml-6 bg-gradient-to-r from-red-100 to-transparent rounded-full hidden md:block"></div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -33,47 +33,69 @@
                     <p class="text-slate-500">Vui lòng quay lại sau hoặc chọn chuyên mục khác.</p>
                 </div>
             <?php else: ?>
-                <div class="space-y-8">
+                <div class="space-y-4">
                     <?php foreach ($posts as $p): ?>
                         <article class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-xl transition-all duration-500 flex flex-col md:flex-row">
-                            <div class="md:w-50 relative overflow-hidden aspect-[3/2] md:aspect-auto md:h-[133px] bg-slate-50 flex-shrink-0">
-                                <img loading="lazy" src="<?= $p['thumbnail'] ? (filter_var($p['thumbnail'], FILTER_VALIDATE_URL) ? $p['thumbnail'] : url('/' . $p['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
-                                     class="w-full h-full <?= $p['thumbnail'] ? 'object-cover' : 'object-contain p-4' ?> transform group-hover:scale-110 transition duration-700">
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            </div>
-                            <div class="md:w-2/3 p-6 md:p-8 flex flex-col justify-center">
-                                <div class="flex items-center gap-4 mb-4">
-                                    <span class="px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-black uppercase tracking-widest">
-                                        <?= htmlspecialchars($p['category']) ?>
-                                    </span>
-                                    <span class="text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                                        <i class="far fa-calendar-alt mr-1.5"></i> <?= date('d/m/Y', strtotime($p['created_at'])) ?>
-                                    </span>
+                            <div class="p-4 md:p-6 flex flex-col md:flex-row gap-6 w-full">
+                                <div class="md:w-[160px] md:h-[106px] relative overflow-hidden rounded-2xl shadow-md border border-slate-100 flex-shrink-0" style="width: 160px; height: 106px; min-width: 160px;">
+                                    <img loading="lazy" src="<?= $p['thumbnail'] ? (filter_var($p['thumbnail'], FILTER_VALIDATE_URL) ? $p['thumbnail'] : url('/' . $p['thumbnail'])) : url('/assets/img/Logo.png') ?>" 
+                                         class="w-full h-full <?= $p['thumbnail'] ? 'object-cover' : 'object-contain p-4' ?> transform group-hover:scale-110 transition duration-700">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </div>
-                                <h2 class="text-xl md:text-2xl font-black font-heading text-slate-900 group-hover:text-hvu-red transition-colors mb-4 leading-tight">
-                                    <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>">
-                                        <?php 
-                                            $displayTitle = $p['title'];
-                                            if (mb_strlen($displayTitle) > 5 && mb_strtoupper($displayTitle, 'UTF-8') === $displayTitle) {
-                                                $displayTitle = mb_convert_case($displayTitle, MB_CASE_LOWER, 'UTF-8');
-                                                $displayTitle = mb_strtoupper(mb_substr($displayTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($displayTitle, 1, null, 'UTF-8');
-                                            }
-                                            echo htmlspecialchars($displayTitle);
-                                        ?>
+                                <div class="flex-grow flex flex-col justify-center">
+                                    <h2 class="text-lg font-black font-heading text-slate-900 group-hover:text-hvu-red transition-colors mb-3 leading-tight flex flex-wrap items-center gap-3">
+                                        <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>">
+                                            <?php 
+                                                $displayTitle = $p['title'];
+                                                if (mb_strlen($displayTitle) > 5 && mb_strtoupper($displayTitle, 'UTF-8') === $displayTitle) {
+                                                    $displayTitle = mb_convert_case($displayTitle, MB_CASE_LOWER, 'UTF-8');
+                                                    $displayTitle = mb_strtoupper(mb_substr($displayTitle, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($displayTitle, 1, null, 'UTF-8');
+                                                }
+                                                echo htmlspecialchars($displayTitle);
+                                            ?>
+                                        </a>
+                                        <span class="text-[11px] text-slate-400 font-bold uppercase tracking-widest whitespace-nowrap">
+                                            <i class="far fa-calendar-alt mr-1"></i> <?= date('d/m/Y', strtotime($p['created_at'])) ?>
+                                        </span>
+                                    </h2>
+                                    <p class="text-slate-600 text-sm line-clamp-2 leading-relaxed mb-4">
+                                        <?= htmlspecialchars($p['summary'] ?: mb_substr(strip_tags($p['content']), 0, 160) . '...') ?>
+                                    </p>
+                                    <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>" class="text-[12px] font-black text-hvu-red flex items-center group/link">
+                                        Xem chi tiết <i class="fas fa-arrow-right ml-1.5 group-hover/link:translate-x-1.5 transition-transform"></i>
                                     </a>
-                                </h2>
-                                <p class="text-slate-600 text-sm line-clamp-2 leading-relaxed mb-6">
-                                    <?= htmlspecialchars($p['summary'] ?: mb_substr(strip_tags($p['content']), 0, 160) . '...') ?>
-                                </p>
-                                <a href="<?= url('/news/detail?slug=' . $p['slug']) ?>" class="text-sm font-black text-hvu-red flex items-center group/link">
-                                    Xem chi tiết <i class="fas fa-arrow-right ml-2 group-hover/link:translate-x-2 transition-transform"></i>
-                                </a>
+                                </div>
                             </div>
                         </article>
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Simple Pagination if needed later -->
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="mt-12 flex justify-center items-center gap-2">
+                        <?php if ($currentPage > 1): ?>
+                            <a href="<?= url('/news' . ($category ? '?category=' . urlencode($category) . '&' : '?') . 'page=' . ($currentPage - 1)) ?>" 
+                               class="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-hvu-red hover:text-white transition-all shadow-sm">
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                            <a href="<?= url('/news' . ($category ? '?category=' . urlencode($category) . '&' : '?') . 'page=' . $i) ?>" 
+                               class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all shadow-sm
+                                      <?= $i === $currentPage ? 'bg-hvu-red text-white' : 'bg-white border border-slate-100 text-slate-600 hover:bg-red-50 hover:text-hvu-red' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+
+                        <?php if ($currentPage < $totalPages): ?>
+                            <a href="<?= url('/news' . ($category ? '?category=' . urlencode($category) . '&' : '?') . 'page=' . ($currentPage + 1)) ?>" 
+                               class="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-hvu-red hover:text-white transition-all shadow-sm">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 

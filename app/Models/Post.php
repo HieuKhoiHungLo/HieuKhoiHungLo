@@ -29,7 +29,7 @@ class Post extends Model {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getPaginated($limit = 3, $offset = 0) {
+    public function getPaginated($limit = 6, $offset = 0) {
         $sql = "SELECT p.* FROM {$this->table} p 
                 JOIN post_categories c ON p.category = c.name 
                 WHERE p.status = 'Published' AND c.is_active = true 
@@ -40,6 +40,29 @@ class Post extends Model {
         $stmt->bindValue(2, $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPaginatedByCategory($category, $limit = 6, $offset = 0) {
+        $sql = "SELECT p.* FROM {$this->table} p 
+                JOIN post_categories c ON p.category = c.name 
+                WHERE p.status = 'Published' AND c.is_active = true AND p.category = ?
+                ORDER BY p.is_featured DESC, p.created_at DESC 
+                LIMIT ? OFFSET ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(1, $category, PDO::PARAM_STR);
+        $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countByCategory($category) {
+        $sql = "SELECT COUNT(p.*) FROM {$this->table} p 
+                JOIN post_categories c ON p.category = c.name 
+                WHERE p.status = 'Published' AND c.is_active = true AND p.category = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$category]);
+        return $stmt->fetchColumn();
     }
 
     public function countPublished() {
