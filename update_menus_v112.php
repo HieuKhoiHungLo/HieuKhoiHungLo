@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/config/app.php';
+// Load Env
+try {
+    $dotenv = new App\Core\DotEnv(__DIR__ . '/.env');
+    $dotenv->load();
+} catch (\Exception $e) {}
 
 // Mocking basic env if needed, but assuming standard HVU environment
 use App\Core\Database;
