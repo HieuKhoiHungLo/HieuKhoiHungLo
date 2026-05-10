@@ -51,6 +51,8 @@
             <button class="text-emerald-400 hover:text-emerald-600" onclick="this.parentElement.remove()">
                 <i class="fas fa-times"></i>
             </button>
+        </div>
+    <?php endif; ?>
     <?php if (isset($_GET['assigned'])): ?>
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl flex justify-between items-center shadow-sm animate-fade-in">
             <div class="flex items-center">
