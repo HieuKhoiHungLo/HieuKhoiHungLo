@@ -90,7 +90,8 @@ class TalentTestController extends Controller
     public function edit()
     {
         $this->requireAdmin();
-        $id = (int)$_GET['id'];
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
         
         $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
@@ -206,7 +207,8 @@ class TalentTestController extends Controller
     public function printCards()
     {
         $this->requireAdmin();
-        $sessionId = (int)$_GET['session_id'];
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
@@ -237,7 +239,8 @@ class TalentTestController extends Controller
     public function printPhotos()
     {
         $this->requireAdmin();
-        $sessionId = (int)$_GET['session_id'];
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
@@ -268,7 +271,8 @@ class TalentTestController extends Controller
     public function scores()
     {
         $this->requireAdmin();
-        $sessionId = (int)$_GET['session_id'];
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("
@@ -319,7 +323,8 @@ class TalentTestController extends Controller
     public function exportExcel()
     {
         $this->requireAdmin();
-        $sessionId = (int)$_GET['session_id'];
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
         $stmt = $db->prepare("
@@ -381,7 +386,8 @@ class TalentTestController extends Controller
     public function dashboard()
     {
         $this->requireAdmin();
-        $sessionId = (int)$_GET['session_id'];
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
         // 1. Thông tin chung đợt thi
