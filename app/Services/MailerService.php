@@ -75,6 +75,9 @@ class MailerService {
     protected function getRotatingSender($category = null) {
         $db = \App\Core\Database::getInstance()->getConnection();
         
+        // Auto-reset sent_today nếu sang ngày mới
+        $db->exec("UPDATE email_senders SET sent_today = 0 WHERE DATE(last_sent_at) < CURRENT_DATE");
+
         // Pick an active sender that hasn't reached daily limit, isn't default, sorted by oldest last_sent_at
         // If category is provided, try matching it first, otherwise take any from 'all' or matching category
         $sql = "

@@ -196,8 +196,8 @@
                     </select>
                     <label class="relative inline-flex items-center cursor-pointer ml-2">
                         <input type="checkbox" name="is_default" id="field-is_default" value="1" class="sr-only peer">
-                        <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                        <span class="ml-2 text-[10px] font-bold text-slate-500 uppercase">Mặc định</span>
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-[10px] font-bold text-slate-500 uppercase">Mặc định</span>
                     </label>
                 </div>
             </div>
@@ -252,8 +252,8 @@
         document.getElementById('field-smtp_encryption').value = data.smtp_encryption;
         document.getElementById('field-daily_limit').value = data.daily_limit;
         document.getElementById('field-category').value = data.category || 'all';
-        document.getElementById('field-is_active').checked = data.is_active == 1;
-        document.getElementById('field-is_default').checked = data.is_default == 1;
+        document.getElementById('field-is_active').checked = data.is_active == 1 || data.is_active === true || data.is_active === 't' || data.is_active === '1';
+        document.getElementById('field-is_default').checked = data.is_default == 1 || data.is_default === true || data.is_default === 't' || data.is_default === '1';
         document.getElementById('senderModal').classList.remove('hidden');
     }
 

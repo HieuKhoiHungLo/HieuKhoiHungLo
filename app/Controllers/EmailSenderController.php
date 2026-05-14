@@ -56,7 +56,7 @@ class EmailSenderController extends Controller {
         
         // If this is set as default, unset other defaults
         if ($isDefault) {
-            $db->exec("UPDATE email_senders SET is_default = FALSE");
+            $db->exec("UPDATE email_senders SET is_default = '0'");
         }
         
         if ($id > 0) {

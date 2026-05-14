@@ -107,7 +107,7 @@ class ThiSinh extends Model {
         }
 
         if (!empty($search)) {
-            $sql .= " AND (t.ho_va_ten LIKE ? OR t.so_cccd LIKE ? OR t.email LIKE ?)";
+            $sql .= " AND (t.ho_va_ten ILIKE ? OR t.so_cccd ILIKE ? OR t.email ILIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
@@ -178,17 +178,17 @@ class ThiSinh extends Model {
                     $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'grad_year') {
-                    $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
+                    $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'email') {
-                    $sql .= " AND t.email LIKE ?";
+                    $sql .= " AND t.email ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'note') {
                     $trimVal = trim(mb_strtolower($val));
                     if ($trimVal === 'trống') {
                         $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
                     } else {
-                        $sql .= " AND (t.ghi_chu LIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu LIKE ?))";
+                        $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
                         $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
@@ -436,17 +436,17 @@ class ThiSinh extends Model {
                     $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'grad_year') {
-                    $sql .= " AND t.nam_tot_nghiep::text LIKE ?";
+                    $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'email') {
-                    $sql .= " AND t.email LIKE ?";
+                    $sql .= " AND t.email ILIKE ?";
                     $params[] = "%$val%";
                 } elseif ($field === 'note') {
                     $trimVal = trim(mb_strtolower($val));
                     if ($trimVal === 'trống') {
                         $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
                     } else {
-                        $sql .= " AND (t.ghi_chu LIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu LIKE ?))";
+                        $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
                         $params[] = "%$val%";
                         $params[] = "%$val%";
                     }
