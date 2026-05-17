@@ -191,15 +191,6 @@ class ApiController extends Controller
             return;
         }
 
-        // Check if already backed up today (allow bypass via force=1)
-        $lastRun = $this->masterData->getSetting('backup_last_run');
-        $force = isset($_GET['force']) && $_GET['force'] == '1';
-
-        if (!$force && $lastRun && date('Y-m-d', strtotime($lastRun)) === date('Y-m-d')) {
-            $this->json(['success' => true, 'message' => 'Đã sao lưu trong ngày hôm nay rồi. Bỏ qua.']);
-            return;
-        }
-
         // Check if current time is >= configured backup time (allow bypass via force=1)
         $backupHour = (int)($this->masterData->getSetting('backup_hour') ?? 1);
         $backupMinute = (int)($this->masterData->getSetting('backup_minute') ?? 0);
@@ -209,7 +200,19 @@ class ApiController extends Controller
         
         $currentTimeVal = $currentHour * 60 + $currentMinute;
         $backupTimeVal = $backupHour * 60 + $backupMinute;
-        
+
+        // Construct the trigger key for the currently configured schedule on today's date (e.g. "2026-05-17 23:20")
+        $scheduledTimeKey = date('Y-m-d') . ' ' . sprintf('%02d:%02d', $backupHour, $backupMinute);
+        $lastScheduledTrigger = $this->masterData->getSetting('backup_last_scheduled_trigger') ?? '';
+        $force = isset($_GET['force']) && $_GET['force'] == '1';
+
+        // Check if this specific scheduled time has already been successfully triggered today
+        if (!$force && $lastScheduledTrigger === $scheduledTimeKey) {
+            $this->json(['success' => true, 'message' => "Bản sao lưu tự động cho thời gian {$scheduledTimeKey} đã được chạy trước đó. Bỏ qua."]);
+            return;
+        }
+
+        // Check if current time has reached or passed the scheduled time
         if (!$force && $currentTimeVal < $backupTimeVal) {
             $formattedTime = sprintf('%02d:%02d', $backupHour, $backupMinute);
             $formattedCurrent = sprintf('%02d:%02d', $currentHour, $currentMinute);
@@ -225,6 +228,9 @@ class ApiController extends Controller
             $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
             $this->masterData->setSetting('backup_last_status', 'success');
             $this->masterData->setSetting('backup_last_file', $result['file'] ?? '');
+            
+            // Mark this specific scheduled trigger as completed successfully
+            $this->masterData->setSetting('backup_last_scheduled_trigger', $scheduledTimeKey);
 
             $this->json(['success' => true, 'message' => 'Sao lưu tự động thành công: ' . ($result['file'] ?? ''), 'log' => $result['log'] ?? []]);
         } catch (\Exception $e) {

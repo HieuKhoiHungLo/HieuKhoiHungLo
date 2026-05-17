@@ -51,6 +51,9 @@ class BackupController extends Controller
 
     public function create()
     {
+        $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') 
+               || (isset($_GET['ajax']) && $_GET['ajax'] == '1');
+
         try {
             $isTest = isset($_GET['test']) && $_GET['test'] == '1';
             $service = new \App\Services\BackupService($this->backupDir);
@@ -65,8 +68,19 @@ class BackupController extends Controller
                     // Fail silently
                 }
 
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => true, 'message' => 'Tạo bản sao lưu thành công!', 'file' => $result['file']]);
+                    exit;
+                }
+
                 $this->redirect(url('/admin/system/backup?success=Tạo bản sao lưu thành công: ' . $result['file']));
             } else {
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => false, 'message' => 'Lỗi khi tạo bản sao lưu']);
+                    exit;
+                }
                 $this->redirect(url('/admin/system/backup?error=Lỗi khi tạo bản sao lưu'));
             }
         } catch (\Exception $e) {
@@ -76,6 +90,13 @@ class BackupController extends Controller
             } catch (\Exception $dbEx) {
                 // Fail silently
             }
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['status' => false, 'message' => $e->getMessage()]);
+                exit;
+            }
+
             $this->redirect(url('/admin/system/backup?error=Lỗi: ' . urlencode($e->getMessage())));
         }
     }

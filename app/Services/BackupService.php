@@ -45,10 +45,10 @@ class BackupService
         $results = [];
         $results[] = "[INFO] Bắt đầu sao lưu...";
 
+        $filename = $this->generateBackupFilename($isTest);
+        $filePath = "{$this->backupDir}/{$filename}";
+
         if ($isTest) {
-            $date = date('Y-m-d_H-i-s');
-            $filename = "backup_{$date}_TEST.backup";
-            $filePath = "{$this->backupDir}/{$filename}";
             file_put_contents($filePath, "-- Mock Backup Content\n");
             $results[] = "[TEST] Tạo file mock thành công: {$filename}";
             return ['success' => true, 'log' => $results, 'file' => $filename];
@@ -58,10 +58,6 @@ class BackupService
         if (!$pgDump) {
             throw new \Exception("Không tìm thấy pg_dump. Hãy cấu hình PG_BIN_PATH trong file .env (hiện tại: '{$this->pgBinPath}')");
         }
-
-        $date = date('Y-m-d_H-i-s');
-        $filename = "backup_{$date}.backup";
-        $filePath = "{$this->backupDir}/{$filename}";
 
         putenv("PGPASSWORD={$this->dbConfig['password']}");
 
@@ -246,9 +242,17 @@ class BackupService
                 'format' => str_ends_with(basename($file), '.backup') ? 'custom' : 'legacy',
             ];
         }
-
-        // Sort by timestamp descending (newest first)
-        usort($backups, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
+        // Extract YYYY-MM-DD_HH-ii-ss from filename to sort chronologically descending in an absolutely robust way
+        usort($backups, function($a, $b) {
+            preg_match('/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/', $a['name'], $m1);
+            preg_match('/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})/', $b['name'], $m2);
+            $timeA = $m1[1] ?? '';
+            $timeB = $m2[1] ?? '';
+            if ($timeA !== $timeB) {
+                return strcmp($timeB, $timeA); // Descending chronological
+            }
+            return strnatcasecmp($b['name'], $a['name']);
+        });
 
         return $backups;
     }
@@ -288,5 +292,62 @@ class BackupService
         fclose($pipes[1]);
         fclose($pipes[2]);
         return proc_close($process) === 0;
+    }
+
+    /**
+     * Generate the backup filename based on school code, period code, and current timestamp
+     */
+    protected function generateBackupFilename($isTest = false)
+    {
+        $masterData = new \App\Models\MasterData();
+        
+        // 1. Get School Code
+        $schoolCode = $masterData->getSetting('school_code') ?? $masterData->getSetting('ma_truong') ?? '';
+        if (empty($schoolCode)) {
+            $schoolName = $masterData->getSetting('school_name') ?? 'Trường Đại học Hùng Vương';
+            if (str_contains(mb_strtolower($schoolName), 'hùng vương') || str_contains(mb_strtolower($schoolName), 'hung vuong')) {
+                $schoolCode = 'THV';
+            } else {
+                $words = explode(' ', preg_replace('/\s+/', ' ', trim($schoolName)));
+                $schoolCode = '';
+                foreach ($words as $w) {
+                    $firstChar = mb_substr($w, 0, 1);
+                    if (mb_strtolower($firstChar) !== $firstChar) {
+                        $schoolCode .= strtoupper($firstChar);
+                    }
+                }
+                if (empty($schoolCode)) $schoolCode = 'THV';
+            }
+        }
+        // Clean characters for safe filename
+        $schoolCode = str_replace([' ', '/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $schoolCode);
+
+        // 2. Get Period Code (Đợt tuyển sinh)
+        $periodCode = '1';
+        try {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestActiveSession();
+            if (!empty($activeSession)) {
+                if (isset($activeSession['ma_dot']) && !empty($activeSession['ma_dot'])) {
+                    $periodCode = $activeSession['ma_dot'];
+                } elseif (isset($activeSession['ten_dot'])) {
+                    if (preg_match('/(\d+)/', $activeSession['ten_dot'], $matches)) {
+                        $periodCode = $matches[1];
+                    } else {
+                        $periodCode = $activeSession['id'];
+                    }
+                } else {
+                    $periodCode = $activeSession['id'] ?? '1';
+                }
+            }
+        } catch (\Exception $e) {
+            $periodCode = '1';
+        }
+        $periodCode = str_replace([' ', '/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $periodCode);
+
+        $date = date('Y-m-d_H-i-s');
+        $suffix = $isTest ? '_TEST' : '';
+        
+        return "{$schoolCode}_{$periodCode}_{$date}{$suffix}.backup";
     }
 }

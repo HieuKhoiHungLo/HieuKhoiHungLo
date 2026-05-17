@@ -14,8 +14,8 @@ $totalSizeMb = round($totalSize / 1048576, 1);
 // Checking Google Drive sync state
 $googleClientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json';
 $googleTokenFile = $_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json';
-$secretPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . $googleClientSecret;
-$tokenPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . $googleTokenFile;
+$secretPath = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . $googleClientSecret;
+$tokenPath = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . $googleTokenFile;
 $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 ?>
 
@@ -29,9 +29,124 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 .stat-card { background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); }
 .glow-btn { box-shadow: 0 4px 14px rgba(99,102,241,0.25); }
 .glow-btn:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.35); transform:translateY(-1px); }
+
+/* Review-management style Backup Table */
+.backup-table {
+    border-collapse: separate !important;
+    border-spacing: 0;
+    width: 100%;
+    table-layout: fixed;
+    background-color: #ffffff;
+}
+.backup-table th, .backup-table td {
+    padding: 0.5rem 0.75rem !important;
+    border: none !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-right: 1px solid #e2e8f0 !important;
+    vertical-align: middle;
+    font-size: 13px !important;
+    color: #000000 !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.backup-table th {
+    background-color: #f8fafc !important;
+    color: #000000 !important;
+}
+.backup-table th:first-child, .backup-table td:first-child {
+    border-left: 1px solid #e2e8f0 !important;
+}
+.backup-table thead tr:first-child th {
+    border-top: 1px solid #e2e8f0 !important;
+}
+.backup-table tbody tr:hover td {
+    background-color: #f1f5f9 !important;
+}
+
+/* Premium Loading Modal styles matching import progress */
+.shimmer-glare {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: loading-shimmer 2s infinite linear;
+}
+@keyframes loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes pulsing-slow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+.animate-pulsing-slow {
+    animation: pulsing-slow 3s infinite ease-in-out;
+}
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spin-slow 6s infinite linear;
+}
+[x-cloak] { display: none !important; }
 </style>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ tab: 'backup' }">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="backupApp()">
+
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <!-- Decorative background shapes -->
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+            <!-- Animated Logo Container -->
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <!-- Outer Pulse ring -->
+                <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulsing-slow"></div>
+                <!-- Dotted rotating ring -->
+                <div class="absolute inset-1 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
+                <!-- Glassmorphism Circle with Logo -->
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <!-- Internal Shimmer -->
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Hệ thống đang sao lưu</h3>
+            
+            <!-- Progress container -->
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="loadingProgress">
+                </div>
+                <!-- Shimmering overlay -->
+                <div class="shimmer-glare absolute inset-0"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
+            </div>
+        </div>
+    </div>
 
 <!-- Header -->
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -109,13 +224,10 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
         <div class="p-6">
             <!-- Action buttons -->
             <div class="flex flex-wrap items-center gap-3 mb-6">
-                <a href="<?= url('/admin/system/backup/create') ?>" onclick="return confirm('Tạo bản sao lưu mới? Quá trình có thể mất vài phút.')"
-                   class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all glow-btn">
+                <button @click="startBackup()"
+                   class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all glow-btn cursor-pointer">
                     <i class="fas fa-plus-circle mr-2"></i> Tạo bản Sao lưu mới
-                </a>
-                <a href="<?= url('/admin/system/backup/create?test=1') ?>" class="inline-flex items-center px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all border border-slate-200">
-                    <i class="fas fa-flask mr-2 text-indigo-400"></i> Test (Mock)
-                </a>
+                </button>
                 <?php if (!empty($lastRun)): ?>
                 <div class="ml-auto flex items-center gap-4 text-xs font-bold text-slate-500">
                     <span><i class="fas fa-history mr-1"></i> <?= htmlspecialchars($lastRun) ?></span>
@@ -129,19 +241,19 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
             </div>
 
             <!-- Local backups table (Premium Review Management Style) -->
-            <div class="overflow-hidden border border-slate-100 rounded-2xl shadow-sm">
-                <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
+                <table class="backup-table min-w-[920px]">
                     <thead>
-                        <tr class="border-b border-slate-100 text-slate-400 text-xs font-black uppercase tracking-wider bg-slate-50/50">
-                            <th class="py-4 px-6 w-16 text-center">STT</th>
-                            <th class="py-4 px-6">Tên Bản sao lưu</th>
-                            <th class="py-4 px-6">Định dạng</th>
-                            <th class="py-4 px-6">Dung lượng</th>
-                            <th class="py-4 px-6">Ngày sao lưu</th>
-                            <th class="py-4 px-6 text-center w-36">Thao tác</th>
+                        <tr>
+                            <th style="width: 60px; text-align: center;">STT</th>
+                            <th style="width: 320px;">Tên bản sao lưu</th>
+                            <th style="width: 135px;">Định dạng</th>
+                            <th style="width: 110px;">Dung lượng</th>
+                            <th style="width: 180px;">Ngày sao lưu</th>
+                            <th style="width: 120px; text-align: center;">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody>
                         <?php if (empty($localBackups)): ?>
                             <tr>
                                 <td colspan="6" class="text-center py-20 text-slate-300">
@@ -151,43 +263,39 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                             </tr>
                         <?php else: ?>
                             <?php foreach ($localBackups as $index => $b): ?>
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="py-4 px-6 text-sm font-bold text-slate-400 text-center">
+                            <tr>
+                                <td style="text-align: center;">
                                     <?= $index + 1 ?>
                                 </td>
-                                <td class="py-4 px-6 min-w-0">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-500">
-                                            <i class="fas fa-file-archive text-xs"></i>
-                                        </div>
-                                        <span class="font-bold text-slate-700 truncate max-w-md" title="<?= htmlspecialchars($b['name']) ?>">
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-file-archive text-slate-400"></i>
+                                        <span class="truncate" title="<?= htmlspecialchars($b['name']) ?>">
                                             <?= htmlspecialchars($b['name']) ?>
                                         </span>
                                     </div>
                                 </td>
-                                <td class="py-4 px-6">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase <?= $b['format'] === 'custom' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100' ?>">
-                                        <?= $b['format'] === 'custom' ? 'Custom (.backup)' : 'Legacy (.sql)' ?>
-                                    </span>
+                                <td>
+                                    <?= $b['format'] === 'custom' ? 'tệp tin (.backup)' : 'tệp tin (.sql)' ?>
                                 </td>
-                                <td class="py-4 px-6 text-sm font-black text-slate-500">
+                                <td>
                                     <?= htmlspecialchars($b['size']) ?>
                                 </td>
-                                <td class="py-4 px-6 text-xs font-bold text-slate-400">
+                                <td>
                                     <?= htmlspecialchars($b['date']) ?>
                                 </td>
-                                <td class="py-4 px-6">
+                                <td>
                                     <div class="flex items-center justify-center gap-2">
                                         <!-- Download -->
                                         <a href="<?= url('/admin/system/backup/download?name=' . urlencode($b['name'])) ?>" 
-                                           class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition-all" 
+                                           class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition-all" 
                                            title="Tải xuống bản sao lưu">
                                             <i class="fas fa-download text-xs"></i>
                                         </a>
                                         <!-- Delete -->
                                         <a href="<?= url('/admin/system/backup/delete?type=local&name=' . urlencode($b['name'])) ?>" 
                                            onclick="return confirm('Xóa bản sao lưu này? Thao tác này không thể hoàn tác.')"
-                                           class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-all" 
+                                           class="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-all" 
                                            title="Xóa bản sao lưu">
                                             <i class="fas fa-trash-alt text-xs"></i>
                                         </a>
@@ -205,40 +313,67 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
     <!-- TAB 2: KHÔI PHỤC -->
     <div x-show="tab==='restore'" x-cloak class="tab-panel" :class="tab==='restore' && 'active'">
         <div class="p-6">
-            <div class="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                <h4 class="text-sm font-black text-amber-800 flex items-center gap-2 mb-1"><i class="fas fa-exclamation-triangle"></i> Lưu ý quan trọng</h4>
-                <p class="text-xs text-amber-700 font-medium leading-relaxed">
-                    Khôi phục sẽ <strong>ghi đè toàn bộ dữ liệu</strong> trong database hiện tại
-                    (<span class="font-black"><?= htmlspecialchars($currentDb) ?></span> @ <?= htmlspecialchars($dbHost) ?>).
-                    Hãy chắc chắn bạn đã sao lưu dữ liệu hiện tại trước khi khôi phục.
-                </p>
+            <!-- Local backups table (Premium style matching Tab 1) -->
+            <div class="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
+                <table class="backup-table min-w-[920px]">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px; text-align: center;">STT</th>
+                            <th style="width: 320px;">Tên bản sao lưu</th>
+                            <th style="width: 135px;">Định dạng</th>
+                            <th style="width: 110px;">Dung lượng</th>
+                            <th style="width: 180px;">Ngày sao lưu</th>
+                            <th style="width: 120px; text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($localBackups)): ?>
+                            <tr>
+                                <td colspan="6" class="text-center py-20 text-slate-300">
+                                    <i class="fas fa-folder-open text-4xl mb-3 block text-slate-200"></i>
+                                    <span class="text-sm font-bold text-slate-400">Không có bản sao lưu nào để khôi phục</span>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($localBackups as $index => $b): ?>
+                            <tr>
+                                <td style="text-align: center;">
+                                    <?= $index + 1 ?>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-file-archive text-slate-400"></i>
+                                        <span class="truncate" title="<?= htmlspecialchars($b['name']) ?>">
+                                            <?= htmlspecialchars($b['name']) ?>
+                                        </span>
+                                        <?php if ($index === 0): ?>
+                                            <span class="text-[9px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-black">MỚI NHẤT</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <?= $b['format'] === 'custom' ? 'tệp tin (.backup)' : 'tệp tin (.sql)' ?>
+                                </td>
+                                <td>
+                                    <?= htmlspecialchars($b['size']) ?>
+                                </td>
+                                <td>
+                                    <?= htmlspecialchars($b['date']) ?>
+                                </td>
+                                <td>
+                                    <div class="flex items-center justify-center">
+                                        <button onclick="restoreBackup('<?= htmlspecialchars($b['name'], ENT_QUOTES) ?>')"
+                                           class="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white font-bold rounded-xl transition-all text-xs flex items-center gap-1.5 cursor-pointer">
+                                            <i class="fas fa-undo-alt text-[10px]"></i> Khôi phục
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-
-            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Chọn bản sao lưu để khôi phục</h4>
-
-            <?php if (empty($localBackups)): ?>
-                <div class="text-center py-16 text-slate-300"><i class="fas fa-inbox text-4xl mb-3 block"></i><p class="font-bold">Không có bản sao lưu nào</p><p class="text-xs mt-1">Hãy tạo bản sao lưu trước</p></div>
-            <?php else: ?>
-                <div class="space-y-2">
-                    <?php foreach ($localBackups as $i => $b): ?>
-                    <div class="backup-row flex items-center justify-between p-4 rounded-xl border border-slate-100 group hover:border-indigo-200">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-xl <?= $i === 0 ? 'bg-emerald-50' : 'bg-slate-50' ?> flex items-center justify-center">
-                                <i class="fas fa-file-archive <?= $i === 0 ? 'text-emerald-500' : 'text-slate-400' ?>"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-slate-700"><?= $b['name'] ?> <?= $i === 0 ? '<span class="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-black ml-1">MỚI NHẤT</span>' : '' ?></p>
-                                <p class="text-xs font-bold text-slate-400"><?= $b['date'] ?> • <?= $b['size'] ?> • <?= $b['format'] === 'custom' ? 'Custom Format' : 'Legacy SQL' ?></p>
-                            </div>
-                        </div>
-                        <button onclick="restoreBackup('<?= htmlspecialchars($b['name'], ENT_QUOTES) ?>')"
-                           class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white font-bold rounded-xl transition-all text-xs flex items-center gap-2">
-                            <i class="fas fa-undo-alt"></i> Khôi phục
-                        </button>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -283,19 +418,6 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                             <i class="fas fa-save mr-1"></i> Lưu
                         </button>
                     </div>
-                    <?php if (!empty($lastRun)): ?>
-                    <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-xs font-bold">
-                        <span class="text-slate-500"><i class="fas fa-history mr-1"></i> Lần cuối: <?= htmlspecialchars($lastRun) ?></span>
-                        <?php if (str_starts_with($lastStatus, 'success')): ?>
-                            <span class="text-emerald-600"><i class="fas fa-check-circle"></i> Thành công</span>
-                        <?php elseif (!empty($lastStatus)): ?>
-                            <span class="text-rose-500"><i class="fas fa-times-circle"></i> <?= htmlspecialchars(mb_substr($lastStatus, 0, 80)) ?></span>
-                        <?php endif; ?>
-                        <?php if (!empty($lastFile)): ?>
-                            <span class="text-slate-400"><i class="fas fa-file"></i> <?= htmlspecialchars($lastFile) ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
                 </form>
             </div>
 
@@ -317,6 +439,85 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 </div>
 
 <script>
+function backupApp() {
+    return {
+        tab: 'backup',
+        isLoading: false,
+        progress: 0,
+        currentLoadingMessage: '',
+        
+        async startBackup() {
+            const confirmed = confirm('Tạo bản sao lưu mới? Quá trình có thể mất vài phút.');
+            if (!confirmed) return;
+            
+            this.isLoading = true;
+            this.progress = 0;
+            this.currentLoadingMessage = 'Đang chuẩn bị kết nối cơ sở dữ liệu...';
+            
+            // Decelerating progress logic to look highly natural over ~80 seconds
+            let progressInterval = setInterval(() => {
+                if (this.progress < 98) {
+                    let increment = 0;
+                    if (this.progress < 30) {
+                        increment = Math.random() * 2 + 1; // 1-3% at first
+                    } else if (this.progress < 60) {
+                        increment = Math.random() * 1 + 0.5; // 0.5-1.5%
+                    } else if (this.progress < 85) {
+                        increment = Math.random() * 0.5 + 0.2; // 0.2-0.7%
+                    } else if (this.progress < 95) {
+                        increment = Math.random() * 0.2 + 0.05; // 0.05-0.25%
+                    } else {
+                        increment = 0.02; // Very slow crawl near 98%
+                    }
+                    
+                    this.progress = Math.min(98, parseFloat((this.progress + increment).toFixed(2)));
+                    
+                    // Update messages based on progress
+                    if (this.progress < 20) {
+                        this.currentLoadingMessage = 'Đang khởi tạo kết nối cơ sở dữ liệu Supabase...';
+                    } else if (this.progress < 50) {
+                        this.currentLoadingMessage = 'Đang kết xuất sơ đồ cấu trúc bảng (schema)...';
+                    } else if (this.progress < 75) {
+                        this.currentLoadingMessage = 'Đang trích xuất dữ liệu bản ghi và nén file Custom Format (.backup)...';
+                    } else if (this.progress < 90) {
+                        this.currentLoadingMessage = 'Đang lưu tệp tin sao lưu cục bộ vào storage...';
+                    } else {
+                        this.currentLoadingMessage = 'Đang truyền tải và đồng bộ hóa tệp lên Cloud Google Drive...';
+                    }
+                }
+            }, 600);
+            
+            try {
+                const response = await fetch('<?= url("/admin/system/backup/create?ajax=1") ?>', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                clearInterval(progressInterval);
+                
+                const result = await response.json();
+                if (result.status) {
+                    this.progress = 100;
+                    this.currentLoadingMessage = 'Hoàn thành!';
+                    setTimeout(() => {
+                        this.isLoading = false;
+                        window.location.href = '<?= url("/admin/system/backup?success=") ?>' + encodeURIComponent(result.message + ' (' + result.file + ')');
+                    }, 500);
+                } else {
+                    this.isLoading = false;
+                    alert('Lỗi: ' + result.message);
+                }
+            } catch (err) {
+                clearInterval(progressInterval);
+                this.isLoading = false;
+                alert('Lỗi kết nối mạng: ' + err.message);
+            }
+        }
+    };
+}
+
 function restoreBackup(filename) {
     const db = '<?= htmlspecialchars($currentDb ?? "postgres", ENT_QUOTES) ?>';
     const host = '<?= htmlspecialchars($dbHost ?? "", ENT_QUOTES) ?>';
