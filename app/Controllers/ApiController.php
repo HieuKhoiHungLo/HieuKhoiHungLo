@@ -198,11 +198,20 @@ class ApiController extends Controller
             return;
         }
 
-        // Check if current hour matches configured backup hour
+        // Check if current time is >= configured backup time
         $backupHour = (int)($this->masterData->getSetting('backup_hour') ?? 1);
+        $backupMinute = (int)($this->masterData->getSetting('backup_minute') ?? 0);
+        
         $currentHour = (int)date('G');
-        if ($currentHour !== $backupHour) {
-            $this->json(['success' => true, 'message' => "Chưa đến giờ sao lưu (cấu hình: {$backupHour}h, hiện tại: {$currentHour}h)."]);
+        $currentMinute = (int)date('i');
+        
+        $currentTimeVal = $currentHour * 60 + $currentMinute;
+        $backupTimeVal = $backupHour * 60 + $backupMinute;
+        
+        if ($currentTimeVal < $backupTimeVal) {
+            $formattedTime = sprintf('%02d:%02d', $backupHour, $backupMinute);
+            $formattedCurrent = sprintf('%02d:%02d', $currentHour, $currentMinute);
+            $this->json(['success' => true, 'message' => "Chưa đến giờ sao lưu (cấu hình: {$formattedTime}, hiện tại: {$formattedCurrent})."]);
             return;
         }
 

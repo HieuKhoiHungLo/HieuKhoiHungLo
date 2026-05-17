@@ -58,6 +58,7 @@ class BackupController extends Controller
         $settings = [
             'backup_enabled' => $this->masterData->getSetting('backup_enabled') ?? '0',
             'backup_hour'    => $this->masterData->getSetting('backup_hour') ?? '1',
+            'backup_minute'  => $this->masterData->getSetting('backup_minute') ?? '0',
             'backup_last_run'    => $this->masterData->getSetting('backup_last_run') ?? '',
             'backup_last_status' => $this->masterData->getSetting('backup_last_status') ?? '',
             'backup_last_file'   => $this->masterData->getSetting('backup_last_file') ?? '',
@@ -162,9 +163,13 @@ class BackupController extends Controller
         $enabled = $_POST['backup_enabled'] ?? '0';
         $hour = (int)($_POST['backup_hour'] ?? 1);
         $hour = max(0, min(23, $hour));
+        
+        $minute = (int)($_POST['backup_minute'] ?? 0);
+        $minute = max(0, min(59, $minute));
 
         $this->masterData->setSetting('backup_enabled', $enabled);
         $this->masterData->setSetting('backup_hour', (string)$hour);
+        $this->masterData->setSetting('backup_minute', (string)$minute);
 
         $this->redirect(url('/admin/system/backup?success=Đã lưu cài đặt sao lưu tự động'));
     }

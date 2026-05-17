@@ -5,6 +5,7 @@ $lastRun = $settings['backup_last_run'] ?? '';
 $lastStatus = $settings['backup_last_status'] ?? '';
 $lastFile = $settings['backup_last_file'] ?? '';
 $backupHour = $settings['backup_hour'] ?? '1';
+$backupMinute = $settings['backup_minute'] ?? '0';
 $totalLocal = count($localBackups ?? []);
 $totalCloud = count($driveBackups ?? []);
 $totalSize = 0;
@@ -68,7 +69,7 @@ $totalSizeMb = round($totalSize / 1048576, 1);
             <div class="w-9 h-9 rounded-lg <?= $isEnabled ? 'bg-emerald-100' : 'bg-slate-100' ?> flex items-center justify-center">
                 <i class="fas fa-clock <?= $isEnabled ? 'text-emerald-500' : 'text-slate-400' ?> text-sm"></i>
             </div>
-            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Tự động</p><p class="text-lg font-black <?= $isEnabled ? 'text-emerald-600' : 'text-slate-400' ?>"><?= $isEnabled ? sprintf('%02d:00', $backupHour) : 'Tắt' ?></p></div>
+            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Tự động</p><p class="text-lg font-black <?= $isEnabled ? 'text-emerald-600' : 'text-slate-400' ?>"><?= $isEnabled ? sprintf('%02d:%02d', $backupHour, $backupMinute) : 'Tắt' ?></p></div>
         </div>
     </div>
 </div>
@@ -232,6 +233,7 @@ $totalSizeMb = round($totalSize / 1048576, 1);
                     <h4 class="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-clock text-indigo-400"></i> Lịch sao lưu tự động</h4>
                 </div>
                 <form action="<?= url('/admin/system/backup/settings') ?>" method="POST" class="p-5">
+                    <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
                     <div class="flex flex-wrap items-end gap-6">
                         <div>
                             <label class="block text-xs font-black text-slate-500 uppercase mb-2">Trạng thái</label>
@@ -240,13 +242,24 @@ $totalSizeMb = round($totalSize / 1048576, 1);
                                 <option value="1" <?= $isEnabled ? 'selected' : '' ?>>🟢 Bật</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-xs font-black text-slate-500 uppercase mb-2">Giờ sao lưu</label>
-                            <select name="backup_hour" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none w-36">
-                                <?php for ($h = 0; $h < 24; $h++): ?>
-                                    <option value="<?= $h ?>" <?= $backupHour == $h ? 'selected' : '' ?>><?= sprintf('%02d:00', $h) ?></option>
-                                <?php endfor; ?>
-                            </select>
+                        <div class="flex items-center gap-2">
+                            <div>
+                                <label class="block text-xs font-black text-slate-500 uppercase mb-2">Giờ sao lưu</label>
+                                <select name="backup_hour" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none w-24">
+                                    <?php for ($h = 0; $h < 24; $h++): ?>
+                                        <option value="<?= $h ?>" <?= $backupHour == $h ? 'selected' : '' ?>><?= sprintf('%02d', $h) ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <span class="text-slate-400 font-bold self-end mb-2.5">:</span>
+                            <div>
+                                <label class="block text-xs font-black text-slate-500 uppercase mb-2">Phút</label>
+                                <select name="backup_minute" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none w-24">
+                                    <?php for ($m = 0; $m < 60; $m += 5): ?>
+                                        <option value="<?= $m ?>" <?= $backupMinute == $m ? 'selected' : '' ?>><?= sprintf('%02d', $m) ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
                         </div>
                         <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all text-sm glow-btn">
                             <i class="fas fa-save mr-1"></i> Lưu
