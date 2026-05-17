@@ -57,6 +57,7 @@ $router->post('/profile/change-password', 'ProfileController@changePassword');
 
 // Cron API
 $router->get('/api/cron/process_email_queue', 'ApiController@processEmailQueue');
+$router->get('/api/cron/backup', 'ApiController@scheduledBackup');
 
 // Student Notification API
 $router->get('/api/notifications', 'NotificationController@getNotifications');
@@ -375,6 +376,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/system/backup/create', 'BackupController@create');
     $router->get('/admin/system/backup/delete', 'BackupController@delete');
     $router->get('/admin/system/backup/restore', 'BackupController@restore');
+    $router->post('/admin/system/backup/settings', 'BackupController@saveSettings');
 
     // 2FA Management
     $router->get('/admin/2fa/setup', 'TwoFactorController@setup');

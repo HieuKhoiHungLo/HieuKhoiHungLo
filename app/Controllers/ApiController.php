@@ -169,4 +169,58 @@ class ApiController extends Controller
         $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
         $this->json(['success' => true, 'message' => $msg]);
     }
+
+    /**
+     * API Scheduled Backup
+     * Triggered by Windows Task Scheduler, cron-job.org, or Uptime Robot
+     */
+    public function scheduledBackup()
+    {
+        // Security: verify cron key
+        $key = $_GET['key'] ?? '';
+        $expectedKey = $_ENV['CRON_SECRET_KEY'] ?? '';
+        if (empty($expectedKey) || !hash_equals($expectedKey, $key)) {
+            header("HTTP/1.1 403 Forbidden");
+            $this->json(['success' => false, 'error' => 'Forbidden']);
+            return;
+        }
+
+        // Check if backup is enabled
+        if ($this->masterData->getSetting('backup_enabled') !== '1') {
+            $this->json(['success' => true, 'message' => 'Sao lưu tự động chưa được bật.']);
+            return;
+        }
+
+        // Check if already backed up today
+        $lastRun = $this->masterData->getSetting('backup_last_run');
+        if ($lastRun && date('Y-m-d', strtotime($lastRun)) === date('Y-m-d')) {
+            $this->json(['success' => true, 'message' => 'Đã sao lưu trong ngày hôm nay rồi. Bỏ qua.']);
+            return;
+        }
+
+        // Check if current hour matches configured backup hour
+        $backupHour = (int)($this->masterData->getSetting('backup_hour') ?? 1);
+        $currentHour = (int)date('G');
+        if ($currentHour !== $backupHour) {
+            $this->json(['success' => true, 'message' => "Chưa đến giờ sao lưu (cấu hình: {$backupHour}h, hiện tại: {$currentHour}h)."]);
+            return;
+        }
+
+        // Run backup
+        try {
+            $service = new \App\Services\BackupService();
+            $result = $service->run(false);
+
+            $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
+            $this->masterData->setSetting('backup_last_status', 'success');
+            $this->masterData->setSetting('backup_last_file', $result['file'] ?? '');
+
+            $this->json(['success' => true, 'message' => 'Sao lưu tự động thành công: ' . ($result['file'] ?? ''), 'log' => $result['log'] ?? []]);
+        } catch (\Exception $e) {
+            $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
+            $this->masterData->setSetting('backup_last_status', 'failed: ' . $e->getMessage());
+
+            $this->json(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
 }
