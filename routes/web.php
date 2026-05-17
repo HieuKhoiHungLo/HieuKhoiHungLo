@@ -103,6 +103,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     });
     $router->get('/admin/dashboard', 'AdminController@dashboard');
     $router->get('/admin/candidate-management', 'CandidateController@index');
+    $router->get('/admin/candidate-management/export', 'CandidateController@exportGhost');
     $router->get('/admin/candidates', 'CandidateController@applications');
     $router->get('/admin/review-management', 'CandidateController@reviewList');
     $router->get('/admin/review', 'AdminController@review');

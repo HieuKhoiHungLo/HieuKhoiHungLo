@@ -139,6 +139,13 @@
                 <i class="fas fa-file-excel"></i> Cập nhật học bạ
             </button>
             <?php endif; ?>
+
+            <?php if (isset($mode) && $mode === 'all'): ?>
+            <a href="<?= url('/admin/candidate-management/export') ?>?<?= http_build_query($_GET) ?>" class="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition shadow-sm">
+                <i class="fas fa-file-excel"></i> Xuất dữ liệu
+            </a>
+            <?php endif; ?>
+
             <a href="<?= url('/admin/candidates/trash') ?>" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-red-600 hover:border-red-200 transition shadow-sm" title="Xem hồ sơ đã xóa">
                 <i class="fas fa-trash-alt"></i> Thùng rác
             </a>

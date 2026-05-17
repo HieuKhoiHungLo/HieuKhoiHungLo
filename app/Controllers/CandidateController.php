@@ -263,6 +263,77 @@ class CandidateController extends Controller
     }
 
     /**
+     * Export Ghost Candidates to Excel
+     */
+    public function exportGhost()
+    {
+        $this->checkPermission('dashboard');
+        
+        $search = $_GET['search'] ?? '';
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
+        $year = isset($_GET['year']) && $_GET['year'] !== '' ? (int)$_GET['year'] : null;
+
+        $extraFilters = [
+            'f_phone'     => $_GET['f_phone'] ?? '',
+            'f_dob'       => $_GET['f_dob'] ?? '',
+            'f_province'  => $_GET['f_province'] ?? '',
+            'f_school'    => $_GET['f_school'] ?? '',
+            'f_gender'    => $_GET['f_gender'] ?? '',
+        ];
+
+        $sqlExtraFilters = [];
+        foreach ($extraFilters as $k => $v) {
+            $sqlExtraFilters[substr($k, 2)] = $v;
+        }
+
+        $candidates = $this->thiSinhRepo->getFiltered(
+            $search,
+            '', // status
+            '', // hocBaStatus
+            100000, // limit
+            0, // offset
+            $sessionId,
+            false, // onlyEditRequests
+            $year,
+            'ngay_tao', // sort
+            'DESC', // dir
+            true, // excludeTrash
+            $sqlExtraFilters,
+            'ghost' // applicationStatus
+        );
+
+        $exportData = [];
+        $stt = 1;
+        foreach ($candidates as $c) {
+            $exportData[] = [
+                'STT' => $stt++,
+                'Số CCCD' => $c['so_cccd'] ?? '',
+                'Họ và tên' => mb_strtoupper($c['ho_va_ten'] ?? '', 'UTF-8'),
+                'Ngày sinh' => !empty($c['ngay_sinh']) ? date('d/m/Y', strtotime($c['ngay_sinh'])) : '',
+                'Giới tính' => $c['gioi_tinh'] ?? '',
+                'Điện thoại' => $c['dien_thoai'] ?? '',
+                'Email' => $c['email'] ?? '',
+                'Trường THPT' => $c['school_name'] ?? '',
+                'Tỉnh/Thành phố' => $c['province_name'] ?? '',
+                'Năm tốt nghiệp' => $c['nam_tot_nghiep'] ?? '',
+                'Khu vực' => $c['khu_vuc_uu_tien'] ?? '',
+                'Đối tượng' => $c['doi_tuong_uu_tien'] ?? '',
+                'Ngày tạo tài khoản' => !empty($c['ngay_tao']) ? date('d/m/Y H:i:s', strtotime($c['ngay_tao'])) : '',
+                'Ghi chú' => $c['base_ghi_chu'] ?? ''
+            ];
+        }
+
+        // Apply text cell trick so excel doesn't drop leading zeros from phone and CCCD
+        foreach ($exportData as &$row) {
+            if ($row['Số CCCD'] !== '') $row['Số CCCD'] = (string)$row['Số CCCD'];
+            if ($row['Điện thoại'] !== '') $row['Điện thoại'] = (string)$row['Điện thoại'];
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($exportData, 'thi_sinh_chua_nhap_ho_so_' . date('Ymd_His') . '.xls');
+    }
+
+    /**
      * Handle bulk actions from dashboard
      */
     public function bulkAction()
