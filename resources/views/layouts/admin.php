@@ -693,6 +693,14 @@
 
         // Initial trigger
         setTimeout(triggerEmailQueue, 3000);
+
+        // Auto-trigger scheduled backup (non-blocking, runs once per page load)
+        // The API checks: is backup enabled? correct hour? already ran today?
+        setTimeout(() => {
+            fetch('<?= url("/api/cron/backup?key=" . ($_ENV["CRON_SECRET_KEY"] ?? "")) ?>', {
+                method: 'GET', keepalive: true
+            }).catch(() => {});
+        }, 10000);
     </script>
     <!-- Global Modals -->
     <?php include __DIR__ . '/../admin/partials/_modals.php'; ?>
