@@ -115,6 +115,7 @@ class ExportService {
                        p.ten_tinh as \"Tỉnh/Thành phố\",
                        truong.ten_truong AS \"Trường THPT\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
+                       h.ghi_chu AS \"Ghi chú\",
                        h.dot_tuyen_sinh_id AS \"Mã đợt tuyển sinh\"
                 FROM thi_sinh t
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
@@ -169,6 +170,8 @@ class ExportService {
                        nv.to_hop_toi_uu AS \"Tổ Hợp Tối Ưu\",
                        nv.diem_xet_tuyen AS \"Điểm Xét Tuyển\",
                        nv.phuong_thuc_toi_uu AS \"Mã Phương Thức\",
+                       h.trang_thai AS \"Trạng thái hồ sơ\",
+                       h.ghi_chu AS \"Ghi chú\",
                        n.co_xet_chung_chi,
                        n.co_diem_nangkhieu_thpt,
                        n.co_diem_nangkhieu_hochba
@@ -233,10 +236,13 @@ class ExportService {
                        n.ten_nganh AS \"Tên Ngành\",
                        nv.to_hop_toi_uu AS \"Tổ hợp\",
                        nv.diem_xet_tuyen AS \"Điểm xét tuyển\",
-                       nv.trang_thai AS \"Trạng thái xét tuyển\"
+                       nv.trang_thai AS \"Trạng thái xét tuyển\",
+                       h.trang_thai AS \"Trạng thái hồ sơ\",
+                       h.ghi_chu AS \"Ghi chú\"
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                LEFT JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd AND nv.dot_tuyen_sinh_id = h.dot_tuyen_sinh_id
                 WHERE 1=1";
 
         $params = [];
@@ -274,6 +280,8 @@ class ExportService {
                        t.ngay_sinh AS \"Ngày Sinh\",
                        cc.loai_chung_chi AS \"Loại chứng chỉ\",
                        cc.diem_chung_chi AS \"Điểm/Xếp loại\",
+                       h.trang_thai AS \"Trạng thái hồ sơ\",
+                       h.ghi_chu AS \"Ghi chú\",
                        cc.file_minh_chung_cc
                 FROM chung_chi_thi_sinh cc
                 JOIN thi_sinh t ON cc.so_cccd = t.so_cccd
@@ -327,6 +335,7 @@ class ExportService {
                        n.ten_nganh AS \"Tên ngành\",
                        nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
+                       h.ghi_chu AS \"Ghi chú\",
                        t.anh_dai_dien
                 FROM thi_sinh t
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
@@ -418,7 +427,8 @@ class ExportService {
                        dt.toan as dt_toan, dt.van as dt_van, dt.ly as dt_ly, dt.hoa as dt_hoa,
                        dt.sinh as dt_sinh, dt.su as dt_su, dt.dia as dt_dia, dt.gdcd as dt_gdcd,
                        dt.tieng_anh as dt_anh, dt.tieng_trung as dt_trung, dt.ktpl as dt_ktpl,
-                       dt.tin_hoc as dt_tin, dt.cnnn as dt_cnnn, hs.created_at
+                       dt.tin_hoc as dt_tin, dt.cnnn as dt_cnnn, hs.created_at,
+                       hs.trang_thai, hs.ghi_chu
                 FROM thi_sinh t
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN dm_xa x ON t.ma_xa_thuong_tru = x.ma_xa
@@ -503,6 +513,8 @@ class ExportService {
                 'Điểm xét tốt nghiệp'               => '',
                 'Người tạo'                         => 'Hệ thống',
                 'Ngày tạo'                          => !empty($c['created_at']) ? date('d/m/Y', strtotime($c['created_at'])) : date('d/m/Y'),
+                'Trạng thái hồ sơ'                  => $c['trang_thai'],
+                'Ghi chú'                           => $c['ghi_chu'],
                 'Dân tộc'                           => $c['dan_toc'],
                 'Mã dân tộc'                        => '',
                 'Nơi sinh'                          => '',
@@ -512,7 +524,7 @@ class ExportService {
     }
 
     public function exportMoetWishesCsv($filters = []) {
-        $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba
+        $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba, hs.trang_thai, hs.ghi_chu
                 FROM nguyen_vong nv
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
@@ -567,6 +579,8 @@ class ExportService {
                 'Điểm NN làm TCP'       => '',
                 'NV tuyển thẳng(điều 8)'=> '',
                 'Thang điểm'            => '30',
+                'Trạng thái hồ sơ'      => $w['trang_thai'],
+                'Ghi chú'               => $w['ghi_chu'],
             ];
         }
         return $data;
@@ -580,7 +594,7 @@ class ExportService {
      */
     public function exportMoetTranscriptsCsv($filters = []) {
         // 1. Lấy danh sách thí sinh thỏa mãn bộ lọc
-        $sqlC = "SELECT hs.so_cccd, t.ho_va_ten, t.ngay_sinh, t.gioi_tinh
+        $sqlC = "SELECT hs.so_cccd, hs.trang_thai, hs.ghi_chu, t.ho_va_ten, t.ngay_sinh, t.gioi_tinh
                  FROM ho_so_xet_tuyen hs
                  JOIN thi_sinh t ON hs.so_cccd = t.so_cccd
                  WHERE 1=1";
@@ -674,6 +688,9 @@ class ExportService {
                     $row[$field . ' HK II'] = '';
                     $row[$field . ' CN'] = '';
                 }
+
+                $row['Trạng thái hồ sơ'] = $c['trang_thai'];
+                $row['Ghi chú'] = $c['ghi_chu'];
 
                 $data[] = $row;
             }
