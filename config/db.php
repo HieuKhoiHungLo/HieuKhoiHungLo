@@ -10,7 +10,7 @@ $user = $_ENV['DB_USERNAME'] ?? getenv('DB_USERNAME') ?: 'root';
 $pass = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
 $port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '5432';
 
-$dsn = "pgsql:host=$host;port=$port;dbname=$db";
+$dsn = "pgsql:host=$host;port=$port;dbname=$db;options='--search_path=public'";
 
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
