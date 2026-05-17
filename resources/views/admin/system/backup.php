@@ -42,7 +42,6 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
             </div>
             Quản lý Sao lưu
         </h2>
-        <p class="text-sm text-slate-500 font-medium mt-1">Bảo vệ dữ liệu • <span class="text-indigo-500 font-bold"><?= htmlspecialchars($dbHost ?? '') ?></span></p>
     </div>
 </div>
 
