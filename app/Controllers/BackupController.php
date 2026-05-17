@@ -57,19 +57,26 @@ class BackupController extends Controller
             $result = $service->run($isTest);
 
             if ($result['success']) {
-                // Save last run info
-                $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
-                $this->masterData->setSetting('backup_last_status', 'success');
-                $this->masterData->setSetting('backup_last_file', $result['file']);
+                try {
+                    $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
+                    $this->masterData->setSetting('backup_last_status', 'success');
+                    $this->masterData->setSetting('backup_last_file', $result['file']);
+                } catch (\Exception $dbEx) {
+                    // Fail silently
+                }
 
                 $this->redirect(url('/admin/system/backup?success=Tạo bản sao lưu thành công: ' . $result['file']));
             } else {
                 $this->redirect(url('/admin/system/backup?error=Lỗi khi tạo bản sao lưu'));
             }
         } catch (\Exception $e) {
-            $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
-            $this->masterData->setSetting('backup_last_status', 'failed: ' . $e->getMessage());
-            $this->redirect(url('/admin/system/backup?error=Lỗi: ' . $e->getMessage()));
+            try {
+                $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
+                $this->masterData->setSetting('backup_last_status', substr('failed: ' . $e->getMessage(), 0, 200));
+            } catch (\Exception $dbEx) {
+                // Fail silently
+            }
+            $this->redirect(url('/admin/system/backup?error=Lỗi: ' . urlencode($e->getMessage())));
         }
     }
 
