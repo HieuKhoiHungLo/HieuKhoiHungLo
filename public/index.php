@@ -128,6 +128,18 @@ $app->router = $router;
 try {
     $app->run();
 } catch (\PDOException $e) {
+    // Show detailed database query errors on local machine for easy debugging
+    $isLocal = isset($_SERVER['HTTP_HOST']) && 
+               (str_contains($_SERVER['HTTP_HOST'], 'localhost') || str_contains($_SERVER['HTTP_HOST'], '127.0.0.1'));
+    if ($isLocal) {
+        die("<div style='padding:20px;background:#fff5f5;border:1px solid #ffc1c1;color:#c00;font-family:sans-serif;border-radius:6px;margin:20px;'>"
+          . "<h3>[Local Debug] Lỗi truy vấn cơ sở dữ liệu:</h3>"
+          . "<p><b>Message:</b> " . htmlspecialchars($e->getMessage()) . "</p>"
+          . "<p><b>File:</b> " . htmlspecialchars($e->getFile()) . " (Line " . $e->getLine() . ")</p>"
+          . "<pre style='background:#fff;padding:10px;border-radius:4px;border:1px solid #ffc1c1;color:#555;overflow-x:auto;font-size:12px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>"
+          . "</div>");
+    }
+
     $errorViewPath = __DIR__ . '/../resources/views/errors/maintenance.php';
     if (file_exists($errorViewPath)) {
         http_response_code(503);
