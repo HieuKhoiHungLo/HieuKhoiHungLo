@@ -309,30 +309,6 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                         <div class="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-600 break-all select-all"><?= htmlspecialchars($cronUrl) ?></div>
                         <button onclick="navigator.clipboard.writeText('<?= htmlspecialchars($cronUrl, ENT_QUOTES) ?>');this.innerHTML='<i class=\'fas fa-check text-emerald-500\'></i>';setTimeout(()=>this.innerHTML='<i class=\'fas fa-copy\'></i>',2000)"
                                 class="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 transition-all" title="Copy"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                            <p class="font-black text-indigo-700 mb-1"><i class="fas fa-windows mr-1"></i> Windows Task Scheduler</p>
-                            <p class="font-mono text-[10px] text-indigo-600 select-all leading-relaxed">schtasks /create /tn "TS_Backup" /tr "powershell -NoProfile -Command Invoke-WebRequest -Uri '<?= htmlspecialchars($cronUrl) ?>' -UseBasicParsing" /sc HOURLY</p>
-                        </div>
-                        <div class="p-3 bg-sky-50/50 rounded-xl border border-sky-100">
-                            <p class="font-black text-sky-700 mb-1"><i class="fas fa-globe mr-1"></i> Dịch vụ Online</p>
-                            <p class="text-[10px] text-sky-600 font-medium">Dùng <a href="https://cron-job.org" target="_blank" class="underline font-bold">cron-job.org</a> hoặc <a href="https://uptimerobot.com" target="_blank" class="underline font-bold">Uptime Robot</a> để gọi URL trên mỗi giờ.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DB Info -->
-            <div class="rounded-2xl border border-slate-100 overflow-hidden">
-                <div class="p-4 bg-slate-50/50 border-b border-slate-100">
-                    <h4 class="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-database text-amber-400"></i> Thông tin Kết nối</h4>
-                </div>
-                <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                    <div><p class="font-black text-slate-400 uppercase mb-1">Backup Host</p><p class="font-bold text-slate-700"><?= htmlspecialchars($_ENV['DB_HOST'] ?? '') ?></p></div>
-                    <div><p class="font-black text-slate-400 uppercase mb-1">Backup Port</p><p class="font-bold text-slate-700"><?= htmlspecialchars($_ENV['DB_PORT'] ?? '') ?></p></div>
-                    <div><p class="font-black text-slate-400 uppercase mb-1">Restore Host</p><p class="font-bold text-slate-700"><?= htmlspecialchars($_ENV['DB_RESTORE_HOST'] ?? $_ENV['DB_HOST'] ?? '') ?></p></div>
-                    <div><p class="font-black text-slate-400 uppercase mb-1">Restore Port</p><p class="font-bold text-slate-700"><?= htmlspecialchars($_ENV['DB_RESTORE_PORT'] ?? $_ENV['DB_PORT'] ?? '') ?></p></div>
                 </div>
             </div>
         </div>
@@ -344,9 +320,41 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 function restoreBackup(filename) {
     const db = '<?= htmlspecialchars($currentDb ?? "postgres", ENT_QUOTES) ?>';
     const host = '<?= htmlspecialchars($dbHost ?? "", ENT_QUOTES) ?>';
-    if (!confirm(`⚠️ CẢNH BÁO\n\nKhôi phục "${filename}" vào database "${db}" @ ${host}?\n\nDữ liệu hiện tại SẼ BỊ GHI ĐÈ.`)) return;
-    if (!confirm('XÁC NHẬN LẦN CUỐI: Thao tác KHÔNG THỂ hoàn tác. Tiếp tục?')) return;
-    window.location.href = `<?= url('/admin/system/backup/restore') ?>?name=${encodeURIComponent(filename)}`;
+    
+    if (!confirm(`⚠️ CẢNH BÁO NGUY HIỂM\n\nBạn có chắc chắn muốn khôi phục bản sao lưu "${filename}" vào cơ sở dữ liệu "${db}" @ ${host}?\n\nToàn bộ dữ liệu hiện tại SẼ BỊ GHI ĐÈ và KHÔNG THỂ HOÀN TÁC.`)) return;
+    
+    const password = prompt('Vui lòng nhập mật khẩu tài khoản quản trị của bạn để xác nhận khôi phục:');
+    if (password === null) return; // User cancelled
+    if (password.trim() === '') {
+        alert('Mật khẩu không được để trống.');
+        return;
+    }
+
+    // Create dynamic form and POST securely
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?= url('/admin/system/backup/restore') ?>';
+
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = '<?= $this->csrfToken() ?>';
+    form.appendChild(csrfInput);
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'hidden';
+    nameInput.name = 'name';
+    nameInput.value = filename;
+    form.appendChild(nameInput);
+
+    const passInput = document.createElement('input');
+    passInput.type = 'hidden';
+    passInput.name = 'password';
+    passInput.value = password;
+    form.appendChild(passInput);
+
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 

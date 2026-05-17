@@ -117,10 +117,32 @@ class BackupController extends Controller
     public function restore()
     {
         try {
-            $name = $_GET['name'] ?? '';
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->redirect(url('/admin/system/backup?error=Yêu cầu không hợp lệ.'));
+                return;
+            }
+
+            $this->validateCsrf();
+
+            $name = $_POST['name'] ?? '';
+            $password = $_POST['password'] ?? '';
 
             if (empty($name)) {
                 throw new \Exception("Tên file không hợp lệ.");
+            }
+
+            if (empty($password)) {
+                throw new \Exception("Vui lòng nhập mật khẩu xác nhận.");
+            }
+
+            // Verify admin password
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT mat_khau FROM public.quan_tri_vien WHERE id = ?");
+            $stmt->execute([$_SESSION['admin_id'] ?? 0]);
+            $admin = $stmt->fetch();
+
+            if (!$admin || !password_verify($password, $admin['mat_khau'])) {
+                throw new \Exception("Mật khẩu xác nhận không chính xác.");
             }
 
             $service = new \App\Services\BackupService($this->backupDir);
@@ -132,7 +154,7 @@ class BackupController extends Controller
                 $this->redirect(url('/admin/system/backup?error=Lỗi khi khôi phục'));
             }
         } catch (\Exception $e) {
-            $this->redirect(url('/admin/system/backup?error=Lỗi: ' . $e->getMessage()));
+            $this->redirect(url('/admin/system/backup?error=Lỗi: ' . urlencode($e->getMessage())));
         }
     }
 
