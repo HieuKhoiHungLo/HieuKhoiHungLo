@@ -85,6 +85,43 @@ class BackupService
         $sizeMb = round(filesize($filePath) / 1024 / 1024, 2);
         $results[] = "[SUCCESS] Sao lưu hoàn tất: {$filename} ({$sizeMb} MB)";
 
+        // Auto-upload to Google Drive if configured
+        $googleClientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json';
+        $googleTokenFile = $_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json';
+        $googleDriveFolderId = $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? '';
+
+        $secretPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . $googleClientSecret;
+        $tokenPath = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . $googleTokenFile;
+
+        if (file_exists($secretPath) && file_exists($tokenPath)) {
+            try {
+                $results[] = "[INFO] Đang đồng bộ hóa lên Google Drive...";
+                $uploader = new FileUploader($this->backupDir, 'google');
+                $uploader->setGoogleConfig($secretPath, $tokenPath, $googleDriveFolderId);
+                
+                $backupFolderId = $uploader->findFolder('Backups');
+                if (!$backupFolderId) {
+                    $backupFolderId = $uploader->createFolder('Backups');
+                }
+
+                if ($backupFolderId) {
+                    $uploader->setTargetFolderId($backupFolderId);
+                    $uploadResult = $uploader->uploadLocalFile($filePath, $filename, 'application/octet-stream');
+                    if ($uploadResult) {
+                        $results[] = "[SUCCESS] Đã tự động đồng bộ thành công lên Google Drive.";
+                    } else {
+                        $results[] = "[WARNING] Đồng bộ Google Drive thất bại: " . ($uploader->getFirstError() ?? 'Không rõ lỗi');
+                    }
+                } else {
+                    $results[] = "[WARNING] Không tìm thấy hoặc không thể tạo folder 'Backups' trên Google Drive.";
+                }
+            } catch (\Exception $e) {
+                $results[] = "[WARNING] Lỗi khi đồng bộ Google Drive: " . $e->getMessage();
+            }
+        } else {
+            $results[] = "[INFO] Bỏ qua đồng bộ Cloud (Chưa cấu hình đầy đủ Google API).";
+        }
+
         return ['success' => true, 'log' => $results, 'file' => $filename];
     }
 

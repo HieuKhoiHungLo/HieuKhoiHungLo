@@ -26,34 +26,6 @@ class BackupController extends Controller
         $service = new \App\Services\BackupService($this->backupDir);
         $localBackups = $service->getLocalBackups();
 
-        // Google Drive backups
-        $driveBackups = [];
-        try {
-            $uploader = new FileUploader($this->backupDir, 'google');
-            $uploader->setGoogleConfig(
-                DIRECTORY_SEPARATOR . ($_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json'),
-                DIRECTORY_SEPARATOR . ($_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json'),
-                $_ENV['GOOGLE_DRIVE_FOLDER_ID'] ?? ''
-            );
-            $backupFolderId = $uploader->findFolder('Backups');
-            if ($backupFolderId) {
-                $files = $uploader->listFiles($backupFolderId);
-                if ($files) {
-                    foreach ($files as $file) {
-                        $driveBackups[] = [
-                            'id'   => $file->id,
-                            'name' => $file->name,
-                            'size' => round(($file->size ?? 0) / 1024, 2) . ' KB',
-                            'date' => date('Y-m-d H:i:s', strtotime($file->createdTime)),
-                            'type' => 'Cloud'
-                        ];
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            // Google Drive not configured, ignore
-        }
-
         // Load schedule settings
         $settings = [
             'backup_enabled' => $this->masterData->getSetting('backup_enabled') ?? '0',
@@ -70,7 +42,6 @@ class BackupController extends Controller
         $this->view('admin/system/backup', [
             'title'        => 'Quản lý Sao lưu',
             'localBackups' => $localBackups,
-            'driveBackups' => $driveBackups,
             'settings'     => $settings,
             'cronUrl'      => $cronUrl,
             'currentDb'    => $_ENV['DB_DATABASE'] ?? 'postgres',
@@ -155,6 +126,31 @@ class BackupController extends Controller
             }
         } catch (\Exception $e) {
             $this->redirect(url('/admin/system/backup?error=Lỗi: ' . $e->getMessage()));
+        }
+    }
+
+    public function download()
+    {
+        $name = $_GET['name'] ?? '';
+        if (empty($name)) {
+            $this->redirect(url('/admin/system/backup?error=Tên file không hợp lệ'));
+        }
+
+        $safeName = basename($name);
+        $path = $this->backupDir . '/' . $safeName;
+
+        if (file_exists($path)) {
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . $safeName . '"');
+            header('Expires: 0');
+            header('Cache-Control: must-revalidate');
+            header('Pragma: public');
+            header('Content-Length: ' . filesize($path));
+            readfile($path);
+            exit;
+        } else {
+            $this->redirect(url('/admin/system/backup?error=File không tồn tại'));
         }
     }
 

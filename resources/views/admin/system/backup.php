@@ -7,10 +7,16 @@ $lastFile = $settings['backup_last_file'] ?? '';
 $backupHour = $settings['backup_hour'] ?? '1';
 $backupMinute = $settings['backup_minute'] ?? '0';
 $totalLocal = count($localBackups ?? []);
-$totalCloud = count($driveBackups ?? []);
 $totalSize = 0;
 foreach (($localBackups ?? []) as $b) { $totalSize += ($b['size_bytes'] ?? 0); }
 $totalSizeMb = round($totalSize / 1048576, 1);
+
+// Checking Google Drive sync state
+$googleClientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? 'client_secret.json';
+$googleTokenFile = $_ENV['GOOGLE_TOKEN_FILE'] ?? 'token.json';
+$secretPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . $googleClientSecret;
+$tokenPath = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . $googleTokenFile;
+$isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 ?>
 
 <style>
@@ -21,12 +27,8 @@ $totalSizeMb = round($totalSize / 1048576, 1);
 .tab-panel.active { display:block; }
 @keyframes tabFadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .stat-card { background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); }
-.backup-row:hover { background:#f8fafc; transform:translateX(2px); }
-.backup-row { transition: all 0.15s ease; }
 .glow-btn { box-shadow: 0 4px 14px rgba(99,102,241,0.25); }
 .glow-btn:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.35); transform:translateY(-1px); }
-.pulse-dot { animation: pulse-dot 2s infinite; }
-@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 </style>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="{ tab: 'backup' }">
@@ -54,8 +56,15 @@ $totalSizeMb = round($totalSize / 1048576, 1);
     </div>
     <div class="stat-card rounded-2xl p-4 border border-slate-100">
         <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center"><i class="fab fa-google-drive text-sky-500 text-sm"></i></div>
-            <div><p class="text-[10px] font-bold text-slate-400 uppercase">Cloud</p><p class="text-lg font-black text-slate-800"><?= $totalCloud ?></p></div>
+            <div class="w-9 h-9 rounded-lg <?= $isDriveActive ? 'bg-sky-100' : 'bg-slate-100' ?> flex items-center justify-center">
+                <i class="fab fa-google-drive <?= $isDriveActive ? 'text-sky-500' : 'text-slate-400' ?> text-sm"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Đồng bộ Cloud</p>
+                <p class="text-[12px] font-black <?= $isDriveActive ? 'text-sky-600' : 'text-slate-400' ?>">
+                    <?= $isDriveActive ? '🟢 ĐANG BẬT' : '🔴 CHƯA BẬT' ?>
+                </p>
+            </div>
         </div>
     </div>
     <div class="stat-card rounded-2xl p-4 border border-slate-100">
@@ -112,74 +121,84 @@ $totalSizeMb = round($totalSize / 1048576, 1);
                 <div class="ml-auto flex items-center gap-4 text-xs font-bold text-slate-500">
                     <span><i class="fas fa-history mr-1"></i> <?= htmlspecialchars($lastRun) ?></span>
                     <?php if (str_starts_with($lastStatus, 'success')): ?>
-                        <span class="text-emerald-600"><i class="fas fa-check-circle"></i> OK</span>
+                        <span class="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-check-circle text-[10px]"></i> Thành công</span>
                     <?php elseif (!empty($lastStatus)): ?>
-                        <span class="text-rose-500"><i class="fas fa-times-circle"></i> Lỗi</span>
+                        <span class="text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-times-circle text-[10px]"></i> Lỗi</span>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>
 
-            <!-- Local backups grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Local -->
-                <div>
-                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <i class="fas fa-server text-indigo-400"></i> Bộ nhớ Cục bộ (<?= $totalLocal ?>)
-                    </h4>
-                    <div class="space-y-2 max-h-[400px] overflow-auto pr-1">
+            <!-- Local backups table (Premium Review Management Style) -->
+            <div class="overflow-hidden border border-slate-100 rounded-2xl shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-100 text-slate-400 text-xs font-black uppercase tracking-wider bg-slate-50/50">
+                            <th class="py-4 px-6 w-16 text-center">STT</th>
+                            <th class="py-4 px-6">Tên Bản sao lưu</th>
+                            <th class="py-4 px-6">Định dạng</th>
+                            <th class="py-4 px-6">Dung lượng</th>
+                            <th class="py-4 px-6">Ngày sao lưu</th>
+                            <th class="py-4 px-6 text-center w-36">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
                         <?php if (empty($localBackups)): ?>
-                            <div class="text-center py-10 text-slate-300"><i class="fas fa-folder-open text-3xl mb-2 block"></i><span class="text-sm font-bold">Trống</span></div>
+                            <tr>
+                                <td colspan="6" class="text-center py-20 text-slate-300">
+                                    <i class="fas fa-folder-open text-4xl mb-3 block text-slate-200"></i>
+                                    <span class="text-sm font-bold text-slate-400">Không có bản sao lưu cục bộ nào</span>
+                                </td>
+                            </tr>
                         <?php else: ?>
-                            <?php foreach ($localBackups as $b): ?>
-                            <div class="backup-row flex items-center justify-between p-3 rounded-xl border border-slate-100 group">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                                        <i class="fas fa-file-archive text-indigo-400 text-xs"></i>
+                            <?php foreach ($localBackups as $index => $b): ?>
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="py-4 px-6 text-sm font-bold text-slate-400 text-center">
+                                    <?= $index + 1 ?>
+                                </td>
+                                <td class="py-4 px-6 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-500">
+                                            <i class="fas fa-file-archive text-xs"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-700 truncate max-w-md" title="<?= htmlspecialchars($b['name']) ?>">
+                                            <?= htmlspecialchars($b['name']) ?>
+                                        </span>
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-bold text-slate-700 truncate"><?= $b['name'] ?></p>
-                                        <p class="text-[10px] font-bold text-slate-400"><?= $b['date'] ?> • <?= $b['size'] ?></p>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase <?= $b['format'] === 'custom' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100' ?>">
+                                        <?= $b['format'] === 'custom' ? 'Custom (.backup)' : 'Legacy (.sql)' ?>
+                                    </span>
+                                </td>
+                                <td class="py-4 px-6 text-sm font-black text-slate-500">
+                                    <?= htmlspecialchars($b['size']) ?>
+                                </td>
+                                <td class="py-4 px-6 text-xs font-bold text-slate-400">
+                                    <?= htmlspecialchars($b['date']) ?>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <!-- Download -->
+                                        <a href="<?= url('/admin/system/backup/download?name=' . urlencode($b['name'])) ?>" 
+                                           class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition-all" 
+                                           title="Tải xuống bản sao lưu">
+                                            <i class="fas fa-download text-xs"></i>
+                                        </a>
+                                        <!-- Delete -->
+                                        <a href="<?= url('/admin/system/backup/delete?type=local&name=' . urlencode($b['name'])) ?>" 
+                                           onclick="return confirm('Xóa bản sao lưu này? Thao tác này không thể hoàn tác.')"
+                                           class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-all" 
+                                           title="Xóa bản sao lưu">
+                                            <i class="fas fa-trash-alt text-xs"></i>
+                                        </a>
                                     </div>
-                                </div>
-                                <a href="<?= url('/admin/system/backup/delete?type=local&name=' . urlencode($b['name'])) ?>" onclick="return confirm('Xóa bản sao lưu này?')"
-                                   class="w-7 h-7 rounded-lg bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100" title="Xóa">
-                                    <i class="fas fa-trash-alt text-[10px]"></i>
-                                </a>
-                            </div>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
-                    </div>
-                </div>
-                <!-- Cloud -->
-                <div>
-                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <i class="fab fa-google-drive text-sky-400"></i> Google Drive (<?= $totalCloud ?>)
-                    </h4>
-                    <div class="space-y-2 max-h-[400px] overflow-auto pr-1">
-                        <?php if (empty($driveBackups)): ?>
-                            <div class="text-center py-10 text-slate-300"><i class="fab fa-google-drive text-3xl mb-2 block"></i><span class="text-sm font-bold">Trống</span></div>
-                        <?php else: ?>
-                            <?php foreach ($driveBackups as $b): ?>
-                            <div class="backup-row flex items-center justify-between p-3 rounded-xl border border-slate-100 group">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center flex-shrink-0">
-                                        <i class="fab fa-google-drive text-sky-400 text-xs"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-bold text-slate-700 truncate"><?= $b['name'] ?></p>
-                                        <p class="text-[10px] font-bold text-slate-400"><?= $b['date'] ?> • <?= $b['size'] ?></p>
-                                    </div>
-                                </div>
-                                <a href="<?= url('/admin/system/backup/delete?type=cloud&id=' . urlencode($b['id'])) ?>" onclick="return confirm('Xóa file này trên Cloud?')"
-                                   class="w-7 h-7 rounded-lg bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
-                                    <i class="fas fa-trash-alt text-[10px]"></i>
-                                </a>
-                            </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

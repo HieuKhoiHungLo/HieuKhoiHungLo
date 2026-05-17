@@ -145,6 +145,30 @@ class FileUploader
         }
     }
 
+    /**
+     * Upload an existing local file directly to local storage or Google Drive.
+     */
+    public function uploadLocalFile($filePath, $filename, $mimeType = 'application/octet-stream')
+    {
+        if (!file_exists($filePath)) {
+            $this->errors[] = "File nguồn không tồn tại ($filePath).";
+            return false;
+        }
+
+        if ($this->driver === 'google') {
+            return $this->uploadToGoogleDrive($filePath, $filename, $mimeType);
+        } else {
+            $destination = $this->targetDir . '/' . $filename;
+            if ($filePath !== $destination) {
+                if (!copy($filePath, $destination)) {
+                    $this->errors[] = "Không thể sao chép file đến thư mục đích.";
+                    return false;
+                }
+            }
+            return $filename;
+        }
+    }
+
     protected function uploadToLocal($tmpName, $filename)
     {
         $destination = $this->targetDir . '/' . $filename;
