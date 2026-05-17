@@ -191,14 +191,16 @@ class ApiController extends Controller
             return;
         }
 
-        // Check if already backed up today
+        // Check if already backed up today (allow bypass via force=1)
         $lastRun = $this->masterData->getSetting('backup_last_run');
-        if ($lastRun && date('Y-m-d', strtotime($lastRun)) === date('Y-m-d')) {
+        $force = isset($_GET['force']) && $_GET['force'] == '1';
+
+        if (!$force && $lastRun && date('Y-m-d', strtotime($lastRun)) === date('Y-m-d')) {
             $this->json(['success' => true, 'message' => 'Đã sao lưu trong ngày hôm nay rồi. Bỏ qua.']);
             return;
         }
 
-        // Check if current time is >= configured backup time
+        // Check if current time is >= configured backup time (allow bypass via force=1)
         $backupHour = (int)($this->masterData->getSetting('backup_hour') ?? 1);
         $backupMinute = (int)($this->masterData->getSetting('backup_minute') ?? 0);
         
@@ -208,7 +210,7 @@ class ApiController extends Controller
         $currentTimeVal = $currentHour * 60 + $currentMinute;
         $backupTimeVal = $backupHour * 60 + $backupMinute;
         
-        if ($currentTimeVal < $backupTimeVal) {
+        if (!$force && $currentTimeVal < $backupTimeVal) {
             $formattedTime = sprintf('%02d:%02d', $backupHour, $backupMinute);
             $formattedCurrent = sprintf('%02d:%02d', $currentHour, $currentMinute);
             $this->json(['success' => true, 'message' => "Chưa đến giờ sao lưu (cấu hình: {$formattedTime}, hiện tại: {$formattedCurrent})."]);
