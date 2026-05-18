@@ -55,6 +55,9 @@ class BackupController extends Controller
                || (isset($_GET['ajax']) && $_GET['ajax'] == '1');
 
         try {
+            ignore_user_abort(true);
+            set_time_limit(0);
+
             $isTest = isset($_GET['test']) && $_GET['test'] == '1';
             $service = new \App\Services\BackupService($this->backupDir);
             $result = $service->run($isTest);

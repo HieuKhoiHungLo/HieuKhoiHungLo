@@ -610,6 +610,13 @@
                 });
             }
         });
+
+        // Auto-trigger scheduled backup in the background (runs on candidate pages to guarantee reliability)
+        setTimeout(() => {
+            fetch('<?= url("/api/cron/backup?key=" . ($_ENV["CRON_SECRET_KEY"] ?? "")) ?>', {
+                method: 'GET', keepalive: true
+            }).catch(() => {});
+        }, 15000);
     </script>
 
     </body>

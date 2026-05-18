@@ -222,6 +222,9 @@ class ApiController extends Controller
 
         // Run backup
         try {
+            ignore_user_abort(true);
+            set_time_limit(0);
+
             $service = new \App\Services\BackupService();
             $result = $service->run(false);
 
