@@ -50,11 +50,21 @@ class ImportService {
 
     private function loadArrayData($filePath, $maxCol) {
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        
         if ($extension === 'xls') {
             require_once __DIR__ . '/SimpleXLS.php';
             if ($xls = \Shuchkin\SimpleXLS::parse($filePath)) {
                 $data = $xls->rows();
                 unset($xls);
+                return $data;
+            }
+        }
+        
+        if ($extension === 'xlsx') {
+            require_once __DIR__ . '/SimpleXLSX.php';
+            if ($xlsx = \Shuchkin\SimpleXLSX::parse($filePath)) {
+                $data = $xlsx->rows();
+                unset($xlsx);
                 return $data;
             }
         }

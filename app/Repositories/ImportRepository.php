@@ -63,12 +63,18 @@ class ImportRepository {
 
             // 6. Delete thi_sinh (Orphans)
             // Chỉ xóa thí sinh nếu họ không còn bất kỳ hồ sơ, học bạ hay điểm thi nào trong hệ thống
-            $stmt = $this->db->prepare("
-                DELETE FROM thi_sinh 
-                WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)
+            $orphanCondition = "
+                NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen WHERE so_cccd = thi_sinh.so_cccd)
                 AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap WHERE so_cccd = thi_sinh.so_cccd)
                 AND NOT EXISTS (SELECT 1 FROM diem_thi_thpt WHERE so_cccd = thi_sinh.so_cccd)
-            ");
+            ";
+
+            // 6.1 Delete certificates of orphans to avoid FK violation
+            $stmt = $this->db->prepare("DELETE FROM chung_chi_thi_sinh WHERE so_cccd IN (SELECT so_cccd FROM thi_sinh WHERE $orphanCondition)");
+            $stmt->execute();
+
+            // 6.2 Now safe to delete orphan candidates
+            $stmt = $this->db->prepare("DELETE FROM thi_sinh WHERE $orphanCondition");
             $stmt->execute();
 
             $this->db->commit();

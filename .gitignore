@@ -57,4 +57,5 @@ database.sqlite
 scratch/
 storage/imports/*
 !storage/imports/.gitkeep
+storage/backups/*
 /storage/*.lock
