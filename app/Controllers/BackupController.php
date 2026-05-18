@@ -143,6 +143,10 @@ class BackupController extends Controller
     public function restore()
     {
         try {
+            ignore_user_abort(true);
+            set_time_limit(3600);
+            ini_set('max_execution_time', '3600');
+
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 $this->redirect(url('/admin/system/backup?error=Yêu cầu không hợp lệ.'));
                 return;

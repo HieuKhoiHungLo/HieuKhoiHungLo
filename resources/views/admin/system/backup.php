@@ -130,7 +130,8 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                 </div>
             </div>
 
-            <h3 class="text-xl font-bold text-slate-800 mb-6">Hệ thống đang sao lưu</h3>
+            <h3 class="text-xl font-bold text-slate-800 mb-2" x-text="loadingTitle || 'Hệ thống đang xử lý'"></h3>
+            <p class="text-slate-500 text-xs mb-6 px-4" x-text="currentLoadingMessage"></p>
             
             <!-- Progress container -->
             <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
@@ -370,7 +371,7 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                                 </td>
                                 <td>
                                     <div class="flex items-center justify-center">
-                                        <button onclick="restoreBackup('<?= htmlspecialchars($b['name'], ENT_QUOTES) ?>')"
+                                        <button @click="startRestore('<?= htmlspecialchars($b['name'], ENT_QUOTES) ?>')"
                                            class="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white font-bold rounded-xl transition-all text-xs flex items-center gap-1.5 cursor-pointer">
                                             <i class="fas fa-undo-alt text-[10px]"></i> Khôi phục
                                         </button>
@@ -474,6 +475,7 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function backupApp() {
     return {
@@ -481,11 +483,22 @@ function backupApp() {
         isLoading: false,
         progress: 0,
         currentLoadingMessage: '',
+        loadingTitle: '',
         
         async startBackup() {
-            const confirmed = confirm('Tạo bản sao lưu mới? Quá trình có thể mất vài phút.');
-            if (!confirmed) return;
+            const { isConfirmed } = await Swal.fire({
+                title: 'TẠO BẢN SAO LƯU',
+                text: 'Bạn có chắc chắn muốn tạo một bản sao lưu mới? Quá trình này có thể mất một vài phút.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'ĐỒNG Ý, TẠO NGAY',
+                cancelButtonText: 'HỦY BỎ'
+            });
+            if (!isConfirmed) return;
             
+            this.loadingTitle = 'Hệ thống đang sao lưu';
             this.isLoading = true;
             this.progress = 0;
             this.currentLoadingMessage = 'Đang chuẩn bị kết nối cơ sở dữ liệu...';
@@ -510,11 +523,11 @@ function backupApp() {
                     
                     // Update messages based on progress
                     if (this.progress < 20) {
-                        this.currentLoadingMessage = 'Đang khởi tạo kết nối cơ sở dữ liệu Supabase...';
+                        this.currentLoadingMessage = 'Đang khởi tạo kết nối cơ sở dữ liệu...';
                     } else if (this.progress < 50) {
                         this.currentLoadingMessage = 'Đang kết xuất sơ đồ cấu trúc bảng (schema)...';
                     } else if (this.progress < 75) {
-                        this.currentLoadingMessage = 'Đang trích xuất dữ liệu bản ghi và nén file Custom Format (.backup)...';
+                        this.currentLoadingMessage = 'Đang trích xuất dữ liệu bản ghi và nén file...';
                     } else if (this.progress < 90) {
                         this.currentLoadingMessage = 'Đang lưu tệp tin sao lưu cục bộ vào storage...';
                     } else {
@@ -543,55 +556,127 @@ function backupApp() {
                     }, 500);
                 } else {
                     this.isLoading = false;
-                    alert('Lỗi: ' + result.message);
+                    Swal.fire({
+                        title: 'Thất bại',
+                        text: 'Lỗi: ' + result.message,
+                        icon: 'error',
+                        confirmButtonColor: '#4f46e5'
+                    });
                 }
             } catch (err) {
                 clearInterval(progressInterval);
                 this.isLoading = false;
-                alert('Lỗi kết nối mạng: ' + err.message);
+                Swal.fire({
+                    title: 'Lỗi kết nối',
+                    text: err.message,
+                    icon: 'error',
+                    confirmButtonColor: '#4f46e5'
+                });
             }
+        },
+
+        async startRestore(filename) {
+            const { isConfirmed: confirmRestore } = await Swal.fire({
+                title: '⚠️ CẢNH BÁO NGUY HIỂM',
+                html: `<div class="text-sm text-left text-slate-700 leading-relaxed">
+                    <p class="mb-3">Bạn có chắc chắn muốn khôi phục bản sao lưu <strong class="text-indigo-600 font-bold">"${filename}"</strong>?</p>
+                    <p class="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 font-bold flex items-start gap-2">
+                        <i class="fas fa-exclamation-triangle mt-0.5 flex-shrink-0 text-sm"></i>
+                        <span>CẢNH BÁO: Toàn bộ dữ liệu hiện tại trên hệ thống SẼ BỊ GHI ĐÈ và KHÔNG THỂ HOÀN TÁC! Hãy cân nhắc kỹ trước khi thực hiện.</span>
+                    </p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'XÁC NHẬN KHÔI PHỤC',
+                cancelButtonText: 'HỦY BỎ'
+            });
+
+            if (!confirmRestore) return;
+
+            const { value: password } = await Swal.fire({
+                title: 'XÁC NHẬN MẬT KHẨU ADMIN',
+                html: '<p class="text-xs text-slate-500 mb-3">Vui lòng nhập mật khẩu tài khoản quản trị của bạn để xác nhận khôi phục cơ sở dữ liệu:</p>',
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                inputPlaceholder: 'Mật khẩu của bạn...',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'BẮT ĐẦU KHÔI PHỤC',
+                cancelButtonText: 'HỦY BỎ',
+                preConfirm: (pass) => {
+                    if (!pass) return Swal.showValidationMessage('Vui lòng nhập mật khẩu');
+                    return pass;
+                }
+            });
+
+            if (!password) return;
+
+            // Show Premium Loading Modal and start progress simulation
+            this.loadingTitle = 'Hệ thống đang khôi phục';
+            this.isLoading = true;
+            this.progress = 0;
+            this.currentLoadingMessage = 'Đang khởi tạo tiến trình khôi phục...';
+
+            let progressInterval = setInterval(() => {
+                if (this.progress < 98) {
+                    let increment = 0;
+                    if (this.progress < 30) {
+                        increment = Math.random() * 2 + 1; // 1-3% at first
+                    } else if (this.progress < 60) {
+                        increment = Math.random() * 1 + 0.5; // 0.5-1.5%
+                    } else if (this.progress < 85) {
+                        increment = Math.random() * 0.5 + 0.2; // 0.2-0.7%
+                    } else {
+                        increment = 0.05; // Slow down near the end
+                    }
+                    
+                    this.progress = Math.min(98, parseFloat((this.progress + increment).toFixed(2)));
+                    
+                    if (this.progress < 25) {
+                        this.currentLoadingMessage = 'Đang kiểm tra tính toàn vẹn của tệp tin...';
+                    } else if (this.progress < 50) {
+                        this.currentLoadingMessage = 'Đang tiến hành dọn dẹp cấu trúc bảng cũ (Clean database)...';
+                    } else if (this.progress < 75) {
+                        this.currentLoadingMessage = 'Đang tiến hành khôi phục cấu trúc bảng (schema)...';
+                    } else {
+                        this.currentLoadingMessage = 'Đang nạp lại toàn bộ cơ sở dữ liệu (Data restoration)...';
+                    }
+                }
+            }, 600);
+
+            // Create dynamic form and POST securely
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= url('/admin/system/backup/restore') ?>';
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '<?= $this->csrfToken() ?>';
+            form.appendChild(csrfInput);
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'hidden';
+            nameInput.name = 'name';
+            nameInput.value = filename;
+            form.appendChild(nameInput);
+
+            const passInput = document.createElement('input');
+            passInput.type = 'hidden';
+            passInput.name = 'password';
+            passInput.value = password;
+            form.appendChild(passInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
     };
-}
-
-function restoreBackup(filename) {
-    const db = '<?= htmlspecialchars($currentDb ?? "postgres", ENT_QUOTES) ?>';
-    const host = '<?= htmlspecialchars($dbHost ?? "", ENT_QUOTES) ?>';
-    
-    if (!confirm(`⚠️ CẢNH BÁO NGUY HIỂM\n\nBạn có chắc chắn muốn khôi phục bản sao lưu "${filename}" vào cơ sở dữ liệu "${db}" @ ${host}?\n\nToàn bộ dữ liệu hiện tại SẼ BỊ GHI ĐÈ và KHÔNG THỂ HOÀN TÁC.`)) return;
-    
-    const password = prompt('Vui lòng nhập mật khẩu tài khoản quản trị của bạn để xác nhận khôi phục:');
-    if (password === null) return; // User cancelled
-    if (password.trim() === '') {
-        alert('Mật khẩu không được để trống.');
-        return;
-    }
-
-    // Create dynamic form and POST securely
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '<?= url('/admin/system/backup/restore') ?>';
-
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrf_token';
-    csrfInput.value = '<?= $this->csrfToken() ?>';
-    form.appendChild(csrfInput);
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'hidden';
-    nameInput.name = 'name';
-    nameInput.value = filename;
-    form.appendChild(nameInput);
-
-    const passInput = document.createElement('input');
-    passInput.type = 'hidden';
-    passInput.name = 'password';
-    passInput.value = password;
-    form.appendChild(passInput);
-
-    document.body.appendChild(form);
-    form.submit();
 }
 </script>
 
