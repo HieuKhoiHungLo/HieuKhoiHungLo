@@ -186,9 +186,20 @@ class BackupService
 
         exec($cmd, $output, $returnCode);
 
-        // pg_restore returns 1 for non-fatal warnings (e.g., "relation does not exist" during --clean)
-        if ($returnCode > 1) {
-            throw new \Exception("Khôi phục thất bại (code {$returnCode}): " . implode("\n", array_slice($output, -10)));
+        // Scan output for fatal errors (connection issues, authentication failures, missing binaries, etc.)
+        $hasFatalError = false;
+        $fatalErrorMsg = '';
+        foreach ($output as $line) {
+            if (preg_match('/(FATAL:|error:|could not connect|authentication failed|permission denied|not found|not recognized|no such file)/i', $line)) {
+                $hasFatalError = true;
+                $fatalErrorMsg = $line;
+                break;
+            }
+        }
+
+        // Throw exception if the command failed with a fatal error or returnCode is greater than 1
+        if ($returnCode !== 0 && ($hasFatalError || $returnCode > 1)) {
+            throw new \Exception("Khôi phục thất bại (code {$returnCode}): " . ($fatalErrorMsg ?: implode("\n", array_slice($output, -10))));
         }
 
         return ['success' => true, 'log' => $output];
