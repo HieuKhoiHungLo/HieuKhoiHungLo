@@ -172,11 +172,15 @@ class BackupService
             throw new \Exception("Không tìm thấy pg_restore. Hãy cấu hình PG_BIN_PATH trong file .env");
         }
 
+        $jobs = (int)($_ENV['DB_RESTORE_JOBS'] ?? '4');
+        $jobsOption = $jobs > 1 ? "-j {$jobs} " : "";
+
         $cmd = "\"{$pgRestore}\" "
              . "-h {$this->restoreConfig['host']} "
              . "-p {$this->restoreConfig['port']} "
              . "-U {$this->restoreConfig['username']} "
              . "-d {$targetDb} "
+             . $jobsOption
              . "--clean --if-exists --no-owner --no-privileges -v "
              . "\"{$filePath}\" 2>&1";
 
