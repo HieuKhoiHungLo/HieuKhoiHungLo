@@ -230,16 +230,25 @@ class BackupService
         $backups = [];
         foreach ($files as $file) {
             $size = filesize($file);
+            $filename = basename($file);
+            
+            // Parse date from filename (pattern: YYYY-MM-DD_HH-ii-ss)
+            $backupDate = date('Y-m-d H:i:s', filemtime($file));
+            if (preg_match('/(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})/', $filename, $matches)) {
+                // Reconstruct to YYYY-MM-DD HH:ii:ss
+                $backupDate = $matches[1] . ' ' . $matches[2] . ':' . $matches[3] . ':' . $matches[4];
+            }
+
             $backups[] = [
-                'name' => basename($file),
+                'name' => $filename,
                 'size' => $size >= 1048576
                     ? round($size / 1048576, 2) . ' MB'
                     : round($size / 1024, 2) . ' KB',
                 'size_bytes' => $size,
-                'date' => date('Y-m-d H:i:s', filemtime($file)),
-                'timestamp' => filemtime($file),
+                'date' => $backupDate,
+                'timestamp' => strtotime($backupDate),
                 'type' => 'Local',
-                'format' => str_ends_with(basename($file), '.backup') ? 'custom' : 'legacy',
+                'format' => str_ends_with($filename, '.backup') ? 'custom' : 'legacy',
             ];
         }
         // Extract YYYY-MM-DD_HH-ii-ss from filename to sort chronologically descending in an absolutely robust way
