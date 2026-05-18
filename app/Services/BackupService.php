@@ -137,6 +137,20 @@ class BackupService
             return ['success' => true, 'log' => ["[TEST] Mô phỏng khôi phục thành công vào database: {$targetDb}"]];
         }
 
+        // Terminate other active sessions to avoid locking table DROPs and stale connection bugs (due to PDO persistent connections)
+        try {
+            $dsn = "pgsql:host={$this->restoreConfig['host']};port={$this->restoreConfig['port']};dbname={$targetDb}";
+            $pdo = new \PDO($dsn, $this->restoreConfig['username'], $this->restoreConfig['password'], [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_PERSISTENT => false
+            ]);
+            $stmt = $pdo->prepare("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ? AND pid <> pg_backend_pid()");
+            $stmt->execute([$targetDb]);
+            $pdo = null; // Instantly disconnect
+        } catch (\Exception $e) {
+            // Fail silently if we lack permissions to terminate database backends
+        }
+
         $isCustomFormat = str_ends_with(strtolower($filename), '.backup');
 
         putenv("PGPASSWORD={$this->restoreConfig['password']}");
