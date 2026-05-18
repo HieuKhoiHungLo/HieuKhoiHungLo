@@ -34,6 +34,7 @@ class BackupController extends Controller
             'backup_last_run'    => $this->masterData->getSetting('backup_last_run') ?? '',
             'backup_last_status' => $this->masterData->getSetting('backup_last_status') ?? '',
             'backup_last_file'   => $this->masterData->getSetting('backup_last_file') ?? '',
+            'backup_last_log'    => json_decode($this->masterData->getSetting('backup_last_log') ?? '[]', true),
         ];
 
         $cronUrl = ($_ENV['APP_URL'] ?? 'http://localhost/TS')
@@ -67,6 +68,7 @@ class BackupController extends Controller
                     $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
                     $this->masterData->setSetting('backup_last_status', 'success');
                     $this->masterData->setSetting('backup_last_file', $result['file']);
+                    $this->masterData->setSetting('backup_last_log', json_encode($result['log'] ?? []));
                 } catch (\Exception $dbEx) {
                     // Fail silently
                 }

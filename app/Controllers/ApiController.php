@@ -231,6 +231,7 @@ class ApiController extends Controller
             $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
             $this->masterData->setSetting('backup_last_status', 'success');
             $this->masterData->setSetting('backup_last_file', $result['file'] ?? '');
+            $this->masterData->setSetting('backup_last_log', json_encode($result['log'] ?? []));
             
             // Mark this specific scheduled trigger as completed successfully
             $this->masterData->setSetting('backup_last_scheduled_trigger', $scheduledTimeKey);

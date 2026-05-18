@@ -231,11 +231,19 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                 <?php if (!empty($lastRun)): ?>
                 <div class="ml-auto flex items-center gap-4 text-xs font-bold text-slate-500">
                     <span><i class="fas fa-history mr-1"></i> <?= htmlspecialchars($lastRun) ?></span>
-                    <?php if (str_starts_with($lastStatus, 'success')): ?>
-                        <span class="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-check-circle text-[10px]"></i> Thành công</span>
-                    <?php elseif (!empty($lastStatus)): ?>
-                        <span class="text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-times-circle text-[10px]"></i> Lỗi</span>
-                    <?php endif; ?>
+                    <div class="flex items-center gap-1">
+                        <?php if (str_starts_with($lastStatus, 'success')): ?>
+                            <span class="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-check-circle text-[10px]"></i> Thành công</span>
+                        <?php elseif (!empty($lastStatus)): ?>
+                            <span class="text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-times-circle text-[10px]"></i> Lỗi</span>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($settings['backup_last_log'])): ?>
+                            <button onclick="document.getElementById('backupLogModal').classList.remove('hidden')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 transition-colors" title="Xem chi tiết nhật ký">
+                                <i class="fas fa-list-alt text-[11px]"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <?php endif; ?>
             </div>
@@ -436,6 +444,34 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
         </div>
     </div>
 </div>
+</div>
+
+<!-- Backup Log Modal -->
+<div id="backupLogModal" class="fixed inset-0 z-50 hidden" style="z-index: 999999;">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col pointer-events-auto overflow-hidden animate-tabFadeIn">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-terminal text-slate-400"></i> Nhật ký quá trình sao lưu
+                </h3>
+                <button onclick="document.getElementById('backupLogModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto bg-slate-900 text-slate-300 font-mono text-[13px] leading-relaxed custom-scrollbar">
+                <?php if (!empty($settings['backup_last_log'])): ?>
+                    <?php foreach ($settings['backup_last_log'] as $logLine): ?>
+                        <div class="mb-1.5 <?= str_contains($logLine, '[SUCCESS]') ? 'text-emerald-400' : (str_contains($logLine, '[WARNING]') || str_contains($logLine, '[ERROR]') ? 'text-rose-400' : (str_contains($logLine, '[INFO]') ? 'text-sky-400' : '')) ?>">
+                            <?= htmlspecialchars($logLine) ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-slate-500 italic">Không có nhật ký nào được lưu.</div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
