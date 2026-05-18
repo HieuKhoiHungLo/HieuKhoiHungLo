@@ -59,6 +59,13 @@ class Database {
         return self::$instance;
     }
 
+    public static function closeConnection() {
+        if (self::$instance !== null) {
+            self::$instance->pdo = null;
+            self::$instance = null;
+        }
+    }
+
     /**
      * Override session-based RLS role for system/cron tasks
      * Must be called before getConnection() the first time

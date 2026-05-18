@@ -175,6 +175,9 @@ class BackupController extends Controller
                 throw new \Exception("Mật khẩu xác nhận không chính xác.");
             }
 
+            // Explicitly close the active database connection to release all locks held by the current PHP thread
+            \App\Core\Database::closeConnection();
+
             $service = new \App\Services\BackupService($this->backupDir);
             $result = $service->restore($name);
 

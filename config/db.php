@@ -16,7 +16,7 @@ $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => true, // Required for Supabase PgBouncer (Port 6543)
-    PDO::ATTR_PERSISTENT         => true, // PHP level Keep-Alive to avoid TLS Handshake hell
+    PDO::ATTR_PERSISTENT         => filter_var($_ENV['DB_PERSISTENT'] ?? 'false', FILTER_VALIDATE_BOOLEAN), // Configurable persistent connection to avoid PgBouncer pool exhaustion and restore locks
     PDO::ATTR_STRINGIFY_FETCHES  => false, // Don't cast numeric columns to string
 ];
 
