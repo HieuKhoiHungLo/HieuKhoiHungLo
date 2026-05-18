@@ -154,11 +154,12 @@ class BackupController extends Controller
 
             $this->validateCsrf();
 
+            $isUploadedFile = isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] !== UPLOAD_ERR_NO_FILE;
             $name = $_POST['name'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            if (empty($name)) {
-                throw new \Exception("Tên file không hợp lệ.");
+            if (!$isUploadedFile && empty($name)) {
+                throw new \Exception("Vui lòng chọn tệp tin hoặc chọn một bản sao lưu sẵn có.");
             }
 
             if (empty($password)) {
@@ -175,14 +176,56 @@ class BackupController extends Controller
                 throw new \Exception("Mật khẩu xác nhận không chính xác.");
             }
 
+            $tempFilePath = null;
+            $restoreFileName = $name;
+            $displayFileName = $name;
+
+            if ($isUploadedFile) {
+                $file = $_FILES['backup_file'];
+                if ($file['error'] !== UPLOAD_ERR_OK) {
+                    throw new \Exception("Lỗi tải tệp tin lên máy chủ (Mã lỗi: {$file['error']}).");
+                }
+
+                $originalName = $file['name'];
+                $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+                
+                // Support double extensions
+                if (str_ends_with(strtolower($originalName), '.sql.gz')) {
+                    $ext = 'sql.gz';
+                }
+
+                if (!in_array($ext, ['backup', 'sql', 'gz', 'sql.gz'])) {
+                    throw new \Exception("Định dạng tệp khôi phục không hợp lệ. Chỉ chấp nhận tệp tin .backup, .sql hoặc .sql.gz");
+                }
+
+                // Create a secure unique temporary name in storage/backups
+                $tempName = 'temp_upload_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . ($ext === 'sql.gz' ? 'sql.gz' : $ext);
+                $tempFilePath = $this->backupDir . DIRECTORY_SEPARATOR . $tempName;
+                
+                if (!move_uploaded_file($file['tmp_name'], $tempFilePath)) {
+                    throw new \Exception("Không thể sao chép tệp tin khôi phục vào thư mục lưu trữ.");
+                }
+
+                $restoreFileName = $tempName;
+                $displayFileName = $originalName;
+            }
+
             // Explicitly close the active database connection to release all locks held by the current PHP thread
             \App\Core\Database::closeConnection();
 
             $service = new \App\Services\BackupService($this->backupDir);
-            $result = $service->restore($name);
+            
+            try {
+                $result = $service->restore($restoreFileName);
+            } finally {
+                // Securely clean up the temporary uploaded file in all scenarios
+                if ($tempFilePath && file_exists($tempFilePath)) {
+                    unlink($tempFilePath);
+                }
+            }
 
             if ($result['success']) {
-                $this->redirect(url('/admin/system/backup?success=Khôi phục thành công từ file: ' . basename($name)));
+                $this->redirect(url('/admin/system/backup?success=Khôi phục thành công từ file: ' . basename($displayFileName)));
             } else {
                 $this->redirect(url('/admin/system/backup?error=Lỗi khi khôi phục'));
             }

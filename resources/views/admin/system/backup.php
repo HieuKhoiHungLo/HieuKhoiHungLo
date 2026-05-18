@@ -322,6 +322,31 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
     <!-- TAB 2: KHÔI PHỤC -->
     <div x-show="tab==='restore'" x-cloak class="tab-panel" :class="tab==='restore' && 'active'">
         <div class="p-6">
+            <!-- Upload & Restore Card -->
+            <div class="mb-6 p-6 bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-slate-200 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-lg shadow-md shadow-indigo-100 flex-shrink-0">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 mb-1">Khôi phục từ tệp tin cục bộ (.backup, .sql, .gz)</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed max-w-[580px]">
+                            Tải lên bản sao lưu từ máy tính của bạn để tiến hành khôi phục lại hệ thống. Toàn bộ dữ liệu hiện tại sẽ được thay thế bởi tệp tin khôi phục này.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex-shrink-0 w-full md:w-auto">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="restore_upload_input" class="hidden" accept=".backup,.sql,.gz" @change="uploadAndRestore($event)">
+                    
+                    <button @click="triggerUpload()"
+                       class="w-full md:w-auto px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-all shadow-md shadow-indigo-200 hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer text-xs">
+                        <i class="fas fa-cloud-upload-alt text-sm"></i> Tải lên & Khôi phục
+                    </button>
+                </div>
+            </div>
+
             <!-- Local backups table (Premium style matching Tab 1) -->
             <div class="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
                 <table class="backup-table min-w-[920px]">
@@ -672,6 +697,123 @@ function backupApp() {
             passInput.name = 'password';
             passInput.value = password;
             form.appendChild(passInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        },
+
+        triggerUpload() {
+            document.getElementById('restore_upload_input').click();
+        },
+
+        async uploadAndRestore(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const filename = file.name;
+            
+            const { isConfirmed: confirmRestore } = await Swal.fire({
+                title: '⚠️ CẢNH BÁO NGUY HIỂM',
+                html: `<div class="text-sm text-left text-slate-700 leading-relaxed">
+                    <p class="mb-3">Bạn có chắc chắn muốn khôi phục từ tệp tin vừa tải lên <strong class="text-indigo-600 font-bold">"${filename}"</strong>?</p>
+                    <p class="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 font-bold flex items-start gap-2">
+                        <i class="fas fa-exclamation-triangle mt-0.5 flex-shrink-0 text-sm"></i>
+                        <span>CẢNH BÁO: Toàn bộ dữ liệu hiện tại trên hệ thống SẼ BỊ GHI ĐÈ và KHÔNG THỂ HOÀN TÁC! Hãy cân nhắc kỹ trước khi thực hiện.</span>
+                    </p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'XÁC NHẬN KHÔI PHỤC',
+                cancelButtonText: 'HỦY BỎ'
+            });
+
+            if (!confirmRestore) {
+                event.target.value = '';
+                return;
+            }
+
+            const { value: password } = await Swal.fire({
+                title: 'XÁC NHẬN MẬT KHẨU ADMIN',
+                html: '<p class="text-xs text-slate-500 mb-3">Vui lòng nhập mật khẩu tài khoản quản trị của bạn để xác nhận khôi phục cơ sở dữ liệu:</p>',
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                inputPlaceholder: 'Mật khẩu của bạn...',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'BẮT ĐẦU KHÔI PHỤC',
+                cancelButtonText: 'HỦY BỎ',
+                preConfirm: (pass) => {
+                    if (!pass) return Swal.showValidationMessage('Vui lòng nhập mật khẩu');
+                    return pass;
+                }
+            });
+
+            if (!password) {
+                event.target.value = '';
+                return;
+            }
+
+            // Show Premium Loading Modal and start progress simulation
+            this.loadingTitle = 'Hệ thống đang khôi phục';
+            this.isLoading = true;
+            this.progress = 0;
+            this.currentLoadingMessage = 'Đang tải tệp tin khôi phục lên máy chủ...';
+
+            let progressInterval = setInterval(() => {
+                if (this.progress < 98) {
+                    let increment = 0;
+                    if (this.progress < 15) {
+                        increment = Math.random() * 1.5 + 0.5;
+                    } else if (this.progress < 45) {
+                        increment = Math.random() * 1 + 0.3;
+                    } else if (this.progress < 75) {
+                        increment = Math.random() * 0.5 + 0.1;
+                    } else {
+                        increment = 0.05;
+                    }
+                    
+                    this.progress = Math.min(98, parseFloat((this.progress + increment).toFixed(2)));
+                    
+                    if (this.progress < 35) {
+                        this.currentLoadingMessage = 'Đang tải tệp tin khôi phục lên máy chủ...';
+                    } else if (this.progress < 60) {
+                        this.currentLoadingMessage = 'Tải lên hoàn tất! Đang tiến hành dọn dẹp cấu trúc bảng cũ (Clean database)...';
+                    } else if (this.progress < 85) {
+                        this.currentLoadingMessage = 'Đang tiến hành khôi phục cấu trúc bảng (schema)...';
+                    } else {
+                        this.currentLoadingMessage = 'Đang nạp lại toàn bộ cơ sở dữ liệu (Data restoration)...';
+                    }
+                }
+            }, 600);
+
+            // Create dynamic form and POST securely
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= url('/admin/system/backup/restore') ?>';
+            form.enctype = 'multipart/form-data';
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '<?= $this->csrfToken() ?>';
+            form.appendChild(csrfInput);
+
+            const passInput = document.createElement('input');
+            passInput.type = 'hidden';
+            passInput.name = 'password';
+            passInput.value = password;
+            form.appendChild(passInput);
+
+            // Append the original file input to preserve the files list
+            const fileInput = document.getElementById('restore_upload_input');
+            fileInput.name = 'backup_file';
+            form.appendChild(fileInput);
 
             document.body.appendChild(form);
             form.submit();
