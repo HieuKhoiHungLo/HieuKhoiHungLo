@@ -66,7 +66,42 @@ class ImportService {
         
         $spreadsheet = $reader->load($filePath);
         $sheet = $spreadsheet->getSheet(0);
-        $data = $sheet->rangeToArray('A1:' . $maxCol . $sheet->getHighestRow(), null, false, false, false);
+        
+        $highestRow = $sheet->getHighestRow();
+        if ($highestRow > 200000) $highestRow = 200000; // Hard cap to avoid memory exhaustion
+        
+        $data = [];
+        $emptyStreak = 0;
+        $chunkSize = 5000;
+        
+        for ($startRow = 1; $startRow <= $highestRow; $startRow += $chunkSize) {
+            $endRow = min($startRow + $chunkSize - 1, $highestRow);
+            $chunk = $sheet->rangeToArray("A{$startRow}:{$maxCol}{$endRow}", null, false, false, false);
+            
+            foreach ($chunk as $row) {
+                $data[] = $row;
+                
+                $isEmpty = true;
+                foreach ($row as $cell) {
+                    if ($cell !== null && $cell !== '') {
+                        $isEmpty = false;
+                        break;
+                    }
+                }
+                
+                if ($isEmpty) {
+                    $emptyStreak++;
+                    // If we see 100 completely empty rows in a row, assume the real data has ended
+                    if ($emptyStreak >= 100) {
+                        // Remove the trailing empty rows we just added
+                        array_splice($data, -100);
+                        break 2;
+                    }
+                } else {
+                    $emptyStreak = 0;
+                }
+            }
+        }
         
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
