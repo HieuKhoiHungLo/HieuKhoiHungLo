@@ -318,7 +318,11 @@ function importApp() {
                             
                             if (percentComplete === 100) {
                                 let lastPercent = 0;
-                                const progressInterval = setInterval(async () => {
+                                xhr.isPolling = true;
+                                
+                                const pollProgress = async () => {
+                                    if (!xhr.isPolling) return;
+                                    
                                     try {
                                         const res = await fetch('<?= url("/admin/import/progress") ?>?token=' + importToken + '&t=' + Date.now());
                                         if (res.ok) {
@@ -337,15 +341,19 @@ function importApp() {
                                     } catch (err) {
                                         console.error('Progress polling error:', err);
                                     }
-                                }, 1000);
-
-                                xhr.progressInterval = progressInterval;
+                                    
+                                    if (xhr.isPolling) {
+                                        setTimeout(pollProgress, 1000);
+                                    }
+                                };
+                                
+                                pollProgress();
                             }
                         }
                     };
 
                     xhr.onload = () => {
-                        if (xhr.progressInterval) clearInterval(xhr.progressInterval);
+                        xhr.isPolling = false;
                         if (xhr.status >= 200 && xhr.status < 300) {
                             try {
                                 resolve(JSON.parse(xhr.responseText));

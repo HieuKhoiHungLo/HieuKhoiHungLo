@@ -123,6 +123,7 @@ class ImportController extends Controller {
     }
 
     public function progress() {
+        session_write_close();
         $token = $_GET['token'] ?? '';
         if (empty($token)) {
             $this->json(['percent' => 0, 'message' => 'Đang khởi tạo kết nối...']);
