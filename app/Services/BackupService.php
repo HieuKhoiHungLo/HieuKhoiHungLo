@@ -66,7 +66,7 @@ class BackupService
              . "-p {$this->dbConfig['port']} "
              . "-U {$this->dbConfig['username']} "
              . "-d {$this->dbConfig['database']} "
-             . "-F c -b -v --no-owner --no-privileges "
+             . "-F c -b -v -n public --no-owner --no-privileges "
              . "-f \"{$filePath}\" 2>&1";
 
         $results[] = "[INFO] Đang chạy pg_dump...";
@@ -181,6 +181,7 @@ class BackupService
              . "-U {$this->restoreConfig['username']} "
              . "-d {$targetDb} "
              . $jobsOption
+             . "-n public "
              . "--clean --if-exists --no-owner --no-privileges -v "
              . "\"{$filePath}\" 2>&1";
 
