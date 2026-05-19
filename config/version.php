@@ -11,7 +11,7 @@
  *   PATCH = bug fixes / small tweaks
  */
 return [
-    'version' => '1.1.5',
+    'version' => '1.1.6',
     'name'    => 'Trường Đại học Hùng Vương - Tổ tuyển sinh',
     'release' => '2026-05-19',
 ];

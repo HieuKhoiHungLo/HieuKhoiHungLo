@@ -375,6 +375,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/system/backup', 'BackupController@index');
     $router->get('/admin/system/backup/create', 'BackupController@create');
     $router->get('/admin/system/backup/delete', 'BackupController@delete');
+    $router->post('/admin/system/backup/bulk-delete', 'BackupController@bulkDelete');
     $router->get('/admin/system/backup/restore', 'BackupController@restore');
     $router->post('/admin/system/backup/restore', 'BackupController@restore');
     $router->get('/admin/system/backup/download', 'BackupController@download');

@@ -140,6 +140,43 @@ class BackupController extends Controller
         }
     }
 
+    public function bulkDelete()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(url('/admin/system/backup?error=Yêu cầu không hợp lệ.'));
+            return;
+        }
+
+        $this->validateCsrf();
+
+        $files = $_POST['files'] ?? [];
+        if (empty($files) || !is_array($files)) {
+            $this->redirect(url('/admin/system/backup?error=Chưa chọn bản sao lưu nào để xóa.'));
+            return;
+        }
+
+        $deleted = 0;
+        $errors = 0;
+        foreach ($files as $name) {
+            $safeName = basename($name); // Prevent path traversal
+            $path = $this->backupDir . '/' . $safeName;
+            if (file_exists($path)) {
+                unlink($path);
+                $deleted++;
+            } else {
+                $errors++;
+            }
+        }
+
+        if ($deleted > 0) {
+            $msg = "Đã xóa thành công {$deleted} bản sao lưu cục bộ.";
+            if ($errors > 0) $msg .= " ({$errors} file không tồn tại)";
+            $this->redirect(url('/admin/system/backup?success=' . urlencode($msg)));
+        } else {
+            $this->redirect(url('/admin/system/backup?error=Không tìm thấy file nào để xóa.'));
+        }
+    }
+
     public function restore()
     {
         try {

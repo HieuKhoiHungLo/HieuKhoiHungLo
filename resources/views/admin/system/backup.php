@@ -249,12 +249,41 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                 <?php endif; ?>
             </div>
 
+            <!-- Bulk Delete Toolbar -->
+            <?php if (!empty($localBackups)): ?>
+            <div x-show="selectedFiles.length > 0" x-cloak x-transition
+                 class="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-sm font-bold text-rose-700">
+                    <i class="fas fa-check-square"></i>
+                    <span>Đã chọn <span class="bg-rose-600 text-white px-2 py-0.5 rounded-full text-xs" x-text="selectedFiles.length"></span> bản sao lưu</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @click="selectedFiles = []; selectAll = false"
+                        class="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+                        <i class="fas fa-times mr-1"></i> Bỏ chọn
+                    </button>
+                    <button @click="bulkDeleteSelected()"
+                        class="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-all shadow-sm">
+                        <i class="fas fa-trash-alt mr-1"></i> Xóa các bản đã chọn
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Local backups table (Premium Review Management Style) -->
             <div class="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
                 <table class="backup-table min-w-[920px]">
                     <thead>
                         <tr>
-                            <th style="width: 60px; text-align: center;">STT</th>
+                            <?php if (!empty($localBackups)): ?>
+                            <th style="width: 45px; text-align: center;">
+                                <input type="checkbox" class="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+                                       @change="toggleSelectAll($event)"
+                                       :checked="selectAll"
+                                       title="Chọn / Bỏ chọn tất cả">
+                            </th>
+                            <?php endif; ?>
+                            <th style="width: 50px; text-align: center;">STT</th>
                             <th style="width: 320px;">Tên bản sao lưu</th>
                             <th style="width: 135px;">Định dạng</th>
                             <th style="width: 110px;">Dung lượng</th>
@@ -265,14 +294,20 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
                     <tbody>
                         <?php if (empty($localBackups)): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-20 text-slate-300">
+                                <td colspan="7" class="text-center py-20 text-slate-300">
                                     <i class="fas fa-folder-open text-4xl mb-3 block text-slate-200"></i>
                                     <span class="text-sm font-bold text-slate-400">Không có bản sao lưu cục bộ nào</span>
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($localBackups as $index => $b): ?>
-                            <tr>
+                            <tr :class="selectedFiles.includes('<?= htmlspecialchars($b['name']) ?>') && 'bg-indigo-50/50'">
+                                <td style="text-align: center;">
+                                    <input type="checkbox" class="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+                                           value="<?= htmlspecialchars($b['name']) ?>"
+                                           @change="toggleFile('<?= htmlspecialchars($b['name']) ?>', $event)"
+                                           :checked="selectedFiles.includes('<?= htmlspecialchars($b['name']) ?>')">
+                                </td>
                                 <td style="text-align: center;">
                                     <?= $index + 1 ?>
                                 </td>
@@ -503,13 +538,87 @@ $isDriveActive = file_exists($secretPath) && file_exists($tokenPath);
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function backupApp() {
+    const allBackupFiles = <?= json_encode(array_map(fn($b) => $b['name'], $localBackups ?? [])) ?>;
     return {
         tab: 'backup',
         isLoading: false,
         progress: 0,
         currentLoadingMessage: '',
         loadingTitle: '',
-        
+        selectedFiles: [],
+        selectAll: false,
+
+        toggleFile(name, event) {
+            if (event.target.checked) {
+                if (!this.selectedFiles.includes(name)) this.selectedFiles.push(name);
+            } else {
+                this.selectedFiles = this.selectedFiles.filter(f => f !== name);
+            }
+            this.selectAll = this.selectedFiles.length === allBackupFiles.length && allBackupFiles.length > 0;
+        },
+
+        toggleSelectAll(event) {
+            if (event.target.checked) {
+                this.selectedFiles = [...allBackupFiles];
+                this.selectAll = true;
+            } else {
+                this.selectedFiles = [];
+                this.selectAll = false;
+            }
+        },
+
+        async bulkDeleteSelected() {
+            if (this.selectedFiles.length === 0) return;
+
+            const count = this.selectedFiles.length;
+            const isAll = count === allBackupFiles.length;
+            const title = isAll ? '⚠️ XÓA TẤT CẢ BẢN SAO LƯU' : `⚠️ XÓA ${count} BẢN SAO LƯU`;
+            const text = isAll 
+                ? 'Bạn có chắc chắn muốn xóa TẤT CẢ bản sao lưu cục bộ trên máy chủ? Thao tác này không thể hoàn tác!'
+                : `Bạn có chắc chắn muốn xóa ${count} bản sao lưu đã chọn trên máy chủ? Thao tác này không thể hoàn tác!`;
+
+            const { isConfirmed } = await Swal.fire({
+                title: title,
+                html: `<div class="text-sm text-left text-slate-700 leading-relaxed">
+                    <p class="mb-3">${text}</p>
+                    <p class="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 font-bold flex items-start gap-2 text-xs">
+                        <i class="fas fa-exclamation-triangle mt-0.5 flex-shrink-0"></i>
+                        <span>Lưu ý: Chỉ xóa các bản sao lưu cục bộ trên Host. Các bản sao lưu trên Google Drive vẫn được giữ nguyên.</span>
+                    </p>
+                </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: `XÁC NHẬN XÓA (${count})`,
+                cancelButtonText: 'HỦY BỎ'
+            });
+
+            if (!isConfirmed) return;
+
+            // Create dynamic form and POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= url('/admin/system/backup/bulk-delete') ?>';
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '<?= $this->csrfToken() ?>';
+            form.appendChild(csrfInput);
+
+            this.selectedFiles.forEach(name => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'files[]';
+                input.value = name;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        },
+
         async startBackup() {
             const { isConfirmed } = await Swal.fire({
                 title: 'TẠO BẢN SAO LƯU',
