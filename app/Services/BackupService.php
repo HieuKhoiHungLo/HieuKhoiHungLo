@@ -144,11 +144,37 @@ class BackupService
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_PERSISTENT => false
             ]);
+            
+            // 1. Terminate other active connections to unlock tables
             $stmt = $pdo->prepare("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ? AND pid <> pg_backend_pid()");
             $stmt->execute([$targetDb]);
+            
+            // 2. Clean all views, tables, and sequences in public schema to ensure a completely pristine restore,
+            // preventing any duplicate key / unique index / constraint conflicts.
+            $cleanSql = "DO $$ 
+            DECLARE
+                r RECORD;
+            BEGIN
+                -- Drop all views in public schema
+                FOR r IN (SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'v' AND n.nspname = 'public') LOOP
+                    EXECUTE 'DROP VIEW IF EXISTS public.' || quote_ident(r.relname) || ' CASCADE';
+                END LOOP;
+
+                -- Drop all tables in public schema
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+
+                -- Drop all sequences in public schema
+                FOR r IN (SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema = 'public') LOOP
+                    EXECUTE 'DROP SEQUENCE IF EXISTS public.' || quote_ident(r.sequence_name) || ' CASCADE';
+                END LOOP;
+            END $$;";
+            
+            $pdo->exec($cleanSql);
             $pdo = null; // Instantly disconnect
         } catch (\Exception $e) {
-            // Fail silently if we lack permissions to terminate database backends
+            // Fail silently or log error if connection fails, letting pg_restore attempt the restore
         }
 
         $isCustomFormat = str_ends_with(strtolower($filename), '.backup');
