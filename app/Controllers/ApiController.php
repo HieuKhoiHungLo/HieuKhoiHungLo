@@ -220,6 +220,25 @@ class ApiController extends Controller
             return;
         }
 
+        // --- CONCURRENCY LOCK: Prevent multiple simultaneous backup processes ---
+        // When multiple admin pages load at the same time (e.g., 11:15), each page
+        // fires a fetch() to this endpoint. Without locking, all requests pass the
+        // dedup check before any of them writes the "completed" flag, causing
+        // multiple pg_dump processes to run simultaneously and exhaust connections.
+        $lockFile = __DIR__ . '/../../storage/backup_cron.lock';
+        if (!file_exists(dirname($lockFile))) mkdir(dirname($lockFile), 0777, true);
+        $fp = fopen($lockFile, 'w+');
+        if (!$fp || !flock($fp, LOCK_EX | LOCK_NB)) {
+            // Another backup process is already running — skip immediately
+            if ($fp) fclose($fp);
+            $this->json(['success' => true, 'message' => 'Một tiến trình sao lưu khác đang chạy. Bỏ qua.']);
+            return;
+        }
+
+        // Pre-mark this trigger as completed IMMEDIATELY (inside the lock)
+        // to prevent any subsequent requests that arrive after lock release
+        $this->masterData->setSetting('backup_last_scheduled_trigger', $scheduledTimeKey);
+
         // Run backup
         try {
             ignore_user_abort(true);
@@ -232,14 +251,19 @@ class ApiController extends Controller
             $this->masterData->setSetting('backup_last_status', 'success');
             $this->masterData->setSetting('backup_last_file', $result['file'] ?? '');
             $this->masterData->setSetting('backup_last_log', json_encode($result['log'] ?? []));
-            
-            // Mark this specific scheduled trigger as completed successfully
-            $this->masterData->setSetting('backup_last_scheduled_trigger', $scheduledTimeKey);
+
+            // Release lock
+            flock($fp, LOCK_UN);
+            fclose($fp);
 
             $this->json(['success' => true, 'message' => 'Sao lưu tự động thành công: ' . ($result['file'] ?? ''), 'log' => $result['log'] ?? []]);
         } catch (\Exception $e) {
             $this->masterData->setSetting('backup_last_run', date('Y-m-d H:i:s'));
             $this->masterData->setSetting('backup_last_status', 'failed: ' . $e->getMessage());
+
+            // Release lock
+            flock($fp, LOCK_UN);
+            fclose($fp);
 
             $this->json(['success' => false, 'error' => $e->getMessage()]);
         }

@@ -72,7 +72,10 @@ class BackupService
         $results[] = "[INFO] Đang chạy pg_dump...";
         exec($cmd, $output, $returnCode);
 
-        if ($returnCode !== 0 || !file_exists($filePath) || filesize($filePath) === 0) {
+        // pg_dump creates the output file immediately with a small header (~24 bytes for custom format)
+        // even if the actual dump fails. Check for a minimum viable size to catch corrupt files.
+        $minSize = str_ends_with($filePath, '.backup') ? 1024 : 10; // .backup must be > 1KB
+        if ($returnCode !== 0 || !file_exists($filePath) || filesize($filePath) < $minSize) {
             if (file_exists($filePath)) unlink($filePath);
             $errorLines = array_slice($output, -5);
             throw new \Exception("Sao lưu thất bại (code {$returnCode}): " . implode("\n", $errorLines));
