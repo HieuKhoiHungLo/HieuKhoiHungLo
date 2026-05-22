@@ -193,10 +193,11 @@ $getVal = function ($grade, $field) use ($records) {
                                         <td class="p-1.5 border text-center">
                                             <select class="hvu-input-sm font-bold" name="records[<?= $g ?>][hoc_luc]">
                                                 <option value="">--</option>
-                                                <option value="Tot" <?= $getVal($g, 'hoc_luc') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                                <option value="Kha" <?= $getVal($g, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                <option value="Dat" <?= $getVal($g, 'hoc_luc') == 'Dat' ? 'selected' : '' ?>>Đạt</option>
-                                                <option value="ChuaDat" <?= $getVal($g, 'hoc_luc') == 'ChuaDat' ? 'selected' : '' ?>>Chưa Đạt</option>
+                                                <option value="TỐT" <?= $getVal($g, 'hoc_luc') == 'TỐT' ? 'selected' : '' ?>>Tốt</option>
+                                                <option value="KHÁ" <?= $getVal($g, 'hoc_luc') == 'KHÁ' ? 'selected' : '' ?>>Khá</option>
+                                                <option value="ĐẠT" <?= $getVal($g, 'hoc_luc') == 'ĐẠT' ? 'selected' : '' ?>>Đạt</option>
+                                                <option value="TRUNG BÌNH" <?= $getVal($g, 'hoc_luc') == 'TRUNG BÌNH' ? 'selected' : '' ?>>Trung bình</option>
+                                                <option value="CHƯA ĐẠT" <?= $getVal($g, 'hoc_luc') == 'CHƯA ĐẠT' ? 'selected' : '' ?>>Chưa đạt</option>
                                             </select>
                                         </td>
                                     <?php endforeach; ?>
@@ -209,10 +210,11 @@ $getVal = function ($grade, $field) use ($records) {
                                         <td class="p-1.5 border text-center">
                                             <select class="hvu-input-sm font-bold" name="records[<?= $g ?>][hanh_kiem]">
                                                 <option value="">--</option>
-                                                <option value="Tot" <?= $getVal($g, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                                <option value="Kha" <?= $getVal($g, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                <option value="Dat" <?= $getVal($g, 'hanh_kiem') == 'Dat' ? 'selected' : '' ?>>Đạt</option>
-                                                <option value="ChuaDat" <?= $getVal($g, 'hanh_kiem') == 'ChuaDat' ? 'selected' : '' ?>>Chưa Đạt</option>
+                                                <option value="TỐT" <?= $getVal($g, 'hanh_kiem') == 'TỐT' ? 'selected' : '' ?>>Tốt</option>
+                                                <option value="KHÁ" <?= $getVal($g, 'hanh_kiem') == 'KHÁ' ? 'selected' : '' ?>>Khá</option>
+                                                <option value="ĐẠT" <?= $getVal($g, 'hanh_kiem') == 'ĐẠT' ? 'selected' : '' ?>>Đạt</option>
+                                                <option value="TRUNG BÌNH" <?= $getVal($g, 'hanh_kiem') == 'TRUNG BÌNH' ? 'selected' : '' ?>>Trung bình</option>
+                                                <option value="CHƯA ĐẠT" <?= $getVal($g, 'hanh_kiem') == 'CHƯA ĐẠT' ? 'selected' : '' ?>>Chưa đạt</option>
                                             </select>
                                         </td>
                                     <?php endforeach; ?>
@@ -337,10 +339,11 @@ $getVal = function ($grade, $field) use ($records) {
                                             <td class="p-1.5 text-center">
                                                 <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="records[<?= $g ?>][hoc_luc]">
                                                     <option value="">--</option>
-                                                    <option value="Tot" <?= $getVal($g, 'hoc_luc') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                                    <option value="Kha" <?= $getVal($g, 'hoc_luc') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                    <option value="Dat" <?= $getVal($g, 'hoc_luc') == 'Dat' ? 'selected' : '' ?>>Đạt</option>
-                                                    <option value="ChuaDat" <?= $getVal($g, 'hoc_luc') == 'ChuaDat' ? 'selected' : '' ?>>Chưa Đạt</option>
+                                                    <option value="TỐT" <?= $getVal($g, 'hoc_luc') == 'TỐT' ? 'selected' : '' ?>>Tốt</option>
+                                                    <option value="KHÁ" <?= $getVal($g, 'hoc_luc') == 'KHÁ' ? 'selected' : '' ?>>Khá</option>
+                                                    <option value="ĐẠT" <?= $getVal($g, 'hoc_luc') == 'ĐẠT' ? 'selected' : '' ?>>Đạt</option>
+                                                    <option value="TRUNG BÌNH" <?= $getVal($g, 'hoc_luc') == 'TRUNG BÌNH' ? 'selected' : '' ?>>Trung bình</option>
+                                                    <option value="CHƯA ĐẠT" <?= $getVal($g, 'hoc_luc') == 'CHƯA ĐẠT' ? 'selected' : '' ?>>Chưa đạt</option>
                                                 </select>
                                             </td>
                                         </tr>
@@ -351,10 +354,11 @@ $getVal = function ($grade, $field) use ($records) {
                                             <td class="p-1.5 text-center">
                                                 <select class="w-full text-center text-sm font-bold rounded-lg border border-gray-200 py-2 bg-white focus:border-hvu-red outline-none" name="records[<?= $g ?>][hanh_kiem]">
                                                     <option value="">--</option>
-                                                    <option value="Tot" <?= $getVal($g, 'hanh_kiem') == 'Tot' ? 'selected' : '' ?>>Tốt</option>
-                                                    <option value="Kha" <?= $getVal($g, 'hanh_kiem') == 'Kha' ? 'selected' : '' ?>>Khá</option>
-                                                    <option value="Dat" <?= $getVal($g, 'hanh_kiem') == 'Dat' ? 'selected' : '' ?>>Đạt</option>
-                                                    <option value="ChuaDat" <?= $getVal($g, 'hanh_kiem') == 'ChuaDat' ? 'selected' : '' ?>>Chưa Đạt</option>
+                                                    <option value="TỐT" <?= $getVal($g, 'hanh_kiem') == 'TỐT' ? 'selected' : '' ?>>Tốt</option>
+                                                    <option value="KHÁ" <?= $getVal($g, 'hanh_kiem') == 'KHÁ' ? 'selected' : '' ?>>Khá</option>
+                                                    <option value="ĐẠT" <?= $getVal($g, 'hanh_kiem') == 'ĐẠT' ? 'selected' : '' ?>>Đạt</option>
+                                                    <option value="TRUNG BÌNH" <?= $getVal($g, 'hanh_kiem') == 'TRUNG BÌNH' ? 'selected' : '' ?>>Trung bình</option>
+                                                    <option value="CHƯA ĐẠT" <?= $getVal($g, 'hanh_kiem') == 'CHƯA ĐẠT' ? 'selected' : '' ?>>Chưa đạt</option>
                                                 </select>
                                             </td>
                                         </tr>

@@ -287,10 +287,13 @@ class ScoreCalculator {
             $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
             
             if ($hocLuc12) {
+                // Thang xếp loại theo Thông tư 22/2021/TT-BGDĐT
                 $hocLucRank = [
-                    'TỐT' => 4, 'ĐẠT' => 3, 'TRUNG BÌNH' => 2, 'CHƯA ĐẠT' => 1,
-                    'Gioi' => 4, 'Kha' => 3, 'TrungBinh' => 2, 'Yeu' => 1,
-                    'Giỏi' => 4, 'Khá' => 3, 'Trung bình' => 2, 'Yếu' => 1
+                    'TỐT'        => 4,
+                    'KHÁ'        => 3,
+                    'ĐẠT'        => 2,
+                    'TRUNG BÌNH' => 1,
+                    'CHƯA ĐẠT'  => 0,
                 ];
                 $requiredRank = $hocLucRank[$nguongHocLuc] ?? 0;
                 $actualRank = $hocLucRank[$hocLuc12] ?? 0;

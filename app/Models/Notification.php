@@ -62,7 +62,8 @@ class Notification {
                    nr.read_at
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_cccd = ?
-            WHERE ((n.target_type = 'all')
+            WHERE n.title NOT LIKE '[Email]%'
+              AND ((n.target_type = 'all')
                 OR (n.target_type = 'individual' AND n.target_id = ?)
                 OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
                     SELECT CAST(dot_tuyen_sinh_id AS varchar) FROM ho_so_xet_tuyen WHERE so_cccd = ?
@@ -86,6 +87,7 @@ class Notification {
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_cccd = ?
             WHERE nr.id IS NULL
+              AND n.title NOT LIKE '[Email]%'
               AND ((n.target_type = 'all')
                OR (n.target_type = 'individual' AND n.target_id = ?)
                OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (
@@ -120,6 +122,7 @@ class Notification {
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_cccd = ?
             WHERE nr.id IS NULL
+              AND n.title NOT LIKE '[Email]%'
               AND ((n.target_type = 'all')
                OR (n.target_type = 'individual' AND n.target_id = ?)
                OR (n.target_type = 'session' AND CAST(n.target_id AS varchar) IN (

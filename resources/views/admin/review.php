@@ -226,6 +226,19 @@
         <input type="text" placeholder="Tìm CCCD..." 
                class="py-3.5 bg-white border-2 border-[#0066FF] text-slate-800 placeholder-black font-medium rounded-xl shadow-sm focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm w-32 text-center"
                onkeydown="if(event.key === 'Enter') { event.preventDefault(); const cccd = this.value.trim(); if(cccd) window.location.href = '<?= url('/admin/review') ?>?cccd=' + cccd; }">
+
+        <!-- Zalo Button -->
+        <?php
+        $purePhone = preg_replace('/\D/', '', $user['dien_thoai'] ?? '');
+        if (!empty($purePhone)): 
+        ?>
+            <a href="https://zalo.me/<?= $purePhone ?>" target="_blank" 
+               class="w-12 h-12 flex items-center justify-center bg-[#0066FF] text-white font-bold text-xl rounded-xl hover:bg-blue-700 hover:-translate-y-0.5 transition-all shadow-lg" 
+               title="Gửi tin nhắn Zalo (<?= htmlspecialchars($user['dien_thoai']) ?>)">Z</a>
+        <?php else: ?>
+            <span class="w-12 h-12 flex items-center justify-center bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xl rounded-xl cursor-not-allowed" 
+                  title="Thí sinh không có số điện thoại">Z</span>
+        <?php endif; ?>
     </div>
 
     <!-- Next -->

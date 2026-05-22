@@ -348,7 +348,7 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hoc_luc_hk1">
                                                 <option value="">--</option>
-                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                <?php foreach(['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
                                                     <option value="<?= $l ?>" <?= ($recMap[$g]["hoc_luc_hk1"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -356,7 +356,7 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hoc_luc_hk2">
                                                 <option value="">--</option>
-                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                <?php foreach(['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
                                                     <option value="<?= $l ?>" <?= ($recMap[$g]["hoc_luc_hk2"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -371,7 +371,7 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                             <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hanh_kiem_hk1">
                                                 <option value="">--</option>
-                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                <?php foreach(['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
                                                     <option value="<?= $l ?>" <?= ($recMap[$g]["hanh_kiem_hk1"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -379,7 +379,7 @@ function submitForm() {
                                         <td class="p-1 border text-center">
                                              <select class="w-full text-center border-none focus:ring-0 p-1 bg-transparent text-xs font-bold" name="grade_<?= $g ?>_hanh_kiem_hk2">
                                                 <option value="">--</option>
-                                                <?php foreach(['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
+                                                <?php foreach(['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $l): ?>
                                                     <option value="<?= $l ?>" <?= ($recMap[$g]["hanh_kiem_hk2"] ?? '') == $l ? 'selected' : '' ?>><?= $l ?></option>
                                                 <?php endforeach; ?>
                                             </select>

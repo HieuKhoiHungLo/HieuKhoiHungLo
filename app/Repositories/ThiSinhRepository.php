@@ -467,7 +467,7 @@ class ThiSinhRepository
 
     public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null)
     {
-        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at FROM ho_so_xet_tuyen WHERE so_cccd = ?");
+        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at, id FROM ho_so_xet_tuyen WHERE so_cccd = ?");
         $stmt->execute([$currentCCCD]);
         $current = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -478,7 +478,7 @@ class ThiSinhRepository
                 $sql .= " AND hs.dot_tuyen_sinh_id = ?";
                 $params[] = $sessionId;
             }
-            $sql .= " ORDER BY hs.created_at ASC LIMIT 1";
+            $sql .= " ORDER BY hs.created_at ASC, hs.id ASC LIMIT 1";
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchColumn();
@@ -486,20 +486,21 @@ class ThiSinhRepository
 
         $sid = $sessionId ?: $current['dot_tuyen_sinh_id'];
 
+        // Cursor pagination style query to handle exact matching timestamps robustly
         $sql = "SELECT hs.so_cccd 
                 FROM ho_so_xet_tuyen hs
                 WHERE hs.dot_tuyen_sinh_id = ? 
                 AND hs.trang_thai = 'Chờ duyệt'
-                AND hs.created_at > ?
-                ORDER BY hs.created_at ASC LIMIT 1";
+                AND (hs.created_at > ? OR (hs.created_at = ? AND hs.id > ?))
+                ORDER BY hs.created_at ASC, hs.id ASC LIMIT 1";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$sid, $current['created_at']]);
+        $stmt->execute([$sid, $current['created_at'], $current['created_at'], $current['id']]);
         $next = $stmt->fetchColumn();
 
         if ($next) return $next;
 
-        $sqlFallback = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.dot_tuyen_sinh_id = ? AND hs.trang_thai = 'Chờ duyệt' AND hs.so_cccd != ? ORDER BY hs.created_at ASC LIMIT 1";
+        $sqlFallback = "SELECT hs.so_cccd FROM ho_so_xet_tuyen hs WHERE hs.dot_tuyen_sinh_id = ? AND hs.trang_thai = 'Chờ duyệt' AND hs.so_cccd != ? ORDER BY hs.created_at ASC, hs.id ASC LIMIT 1";
         $stmt = $this->db->prepare($sqlFallback);
         $stmt->execute([$sid, $currentCCCD]);
         return $stmt->fetchColumn();

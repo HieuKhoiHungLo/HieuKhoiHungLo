@@ -91,7 +91,7 @@
                                         <select name="scores[<?= $g ?>][hoc_luc_ca_nam]"
                                             style="width: 100%; height: 26px; padding: 0; text-align: center; text-align-last: center; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; appearance: none; cursor: pointer; display: block; transition: all 0.2s;">
                                             <option value="">—</option>
-                                            <?php foreach (['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
+                                            <?php foreach (['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
                                                 <option value="<?= $v ?>" <?= ($gradeRow['hoc_luc_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $v ?></option>
                                             <?php endforeach; ?>
                                         </select>
@@ -111,7 +111,7 @@
                                         <select name="scores[<?= $g ?>][hanh_kiem_ca_nam]"
                                             style="width: 100%; height: 26px; padding: 0; text-align: center; border: 1px solid transparent; background: transparent; font-size: 11px; font-weight: 400; color: #000; outline: none; appearance: none; cursor: pointer; display: block; transition: all 0.2s;">
                                             <option value="">—</option>
-                                            <?php foreach (['TỐT', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
+                                            <?php foreach (['TỐT', 'KHÁ', 'ĐẠT', 'TRUNG BÌNH', 'CHƯA ĐẠT'] as $v): ?>
                                                 <option value="<?= $v ?>" <?= ($gradeRow['hanh_kiem_ca_nam'] ?? '') == $v ? 'selected' : '' ?>><?= $v ?></option>
                                             <?php endforeach; ?>
                                         </select>

@@ -16,24 +16,41 @@ class AcademicRecord extends \App\Core\Model
 
     /**
      * Normalize ratings (Hoc luc / Hanh kiem) to standard Vietnamese codes
-     * TỐT, ĐẠT, TRUNG BÌNH, CHƯA ĐẠT
+     * Theo Thông tư 22/2021/TT-BGDĐT: TỐT, KHÁ, ĐẠT, TRUNG BÌNH, CHƯA ĐẠT
      */
     public function normalizeRating($text)
     {
         if ($text === null || $text === '') return null;
-        
+
         $raw = mb_strtolower(trim($text), 'UTF-8');
-        
-        // Remove accents for fuzzy matching if needed, but here we list common variations
+
         $map = [
             // TỐT
-            'tốt' => 'TỐT', 'tot' => 'TỐT', 'giỏi' => 'TỐT', 'gioi' => 'TỐT', 'xuất sắc' => 'TỐT', 'xuat sac' => 'TỐT',
+            'tốt'       => 'TỐT',
+            'tot'       => 'TỐT',
+            'giỏi'      => 'TỐT',
+            'gioi'      => 'TỐT',
+            'xuất sắc'  => 'TỐT',
+            'xuat sac'  => 'TỐT',
+            // KHÁ
+            'khá'       => 'KHÁ',
+            'kha'       => 'KHÁ',
             // ĐẠT
-            'khá' => 'ĐẠT', 'kha' => 'ĐẠT', 'đạt' => 'ĐẠT', 'dat' => 'ĐẠT',
+            'đạt'       => 'ĐẠT',
+            'dat'       => 'ĐẠT',
             // TRUNG BÌNH
-            'trung bình' => 'TRUNG BÌNH', 'trung binh' => 'TRUNG BÌNH', 'tb' => 'TRUNG BÌNH', 'trungbinh' => 'TRUNG BÌNH',
+            'trung bình'  => 'TRUNG BÌNH',
+            'trung binh'  => 'TRUNG BÌNH',
+            'tb'          => 'TRUNG BÌNH',
+            'trungbinh'   => 'TRUNG BÌNH',
             // CHƯA ĐẠT
-            'yếu' => 'CHƯA ĐẠT', 'yeu' => 'CHƯA ĐẠT', 'chưa đạt' => 'CHƯA ĐẠT', 'chua dat' => 'CHƯA ĐẠT', 'kém' => 'CHƯA ĐẠT', 'kem' => 'CHƯA ĐẠT'
+            'chưa đạt'  => 'CHƯA ĐẠT',
+            'chua dat'  => 'CHƯA ĐẠT',
+            'chuadat'   => 'CHƯA ĐẠT',
+            'yếu'       => 'CHƯA ĐẠT',
+            'yeu'       => 'CHƯA ĐẠT',
+            'kém'       => 'CHƯA ĐẠT',
+            'kem'       => 'CHƯA ĐẠT',
         ];
 
         return $map[$raw] ?? mb_strtoupper($text, 'UTF-8');

@@ -1086,18 +1086,8 @@ class CandidateController extends Controller
                         }
                     }
 
-                    // Update Application Status & Note if provided
-                    $applicationRepo = new \App\Repositories\ApplicationRepository();
-                    $applicationId = $_POST['application_id'] ?? null;
-                    if ($applicationId) {
-                        $appUpdate = [];
-                        if (isset($_POST["status_{$section}"])) $appUpdate['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $appUpdate['ghi_chu']     = $_POST["note_{$section}"];
-
-                        if (!empty($appUpdate)) {
-                            $applicationRepo->update($applicationId, $appUpdate);
-                        }
-                    }
+                    // NOTE: Application status (trang_thai) is intentionally NOT updated here.
+                    // Status updates only happen via the "Xác nhận duyệt hồ sơ" modal (confirmSubmitReview).
 
                     // error_log("DEBUG_UPDATE_PERSONAL: " . print_r($data, true));
                     $res = $this->thiSinhRepo->updateFullProfile($cccd, $data);
@@ -1229,14 +1219,8 @@ class CandidateController extends Controller
                         $this->thiSinhRepo->updateFullProfile($cccd, $personalData);
                     }
 
-                    // Sync Status
-                    $appId = $_POST['application_id'] ?? null;
-                    if ($appId) {
-                        $upd = [];
-                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
-                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
-                    }
+                    // NOTE: Application status (trang_thai) is intentionally NOT updated here.
+                    // Status updates only happen via the "Xác nhận duyệt hồ sơ" modal (confirmSubmitReview).
                     $msg = 'Đã lưu kết quả học tập thành công';
                     break;
 
@@ -1283,14 +1267,8 @@ class CandidateController extends Controller
                         $this->thiSinhRepo->saveDiemThiTHPT($cccd, $scores);
                     }
 
-                    // Optional: Update application status/note if ID is present
-                    $appId = $_POST['application_id'] ?? null;
-                    if ($appId) {
-                        $upd = [];
-                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
-                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
-                    }
+                    // NOTE: Application status (trang_thai) is intentionally NOT updated here.
+                    // Status updates only happen via the "Xác nhận duyệt hồ sơ" modal (confirmSubmitReview).
                     $msg = 'Đã lưu điểm thi THPT thành công';
                     break;
 
@@ -1345,13 +1323,8 @@ class CandidateController extends Controller
 
                     $this->thiSinhRepo->saveCertifications($cccd, $certsData);
 
-                    $appId = $_POST['application_id'] ?? null;
-                    if ($appId) {
-                        $upd = [];
-                        if (isset($_POST["status_{$section}"])) $upd['trang_thai'] = $_POST["status_{$section}"];
-                        if (isset($_POST["note_{$section}"]))   $upd['ghi_chu'] = $_POST["note_{$section}"];
-                        if (!empty($upd)) (new \App\Repositories\ApplicationRepository())->update($appId, $upd);
-                    }
+                    // NOTE: Application status (trang_thai) is intentionally NOT updated here.
+                    // Status updates only happen via the "Xác nhận duyệt hồ sơ" modal (confirmSubmitReview).
                     $msg = 'Đã lưu chứng chỉ thành công';
                     break;
 

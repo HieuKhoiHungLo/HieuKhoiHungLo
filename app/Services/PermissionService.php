@@ -132,6 +132,10 @@ class PermissionService {
      * Update role permissions
      */
     public function updateRole($id, $displayName, $permissions) {
+        $sessionKey = '_role_perms_' . (int)$id;
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION[$sessionKey])) {
+            unset($_SESSION[$sessionKey]);
+        }
         $sql = "UPDATE roles SET display_name = ?, permissions = ? WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$displayName, json_encode($permissions), $id]);
