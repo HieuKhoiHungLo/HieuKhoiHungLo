@@ -210,9 +210,8 @@ class CandidateController extends Controller
 
         $totalPages = ceil($total / max($limit, 1));
 
-        // Decouple stats cache from search/filter cache. Stats are same for all users in the same session/year.
         $statsCacheKey = 'dashboard_stats_global_' . ($sessionId ?? 'all') . '_' . ($year ?? 'all');
-        $statsData = \App\Core\Cache::remember($statsCacheKey, 600, function () use ($sessionId, $year) {
+        $statsData = \App\Core\Cache::remember($statsCacheKey, 5, function () use ($sessionId, $year) {
             $s = $this->thiSinhRepo->getStats($sessionId, $year);
             $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
             $s['today'] = $recent['today'] ?? 0;
