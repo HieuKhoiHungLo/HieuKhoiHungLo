@@ -250,4 +250,250 @@ class MasterData extends Model {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         });
     }
+
+    public function getSchoolsPaginated($search = '', $maTinh = '', $khuVuc = '', $sort = 'ten_truong', $dir = 'ASC', $limit = 10, $offset = 0) {
+        $sql = "SELECT s.*, p.ten_tinh 
+                FROM dm_truong_thpt s 
+                LEFT JOIN dm_tinh p ON s.ma_tinh = p.ma_tinh 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (s.ten_truong ILIKE ? OR s.ma_truong ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        if (!empty($maTinh)) {
+            $sql .= " AND s.ma_tinh = ?";
+            $params[] = $maTinh;
+        }
+
+        if (!empty($khuVuc)) {
+            $sql .= " AND s.khu_vuc = ?";
+            $params[] = $khuVuc;
+        }
+
+        $allowedSort = ['ma_truong', 'ten_truong', 'khu_vuc', 'ma_tinh', 'ten_tinh'];
+        if (!in_array($sort, $allowedSort)) {
+            $sort = 'ten_truong';
+        }
+        $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+
+        if ($sort === 'ma_tinh' || $sort === 'ten_tinh') {
+            $sortColumn = $sort === 'ma_tinh' ? 's.ma_tinh' : 'p.ten_tinh';
+            $sql .= " ORDER BY CASE WHEN s.ma_tinh = '25' THEN 0 ELSE 1 END, {$sortColumn} {$dir}, s.ma_truong ASC";
+        } else {
+            $sortColumn = ($sort === 'ma_truong') ? 's.ma_truong' : (($sort === 'khu_vuc') ? 's.khu_vuc' : 's.ten_truong');
+            $sql .= " ORDER BY {$sortColumn} {$dir}, s.ma_truong ASC";
+        }
+        $sql .= " LIMIT ? OFFSET ?";
+        
+        $params[] = (int)$limit;
+        $params[] = (int)$offset;
+
+        $stmt = $this->db->prepare($sql);
+        
+        $index = 1;
+        foreach ($params as $param) {
+            if (is_int($param)) {
+                $stmt->bindValue($index++, $param, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($index++, $param, PDO::PARAM_STR);
+            }
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countSchoolsFiltered($search = '', $maTinh = '', $khuVuc = '') {
+        $sql = "SELECT COUNT(*) 
+                FROM dm_truong_thpt s 
+                LEFT JOIN dm_tinh p ON s.ma_tinh = p.ma_tinh 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (s.ten_truong ILIKE ? OR s.ma_truong ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        if (!empty($maTinh)) {
+            $sql .= " AND s.ma_tinh = ?";
+            $params[] = $maTinh;
+        }
+
+        if (!empty($khuVuc)) {
+            $sql .= " AND s.khu_vuc = ?";
+            $params[] = $khuVuc;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    // --- Province Paginated Queries ---
+    public function getProvincesPaginated($search = '', $sort = 'ma_tinh', $dir = 'ASC', $limit = 15, $offset = 0) {
+        $sql = "SELECT * FROM dm_tinh WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ten_tinh ILIKE ? OR ma_tinh ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        $allowedSort = ['ma_tinh', 'ten_tinh'];
+        if (!in_array($sort, $allowedSort)) {
+            $sort = 'ma_tinh';
+        }
+        $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+
+        $sql .= " ORDER BY {$sort} {$dir}";
+        $sql .= " LIMIT ? OFFSET ?";
+        
+        $params[] = (int)$limit;
+        $params[] = (int)$offset;
+
+        $stmt = $this->db->prepare($sql);
+        
+        $index = 1;
+        foreach ($params as $param) {
+            if (is_int($param)) {
+                $stmt->bindValue($index++, $param, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($index++, $param, PDO::PARAM_STR);
+            }
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countProvincesFiltered($search = '') {
+        $sql = "SELECT COUNT(*) FROM dm_tinh WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (ten_tinh ILIKE ? OR ma_tinh ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function isProvinceInUse($maTinh) {
+        // Check if used in dm_xa
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM dm_xa WHERE ma_tinh = ?");
+        $stmt->execute([$maTinh]);
+        if ((int)$stmt->fetchColumn() > 0) return true;
+
+        // Check if used in dm_truong_thpt
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM dm_truong_thpt WHERE ma_tinh = ?");
+        $stmt->execute([$maTinh]);
+        if ((int)$stmt->fetchColumn() > 0) return true;
+
+        // Check if used in ho_so_xet_tuyen (ma_tinh_ho_khau or ma_tinh_thuong_tru or ma_tinh_lop_12)
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE ma_tinh_ho_khau = ? OR ma_tinh_thuong_tru = ? OR ma_tinh_lop_12 = ?");
+        $stmt->execute([$maTinh, $maTinh, $maTinh]);
+        if ((int)$stmt->fetchColumn() > 0) return true;
+
+        return false;
+    }
+
+    // --- Ward Paginated Queries ---
+    public function getWardsPaginated($search = '', $maTinh = '', $sort = 'ma_tinh', $dir = 'ASC', $limit = 15, $offset = 0) {
+        $sql = "SELECT w.*, p.ten_tinh 
+                FROM dm_xa w 
+                LEFT JOIN dm_tinh p ON w.ma_tinh = p.ma_tinh 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (w.ten_xa ILIKE ? OR w.ma_xa ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        if (!empty($maTinh)) {
+            $sql .= " AND w.ma_tinh = ?";
+            $params[] = $maTinh;
+        }
+
+        $allowedSort = ['ma_xa', 'ten_xa', 'ma_tinh', 'ten_tinh'];
+        if (!in_array($sort, $allowedSort)) {
+            $sort = 'ma_tinh';
+        }
+        $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+
+        if ($sort === 'ma_tinh' || $sort === 'ten_tinh') {
+            $sortColumn = $sort === 'ma_tinh' ? 'w.ma_tinh' : 'p.ten_tinh';
+            $sql .= " ORDER BY CASE WHEN w.ma_tinh = '25' THEN 0 ELSE 1 END, {$sortColumn} {$dir}, w.ma_xa ASC";
+        } else {
+            $sortColumn = $sort === 'ma_xa' ? 'w.ma_xa' : 'w.ten_xa';
+            $sql .= " ORDER BY {$sortColumn} {$dir}, w.ma_xa ASC";
+        }
+        
+        $sql .= " LIMIT ? OFFSET ?";
+        
+        $params[] = (int)$limit;
+        $params[] = (int)$offset;
+
+        $stmt = $this->db->prepare($sql);
+        
+        $index = 1;
+        foreach ($params as $param) {
+            if (is_int($param)) {
+                $stmt->bindValue($index++, $param, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($index++, $param, PDO::PARAM_STR);
+            }
+        }
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countWardsFiltered($search = '', $maTinh = '') {
+        $sql = "SELECT COUNT(*) 
+                FROM dm_xa w 
+                LEFT JOIN dm_tinh p ON w.ma_tinh = p.ma_tinh 
+                WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (w.ten_xa ILIKE ? OR w.ma_xa ILIKE ?)";
+            $params[] = '%' . $search . '%';
+            $params[] = '%' . $search . '%';
+        }
+
+        if (!empty($maTinh)) {
+            $sql .= " AND w.ma_tinh = ?";
+            $params[] = $maTinh;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function isWardInUse($maXa) {
+        // Check if used in ho_so_xet_tuyen (ma_xa_ho_khau or ma_xa_thuong_tru)
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE ma_xa_ho_khau = ? OR ma_xa_thuong_tru = ?");
+        $stmt->execute([$maXa, $maXa]);
+        return ((int)$stmt->fetchColumn() > 0);
+    }
+
+    public function isSchoolInUse($maTruong) {
+        // Check if used in thi_sinh (ma_truong_lop_12)
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM thi_sinh WHERE ma_truong_lop_12 = ?");
+        $stmt->execute([$maTruong]);
+        return ((int)$stmt->fetchColumn() > 0);
+    }
 }

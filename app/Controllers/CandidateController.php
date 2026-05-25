@@ -434,6 +434,7 @@ class CandidateController extends Controller
         // Redirect back to exactly where the user was (preserving sort, search query strings etc.)
         $redirectTo = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
 
+        $this->clearCandidateStatsCache();
         header("Location: " . $redirectTo);
         exit;
     }
@@ -660,6 +661,7 @@ class CandidateController extends Controller
         // Add success message
         $redirectTo .= (strpos($redirectTo, '?') !== false ? '&' : '?') . "success=deleted";
         
+        $this->clearCandidateStatsCache();
         $this->redirect($redirectTo);
     }
 
@@ -703,6 +705,7 @@ class CandidateController extends Controller
 
         $this->bulkTransferSession([$cccd], $sessionId);
 
+        $this->clearCandidateStatsCache();
         $this->redirect(url('/admin/review?cccd=' . $cccd . '&success=transferred'));
     }
 
@@ -722,11 +725,13 @@ class CandidateController extends Controller
 
         if ($cccd) {
             $this->thiSinhRepo->restore($cccd);
+            $this->clearCandidateStatsCache();
             $this->redirect(url('/admin/candidates/trash?success=restored'));
         } elseif (!empty($cccds)) {
             foreach ($cccds as $id) {
                 $this->thiSinhRepo->restore($id);
             }
+            $this->clearCandidateStatsCache();
             $this->redirect(url('/admin/candidates/trash?success=restored&count=' . count($cccds)));
         } else {
             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
@@ -743,14 +748,50 @@ class CandidateController extends Controller
 
         if ($cccd) {
             $this->thiSinhRepo->forceDelete($cccd);
+            $this->clearCandidateStatsCache();
             $this->redirect(url('/admin/candidates/trash?success=deleted_forever'));
         } elseif (!empty($cccds)) {
             foreach ($cccds as $id) {
                 $this->thiSinhRepo->forceDelete($id);
             }
+            $this->clearCandidateStatsCache();
             $this->redirect(url('/admin/candidates/trash?success=deleted_forever&count=' . count($cccds)));
         } else {
             $this->redirect(url('/admin/candidates/trash?error=missing_data'));
+        }
+    }
+
+    public function emptyTrash()
+    {
+        $this->checkPermission('candidate.delete');
+        $this->validateCsrf();
+
+        $password = $_POST['password'] ?? '';
+
+        if (empty($password)) {
+            $this->redirect(url('/admin/candidates/trash?error=missing_password'));
+            return;
+        }
+
+        $currentPasswordHash = $this->currentUser['mat_khau'] ?? '';
+
+        if (!password_verify($password, $currentPasswordHash)) {
+            $this->redirect(url('/admin/candidates/trash?error=invalid_password'));
+            return;
+        }
+
+        try {
+            $this->thiSinhRepo->emptyTrash();
+            $this->clearCandidateStatsCache();
+
+            $this->auditService->log('EMPTY_TRASH', 'candidates', null, null, [
+                'deleted_by' => $this->currentUser['ten_dang_nhap'] ?? 'Unknown Admin'
+            ]);
+
+            $this->redirect(url('/admin/candidates/trash?success=empty_trash_success'));
+        } catch (\Exception $e) {
+            error_log("Error in CandidateController@emptyTrash: " . $e->getMessage());
+            $this->redirect(url('/admin/candidates/trash?error=system_error'));
         }
     }
 
@@ -927,6 +968,7 @@ class CandidateController extends Controller
 
             // Redirect back with success message and active tab
             $activeTab = $_POST['active_tab'] ?? 'personal';
+            $this->clearCandidateStatsCache();
             $this->redirect(url('/admin/candidates/edit?cccd=' . $cccd . '&msg=update_success&tab=' . $activeTab));
             return;
         }
@@ -1847,5 +1889,22 @@ class CandidateController extends Controller
     {
         $stmt = $this->db->query("SELECT id FROM dot_tuyen_sinh ORDER BY ngay_bat_dau DESC LIMIT 1");
         return $stmt->fetchColumn() ?: null;
+    }
+
+    protected function clearCandidateStatsCache()
+    {
+        \App\Core\Cache::forget('dashboard_stats_global_all_all');
+        
+        try {
+            $stmt = $this->db->query("SELECT id, nam_tuyen_sinh FROM dot_tuyen_sinh");
+            $sessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($sessions as $s) {
+                \App\Core\Cache::forget('dashboard_stats_global_' . $s['id'] . '_all');
+                \App\Core\Cache::forget('dashboard_stats_global_all_' . $s['nam_tuyen_sinh']);
+                \App\Core\Cache::forget('dashboard_stats_global_' . $s['id'] . '_' . $s['nam_tuyen_sinh']);
+            }
+        } catch (\Exception $e) {
+            error_log("Error clearing candidate stats cache: " . $e->getMessage());
+        }
     }
 }

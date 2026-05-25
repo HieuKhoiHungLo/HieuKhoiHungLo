@@ -47,6 +47,32 @@
             </div>
         </a>
 
+        <!-- Province Management -->
+        <a href="<?= url('/admin/master-data/provinces') ?>" class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[#0066FF]/20 transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-[#0066FF]/5 transition-colors"></div>
+            <div class="w-16 h-16 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-8 shadow-inner group-hover:bg-[#0066FF] group-hover:text-white group-hover:-rotate-6 transition-all duration-500">
+                <i class="fas fa-map-marked-alt text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-4 font-heading group-hover:text-[#0066FF] transition">Danh mục Tỉnh</h3>
+            <p class="text-slate-500 text-sm leading-relaxed font-medium">Quản lý danh sách các Tỉnh/Thành phố phục vụ liên kết địa giới hành chính của thí sinh.</p>
+            <div class="mt-8 flex items-center text-xs font-black text-cyan-600 uppercase tracking-widest group-hover:text-[#0066FF]">
+                Truy cập ngay <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+            </div>
+        </a>
+
+        <!-- Ward Management -->
+        <a href="<?= url('/admin/master-data/wards') ?>" class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[#0066FF]/20 transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-teal-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-[#0066FF]/5 transition-colors"></div>
+            <div class="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-8 shadow-inner group-hover:bg-[#0066FF] group-hover:text-white group-hover:rotate-12 transition-all duration-500">
+                <i class="fas fa-map-marker-alt text-2xl"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-4 font-heading group-hover:text-[#0066FF] transition">Xã / Phường</h3>
+            <p class="text-slate-500 text-sm leading-relaxed font-medium">Danh mục Xã, Phường, Thị trấn trên toàn quốc được liên kết trực tiếp với Tỉnh/Thành phố.</p>
+            <div class="mt-8 flex items-center text-xs font-black text-teal-600 uppercase tracking-widest group-hover:text-[#0066FF]">
+                Truy cập ngay <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+            </div>
+        </a>
+
         <!-- Combination Management -->
         <a href="<?= url('/admin/master-data/combinations') ?>" class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[#0066FF]/20 transition-all duration-300 group relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-bl-full -mr-16 -mt-16 group-hover:bg-[#0066FF]/5 transition-colors"></div>

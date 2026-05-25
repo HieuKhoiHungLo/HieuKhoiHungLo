@@ -843,7 +843,10 @@ class ExportService {
                         'Nơi thường trú - Mã tỉnh', 'Nơi thường trú - Mã Quận huyện', 'Nơi thường trú - Mã xã phường',
                         'Mã tỉnh lớp 12', 'Mã trường lớp 12',
                         'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp',
-                        'Mã ngành', 'Thứ tự NV'
+                        'Mã ngành', 'Thứ tự NV',
+                        'Mã Trường', 'Mã trường', 'Mã Tỉnh', 'Mã tỉnh', 
+                        'Mã Huyện', 'Mã huyện', 'Mã Xã', 'Mã xã',
+                        'Mã Huyện/Quận', 'Mã Xã/Phường', 'Mã Tỉnh/Thành', 'Mã Tỉnh/Thành phố'
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';

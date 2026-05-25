@@ -145,6 +145,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/candidates/trash', 'CandidateController@trash');
     $router->post('/admin/candidates/restore', 'CandidateController@restore');
     $router->post('/admin/candidates/force-delete', 'CandidateController@forceDelete');
+    $router->post('/admin/candidates/empty-trash', 'CandidateController@emptyTrash');
     $router->post('/admin/candidates/change-password', 'CandidateController@changePassword');
 
     // Admin Accounts (RBAC)
@@ -191,6 +192,20 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/master-data/schools/actions', 'SchoolController@actions');
     $router->get('/admin/master-data/schools/export', 'SchoolController@export');
     $router->get('/admin/master-data/schools/template', 'SchoolController@template');
+
+    // Danh mục Tỉnh
+    $router->get('/admin/master-data/provinces', 'ProvinceController@index');
+    $router->post('/admin/master-data/provinces', 'ProvinceController@save');
+    $router->post('/admin/master-data/provinces/actions', 'ProvinceController@actions');
+    $router->get('/admin/master-data/provinces/export', 'ProvinceController@export');
+    $router->get('/admin/master-data/provinces/template', 'ProvinceController@template');
+
+    // Danh mục Xã/Phường
+    $router->get('/admin/master-data/wards', 'WardController@index');
+    $router->post('/admin/master-data/wards', 'WardController@save');
+    $router->post('/admin/master-data/wards/actions', 'WardController@actions');
+    $router->get('/admin/master-data/wards/export', 'WardController@export');
+    $router->get('/admin/master-data/wards/template', 'WardController@template');
 
     $router->get('/admin/master-data/phuong-thuc', 'MasterDataController@phuongThuc');
     $router->post('/admin/master-data/phuong-thuc/save', 'MasterDataController@savePhuongThuc');

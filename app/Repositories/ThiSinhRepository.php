@@ -416,6 +416,41 @@ class ThiSinhRepository
         }
     }
 
+    public function emptyTrash()
+    {
+        try {
+            $this->db->beginTransaction();
+
+            $dependentTables = [
+                'nguyen_vong' => 'so_cccd',
+                'ho_so_xet_tuyen' => 'so_cccd',
+                'chung_chi_thi_sinh' => 'so_cccd',
+                'ket_qua_hoc_tap' => 'so_cccd',
+                'diem_chi_tiet' => 'so_cccd',
+                'diem_thi_thpt' => 'so_cccd',
+                'diem_nang_khieu' => 'so_cccd',
+                'notification_reads' => 'user_cccd'
+            ];
+
+            foreach ($dependentTables as $table => $column) {
+                $sql = "DELETE FROM $table WHERE $column IN (SELECT so_cccd FROM {$this->table} WHERE deleted_at IS NOT NULL)";
+                $this->db->exec($sql);
+            }
+
+            $sql = "DELETE FROM {$this->table} WHERE deleted_at IS NOT NULL";
+            $result = $this->db->exec($sql);
+
+            $this->db->commit();
+            return $result;
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Error in emptyTrash: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
     public function hasEditRequest($cccd)
     {
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE so_cccd = ? AND yeu_cau_chinh_sua = TRUE");

@@ -34,6 +34,8 @@
                  ['url' => '/admin/master-data/combinations', 'label' => 'Tổ hợp xét tuyển'],
                  ['url' => '/admin/master-data/majors', 'label' => 'Ngành đào tạo'],
                  ['url' => '/admin/master-data/schools', 'label' => 'Trường THPT'],
+                 ['url' => '/admin/master-data/provinces', 'label' => 'Danh mục Tỉnh'],
+                 ['url' => '/admin/master-data/wards', 'label' => 'Xã / Phường'],
                  ['url' => '/admin/master-data/sessions', 'label' => 'Đợt tuyển sinh'],
                  ['url' => '/admin/master-data/settings', 'label' => 'Cấu hình chung']
             ]],

@@ -487,11 +487,11 @@ class ThiSinh extends Model {
         ];
 
         // 1. Get Application Related Stats (total, pending, approved, etc.)
-        $hsWhere = " WHERE hs.deleted_at IS NULL";
+        $hsWhere = " WHERE hs.deleted_at IS NULL AND t.deleted_at IS NULL";
         $params = [];
         
-        // Use JOIN instead of EXISTS for better performance
-        $from = "ho_so_xet_tuyen hs";
+        // Use JOIN instead of EXISTS for better performance, excluding soft-deleted candidates
+        $from = "ho_so_xet_tuyen hs INNER JOIN {$this->table} t ON hs.so_cccd = t.so_cccd";
         if ($sessionId) {
             $hsWhere .= " AND hs.dot_tuyen_sinh_id = ?";
             $params[] = (int)$sessionId;

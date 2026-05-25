@@ -13,6 +13,11 @@ ob_start();
         </div>
 
         <div class="flex gap-2">
+            <?php if (!empty($candidates)): ?>
+                <button type="button" onclick="openEmptyTrashModal()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-md">
+                    <i class="fas fa-trash-alt"></i> Xóa tất cả
+                </button>
+            <?php endif; ?>
             <a href="<?= url('/admin/dashboard') ?>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                 <i class="fas fa-arrow-left mr-2"></i>Quay lại Dashboard
             </a>
@@ -28,10 +33,32 @@ ob_start();
                         <span class="font-bold">Khôi phục thành công!</span> Hồ sơ đã được đưa trở lại danh sách chính.
                     <?php elseif ($_GET['success'] == 'deleted_forever'): ?>
                         <span class="font-bold">Đã xóa vĩnh viễn!</span> Không thể khôi phục lại hồ sơ này.
+                    <?php elseif ($_GET['success'] == 'empty_trash_success'): ?>
+                        <span class="font-bold">Đã dọn sạch thùng rác!</span> Toàn bộ hồ sơ trong thùng rác đã bị xóa vĩnh viễn khỏi hệ thống.
                     <?php endif; ?>
                 </div>
             </div>
             <button onclick="this.parentElement.remove()" class="text-green-500 hover:text-green-700"><i class="fas fa-times"></i></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['error'])): ?>
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm flex justify-between items-center animate-fade-in-down">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle text-xl mr-3"></i>
+                <div>
+                    <?php if ($_GET['error'] == 'invalid_password'): ?>
+                        <span class="font-bold">Sai mật khẩu!</span> Mật khẩu xác nhận không chính xác. Toàn bộ hồ sơ trong thùng rác vẫn an toàn.
+                    <?php elseif ($_GET['error'] == 'missing_password'): ?>
+                        <span class="font-bold">Lỗi xác thực!</span> Vui lòng nhập mật khẩu xác nhận để thực hiện hành động này.
+                    <?php elseif ($_GET['error'] == 'system_error'): ?>
+                        <span class="font-bold">Lỗi hệ thống!</span> Đã xảy ra lỗi khi dọn sạch thùng rác. Vui lòng thử lại sau.
+                    <?php else: ?>
+                        <span class="font-bold">Lỗi!</span> Đã xảy ra lỗi không xác định.
+                    <?php endif; ?>
+                </div>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
         </div>
     <?php endif; ?>
 
@@ -225,6 +252,33 @@ ob_start();
                 bulkForm.submit();
             }
         }
+
+        function openEmptyTrashModal() {
+            const modal = document.getElementById('empty-trash-modal');
+            const passInput = document.getElementById('admin-password');
+            const errorTip = document.getElementById('password-error-tip');
+            
+            errorTip.classList.add('hidden');
+            passInput.value = '';
+            modal.classList.remove('hidden');
+            passInput.focus();
+        }
+
+        function closeEmptyTrashModal() {
+            const modal = document.getElementById('empty-trash-modal');
+            modal.classList.add('hidden');
+        }
+
+        function validatePasswordInput() {
+            const passInput = document.getElementById('admin-password');
+            const errorTip = document.getElementById('password-error-tip');
+            if (!passInput.value.trim()) {
+                errorTip.classList.remove('hidden');
+                passInput.focus();
+                return false;
+            }
+            return true;
+        }
     </script>
 
     <!-- Pagination -->
@@ -259,6 +313,57 @@ ob_start();
             <?php endif; ?>
         </div>
     <?php endif; ?>
+    <!-- Empty Trash Password Modal -->
+    <div id="empty-trash-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <!-- Backdrop with backdrop-blur -->
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeEmptyTrashModal()"></div>
+        
+        <!-- Modal content card -->
+        <div class="relative bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full mx-4 p-6 overflow-hidden z-10">
+            <!-- Title -->
+            <div class="flex items-center gap-3 mb-4 text-red-600">
+                <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-lg">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Xác nhận dọn sạch thùng rác</h3>
+            </div>
+            
+            <!-- Warning details -->
+            <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-xs text-red-800 mb-5 leading-relaxed">
+                <strong>CẢNH BÁO NGUY HIỂM:</strong> Hành động này sẽ xóa <strong>VĨNH VIỄN</strong> toàn bộ hồ sơ hiện tại trong thùng rác và tất cả các nguyện vọng, điểm số, chứng chỉ liên quan. Hành động này <strong>KHÔNG THỂ hoàn tác!</strong>
+            </div>
+
+            <!-- Form -->
+            <form action="<?= url('/admin/candidates/empty-trash') ?>" method="POST" onsubmit="return validatePasswordInput()">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                
+                <div class="mb-5">
+                    <label for="admin-password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nhập mật khẩu của bạn:</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" name="password" id="admin-password" required
+                            class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm font-semibold text-slate-800"
+                            placeholder="Mật khẩu tài khoản admin hiện tại">
+                    </div>
+                    <span id="password-error-tip" class="text-[11px] text-red-500 hidden mt-1"><i class="fas fa-info-circle mr-1"></i>Vui lòng nhập mật khẩu!</span>
+                </div>
+
+                <!-- Footer buttons -->
+                <div class="flex justify-end gap-2.5">
+                    <button type="button" onclick="closeEmptyTrashModal()" 
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                        Hủy bỏ
+                    </button>
+                    <button type="submit" 
+                        class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-red-100 flex items-center gap-2 active:scale-95">
+                        Xác nhận xóa vĩnh viễn <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <?php

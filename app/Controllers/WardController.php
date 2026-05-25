@@ -5,7 +5,7 @@ use App\Core\Controller;
 use App\Models\MasterData;
 use App\Models\QuanTriVien;
 
-class SchoolController extends Controller {
+class WardController extends Controller {
     protected $masterData;
     protected $currentUser;
 
@@ -32,7 +32,6 @@ class SchoolController extends Controller {
     public function index() {
         $search = $_GET['search'] ?? '';
         $maTinh = $_GET['ma_tinh'] ?? '';
-        $khuVuc = $_GET['khu_vuc'] ?? '';
         $sort = $_GET['sort'] ?? 'ma_tinh';
         $dir = $_GET['dir'] ?? 'ASC';
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -41,16 +40,16 @@ class SchoolController extends Controller {
         $limit = in_array($limit, [10, 20, 50, 100]) ? $limit : 10;
         $offset = ($page - 1) * $limit;
 
-        $totalRecords = $this->masterData->countSchoolsFiltered($search, $maTinh, $khuVuc);
+        $totalRecords = $this->masterData->countWardsFiltered($search, $maTinh);
         $totalPages = ceil($totalRecords / $limit);
 
-        $schools = $this->masterData->getSchoolsPaginated($search, $maTinh, $khuVuc, $sort, $dir, $limit, $offset);
+        $wards = $this->masterData->getWardsPaginated($search, $maTinh, $sort, $dir, $limit, $offset);
         
-        // Provinces still needed for Filter/Create dropdown
+        // Provinces still needed for filters and create dropdown
         $provinces = $this->masterData->getAll('dm_tinh', 'ma_tinh');
         
-        $this->view('admin/master_data/schools', [
-            'schools' => $schools,
+        $this->view('admin/master_data/wards', [
+            'wards' => $wards,
             'provinces' => $provinces,
             'user' => $this->currentUser,
             'currentPage' => $page,
@@ -60,7 +59,6 @@ class SchoolController extends Controller {
             'filters' => [
                 'search' => $search,
                 'ma_tinh' => $maTinh,
-                'khu_vuc' => $khuVuc,
                 'sort' => $sort,
                 'dir' => $dir
             ]
@@ -72,57 +70,25 @@ class SchoolController extends Controller {
             $this->validateCsrf();
             $oldMa = $_POST['old_ma'] ?? '';
             $data = [
-                'ma_truong' => $_POST['ma_truong'],
-                'ten_truong' => $_POST['ten_truong'],
-                'khu_vuc' => $_POST['khu_vuc'],
+                'ma_xa' => $_POST['ma_xa'],
+                'ten_xa' => $_POST['ten_xa'],
                 'ma_tinh' => $_POST['ma_tinh']
             ];
 
             if ($oldMa) {
-                $this->masterData->update('dm_truong_thpt', $oldMa, $data, 'ma_truong');
+                $this->masterData->update('dm_xa', $oldMa, $data, 'ma_xa');
+                $_SESSION['success'] = "Cập nhật xã/phường thành công.";
             } else {
-                $this->masterData->create('dm_truong_thpt', $data);
+                $exists = $this->masterData->find('dm_xa', $_POST['ma_xa'], 'ma_xa');
+                if ($exists) {
+                    $_SESSION['error'] = "Mã xã/phường đã tồn tại.";
+                } else {
+                    $this->masterData->create('dm_xa', $data);
+                    $_SESSION['success'] = "Thêm xã/phường thành công.";
+                }
             }
-            $this->redirect(url('/admin/master-data/schools'));
+            $this->redirect(url('/admin/master-data/wards'));
         }
-    }
-
-    public function export() {
-        $this->validateCsrf();
-        $search = $_GET['search'] ?? '';
-        $maTinh = $_GET['ma_tinh'] ?? '';
-        $khuVuc = $_GET['khu_vuc'] ?? '';
-        $sort = $_GET['sort'] ?? 'ten_truong';
-        $dir = $_GET['dir'] ?? 'ASC';
-
-        // Query matched schools up to a safety ceiling (100,000)
-        $schools = $this->masterData->getSchoolsPaginated($search, $maTinh, $khuVuc, $sort, $dir, 100000, 0);
-        
-        $data = [];
-        foreach ($schools as $row) {
-            $data[] = [
-                'Mã Trường' => $row['ma_truong'], 
-                'Tên Trường' => $row['ten_truong'], 
-                'Khu Vực' => $row['khu_vuc'], 
-                'Mã Tỉnh' => $row['ma_tinh'], 
-                'Tên Tỉnh' => $row['ten_tinh'] ?? ''
-            ];
-        }
-
-        $exportService = new \App\Services\ExportService();
-        $exportService->toExcel($data, 'ds_truong_thpt_' . date('Y-m-d') . '.xls');
-    }
-
-    public function template() {
-        $data = [[
-            'Mã Trường' => '17001', 
-            'Tên Trường' => 'THPT Chuyên Hùng Vương', 
-            'Khu Vực' => 'KV2-NT', 
-            'Mã Tỉnh' => '17'
-        ]];
-
-        $exportService = new \App\Services\ExportService();
-        $exportService->toExcel($data, 'mau_nhap_truong_thpt.xls');
     }
 
     public function actions() {
@@ -136,7 +102,7 @@ class SchoolController extends Controller {
                         $inUseCount = 0;
                         $deletableIds = [];
                         foreach ($ids as $id) {
-                            if ($this->masterData->isSchoolInUse($id)) {
+                            if ($this->masterData->isWardInUse($id)) {
                                 $inUseCount++;
                             } else {
                                 $deletableIds[] = $id;
@@ -144,29 +110,62 @@ class SchoolController extends Controller {
                         }
 
                         if (!empty($deletableIds)) {
-                            $this->masterData->deleteMany('dm_truong_thpt', $deletableIds, 'ma_truong');
-                            $msg = "Đã xóa " . count($deletableIds) . " trường.";
+                            $this->masterData->deleteMany('dm_xa', $deletableIds, 'ma_xa');
+                            $msg = "Đã xóa " . count($deletableIds) . " xã/phường.";
                             if ($inUseCount > 0) {
-                                $msg .= " Có $inUseCount trường không thể xóa do đang được sử dụng.";
+                                $msg .= " Có $inUseCount xã/phường không thể xóa do đang được sử dụng.";
                                 $_SESSION['warning'] = $msg;
                             } else {
                                 $_SESSION['success'] = $msg;
                             }
                         } else {
                             if ($inUseCount > 0) {
-                                throw new \Exception("Không thể xóa các trường đã chọn vì tất cả đều đang được sử dụng trong hồ sơ thí sinh.");
+                                throw new \Exception("Không thể xóa các xã/phường đã chọn vì tất cả đều đang được sử dụng trong hồ sơ thí sinh.");
                             }
                         }
                     }
                 } elseif ($action === 'import') {
                     $this->import();
                 }
-                $this->redirect(url('/admin/master-data/schools'));
+                $this->redirect(url('/admin/master-data/wards'));
             } catch (\Exception $e) {
                 $_SESSION['error'] = $e->getMessage();
-                $this->redirect(url('/admin/master-data/schools'));
+                $this->redirect(url('/admin/master-data/wards'));
             }
         }
+    }
+
+    public function export() {
+        $this->validateCsrf();
+        $search = $_GET['search'] ?? '';
+        $maTinh = $_GET['ma_tinh'] ?? '';
+        $sort = $_GET['sort'] ?? 'ma_tinh';
+        $dir = $_GET['dir'] ?? 'ASC';
+
+        $wards = $this->masterData->getWardsPaginated($search, $maTinh, $sort, $dir, 100000, 0);
+        
+        $data = [];
+        foreach ($wards as $row) {
+            $data[] = [
+                'Mã Xã' => $row['ma_xa'], 
+                'Tên Xã' => $row['ten_xa'],
+                'Mã Tỉnh' => $row['ma_tinh'],
+                'Tên Tỉnh' => $row['ten_tinh'] ?? ''
+            ];
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'ds_xa_phuong_' . date('Y-m-d') . '.xls');
+    }
+
+    public function template() {
+        $data = [
+            ['Mã Xã' => '25255', 'Tên Xã' => 'Phường Tiên Cát', 'Mã Tỉnh' => '17'],
+            ['Mã Xã' => '00001', 'Tên Xã' => 'Phường Phúc Xá', 'Mã Tỉnh' => '01']
+        ];
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'mau_nhap_xa_phuong.xls');
     }
 
     private function import() {
@@ -176,7 +175,7 @@ class SchoolController extends Controller {
         
         $file = $_FILES['file']['tmp_name'];
         
-        // Try using PHP Spreadsheet first
+        // Suppress errors and try using PHP Spreadsheet first
         try {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
             $rows = array_values($spreadsheet->getActiveSheet()->toArray(null, true, true, true));
@@ -192,17 +191,19 @@ class SchoolController extends Controller {
                 $provMap[$p['ma_tinh']] = true;
             }
             
+            // Skip first header row
             $count = 0;
             for ($i = 1; $i < count($rows); $i++) {
                 $row = $rows[$i];
                 $ma = isset($row['A']) ? trim((string)$row['A']) : '';
                 $ten = isset($row['B']) ? trim((string)$row['B']) : '';
-                $khu_vuc = isset($row['C']) ? trim((string)$row['C']) : 'KV2';
-                $ma_tinh = isset($row['D']) ? trim((string)$row['D']) : '';
+                $ma_tinh = isset($row['C']) ? trim((string)$row['C']) : '';
                 
-                if (!$ma || !$ten) continue;
+                if (!$ma || !$ten || !$ma_tinh) continue;
                 
-                if ($ma_tinh && !isset($provMap[$ma_tinh])) {
+                // Add province if it does not exist (or skip if we enforce safety)
+                if (!isset($provMap[$ma_tinh])) {
+                    // Pre-create generic province just in case to maintain foreign key integrity
                     $this->masterData->create('dm_tinh', [
                         'ma_tinh' => $ma_tinh,
                         'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh
@@ -211,17 +212,16 @@ class SchoolController extends Controller {
                 }
                 
                 $payload = [
-                    'ma_truong' => $ma,
-                    'ten_truong' => $ten,
-                    'khu_vuc' => $khu_vuc ?: 'KV2',
-                    'ma_tinh' => $ma_tinh ?: null
+                    'ma_xa' => $ma,
+                    'ten_xa' => $ten,
+                    'ma_tinh' => $ma_tinh
                 ];
                 
-                $exists = $this->masterData->find('dm_truong_thpt', $ma, 'ma_truong');
+                $exists = $this->masterData->find('dm_xa', $ma, 'ma_xa');
                 if ($exists) {
-                    $this->masterData->update('dm_truong_thpt', $ma, $payload, 'ma_truong');
+                    $this->masterData->update('dm_xa', $ma, $payload, 'ma_xa');
                 } else {
-                    $this->masterData->create('dm_truong_thpt', $payload);
+                    $this->masterData->create('dm_xa', $payload);
                 }
                 $count++;
             }
@@ -229,7 +229,7 @@ class SchoolController extends Controller {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
             
-            $_SESSION['success'] = "Đã nhập thành công $count trường.";
+            $_SESSION['success'] = "Đã nhập thành công $count xã/phường.";
             return;
         } catch (\Exception $spreadsheetEx) {
             // Fallback to CSV parser if PHP Spreadsheet fails
@@ -249,16 +249,15 @@ class SchoolController extends Controller {
             
             $count = 0;
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                if (count($data) < 2) continue;
+                if (count($data) < 3) continue;
                 
                 $ma = trim($data[0]);
                 $ten = trim($data[1]);
-                $khu_vuc = trim($data[2] ?? 'KV2');
-                $ma_tinh = trim($data[3] ?? '');
+                $ma_tinh = trim($data[2]);
                 
-                if (!$ma || !$ten) continue;
+                if (!$ma || !$ten || !$ma_tinh) continue;
                 
-                if ($ma_tinh && !isset($provMap[$ma_tinh])) {
+                if (!isset($provMap[$ma_tinh])) {
                     $this->masterData->create('dm_tinh', [
                         'ma_tinh' => $ma_tinh,
                         'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh
@@ -267,22 +266,21 @@ class SchoolController extends Controller {
                 }
                 
                 $payload = [
-                    'ma_truong' => $ma,
-                    'ten_truong' => $ten,
-                    'khu_vuc' => $khu_vuc ?: 'KV2',
-                    'ma_tinh' => $ma_tinh ?: null
+                    'ma_xa' => $ma,
+                    'ten_xa' => $ten,
+                    'ma_tinh' => $ma_tinh
                 ];
- 
-                $exists = $this->masterData->find('dm_truong_thpt', $ma, 'ma_truong');
+
+                $exists = $this->masterData->find('dm_xa', $ma, 'ma_xa');
                 if ($exists) {
-                    $this->masterData->update('dm_truong_thpt', $ma, $payload, 'ma_truong');
+                    $this->masterData->update('dm_xa', $ma, $payload, 'ma_xa');
                 } else {
-                    $this->masterData->create('dm_truong_thpt', $payload);
+                    $this->masterData->create('dm_xa', $payload);
                 }
                 $count++;
             }
             fclose($handle);
-            $_SESSION['success'] = "Đã nhập thành công $count trường.";
+            $_SESSION['success'] = "Đã nhập thành công $count xã/phường.";
         }
     }
 }
