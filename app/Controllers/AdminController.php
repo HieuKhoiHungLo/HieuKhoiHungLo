@@ -660,7 +660,12 @@ class AdminController extends Controller
 
     public function stats()
     {
-        // Mặc định bây giờ stats là dashboard
+        if (isset($_GET['clear']) && $_GET['clear'] == '1') {
+            $this->checkPermission('stats');
+            \App\Core\Cache::flush();
+            echo "<script>alert('Đã xóa sạch cache hệ thống thành công!'); window.location.href='" . url('/admin/dashboard') . "';</script>";
+            exit;
+        }
         $this->redirect(url('/admin/dashboard'));
     }
 
