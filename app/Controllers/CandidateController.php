@@ -192,7 +192,7 @@ class CandidateController extends Controller
             $extraFilters, $mode, $limit
         ]));
 
-        $total = \App\Core\Cache::remember($cacheKey . '_count', 3, function () use (
+        $total = \App\Core\Cache::remember($cacheKey . '_count', 0.1, function () use (
             $search, $status, $hocBaStatus, $sessionId, $editRequest, $year, $mode, $sqlExtraFilters, $appStatusFilter
         ) {
             return $this->thiSinhRepo->countFiltered(
@@ -211,7 +211,7 @@ class CandidateController extends Controller
         $totalPages = ceil($total / max($limit, 1));
 
         $statsCacheKey = 'dashboard_stats_global_' . ($sessionId ?? 'all') . '_' . ($year ?? 'all');
-        $statsData = \App\Core\Cache::remember($statsCacheKey, 5, function () use ($sessionId, $year) {
+        $statsData = \App\Core\Cache::remember($statsCacheKey, 0.08, function () use ($sessionId, $year) {
             $s = $this->thiSinhRepo->getStats($sessionId, $year);
             $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
             $s['today'] = $recent['today'] ?? 0;
@@ -1441,6 +1441,7 @@ class CandidateController extends Controller
             }
 
             $this->db->commit();
+            $this->clearCandidateStatsCache();
 
             // Return success response to the user immediately
             $this->json([
@@ -1656,6 +1657,7 @@ class CandidateController extends Controller
 
             $total = count($cccds);
             $notFound = $total - $success;
+            $this->clearCandidateStatsCache();
             $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt thành công $success/$total hồ sơ." . ($notFound > 0 ? " ($notFound CCCD không tìm thấy)" : "")));
 
         } catch (\Exception $e) {
@@ -1686,6 +1688,7 @@ class CandidateController extends Controller
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$adminId, $sessionId]);
             $count = $stmt->rowCount();
+            $this->clearCandidateStatsCache();
 
             $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt tất cả $count hồ sơ trong đợt."));
 
@@ -1734,6 +1737,7 @@ class CandidateController extends Controller
             }
 
             $this->db->commit();
+            $this->clearCandidateStatsCache();
 
             $this->redirect($redirectTo . '?success=' . urlencode("Đã hủy duyệt tất cả $count hồ sơ trong đợt."));
 
@@ -1902,6 +1906,9 @@ class CandidateController extends Controller
                 \App\Core\Cache::forget('dashboard_stats_global_all_' . $s['nam_tuyen_sinh']);
                 \App\Core\Cache::forget('dashboard_stats_global_' . $s['id'] . '_' . $s['nam_tuyen_sinh']);
             }
+            // Dọn dẹp cache phân trang đếm và stats dashboard API khi có cập nhật dữ liệu thí sinh
+            \App\Core\Cache::forgetByPattern('/^candidates_.*_count$/');
+            \App\Core\Cache::forgetByPattern('/^stats_api_/');
         } catch (\Exception $e) {
             error_log("Error clearing candidate stats cache: " . $e->getMessage());
         }

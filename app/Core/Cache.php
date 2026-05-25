@@ -47,6 +47,7 @@ class Cache {
         self::init();
         $file = self::getFilePath($key);
         $data = [
+            'key' => $key,
             'value' => $value,
             'expires_at' => time() + ($minutes * 60)
         ];
@@ -58,6 +59,23 @@ class Cache {
         $file = self::getFilePath($key);
         if (file_exists($file)) {
             unlink($file);
+        }
+    }
+
+    public static function forgetByPattern($pattern) {
+        self::init();
+        $files = glob(self::$cacheDir . '/*.json');
+        if ($files) {
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    $content = file_get_contents($file);
+                    $data = json_decode($content, true);
+                    if (isset($data['key']) && preg_match($pattern, $data['key'])) {
+                        unlink($file);
+                        unset(self::$memory[$data['key']]);
+                    }
+                }
+            }
         }
     }
 
