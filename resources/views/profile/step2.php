@@ -252,7 +252,6 @@ $getVal = function ($grade, $field) use ($records) {
                                                         <a href="<?= $fullUrl ?>" target="_blank" class="block w-full h-full">
                                                             <img loading="lazy" src="<?= $thumbUrl ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.15]" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-gray-100 text-gray-400\'><i class=\'fas fa-image text-2xl\'></i></div>'">
                                                         </a>
-                                                        <span class="absolute top-1 right-1 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow pointer-events-none z-10">HK<?= $i + 1 ?></span>
                                                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                                             <span class="text-white text-xs font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300"><i class="fas fa-search-plus mr-1"></i> Xem lớn</span>
                                                         </div>
@@ -277,7 +276,7 @@ $getVal = function ($grade, $field) use ($records) {
                                             </div>
                                             <input type="file" name="transcripts_<?= $g ?>[]" multiple accept="image/*" class="hidden" onchange="previewMultipleImages(this, 'preview_<?= $g ?>_desktop', 'no_image_<?= $g ?>_desktop'); updateUploadLabel(this)" />
                                         </label>
-                                        <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tối đa 2 ảnh/năm (HK1, HK2)</p>
+                                        <p class="text-[10px] text-gray-400 mt-2 italic text-center">Tối đa 2 ảnh/năm</p>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -389,7 +388,6 @@ $getVal = function ($grade, $field) use ($records) {
                                                     <a href="<?= $mFullUrl ?>" target="_blank" class="block w-full h-full">
                                                         <img loading="lazy" src="<?= $mThumbUrl ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.15]" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center bg-gray-100 text-gray-400\'><i class=\'fas fa-image text-2xl\'></i></div>'">
                                                     </a>
-                                                    <span class="absolute top-1 right-1 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow pointer-events-none z-10">HK<?= $mi + 1 ?></span>
                                                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                                         <span class="text-white text-xs font-bold bg-hvu-red/80 px-4 py-2 rounded-full shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300"><i class="fas fa-search-plus mr-1"></i> Xem lớn</span>
                                                     </div>

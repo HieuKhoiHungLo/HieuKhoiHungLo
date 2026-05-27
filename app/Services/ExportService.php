@@ -712,14 +712,19 @@ class ExportService {
     public function exportDataAudit($type, $filters = []) {
         $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
                        t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, 
-                       COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt
+                       COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt,
+                       COALESCE(p.ten_tinh, 'Chưa rõ') as ten_tinh_thuong_tru,
+                       COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so
                 FROM thi_sinh t
                 LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
+                LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd" . 
+                (!empty($filters['session_id']) ? " AND hs.dot_tuyen_sinh_id = " . (int)$filters['session_id'] : "") . "
                 WHERE 1=1";
         $params = [];
 
         if (!empty($filters['session_id'])) {
-            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = ?)";
+            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd AND hs2.dot_tuyen_sinh_id = ?)";
             $params[] = $filters['session_id'];
         }
 
@@ -733,9 +738,8 @@ class ExportService {
                     $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.dot_tuyen_sinh_id = ?)";
                     // We need to add session_id to params again for this specific subquery if needed, 
                     // but the $sql construction here is a bit tricky since params are added at the end.
-                    // Let's refine the approach to use a single param or named params if possible.
                     // For now, I will use a direct subquery that matches the session_id already in the where clause.
-                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$session_id . ")";
+                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd AND hs2.dot_tuyen_sinh_id = " . (int)$session_id . ")";
                     $params[] = $session_id;
                 } else {
                     $sql .= " AND NOT EXISTS (SELECT 1 FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd)";
@@ -777,7 +781,9 @@ class ExportService {
                 'Email'             => $r['email'],
                 'Đối tượng'         => $this->formatObject($r['ma_doi_tuong']),
                 'Khu vực'           => $this->formatArea($r['ma_khu_vuc']),
-                'Trường THPT'       => $r['ten_truong_thpt'],
+                'Tỉnh'              => $r['ten_tinh_thuong_tru'],
+                'Tên trường THPT'   => $r['ten_truong_thpt'],
+                'Tình trạng hồ sơ'  => $r['trang_thai_ho_so'],
             ];
         }
 

@@ -108,7 +108,11 @@ class AdminController extends Controller
     protected function checkPermission($permission)
     {
         if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, $permission)) {
-            echo "<script>alert('Bạn không có quyền truy cập chức năng này!'); window.location.href='" . url('/admin/dashboard') . "';</script>";
+            $redirectUrl = url('/admin/dashboard');
+            if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 2) {
+                $redirectUrl = url('/admin/review-management');
+            }
+            echo "<script>alert('Bạn không có quyền truy cập chức năng này!'); window.location.href='" . $redirectUrl . "';</script>";
             exit;
         }
     }

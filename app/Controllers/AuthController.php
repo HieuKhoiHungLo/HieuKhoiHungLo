@@ -163,7 +163,11 @@ class AuthController extends Controller
                 $this->auditService->logLogin($username, true);
                 $this->auditService->log('LOGIN', 'admin', $admin['id']);
 
-                $this->redirect(url('/admin/dashboard'));
+                $redirectUrl = url('/admin/dashboard');
+                if (($_SESSION['admin_role_id'] ?? 1) == 2) {
+                    $redirectUrl = url('/admin/review-management');
+                }
+                $this->redirect($redirectUrl);
             } else {
                 // Log failed login attempt
                 $this->auditService->logLogin($username, false);

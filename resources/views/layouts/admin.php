@@ -317,13 +317,22 @@
             };
 
             foreach ($menuGroups as $gi => $group):
+                $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
+                $userRoleId = $_SESSION['admin_role_id'] ?? 0;
+                $isCanBo = ($userRoleId == 2 || in_array($userRole, ['cán bộ xét tuyển', 'can bo xet tuyen']));
+
+                if ($isCanBo && in_array(mb_strtoupper($group['group'], 'UTF-8'), [
+                    'XÉT TUYỂN LỌC ẢO', 
+                    'QUẢN LÝ THI NĂNG KHIẾU', 
+                    'TIN TỨC & THÔNG BÁO'
+                ])) {
+                    continue;
+                }
+
                 // Filter items by permission (Group level permission check first)
                 if (!empty($group['perm']) && !$canSee($group['perm'])) {
                     continue;
                 }
-                
-                $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
-                $userRoleId = $_SESSION['admin_role_id'] ?? 0;
 
                 // Filter items by permission
                 $visibleItems = array_filter($group['items'], function ($item) use ($canSee, $userRole, $userRoleId) {

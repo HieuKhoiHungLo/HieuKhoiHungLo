@@ -169,7 +169,11 @@ class TwoFactorController extends Controller {
             $this->auditService->logLogin($admin['ten_dang_nhap'], true);
             $this->auditService->log('LOGIN_2FA', 'admin', $admin['id']);
             
-            $this->redirect(url('/admin/dashboard'));
+            $redirectUrl = url('/admin/dashboard');
+            if (($_SESSION['admin_role_id'] ?? 1) == 2) {
+                $redirectUrl = url('/admin/review-management');
+            }
+            $this->redirect($redirectUrl);
         } else {
             $this->auditService->logLogin($admin['ten_dang_nhap'] ?? 'unknown', false);
             $this->view('admin/2fa/verify', ['error' => 'Mã xác thực không đúng']);

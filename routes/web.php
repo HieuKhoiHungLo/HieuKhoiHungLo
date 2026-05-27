@@ -99,7 +99,11 @@ $router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search')
 // Nhóm các route bảo mật bằng AuthMiddleware
 $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin', function () {
-        header('Location: ' . url('/admin/dashboard'));
+        $redirectUrl = url('/admin/dashboard');
+        if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 2) {
+            $redirectUrl = url('/admin/review-management');
+        }
+        header('Location: ' . $redirectUrl);
         exit;
     });
     $router->get('/admin/dashboard', 'AdminController@dashboard');

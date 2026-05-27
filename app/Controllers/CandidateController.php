@@ -88,7 +88,11 @@ class CandidateController extends Controller
 
     protected function handleCandidateList($mode = 'dashboard')
     {
-        $this->checkPermission('dashboard');
+        if ($mode === 'review') {
+            $this->checkPermission('candidate.view');
+        } else {
+            $this->checkPermission('dashboard');
+        }
         // Start timing for debugging
         $requestStart = microtime(true);
         error_log('Candidate list started at ' . $requestStart);
@@ -669,7 +673,7 @@ class CandidateController extends Controller
      */
     public function getTemplate()
     {
-        $this->checkPermission('dashboard');
+        $this->checkPermission('candidate.view');
         
         $id = $_GET['id'] ?? null;
         if (!$id) {
