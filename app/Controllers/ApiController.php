@@ -166,8 +166,11 @@ class ApiController extends Controller
         flock($fp, LOCK_UN);
         fclose($fp);
 
+        // Count remaining pending emails
+        $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
+
         $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
-        $this->json(['success' => true, 'message' => $msg]);
+        $this->json(['success' => true, 'message' => $msg, 'remaining' => $remaining]);
     }
 
     /**

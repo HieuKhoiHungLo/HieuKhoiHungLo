@@ -776,11 +776,11 @@ class AdminController extends Controller
 
             if ($forceRefresh) {
                 $result = $fetchData();
-                \App\Core\Cache::put($cacheKey, $result, 0.08);
+                \App\Core\Cache::put($cacheKey, $result, 15);
                 $result['source'] = 'fresh';
                 $result['last_updated'] = date('H:i:s');
             } else {
-                $result = \App\Core\Cache::remember($cacheKey, 0.08, $fetchData);
+                $result = \App\Core\Cache::remember($cacheKey, 15, $fetchData);
                 if (!isset($result['source'])) $result['source'] = 'cache';
                 if (!isset($result['last_updated'])) $result['last_updated'] = date('H:i:s');
             }

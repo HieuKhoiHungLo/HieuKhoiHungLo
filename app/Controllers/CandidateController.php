@@ -196,7 +196,7 @@ class CandidateController extends Controller
             $extraFilters, $mode, $limit
         ]));
 
-        $total = \App\Core\Cache::remember($cacheKey . '_count', 0.1, function () use (
+        $total = \App\Core\Cache::remember($cacheKey . '_count', 15, function () use (
             $search, $status, $hocBaStatus, $sessionId, $editRequest, $year, $mode, $sqlExtraFilters, $appStatusFilter
         ) {
             return $this->thiSinhRepo->countFiltered(
@@ -215,7 +215,7 @@ class CandidateController extends Controller
         $totalPages = ceil($total / max($limit, 1));
 
         $statsCacheKey = 'dashboard_stats_global_' . ($sessionId ?? 'all') . '_' . ($year ?? 'all');
-        $statsData = \App\Core\Cache::remember($statsCacheKey, 0.08, function () use ($sessionId, $year) {
+        $statsData = \App\Core\Cache::remember($statsCacheKey, 15, function () use ($sessionId, $year) {
             $s = $this->thiSinhRepo->getStats($sessionId, $year);
             $recent = $this->thiSinhRepo->getRecentRegistrationStats($sessionId);
             $s['today'] = $recent['today'] ?? 0;
