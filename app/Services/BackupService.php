@@ -59,12 +59,12 @@ class BackupService
             throw new \Exception("Không tìm thấy pg_dump. Hãy cấu hình PG_BIN_PATH trong file .env (hiện tại: '{$this->pgBinPath}')");
         }
 
-        putenv("PGPASSWORD={$this->dbConfig['password']}");
+        putenv("PGPASSWORD={$this->restoreConfig['password']}");
 
         $cmd = "\"{$pgDump}\" "
-             . "-h {$this->dbConfig['host']} "
-             . "-p {$this->dbConfig['port']} "
-             . "-U {$this->dbConfig['username']} "
+             . "-h {$this->restoreConfig['host']} "
+             . "-p {$this->restoreConfig['port']} "
+             . "-U {$this->restoreConfig['username']} "
              . "-d {$this->dbConfig['database']} "
              . "-F c -b -v -n public --no-owner --no-privileges "
              . "-f \"{$filePath}\" 2>&1";

@@ -122,7 +122,7 @@ class ApplicationController extends Controller
         }
 
         // Use Repository
-        $session = $this->sessionRepo->getLatestActiveSession();
+        $session = $this->sessionRepo->getActiveSession();
         // If specific ID requested, verify it matches or just use active. 
         // Note: session is array now.
         if ($session && $session['id'] == $sessionId) {
@@ -146,17 +146,34 @@ class ApplicationController extends Controller
 
         // If no ID, try to find an application for the active session
         if (!$applicationId) {
-            $activeSession = $this->sessionRepo->getActiveSession() ?? $this->sessionRepo->getLatestActiveSession();
+            $currentlyActive = $this->sessionRepo->getActiveSession();
+            $activeSession = $currentlyActive ?? $this->sessionRepo->getLatestActiveSession();
+            
             if ($activeSession) {
                 $existing = $this->applicationRepo->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
                 if ($existing) {
                     $applicationId = $existing->id;
                 } else {
-                    // Auto-create application
-                    try {
-                        $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $activeSession['id']);
-                    } catch (\Exception $e) {
-                        $applicationId = 0;
+                    // This is a NEW registration (no existing application).
+                    // We must ONLY allow this if the session is currently active (within dates)
+                    if ($currentlyActive) {
+                        try {
+                            $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $currentlyActive['id']);
+                        } catch (\Exception $e) {
+                            $applicationId = 0;
+                        }
+                    } else {
+                        // Registration deadline has passed, and no existing application exists
+                        $enableTHPTSetting = true; // Default enabled
+                        $this->view('profile/step5', [
+                            'applicationId' => 0,
+                            'choices' => [],
+                            'majors' => [],
+                            'error' => 'Thời hạn đăng ký đợt tuyển sinh này đã kết thúc. Bạn không thể tạo hồ sơ mới.',
+                            'enableTHPTSetting' => $enableTHPTSetting,
+                            'isLocked' => false
+                        ]);
+                        return;
                     }
                 }
             }

@@ -109,19 +109,37 @@ class ExportService {
                        t.gioi_tinh AS \"Giới tính\",
                        t.dien_thoai AS \"Điện thoại\",
                        t.email AS \"Email\",
-                       t.khu_vuc_uu_tien AS \"Khu vực\",
-                       t.doi_tuong_uu_tien AS \"Đối tượng\",
+                       t.dan_toc AS \"Dân tộc\",
+                       tinh_hk.ten_tinh AS \"Hộ khẩu\",
                        xa.ten_xa AS \"Xã/Phường\",
                        p.ten_tinh as \"Tỉnh/Thành phố\",
                        truong.ten_truong AS \"Trường THPT\",
+                       t.khu_vuc_uu_tien AS \"Khu vực ƯT\",
+                       t.doi_tuong_uu_tien AS \"Đối tượng ƯT\",
+                       t.nam_tot_nghiep AS \"Năm TN\",
+                       (SELECT 
+                            CASE 
+                                WHEN COUNT(*) = 0 THEN 'not_entered'
+                                WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                                WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                                ELSE 'partial'
+                            END
+                        FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as \"Học bạ\",
+                       qtv.ho_ten AS \"Người duyệt\",
+                       (SELECT dth.diem_xet_tot_nghiep FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd LIMIT 1) AS \"Điểm tốt nghiệp\",
+                       (SELECT hb.diem_tb_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) AS \"TB chung L12\",
+                       (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) AS \"Học lực L12\",
+                       (SELECT hb.hanh_kiem_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) AS \"Hạnh kiểm L12\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
                        h.ghi_chu AS \"Ghi chú\",
                        h.dot_tuyen_sinh_id AS \"Mã đợt tuyển sinh\"
                 FROM thi_sinh t
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN dm_xa xa ON t.ma_xa_thuong_tru = xa.ma_xa
+                LEFT JOIN dm_tinh tinh_hk ON t.ma_tinh_ho_khau = tinh_hk.ma_tinh
                 LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong
                 LEFT JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
+                LEFT JOIN quan_tri_vien qtv ON h.nguoi_duyet_id = qtv.id
                 WHERE 1=1";
 
         $params = [];
@@ -145,8 +163,23 @@ class ExportService {
             $r["Họ và Tên"]  = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Điện thoại"] = $this->textCell($r["Điện thoại"]);
             $r["Ngày Sinh"]  = $this->formatDate($r["Ngày Sinh"]);
-            $r["Khu vực"]    = $this->formatArea($r["Khu vực"]);
-            $r["Đối tượng"]  = $this->formatObject($r["Đối tượng"]);
+            $r["Khu vực ƯT"] = $this->formatArea($r["Khu vực ƯT"]);
+            $r["Đối tượng ƯT"] = $this->formatObject($r["Đối tượng ƯT"]);
+            
+            // Format "Học bạ" status text
+            $tStatus = $r["Học bạ"] ?? 'not_entered';
+            if ($tStatus === 'full') $r["Học bạ"] = 'Đủ 3 năm';
+            elseif ($tStatus === 'missing_12') $r["Học bạ"] = 'Thiếu lớp 12';
+            elseif ($r["Học bạ"] === 'not_entered') $r["Học bạ"] = 'Chưa nhập';
+            else $r["Học bạ"] = 'Chưa đủ';
+
+            // Format decimal scores
+            $r["Điểm tốt nghiệp"] = $this->formatDecimal($r["Điểm tốt nghiệp"]);
+            $r["TB chung L12"] = $this->formatDecimal($r["TB chung L12"]);
+
+            // Normalize academic descriptions
+            $r["Học lực L12"] = $this->normalizeAcademic($r["Học lực L12"]);
+            $r["Hạnh kiểm L12"] = $this->normalizeAcademic($r["Hạnh kiểm L12"]);
         }
         return $rows;
     }
@@ -842,10 +875,10 @@ class ExportService {
                     $style = 'sText';
                     
                     if (is_numeric($cell) && strpos((string)$cell, ',') === false && !in_array($key, [
-                        'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng',
+                        'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng', 'Đối tượng ƯT', 'Khu vực ƯT',
                         'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
                         'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
-                        'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT',
+                        'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT', 'Năm TN',
                         'Nơi thường trú - Mã tỉnh', 'Nơi thường trú - Mã Quận huyện', 'Nơi thường trú - Mã xã phường',
                         'Mã tỉnh lớp 12', 'Mã trường lớp 12',
                         'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp',

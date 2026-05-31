@@ -14,9 +14,9 @@ class SecurityMiddleware {
             session_start();
         }
 
-        // Throttle database writes: only write once every 60 seconds per session!
+        // Throttle database writes: only write once every 120 seconds per session!
         $now = time();
-        if (isset($_SESSION['last_db_track']) && ($now - $_SESSION['last_db_track']) < 60) {
+        if (isset($_SESSION['last_db_track']) && ($now - $_SESSION['last_db_track']) < 120) {
             return;
         }
         $_SESSION['last_db_track'] = $now;
