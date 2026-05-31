@@ -9,11 +9,34 @@
             </a>
             <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight">Quản lý Mẫu Email</h2>
         </div>
+        <a href="<?= url('/admin/settings/email-templates/create') ?>" 
+           class="px-4 py-2.5 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition shadow flex items-center">
+            <i class="fas fa-plus mr-2"></i> Thêm mẫu mới
+        </a>
     </header>
 
     <?php if (!empty($_GET['msg']) && $_GET['msg'] == 'saved'): ?>
         <div class="mb-4 p-3 bg-green-50 text-green-700 rounded-xl font-bold border border-green-100 flex items-center text-sm">
             <i class="fas fa-check-circle mr-2"></i> Đã lưu mẫu email!
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['msg']) && $_GET['msg'] == 'deleted'): ?>
+        <div class="mb-4 p-3 bg-green-50 text-green-700 rounded-xl font-bold border border-green-100 flex items-center text-sm">
+            <i class="fas fa-trash-alt mr-2"></i> Đã xóa mẫu email thành công!
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($_GET['error'])): ?>
+        <div class="mb-4 p-3 bg-red-50 text-red-700 rounded-xl font-bold border border-red-100 flex items-center text-sm">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <?php
+            switch($_GET['error']) {
+                case 'not_found': echo 'Không tìm thấy mẫu email!'; break;
+                case 'system_protected': echo 'Không thể xóa mẫu email hệ thống!'; break;
+                case 'code_exists': echo 'Mã mẫu email đã tồn tại!'; break;
+                case 'invalid': echo 'Thông tin không hợp lệ!'; break;
+                default: echo 'Có lỗi xảy ra!'; break;
+            }
+            ?>
         </div>
     <?php endif; ?>
 
@@ -46,6 +69,13 @@
                        class="px-4 py-2 text-xs font-bold text-white bg-[#0066FF] hover:bg-blue-700 rounded-lg transition shadow">
                         <i class="fas fa-edit mr-1"></i> Chỉnh sửa
                     </a>
+                    <?php if (($tpl['type'] ?? 'system') !== 'system'): ?>
+                    <a href="<?= url('/admin/settings/email-templates/delete?id=' . $tpl['id']) ?>" 
+                       onclick="return confirm('Bạn có chắc chắn muốn xóa mẫu email này không? Hành động này không thể hoàn tác.')"
+                       class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition shadow">
+                        <i class="fas fa-trash-alt mr-1"></i> Xóa
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endforeach; ?>

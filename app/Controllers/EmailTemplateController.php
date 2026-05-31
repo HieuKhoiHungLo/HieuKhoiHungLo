@@ -103,4 +103,88 @@ class EmailTemplateController extends Controller {
         }
         exit;
     }
+
+    /**
+     * Create template form
+     */
+    public function create() {
+        $this->requireAdmin();
+        $this->view('admin/email_templates/create');
+    }
+
+    /**
+     * Store new template
+     */
+    public function store() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+
+        $code = trim($_POST['code'] ?? '');
+        $subject = trim($_POST['subject'] ?? '');
+        $body = $_POST['body'] ?? '';
+        $variables = trim($_POST['variables'] ?? '');
+
+        // Validation
+        if (empty($code) || empty($subject) || empty($body)) {
+            $this->redirect(url('/admin/settings/email-templates?error=invalid'));
+            return;
+        }
+
+        // Validate code pattern (alphanumeric and underscores only)
+        if (!preg_match('/^[a-z0-9_]+$/', $code)) {
+            $this->redirect(url('/admin/settings/email-templates?error=invalid'));
+            return;
+        }
+
+        // Check if code already exists
+        $existing = $this->templateService->getTemplate($code);
+        if ($existing) {
+            $this->redirect(url('/admin/settings/email-templates?error=code_exists'));
+            return;
+        }
+
+        $success = $this->templateService->createTemplate($code, $subject, $body, $variables, 'custom');
+        if ($success) {
+            $this->redirect(url('/admin/settings/email-templates?msg=saved'));
+        } else {
+            $this->redirect(url('/admin/settings/email-templates?error=invalid'));
+        }
+    }
+
+    /**
+     * Delete template
+     */
+    public function delete() {
+        $this->requireAdmin();
+        
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            $this->redirect(url('/admin/settings/email-templates'));
+            return;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+        $stmt->execute([$id]);
+        $template = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$template) {
+            $this->redirect(url('/admin/settings/email-templates?error=not_found'));
+            return;
+        }
+
+        // System templates cannot be deleted
+        if (($template['type'] ?? 'system') === 'system') {
+            $this->redirect(url('/admin/settings/email-templates?error=system_protected'));
+            return;
+        }
+
+        $success = $this->templateService->deleteTemplate((int)$id);
+        if ($success) {
+            $this->redirect(url('/admin/settings/email-templates?msg=deleted'));
+        } else {
+            $this->redirect(url('/admin/settings/email-templates?error=invalid'));
+        }
+    }
 }
+

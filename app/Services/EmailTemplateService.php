@@ -120,4 +120,21 @@ class EmailTemplateService {
         $html .= '</ul>';
         return $html;
     }
+
+    /**
+     * Create a new template
+     */
+    public function createTemplate(string $code, string $subject, string $body, ?string $variables = null, string $type = 'custom'): bool {
+        $stmt = $this->db->prepare("INSERT INTO email_templates (code, subject, body, variables, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        return $stmt->execute([$code, $subject, $body, $variables, $type]);
+    }
+
+    /**
+     * Delete a template
+     */
+    public function deleteTemplate(int $id): bool {
+        $stmt = $this->db->prepare("DELETE FROM email_templates WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
 }
+

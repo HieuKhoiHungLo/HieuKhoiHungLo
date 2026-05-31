@@ -316,9 +316,12 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/settings/email-senders/test', 'EmailSenderController@test');
 
     $router->get('/admin/settings/email-templates', 'EmailTemplateController@index');
+    $router->get('/admin/settings/email-templates/create', 'EmailTemplateController@create');
+    $router->post('/admin/settings/email-templates/store', 'EmailTemplateController@store');
     $router->get('/admin/settings/email-templates/edit', 'EmailTemplateController@edit');
     $router->post('/admin/settings/email-templates/save', 'EmailTemplateController@save');
     $router->get('/admin/settings/email-templates/preview', 'EmailTemplateController@preview');
+    $router->get('/admin/settings/email-templates/delete', 'EmailTemplateController@delete');
 
     // Admission Letters
     $router->get('/admin/admission-letters', 'AdmissionLetterController@index');
