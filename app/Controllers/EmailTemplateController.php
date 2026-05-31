@@ -68,6 +68,7 @@ class EmailTemplateController extends Controller {
         }
 
         $this->templateService->updateTemplate((int)$id, $subject, $body);
+        \App\Core\Cache::forget('email_templates_all');
         
         $this->redirect(url('/admin/settings/email-templates?msg=saved'));
     }
@@ -145,6 +146,7 @@ class EmailTemplateController extends Controller {
 
         $success = $this->templateService->createTemplate($code, $subject, $body, $variables, 'custom');
         if ($success) {
+            \App\Core\Cache::forget('email_templates_all');
             $this->redirect(url('/admin/settings/email-templates?msg=saved'));
         } else {
             $this->redirect(url('/admin/settings/email-templates?error=invalid'));
@@ -181,6 +183,7 @@ class EmailTemplateController extends Controller {
 
         $success = $this->templateService->deleteTemplate((int)$id);
         if ($success) {
+            \App\Core\Cache::forget('email_templates_all');
             $this->redirect(url('/admin/settings/email-templates?msg=deleted'));
         } else {
             $this->redirect(url('/admin/settings/email-templates?error=invalid'));
