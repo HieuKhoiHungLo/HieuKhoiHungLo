@@ -214,7 +214,7 @@ class VirtualFilterService {
                 FROM ho_so_xet_tuyen hs
                 WHERE nguyen_vong.so_cccd = hs.so_cccd
                 AND hs.dot_tuyen_sinh_id = ?
-                AND (nguyen_vong.dot_tuyen_sinh_id IS NULL OR nguyen_vong.dot_tuyen_sinh_id = hs.id)
+                AND (nguyen_vong.dot_tuyen_sinh_id IS NULL OR nguyen_vong.dot_tuyen_sinh_id <> hs.dot_tuyen_sinh_id)
             ";
             $this->db->prepare($sqlFix)->execute([(int)$batchId]);
 

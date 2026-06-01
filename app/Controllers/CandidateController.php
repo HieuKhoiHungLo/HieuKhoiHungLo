@@ -101,6 +101,13 @@ class CandidateController extends Controller
             session_write_close();
         }
 
+        // Self-healing: Correct mismatched dot_tuyen_sinh_id in nguyen_vong table (e.g. after transferring candidates)
+        try {
+            $this->db->exec("UPDATE nguyen_vong nv SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id FROM ho_so_xet_tuyen hs WHERE nv.so_cccd = hs.so_cccd AND (nv.dot_tuyen_sinh_id IS NULL OR nv.dot_tuyen_sinh_id <> hs.dot_tuyen_sinh_id)");
+        } catch (\Exception $e) {
+            error_log("Self-healing query failed: " . $e->getMessage());
+        }
+
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
         $hocBaStatus = $_GET['hoc_ba_status'] ?? '';

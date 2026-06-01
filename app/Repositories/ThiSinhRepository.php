@@ -363,6 +363,29 @@ class ThiSinhRepository
             $stmtUpdate = $this->db->prepare($sqlUpdate);
             $stmtUpdate->execute($paramsUpdate);
 
+            // Update nguyen_vong table as well
+            $sqlUpdateNV = "UPDATE nguyen_vong SET dot_tuyen_sinh_id = ? WHERE so_cccd IN ($placeholders)";
+            $stmtUpdateNV = $this->db->prepare($sqlUpdateNV);
+            $stmtUpdateNV->execute(array_merge([$sessionId], $cccds));
+
+            // Update ngoai_le_xet_tuyen table if exists
+            try {
+                $sqlUpdateEx = "UPDATE ngoai_le_xet_tuyen SET dot_tuyen_sinh_id = ? WHERE so_cccd IN ($placeholders)";
+                $stmtUpdateEx = $this->db->prepare($sqlUpdateEx);
+                $stmtUpdateEx->execute(array_merge([$sessionId], $cccds));
+            } catch (\Exception $e) {
+                // Ignore if table does not exist
+            }
+
+            // Update diem_nang_khieu table if exists
+            try {
+                $sqlUpdateNK = "UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = ? WHERE so_cccd IN ($placeholders)";
+                $stmtUpdateNK = $this->db->prepare($sqlUpdateNK);
+                $stmtUpdateNK->execute(array_merge([$sessionId], $cccds));
+            } catch (\Exception $e) {
+                // Ignore if table does not exist
+            }
+
             $this->db->commit();
             return true;
         } catch (\Exception $e) {
