@@ -44,74 +44,7 @@ class ProfileController extends Controller
         $_SESSION['user_cached_cccd'] = $_SESSION['cccd'];
     }
 
-    private function getApplicationStatus()
-    {
-        // Simple 30-second TTL cache for application status to reduce DB load
-        // Because status is unlikely to change exactly while user is filling forms step by step
-        $cacheKey = 'app_status_' . $_SESSION['cccd'];
-        $cacheTimeKey = $cacheKey . '_time';
-        $ttl = 30; // 30 seconds
 
-        if (isset($_SESSION[$cacheKey]) && isset($_SESSION[$cacheTimeKey]) && (time() - $_SESSION[$cacheTimeKey]) < $ttl) {
-            return $_SESSION[$cacheKey];
-        }
-
-        $applicationModel = new \App\Models\Application();
-        // Determine active session or latest
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
-
-        $status = '';
-        $isLocked = false;
-        $editRequestPending = false;
-
-        if ($activeSession) {
-            $app = $applicationModel->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
-            if ($app) {
-                $status = $app->trang_thai ?? '';
-                $isLocked = ($status === 'Đã duyệt');
-                $editRequestPending = !empty($app->yeu_cau_chinh_sua);
-            }
-        }
-
-        $result = [
-            'status' => $status,
-            'isLocked' => $isLocked,
-            'editRequestPending' => $editRequestPending
-        ];
-
-        $_SESSION[$cacheKey] = $result;
-        $_SESSION[$cacheTimeKey] = time();
-
-        return $result;
-    }
-
-    private function getUploadPathInfo($cccd)
-    {
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
-
-        $year = date('Y');
-        $sessionName = 'Dot1';
-
-        if ($activeSession) {
-            $year = $activeSession['nam_tuyen_sinh'] ?? date('Y');
-            $sessionName = $activeSession['ma_dot'] ?? ('Dot_' . ($activeSession['id'] ?? '1'));
-            // Slugify
-            $sessionName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $sessionName);
-        }
-
-        // Standard Path: uploads/YEAR/SESSION/CCCD
-        $relativePath = "/uploads/{$year}/{$sessionName}/{$cccd}";
-        $absolutePath = __DIR__ . '/../../public' . $relativePath;
-
-        return [
-            'relative' => $relativePath,
-            'absolute' => $absolutePath,
-            'year' => $year,
-            'session' => $sessionName
-        ];
-    }
 
     public function index()
     {
@@ -161,7 +94,9 @@ class ProfileController extends Controller
                     'old' => $_POST,
                     'isLocked' => $isLocked,
                     'editRequestPending' => $appStatus['editRequestPending'],
-                    'applicationStatus' => $appStatus['status']
+                    'applicationStatus' => $appStatus['status'],
+                    'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                    'sessionName' => $appStatus['sessionName'] ?? ''
                 ]);
                 return;
             }
@@ -255,7 +190,9 @@ class ProfileController extends Controller
                         'error' => $errorMsg,
                         'isLocked' => $isLocked,
                         'editRequestPending' => $appStatus['editRequestPending'],
-                        'applicationStatus' => $appStatus['status']
+                        'applicationStatus' => $appStatus['status'],
+                        'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                        'sessionName' => $appStatus['sessionName'] ?? ''
                     ]);
                     return;
                 }
@@ -272,7 +209,9 @@ class ProfileController extends Controller
                     'error' => $errorMsg,
                     'isLocked' => $isLocked,
                     'editRequestPending' => $appStatus['editRequestPending'],
-                    'applicationStatus' => $appStatus['status']
+                    'applicationStatus' => $appStatus['status'],
+                    'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                    'sessionName' => $appStatus['sessionName'] ?? ''
                 ]);
             }
         } else {
@@ -283,7 +222,9 @@ class ProfileController extends Controller
                 'priorityObjects' => $priorityObjects,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $appStatus['editRequestPending'],
-                'applicationStatus' => $appStatus['status']
+                'applicationStatus' => $appStatus['status'],
+                'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                'sessionName' => $appStatus['sessionName'] ?? ''
             ]);
         }
     }
@@ -408,7 +349,9 @@ class ProfileController extends Controller
                     'error' => 'Lỗi lưu học bạ.',
                     'isLocked' => $isLocked,
                     'editRequestPending' => $appStatus['editRequestPending'],
-                    'applicationStatus' => $appStatus['status']
+                    'applicationStatus' => $appStatus['status'],
+                    'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                    'sessionName' => $appStatus['sessionName'] ?? ''
                 ]);
             }
         } else {
@@ -418,7 +361,9 @@ class ProfileController extends Controller
                 'subjects' => $subjects,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $appStatus['editRequestPending'],
-                'applicationStatus' => $appStatus['status']
+                'applicationStatus' => $appStatus['status'],
+                'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                'sessionName' => $appStatus['sessionName'] ?? ''
             ]);
         }
     }
@@ -588,7 +533,9 @@ class ProfileController extends Controller
                     'error' => 'Lỗi lưu thông tin.',
                     'isLocked' => $isLocked,
                     'editRequestPending' => $appStatus['editRequestPending'],
-                    'applicationStatus' => $appStatus['status']
+                    'applicationStatus' => $appStatus['status'],
+                    'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                    'sessionName' => $appStatus['sessionName'] ?? ''
                 ]);
             }
         } else {
@@ -598,7 +545,9 @@ class ProfileController extends Controller
                 'subjects' => $subjects, // Add missing subjects var logic
                 'isLocked' => $isLocked,
                 'editRequestPending' => $appStatus['editRequestPending'],
-                'applicationStatus' => $appStatus['status']
+                'applicationStatus' => $appStatus['status'],
+                'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                'sessionName' => $appStatus['sessionName'] ?? ''
             ]);
         }
     }

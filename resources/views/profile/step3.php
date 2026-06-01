@@ -70,6 +70,21 @@
                     </div>
                 <?php endif; ?>
 
+                <?php if (empty($isLocked) && !empty($isSessionClosed)): ?>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-blue-700 rounded-xl" role="alert">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-bold">
+                                    Đợt tuyển sinh này (<?= htmlspecialchars($sessionName ?? 'Ghi danh') ?>) đã hết thời hạn đăng ký. Tuy nhiên, vì hồ sơ của bạn đang ở trạng thái "Chờ duyệt", bạn vẫn được quyền chỉnh sửa và cập nhật tất cả thông tin.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <fieldset <?= (!empty($isLocked)) ? 'disabled' : '' ?> class="space-y-8 group/locked contents">
 
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">

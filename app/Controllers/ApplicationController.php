@@ -234,16 +234,27 @@ class ApplicationController extends Controller
             $applicationStatus = $status;
         }
 
+        $isSessionClosed = false;
+        $sessionName = '';
+
         // Also check if the associated session is locked or expired
         if ($activeSession) {
             $isLockedSession = !$activeSession['kich_hoat'];
             $isExpiredSession = strtotime($activeSession['ngay_ket_thuc']) < time();
-            if ($isLockedSession) {
-                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
-                $isLocked = true;
-            } elseif ($isExpiredSession) {
-                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
-                $isLocked = true;
+            $isSessionClosed = $isLockedSession || $isExpiredSession;
+            $sessionName = $activeSession['ten_dot'] ?? '';
+            
+            // If they have an existing application that is NOT 'Đã duyệt', we DO NOT lock!
+            $hasExistingPendingApp = ($currentApp && $status !== 'Đã duyệt' && $status !== 'approved' && $status !== 'DaDuyet');
+            
+            if (!$hasExistingPendingApp) {
+                if ($isLockedSession) {
+                    $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
+                    $isLocked = true;
+                } elseif ($isExpiredSession) {
+                    $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
+                    $isLocked = true;
+                }
             }
         }
         // ---------------------
@@ -396,7 +407,9 @@ class ApplicationController extends Controller
                 'enableTHPTSetting' => $enableTHPTSetting,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $editRequestPending,
-                'applicationStatus' => $applicationStatus
+                'applicationStatus' => $applicationStatus,
+                'isSessionClosed' => $isSessionClosed,
+                'sessionName' => $sessionName
             ]);
         } else {
             // Get THPT setting
@@ -410,7 +423,9 @@ class ApplicationController extends Controller
                 'enableTHPTSetting' => $enableTHPTSetting,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $editRequestPending,
-                'applicationStatus' => $applicationStatus
+                'applicationStatus' => $applicationStatus,
+                'isSessionClosed' => $isSessionClosed,
+                'sessionName' => $sessionName
             ]);
         }
     }

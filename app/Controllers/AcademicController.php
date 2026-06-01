@@ -144,10 +144,18 @@ class AcademicController extends Controller
     // Step 4: International Certifications
     public function step3()
     {
+        $appStatus = $this->getApplicationStatus();
+        $isLocked = $appStatus['isLocked'];
+
         $user = $this->thiSinhModel->findByCCCD($_SESSION['cccd']);
         $existingCerts = $this->thiSinhModel->getCertifications($_SESSION['cccd']);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if ($isLocked) {
+                $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
+
             $hasCert = isset($_POST['has_cert']) && $_POST['has_cert'] == '1';
             $certInputs = $_POST['certs'] ?? [];
             $finalCerts = [];
@@ -223,13 +231,23 @@ class AcademicController extends Controller
                 $this->view('profile/step3', [
                     'user' => $user,
                     'certs' => $existingCerts,
-                    'error' => 'Lỗi lưu dữ liệu chứng chỉ.'
+                    'error' => 'Lỗi lưu dữ liệu chứng chỉ.',
+                    'isLocked' => $isLocked,
+                    'editRequestPending' => $appStatus['editRequestPending'],
+                    'applicationStatus' => $appStatus['status'],
+                    'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                    'sessionName' => $appStatus['sessionName'] ?? ''
                 ]);
             }
         } else {
             $this->view('profile/step3', [
                 'user' => $user,
-                'certs' => $existingCerts
+                'certs' => $existingCerts,
+                'isLocked' => $isLocked,
+                'editRequestPending' => $appStatus['editRequestPending'],
+                'applicationStatus' => $appStatus['status'],
+                'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
+                'sessionName' => $appStatus['sessionName'] ?? ''
             ]);
         }
     }

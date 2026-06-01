@@ -84,6 +84,11 @@ class Controller
      * If the path starts with / or X:\ it's treated as absolute.
      * Otherwise it's relative to project root.
      */
+    /**
+     * Resolve a config file path - handles both absolute and relative paths.
+     * If the path starts with / or X:\ it's treated as absolute.
+     * Otherwise it's relative to project root.
+     */
     protected static function resolveConfigPath($envValue, $default = '')
     {
         $path = $envValue ?: $default;
@@ -99,4 +104,112 @@ class Controller
         
         return rtrim($rootDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
     }
+
+    protected function getApplicationStatus()
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        
+        if (empty($_SESSION['cccd'])) {
+            return [
+                'status' => '',
+                'isLocked' => false,
+                'editRequestPending' => false,
+                'isSessionClosed' => false,
+                'sessionName' => ''
+            ];
+        }
+
+        // Simple 30-second TTL cache for application status to reduce DB load
+        $cacheKey = 'app_status_' . $_SESSION['cccd'];
+        $cacheTimeKey = $cacheKey . '_time';
+        $ttl = 30; // 30 seconds
+
+        if (isset($_SESSION[$cacheKey]) && isset($_SESSION[$cacheTimeKey]) && (time() - $_SESSION[$cacheTimeKey]) < $ttl) {
+            return $_SESSION[$cacheKey];
+        }
+
+        $applicationModel = new \App\Models\Application();
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
+
+        // Fallback: If no active session is found, check if they have ANY existing application overall
+        if (!$activeSession) {
+            $allApps = $applicationModel->getByCCCD($_SESSION['cccd']);
+            if (!empty($allApps)) {
+                $activeSession = $sessionModel->find($allApps[0]->dot_tuyen_sinh_id);
+            }
+        }
+
+        $status = '';
+        $isLocked = false;
+        $editRequestPending = false;
+        $isSessionClosed = false;
+        $sessionName = '';
+
+        if ($activeSession) {
+            $app = $applicationModel->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
+            if ($app) {
+                $status = $app->trang_thai ?? '';
+                $isLocked = ($status === 'Đã duyệt' || $status === 'approved' || $status === 'DaDuyet');
+                $editRequestPending = !empty($app->yeu_cau_chinh_sua);
+            }
+
+            $isLockedSession = !$activeSession['kich_hoat'];
+            $isExpiredSession = strtotime($activeSession['ngay_ket_thuc']) < time();
+            $isSessionClosed = $isLockedSession || $isExpiredSession;
+            $sessionName = $activeSession['ten_dot'] ?? '';
+        }
+
+        $result = [
+            'status' => $status,
+            'isLocked' => $isLocked,
+            'editRequestPending' => $editRequestPending,
+            'isSessionClosed' => $isSessionClosed,
+            'sessionName' => $sessionName
+        ];
+
+        $_SESSION[$cacheKey] = $result;
+        $_SESSION[$cacheTimeKey] = time();
+
+        return $result;
+    }
+
+    protected function getUploadPathInfo($cccd)
+    {
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
+
+        // Fallback: If no active session is found, check if they have ANY existing application overall
+        if (!$activeSession) {
+            $applicationModel = new \App\Models\Application();
+            $allApps = $applicationModel->getByCCCD($cccd);
+            if (!empty($allApps)) {
+                $activeSession = $sessionModel->find($allApps[0]->dot_tuyen_sinh_id);
+            }
+        }
+
+        $year = date('Y');
+        $sessionName = 'Dot1';
+
+        if ($activeSession) {
+            $year = $activeSession['nam_tuyen_sinh'] ?? date('Y');
+            $sessionName = $activeSession['ma_dot'] ?? ('Dot_' . ($activeSession['id'] ?? '1'));
+            // Slugify
+            $sessionName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $sessionName);
+        }
+
+        // Standard Path: uploads/YEAR/SESSION/CCCD
+        $relativePath = "/uploads/{$year}/{$sessionName}/{$cccd}";
+        $absolutePath = __DIR__ . '/../../public' . $relativePath;
+
+        return [
+            'relative' => $relativePath,
+            'absolute' => $absolutePath,
+            'year' => $year,
+            'session' => $sessionName
+        ];
+    }
 }
+
