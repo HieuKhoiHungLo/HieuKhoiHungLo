@@ -464,29 +464,27 @@ class VirtualAdmissionController extends Controller {
                 'NV'                => $row['thu_tu_nguyen_vong'],
                 'Tổ hợp max'        => $toHopMax,
                 'PT max'            => $ptMax,
-                
                 'Điểm M1'           => $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : '-',
-                'M1 L10'            => $m1_l10,
-                'M1 L11'            => $m1_l11,
-                'M1 L12'            => $m1_l12,
-                
                 'Điểm M2'           => $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : '-',
-                'M2 L10'            => $m2_l10,
-                'M2 L11'            => $m2_l11,
-                'M2 L12'            => $m2_l12,
-                
                 'Điểm M3'           => $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : '-',
-                'M3 L10'            => $m3_l10,
-                'M3 L11'            => $m3_l11,
-                'M3 L12'            => $m3_l12,
-                
                 'Điểm tổ hợp'       => $diemToHop,
                 'Điểm quy đổi'      => $diemQuyDoi,
                 'Điểm UT QĐ'        => $diemUtQd,
                 'Điểm xét tuyển'    => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : '-',
                 'ĐK học lực'        => $dkHocLuc,
                 'ĐK Ngưỡng'         => $dkNguong,
-                'Kết quả xét tuyển' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt'
+                'Kết quả xét tuyển' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt',
+                
+                // Detailed sub-scores columns at the very end
+                'M1 L10'            => $m1_l10,
+                'M1 L11'            => $m1_l11,
+                'M1 L12'            => $m1_l12,
+                'M2 L10'            => $m2_l10,
+                'M2 L11'            => $m2_l11,
+                'M2 L12'            => $m2_l12,
+                'M3 L10'            => $m3_l10,
+                'M3 L11'            => $m3_l11,
+                'M3 L12'            => $m3_l12
             ];
         }
 
