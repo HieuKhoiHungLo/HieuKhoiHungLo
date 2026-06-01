@@ -315,9 +315,9 @@ class VirtualAdmissionController extends Controller {
             die("Chưa chọn đợt xét tuyển.");
         }
 
-        // Fetch combinations to map to_hop_toi_uu to rich label
+        // Fetch combinations to map to_hop_toi_uu to rich label and get subject IDs
         $combos = $this->db->query("
-            SELECT th.ma_to_hop, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
+            SELECT th.ma_to_hop, th.mon_1_id, th.mon_2_id, th.mon_3_id, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
             FROM dm_to_hop th 
             LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
             LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
@@ -325,8 +325,52 @@ class VirtualAdmissionController extends Controller {
         ")->fetchAll(PDO::FETCH_ASSOC);
         
         $comboMap = [];
+        $comboSubjectsMap = [];
         foreach ($combos as $c) {
             $comboMap[$c['ma_to_hop']] = $c['ma_to_hop'] . ' (' . $c['m1'] . '-' . $c['m2'] . '-' . $c['m3'] . ')';
+            $comboSubjectsMap[$c['ma_to_hop']] = [
+                'mon_1_id' => $c['mon_1_id'],
+                'mon_2_id' => $c['mon_2_id'],
+                'mon_3_id' => $c['mon_3_id']
+            ];
+        }
+
+        // Map subject IDs to their respective ket_qua_hoc_tap database columns
+        $subjectsList = $this->db->query("SELECT id, ma_mon FROM dm_mon")->fetchAll(PDO::FETCH_ASSOC);
+        $subjectIdToCol = [];
+        $aliases = [
+            'TOAN' => 'toan', 'TO' => 'toan',
+            'VAN' => 'van', 'NGU_VAN' => 'van', 'VA' => 'van',
+            'ANH' => 'ngoai_ngu', 'TIENG_ANH' => 'ngoai_ngu', 'NGOAI_NGU' => 'ngoai_ngu', 'TA' => 'ngoai_ngu', 'NN' => 'ngoai_ngu',
+            'LY' => 'ly', 'VAT_LY' => 'ly', 'VAT LI' => 'ly', 'LI' => 'ly',
+            'HOA' => 'hoa', 'HOA_HOC' => 'hoa', 'HO' => 'hoa',
+            'SINH' => 'sinh', 'SINH_HOC' => 'sinh', 'SI' => 'sinh',
+            'SU' => 'su', 'LICH_SU' => 'su',
+            'DIA' => 'dia', 'DIA_LY' => 'dia', 'DI' => 'dia',
+            'GDCD' => 'gdcd', 'GD' => 'gdcd',
+            'GDKT_PL' => 'ktpl', 'KTPL' => 'ktpl', 'GDKTPL' => 'ktpl',
+            'CONG_NGHE' => 'cong_nghe', 'CN' => 'cong_nghe',
+            'TIN' => 'tin_hoc', 'TIN_HOC' => 'tin_hoc', 'TH' => 'tin_hoc'
+        ];
+        foreach ($subjectsList as $s) {
+            $code = strtoupper(trim($s['ma_mon']));
+            if (isset($aliases[$code])) {
+                $subjectIdToCol[$s['id']] = 'diem_' . $aliases[$code] . '_cn';
+            }
+        }
+
+        // Fetch academic records for all candidates in this session to avoid N+1 queries
+        $academicRows = $this->db->prepare("
+            SELECT * FROM ket_qua_hoc_tap 
+            WHERE so_cccd IN (
+                SELECT DISTINCT so_cccd FROM nguyen_vong 
+                WHERE dot_tuyen_sinh_id = ? AND (trang_thai = 'DaDuyet' OR trang_thai LIKE '%Đã duyệt%')
+            )
+        ");
+        $academicRows->execute([$sessionId]);
+        $academicMap = [];
+        while ($ar = $academicRows->fetch(PDO::FETCH_ASSOC)) {
+            $academicMap[$ar['so_cccd']][$ar['lop']] = $ar;
         }
 
         $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
@@ -360,6 +404,40 @@ class VirtualAdmissionController extends Controller {
             $m3 = $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : 0.0;
             $diemToHop = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? ($m1 + $m2 + $m3) : '-';
 
+            // Get Grade 10, 11, 12 average subject scores
+            $combo = $row['to_hop_toi_uu'];
+            $cccd = $row['so_cccd'];
+            
+            $m1_l10 = '-'; $m1_l11 = '-'; $m1_l12 = '-';
+            $m2_l10 = '-'; $m2_l11 = '-'; $m2_l12 = '-';
+            $m3_l10 = '-'; $m3_l11 = '-'; $m3_l12 = '-';
+            
+            if ($combo && isset($comboSubjectsMap[$combo])) {
+                $subIds = $comboSubjectsMap[$combo];
+                $mon1Id = $subIds['mon_1_id'];
+                $mon2Id = $subIds['mon_2_id'];
+                $mon3Id = $subIds['mon_3_id'];
+                
+                $col1 = $subjectIdToCol[$mon1Id] ?? null;
+                $col2 = $subjectIdToCol[$mon2Id] ?? null;
+                $col3 = $subjectIdToCol[$mon3Id] ?? null;
+                
+                foreach ([10, 11, 12] as $g) {
+                    if (isset($academicMap[$cccd][$g])) {
+                        $record = $academicMap[$cccd][$g];
+                        if ($col1 && isset($record[$col1]) && $record[$col1] !== '') {
+                            ${"m1_l$g"} = (float)$record[$col1];
+                        }
+                        if ($col2 && isset($record[$col2]) && $record[$col2] !== '') {
+                            ${"m2_l$g"} = (float)$record[$col2];
+                        }
+                        if ($col3 && isset($record[$col3]) && $record[$col3] !== '') {
+                            ${"m3_l$g"} = (float)$record[$col3];
+                        }
+                    }
+                }
+            }
+
             $detail = null;
             if (!empty($row['chi_tiet_diem'])) {
                 $detail = json_decode($row['chi_tiet_diem'], true);
@@ -386,9 +464,22 @@ class VirtualAdmissionController extends Controller {
                 'NV'                => $row['thu_tu_nguyen_vong'],
                 'Tổ hợp max'        => $toHopMax,
                 'PT max'            => $ptMax,
+                
                 'Điểm M1'           => $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : '-',
+                'M1 L10'            => $m1_l10,
+                'M1 L11'            => $m1_l11,
+                'M1 L12'            => $m1_l12,
+                
                 'Điểm M2'           => $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : '-',
+                'M2 L10'            => $m2_l10,
+                'M2 L11'            => $m2_l11,
+                'M2 L12'            => $m2_l12,
+                
                 'Điểm M3'           => $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : '-',
+                'M3 L10'            => $m3_l10,
+                'M3 L11'            => $m3_l11,
+                'M3 L12'            => $m3_l12,
+                
                 'Điểm tổ hợp'       => $diemToHop,
                 'Điểm quy đổi'      => $diemQuyDoi,
                 'Điểm UT QĐ'        => $diemUtQd,
