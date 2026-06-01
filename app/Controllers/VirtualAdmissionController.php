@@ -315,8 +315,23 @@ class VirtualAdmissionController extends Controller {
             die("Chưa chọn đợt xét tuyển.");
         }
 
+        // Fetch combinations to map to_hop_toi_uu to rich label
+        $combos = $this->db->query("
+            SELECT th.ma_to_hop, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
+            FROM dm_to_hop th 
+            LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $comboMap = [];
+        foreach ($combos as $c) {
+            $comboMap[$c['ma_to_hop']] = $c['ma_to_hop'] . ' (' . $c['m1'] . '-' . $c['m2'] . '-' . $c['m3'] . ')';
+        }
+
         $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
-                       cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen
+                       cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen,
+                       cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.chi_tiet_diem
                 FROM nguyen_vong nv
                 JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                 LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
@@ -325,18 +340,62 @@ class VirtualAdmissionController extends Controller {
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);
         
+        $ptLabels = [
+            '100' => 'TS01',
+            '200' => 'TS02',
+            'TS01' => 'TS01',
+            'TS02' => 'TS02',
+            'TS03' => 'TS03',
+            'TS04' => 'TS04',
+            'TS05' => 'TS05'
+        ];
+
         $data = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $toHopMax = isset($comboMap[$row['to_hop_toi_uu']]) ? $comboMap[$row['to_hop_toi_uu']] : ($row['to_hop_toi_uu'] ?: '-');
+            $ptMax = isset($ptLabels[$row['phuong_thuc_toi_uu']]) ? $ptLabels[$row['phuong_thuc_toi_uu']] : ($row['phuong_thuc_toi_uu'] ?: '-');
+
+            $m1 = $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : 0.0;
+            $m2 = $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : 0.0;
+            $m3 = $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : 0.0;
+            $diemToHop = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? ($m1 + $m2 + $m3) : '-';
+
+            $detail = null;
+            if (!empty($row['chi_tiet_diem'])) {
+                $detail = json_decode($row['chi_tiet_diem'], true);
+            }
+
+            $diemQuyDoi = isset($detail['total_raw']) ? (float)$detail['total_raw'] : '-';
+            $diemUtQd = isset($detail['priority_converted']) ? (float)$detail['priority_converted'] : '-';
+            $thresholdNote = isset($detail['threshold_note']) ? (string)$detail['threshold_note'] : '';
+
+            $dkHocLuc = 'Đạt';
+            if (mb_strpos(mb_strtoupper($thresholdNote, 'UTF-8'), 'HỌC LỰC') !== false) {
+                $dkHocLuc = 'K.Đạt';
+            }
+
+            $dkNguong = 'Đạt';
+            if (mb_strpos(mb_strtoupper($thresholdNote, 'UTF-8'), 'NGƯỠNG') !== false) {
+                $dkNguong = 'K.Đạt';
+            }
+
             $data[] = [
-                'CCCD'       => "\t" . $row['so_cccd'], // Prefix with tab for ExportService detection
-                'Họ tên'     => $row['ho_va_ten'],
-                'Ngành'      => $row['ma_nganh'],
-                'NV'         => $row['thu_tu_nguyen_vong'],
-                'Điểm M1'    => $row['diem_mon_1'],
-                'Điểm M2'    => $row['diem_mon_2'],
-                'Điểm M3'    => $row['diem_mon_3'],
-                'Tổng Điểm'  => $row['diem_xet_tuyen'],
-                'Trạng Thái' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt'
+                'CCCD'              => "\t" . $row['so_cccd'], // Prefix with tab for ExportService detection
+                'Họ tên'            => $row['ho_va_ten'],
+                'Ngành'             => $row['ma_nganh'],
+                'NV'                => $row['thu_tu_nguyen_vong'],
+                'Tổ hợp max'        => $toHopMax,
+                'PT max'            => $ptMax,
+                'Điểm M1'           => $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : '-',
+                'Điểm M2'           => $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : '-',
+                'Điểm M3'           => $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : '-',
+                'Điểm tổ hợp'       => $diemToHop,
+                'Điểm quy đổi'      => $diemQuyDoi,
+                'Điểm UT QĐ'        => $diemUtQd,
+                'Điểm xét tuyển'    => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : '-',
+                'ĐK học lực'        => $dkHocLuc,
+                'ĐK Ngưỡng'         => $dkNguong,
+                'Kết quả xét tuyển' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt'
             ];
         }
 
