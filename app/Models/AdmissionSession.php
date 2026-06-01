@@ -61,6 +61,20 @@ class AdmissionSession extends \App\Core\Model {
         $stmt->execute();
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
+
+    // Find a session by its ID
+    public function find($id) {
+        $sql = "
+            SELECT dt.*, 
+                   COALESCE(dt.nam_tuyen_sinh, nts.nam, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
+            FROM dot_tuyen_sinh dt
+            LEFT JOIN dm_nam_tuyen_sinh nts ON dt.dm_nam_tuyen_sinh_nam = nts.nam
+            WHERE dt.id = ?
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
     
     public function getAll() {
         $sql = "
