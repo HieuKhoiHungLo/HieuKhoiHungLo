@@ -46,6 +46,21 @@ class AdmissionSession extends \App\Core\Model {
         $stmt->execute();
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
+
+    // Get the latest session in the system overall (active or inactive, expired or not)
+    public function getLatestSession() {
+         $sql = "
+            SELECT dt.*, 
+                   COALESCE(dt.nam_tuyen_sinh, nts.nam, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
+            FROM dot_tuyen_sinh dt
+            LEFT JOIN dm_nam_tuyen_sinh nts ON dt.dm_nam_tuyen_sinh_nam = nts.nam
+            ORDER BY dt.id DESC
+            LIMIT 1
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
     
     public function getAll() {
         $sql = "

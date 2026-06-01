@@ -61,7 +61,10 @@
     <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
             <div>
-                <h2 class="text-xl lg:text-2xl font-black text-slate-800 font-heading uppercase tracking-tight">Thống kê & Báo cáo</h2>
+                <h2 class="text-xl lg:text-2xl font-black text-slate-800 font-heading uppercase tracking-tight flex items-center flex-wrap gap-3">
+                    Thống kê & Báo cáo
+                    <span id="sessionStatusBadge" style="display: none;"></span>
+                </h2>
             </div>
             <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl">
                 <span class="relative flex h-2 w-2">
@@ -109,7 +112,7 @@
             <select id="filterSession" class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm cursor-pointer">
                 <option value="">-- Tất cả đợt --</option>
                 <?php foreach ($sessions as $s): ?>
-                    <option value="<?= $s['id'] ?>" data-year="<?= $s['nam_tuyen_sinh'] ?>" <?= ($currentSessionId ?? '') == $s['id'] ? 'selected' : '' ?>>
+                    <option value="<?= $s['id'] ?>" data-year="<?= $s['nam_tuyen_sinh'] ?>" data-kich-hoat="<?= $s['kich_hoat'] ? '1' : '0' ?>" data-ngay-ket-thuc="<?= $s['ngay_ket_thuc'] ?>" <?= ($currentSessionId ?? '') == $s['id'] ? 'selected' : '' ?>>
                         <?= htmlspecialchars(!empty($s['ma_dot']) ? $s['ma_dot'] : $s['ten_dot']) ?> - <?= $s['nam_tuyen_sinh'] ?>
                     </option>
                 <?php endforeach; ?>
@@ -956,6 +959,41 @@
         }
     }
 
+    window.updateSessionBadge = function() {
+        const select = document.getElementById('filterSession');
+        const badge = document.getElementById('sessionStatusBadge');
+        if (!select || !badge) return;
+
+        const selectedOpt = select.selectedOptions[0];
+        if (!selectedOpt || selectedOpt.value === "") {
+            badge.style.display = 'none';
+            return;
+        }
+
+        const kichHoat = selectedOpt.getAttribute('data-kich-hoat') === '1';
+        const ngayKetThucStr = selectedOpt.getAttribute('data-ngay-ket-thuc');
+        
+        let html = '';
+        let display = 'inline-flex';
+
+        if (!kichHoat) {
+            html = `<span class="inline-flex items-center px-2.5 py-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-amber-200 shadow-sm"><i class="fas fa-lock mr-1.5 opacity-70"></i> Đợt đã bị khóa</span>`;
+        } else if (ngayKetThucStr) {
+            const ngayKetThuc = new Date(ngayKetThucStr + ' 23:59:59');
+            const today = new Date();
+            if (ngayKetThuc < today) {
+                html = `<span class="inline-flex items-center px-2.5 py-1 bg-rose-50 text-rose-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-rose-200 shadow-sm"><i class="fas fa-calendar-times mr-1.5 opacity-70"></i> Đợt đã kết thúc</span>`;
+            } else {
+                display = 'none';
+            }
+        } else {
+            display = 'none';
+        }
+
+        badge.innerHTML = html;
+        badge.style.display = display;
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Event Listeners for dependent selects
         document.getElementById('filterYear').addEventListener('change', function() {
@@ -970,7 +1008,13 @@
             if (selectedOpt && selectedOpt.value !== "" && selectedOpt.style.display === 'none') {
                 sessionSelect.value = "";
             }
+            window.updateSessionBadge();
         });
+
+        document.getElementById('filterSession').addEventListener('change', window.updateSessionBadge);
+
+        // Initial run
+        window.updateSessionBadge();
 
         // Auto-refresh online stats every 30 seconds
         setInterval(function() {

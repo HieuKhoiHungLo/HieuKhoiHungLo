@@ -497,7 +497,8 @@ class ThiSinh extends Model {
             $params[] = (int)$sessionId;
         } elseif ($year) {
             $from .= " INNER JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id";
-            $hsWhere .= " AND dt.dm_nam_tuyen_sinh_nam = ?";
+            $hsWhere .= " AND (dt.nam_tuyen_sinh = ? OR dt.dm_nam_tuyen_sinh_nam = ?)";
+            $params[] = (int)$year;
             $params[] = (int)$year;
         }
 

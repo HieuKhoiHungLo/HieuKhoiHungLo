@@ -577,6 +577,10 @@ class AdminController extends Controller
                 $activeSession = $sessionModel->getLatestActiveSession();
             }
 
+            if (!$activeSession) {
+                $activeSession = $sessionModel->getLatestSession();
+            }
+
             if ($activeSession) {
                 $sessionId   = $activeSession['id'];
                 $selectedYear = $activeSession['nam_tuyen_sinh'];
@@ -694,15 +698,22 @@ class AdminController extends Controller
         $selectedYear = $_GET['year'] ?? null;
         $sessionId = $_GET['session_id'] ?? null;
 
+        if ($selectedYear === '') $selectedYear = null;
+        if ($sessionId === '') $sessionId = null;
+
         if ($selectedYear === null && $sessionId === null) {
             $activeSession = $sessionModel->getActiveSession();
             if ($activeSession) {
                 $sessionId = $activeSession['id'];
                 $selectedYear = $activeSession['nam_tuyen_sinh'];
             } else {
-                // Fallback: Get year from latest active session or just latest session
+                // Fallback: Get latest active session or latest session overall
                 $latestSession = $sessionModel->getLatestActiveSession();
+                if (!$latestSession) {
+                    $latestSession = $sessionModel->getLatestSession();
+                }
                 if ($latestSession) {
+                    $sessionId = $latestSession['id'];
                     $selectedYear = $latestSession['nam_tuyen_sinh'];
                 } else {
                     // Get all sessions to find latest year
