@@ -239,10 +239,10 @@ class ApplicationController extends Controller
             $isLockedSession = !$activeSession['kich_hoat'];
             $isExpiredSession = strtotime($activeSession['ngay_ket_thuc']) < time();
             if ($isLockedSession) {
-                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã bị khóa. Bạn chỉ có thể xem danh sách nguyện vọng.';
+                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
                 $isLocked = true;
             } elseif ($isExpiredSession) {
-                $error = 'Thời gian nhận hồ sơ của đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã kết thúc. Bạn chỉ có thể xem danh sách nguyện vọng.';
+                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã hết thời hạn đăng ký. Bạn chỉ có thể xem hồ sơ. Cần hỗ trợ liên hệ số 0866993468';
                 $isLocked = true;
             }
         }
