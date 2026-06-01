@@ -260,6 +260,7 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                             <div class="flex items-center gap-2">
                                 <select id="sel-audit-type" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold text-slate-600 outline-none focus:ring-1 focus:ring-blue-400 w-full max-w-[400px]">
                                     <option value="">-- Chọn danh sách cần kiểm tra --</option>
+                                    <option value="comprehensive">Tổng hợp hồ sơ cần rà soát (Đầy đủ lỗi rà soát + Ghi chú)</option>
                                     <option value="dob">Thí sinh cần kiểm tra lại ngày sinh (Trống hoặc 01/01/2008)</option>
                                     <option value="wishes">Thí sinh chưa có nguyện vọng xét tuyển</option>
                                     <option value="contact">Thí sinh thiếu thông tin liên hệ (Email/SĐT)</option>

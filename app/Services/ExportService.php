@@ -743,6 +743,76 @@ class ExportService {
      * Export data for auditing purposes (Feature 8)
      */
     public function exportDataAudit($type, $filters = []) {
+        if ($type === 'comprehensive') {
+            $session_id = $filters['session_id'] ?? null;
+            if (!$session_id) {
+                return [];
+            }
+            $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
+                           t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, 
+                           t.dan_toc, t.ma_truong_lop_12,
+                           COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt,
+                           COALESCE(p.ten_tinh, 'Chưa rõ') as ten_tinh_thuong_tru,
+                           COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so,
+                           (SELECT COUNT(*) FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as grade_count,
+                           (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.dot_tuyen_sinh_id = ?) as wish_count,
+                           (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hoc_luc_12
+                    FROM thi_sinh t
+                    LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                    LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
+                    LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd AND hs.dot_tuyen_sinh_id = ?
+                    WHERE t.deleted_at IS NULL AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd AND hs2.dot_tuyen_sinh_id = ?)
+                    ORDER BY t.ho_va_ten ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$session_id, $session_id, $session_id]);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $data = [];
+            $stt = 1;
+            foreach ($results as $r) {
+                $errors = [];
+                if ($r['grade_count'] < 3) {
+                    $errors[] = "Chưa đủ học bạ 3 lớp";
+                }
+                if ($r['wish_count'] == 0) {
+                    $errors[] = "Chưa đăng ký nguyện vọng";
+                }
+                if (empty($r['ngay_sinh']) || date('Y-m-d', strtotime($r['ngay_sinh'])) === '2008-01-01') {
+                    $errors[] = "Sai ngày sinh 01/01/2008";
+                }
+                $danToc = trim($r['dan_toc'] ?? '');
+                $doiTuong = trim($r['ma_doi_tuong'] ?? '');
+                if (strcasecmp($danToc, 'Kinh') === 0 && ($doiTuong === '01' || $doiTuong === 'DT01' || $doiTuong === 'DT1')) {
+                    $errors[] = "Dân tộc Kinh nhưng là Đối tượng 01";
+                }
+                if (empty($r['ma_truong_lop_12'])) {
+                    $errors[] = "Thiếu tên trường THPT";
+                }
+                if (empty($r['hoc_luc_12'])) {
+                    $errors[] = "Thiếu học lực lớp 12";
+                }
+
+                if (!empty($errors)) {
+                    $data[] = [
+                        'STT'               => $stt++,
+                        'Số CCCD'           => $this->textCell($r['so_cccd']),
+                        'Họ và tên'         => $r['ho_va_ten'],
+                        'Ngày sinh'         => $this->formatDate($r['ngay_sinh']),
+                        'Điện thoại'        => $r['dien_thoai'],
+                        'Email'             => $r['email'],
+                        'Đối tượng'         => $this->formatObject($r['ma_doi_tuong']),
+                        'Khu vực'           => $this->formatArea($r['ma_khu_vuc']),
+                        'Tỉnh'              => $r['ten_tinh_thuong_tru'],
+                        'Tên trường THPT'   => $r['ten_truong_thpt'],
+                        'Ghi chú rà soát'   => implode(', ', $errors),
+                        'Tình trạng hồ sơ'  => $r['trang_thai_ho_so'],
+                    ];
+                }
+            }
+            return $data;
+        }
+
         $sql = "SELECT t.so_cccd, t.ho_va_ten, t.ngay_sinh, t.dien_thoai, t.email, 
                        t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, 
                        COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt,

@@ -445,12 +445,13 @@ class ReportController extends Controller {
         ];
 
         $typeNames = [
-            'dob'       => 'kiem_tra_ngay_sinh',
-            'wishes'    => 'chua_co_nguyen_vong',
-            'contact'   => 'thieu_thong_tin_lien_he',
-            'priority'  => 'thieu_thong_tin_uu_tien',
-            'free'      => 'thi_sinh_tu_do',
-            'scores'    => 'chua_co_diem_hoc_ba',
+            'dob'           => 'kiem_tra_ngay_sinh',
+            'wishes'        => 'chua_co_nguyen_vong',
+            'contact'       => 'thieu_thong_tin_lien_he',
+            'priority'      => 'thieu_thong_tin_uu_tien',
+            'free'          => 'thi_sinh_tu_do',
+            'scores'        => 'chua_co_diem_hoc_ba',
+            'comprehensive' => 'tong_hop_ho_so_can_ra_soat',
         ];
 
         if (!isset($typeNames[$type])) {
