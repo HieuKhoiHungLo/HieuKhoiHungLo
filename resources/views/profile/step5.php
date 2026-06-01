@@ -53,7 +53,7 @@ include __DIR__ . '/../layouts/header.php';
             <form method="POST" action="<?= url('/profile/step5?id=' . $applicationId) ?>" id="choicesForm">
                 <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                 
-                <?php if (!empty($isLocked)): ?>
+                <?php if (!empty($isLocked) && (in_array($applicationStatus ?? '', ['Đã duyệt', 'approved', 'DaDuyet']))): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">
                         <div class="flex">
                             <i class="fas fa-lock text-yellow-400 flex-shrink-0 mt-1"></i>
