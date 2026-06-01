@@ -144,7 +144,7 @@ class ApplicationController extends Controller
         $applicationId = $_GET['id'] ?? null;
         $activeSession = null;
 
-        // If no ID, try to find an application for the active session
+        // If no ID, try to find an application for the active session or fallback to any existing application overall
         if (!$applicationId) {
             $currentlyActive = $this->sessionRepo->getActiveSession();
             $activeSession = $currentlyActive ?? $this->sessionRepo->getLatestActiveSession();
@@ -153,28 +153,38 @@ class ApplicationController extends Controller
                 $existing = $this->applicationRepo->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
                 if ($existing) {
                     $applicationId = $existing->id;
-                } else {
-                    // This is a NEW registration (no existing application).
-                    // We must ONLY allow this if the session is currently active (within dates)
-                    if ($currentlyActive) {
-                        try {
-                            $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $currentlyActive['id']);
-                        } catch (\Exception $e) {
-                            $applicationId = 0;
-                        }
-                    } else {
-                        // Registration deadline has passed, and no existing application exists
-                        $enableTHPTSetting = true; // Default enabled
-                        $this->view('profile/step5', [
-                            'applicationId' => 0,
-                            'choices' => [],
-                            'majors' => [],
-                            'error' => 'Thời hạn đăng ký đợt tuyển sinh này đã kết thúc. Bạn không thể tạo hồ sơ mới.',
-                            'enableTHPTSetting' => $enableTHPTSetting,
-                            'isLocked' => false
-                        ]);
-                        return;
+                }
+            }
+
+            // Fallback: If no application found for active session, check if they have ANY existing application overall
+            if (!$applicationId) {
+                $allApps = $this->applicationRepo->getByCCCD($_SESSION['cccd']);
+                if (!empty($allApps)) {
+                    $applicationId = $allApps[0]->id;
+                    $activeSession = $this->sessionRepo->find($allApps[0]->dot_tuyen_sinh_id);
+                }
+            }
+
+            // If still no applicationId but we have activeSession, create a new one (only if active session is currently running)
+            if (!$applicationId && $activeSession) {
+                if ($currentlyActive) {
+                    try {
+                        $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $currentlyActive['id']);
+                    } catch (\Exception $e) {
+                        $applicationId = 0;
                     }
+                } else {
+                    // Registration deadline has passed, and no existing application exists
+                    $enableTHPTSetting = true; // Default enabled
+                    $this->view('profile/step5', [
+                        'applicationId' => 0,
+                        'choices' => [],
+                        'majors' => [],
+                        'error' => 'Thời hạn đăng ký đợt tuyển sinh này đã kết thúc. Bạn không thể tạo hồ sơ mới.',
+                        'enableTHPTSetting' => $enableTHPTSetting,
+                        'isLocked' => false
+                    ]);
+                    return;
                 }
             }
         }
@@ -213,6 +223,7 @@ class ApplicationController extends Controller
         $isLocked = false;
         $editRequestPending = false;
         $applicationStatus = '';
+        $error = null;
 
         if ($currentApp) {
             $status = $currentApp->trang_thai ?? '';
@@ -221,6 +232,19 @@ class ApplicationController extends Controller
             }
             $editRequestPending = !empty($currentApp->yeu_cau_chinh_sua);
             $applicationStatus = $status;
+        }
+
+        // Also check if the associated session is locked or expired
+        if ($activeSession) {
+            $isLockedSession = !$activeSession['kich_hoat'];
+            $isExpiredSession = strtotime($activeSession['ngay_ket_thuc']) < time();
+            if ($isLockedSession) {
+                $error = 'Đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã bị khóa. Bạn chỉ có thể xem danh sách nguyện vọng.';
+                $isLocked = true;
+            } elseif ($isExpiredSession) {
+                $error = 'Thời gian nhận hồ sơ của đợt tuyển sinh này (' . $activeSession['ten_dot'] . ') đã kết thúc. Bạn chỉ có thể xem danh sách nguyện vọng.';
+                $isLocked = true;
+            }
         }
         // ---------------------
 
@@ -382,6 +406,7 @@ class ApplicationController extends Controller
                 'applicationId' => $applicationId,
                 'choices' => $choices,
                 'majors' => $majors,
+                'error' => $error ?? null,
                 'enableTHPTSetting' => $enableTHPTSetting,
                 'isLocked' => $isLocked,
                 'editRequestPending' => $editRequestPending,

@@ -18,6 +18,14 @@ class SessionRepository {
         return $this->model->getLatestActiveSession();
     }
 
+    public function getLatestSession() {
+        return $this->model->getLatestSession();
+    }
+
+    public function find($id) {
+        return $this->model->find($id);
+    }
+
     public function getAll() {
         return $this->model->getAll();
     }
