@@ -134,6 +134,9 @@ class CandidateController extends Controller
             // In 'all' (Funnel) mode, we don't force a default session to allow seeing the full 547+ candidate list.
             if ($mode !== 'all') {
                 $latestSession = $sessionModel->getLatestActiveSession();
+                if (!$latestSession) {
+                    $latestSession = $sessionModel->getLatestSession();
+                }
                 if ($latestSession) {
                     $sessionId = $latestSession['id'];
                     $year = $latestSession['nam_tuyen_sinh'];
