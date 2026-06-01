@@ -1484,37 +1484,6 @@ class CandidateController extends Controller
         }
     }
 
-    private function getUploadPathInfo($cccd)
-    {
-        if (isset($this->uploadPathInfoCache[$cccd])) {
-            return $this->uploadPathInfoCache[$cccd];
-        }
-
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
-
-        $year = date('Y');
-        $sessionName = 'Dot1';
-
-        if ($activeSession) {
-            $year = $activeSession['nam_tuyen_sinh'] ?? date('Y');
-            $sessionName = $activeSession['ma_dot'] ?? ('Dot_' . ($activeSession['id'] ?? '1'));
-            $sessionName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $sessionName);
-        }
-
-        $relativePath = "/uploads/{$year}/{$sessionName}/{$cccd}";
-        $absolutePath = __DIR__ . '/../../public' . $relativePath;
-
-        $this->uploadPathInfoCache[$cccd] = [
-            'relative' => $relativePath,
-            'absolute' => $absolutePath,
-            'year' => $year,
-            'session' => $sessionName
-        ];
-
-        return $this->uploadPathInfoCache[$cccd];
-    }
-
     public function changePassword()
     {
         $this->checkPermission('candidate.edit');
