@@ -1,7 +1,44 @@
 <?php ob_start(); ?>
 
 <div class="p-6">
-    <div class="flex items-center justify-between mb-8">
+    <?php if (isset($_GET['msg'])): ?>
+        <?php
+        $msgText = '';
+        $msgType = 'success';
+        switch ($_GET['msg']) {
+            case 'cleared':
+                $msgText = 'Đã làm sạch hàng đợi email thành công (xóa các thư chờ gửi/bị lỗi).';
+                break;
+            case 'deleted':
+                $msgText = 'Đã xóa bản ghi email thành công.';
+                break;
+            case 'paused':
+                $msgText = 'Đã tạm dừng hàng đợi gửi email.';
+                $msgType = 'warning';
+                break;
+            case 'resumed':
+                $msgText = 'Đã tiếp tục hàng đợi gửi email.';
+                break;
+            case 'retrying':
+                $msgText = 'Đang tiến hành gửi lại các thư bị lỗi...';
+                break;
+            case 'purged_old':
+                $msgText = 'Đã dọn dẹp các thư gửi thành công cũ hơn cấu hình và lưu giữ số liệu thống kê.';
+                break;
+            case 'purged_all':
+                $msgText = 'Đã xóa trắng toàn bộ thư đã gửi và lưu giữ số liệu thống kê.';
+                break;
+        }
+        ?>
+        <?php if (!empty($msgText)): ?>
+            <div class="mb-6 p-4 rounded-xl border <?= $msgType === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700' ?> flex items-center gap-3 animate-fade-in">
+                <i class="fas <?= $msgType === 'success' ? 'fa-check-circle' : 'fa-info-circle' ?> text-lg"></i>
+                <span class="text-sm font-bold"><?= htmlspecialchars($msgText) ?></span>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
         <div>
             <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
                 <i class="fas fa-mail-bulk text-[#0066FF]"></i>
@@ -9,7 +46,10 @@
             </h2>
             <p class="text-slate-500 text-sm font-medium mt-1">Theo dõi trạng thái và hiệu năng gửi thư tự động của hệ thống.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+            <?php
+            $retentionDays = (int)((new \App\Models\MasterData())->getSetting('email_retention_days') ?: 10);
+            ?>
             <button onclick="window.location.reload()" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm" title="Làm mới">
                 <i class="fas fa-sync-alt"></i>
             </button>
@@ -29,6 +69,19 @@
                 <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
                 <button type="submit" onclick="return confirm('Xóa toàn bộ các thư ĐANG CHỜ và thư BỊ LỖI? (Thư đã gửi sẽ được giữ lại)')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
                     Làm sạch hàng đợi
+                </button>
+            </form>
+            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <button type="submit" onclick="return confirm('Dọn dẹp các thư ĐÃ GỬI cũ hơn <?= $retentionDays ?> ngày? (Thống kê tổng sẽ được lưu trữ)')" class="px-4 py-2.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl hover:bg-indigo-100 transition-all uppercase tracking-wider border border-indigo-100">
+                    Dọn thư đã gửi > <?= $retentionDays ?> ngày
+                </button>
+            </form>
+            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <input type="hidden" name="all" value="1">
+                <button type="submit" onclick="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa trắng toàn bộ thư đã gửi? Thống kê tổng số lượng đã gửi sẽ vẫn được bảo toàn.')" class="px-4 py-2.5 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-100 transition-all uppercase tracking-wider border border-rose-100">
+                    Xóa sạch thư đã gửi
                 </button>
             </form>
             <form method="POST" action="<?= url('/admin/email-queue/retry') ?>" class="inline">

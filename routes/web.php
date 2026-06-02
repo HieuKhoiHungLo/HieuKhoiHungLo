@@ -433,6 +433,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/email-queue/delete', 'EmailQueueController@delete');
     $router->post('/admin/email-queue/clear', 'EmailQueueController@clearQueue');
     $router->post('/admin/email-queue/toggle-pause', 'EmailQueueController@togglePause');
+    $router->post('/admin/email-queue/purge-old', 'EmailQueueController@purgeOldEmails');
 
     // Talent Test Management (Thi Năng Khiếu)
     $router->get('/admin/talent-tests', 'TalentTestController@index');

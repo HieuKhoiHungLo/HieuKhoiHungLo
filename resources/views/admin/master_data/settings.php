@@ -80,6 +80,26 @@
                             <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">Dòng chữ này sẽ hiển thị dưới dạng thanh chạy (marquee) ngay bên dưới menu chính của trang chủ.</p>
                         </label>
                     </div>
+
+                    <!-- Email Retention Days -->
+                    <?php
+                    $retentionDays = '10';
+                    foreach ($settings as $s) {
+                        if ($s['key'] === 'email_retention_days') {
+                            $retentionDays = $s['value'];
+                            break;
+                        }
+                    }
+                    ?>
+                    <div class="space-y-4">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Số ngày lưu trữ email đã gửi</span>
+                            <input type="number" name="settings[email_retention_days]" value="<?= htmlspecialchars($retentionDays) ?>" min="1" max="365"
+                                class="mt-2 block w-full rounded-[2rem] bg-slate-50 border border-slate-200 px-8 py-5 text-sm font-medium focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10 outline-none transition shadow-inner"
+                                placeholder="Ví dụ: 10">
+                            <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">Các email có trạng thái "đã gửi" (sent) vượt quá số ngày này sẽ tự động được dọn dẹp hàng ngày và cộng dồn vào thống kê.</p>
+                        </label>
+                    </div>
                 </div>
             </div>
 

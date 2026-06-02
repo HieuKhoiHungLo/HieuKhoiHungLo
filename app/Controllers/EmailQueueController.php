@@ -168,9 +168,63 @@ class EmailQueueController extends Controller {
         
         $db = Database::getInstance()->getConnection();
         
-        // Xóa các thư đang chờ (pending) hoặc bị lỗi (failed)
         $db->query("DELETE FROM email_queue WHERE status IN ('pending', 'failed')");
         
         $this->redirect(url('/admin/email-queue?msg=cleared'));
+    }
+
+    /**
+     * Purge sent emails older than X days or clear all sent entirely (POST + CSRF) - Maintain stats
+     */
+    public function purgeOldEmails() {
+        $this->validateCsrf();
+        
+        $all = isset($_POST['all']) && $_POST['all'] == '1';
+        $master = new \App\Models\MasterData();
+        $retentionDays = (int)($master->getSetting('email_retention_days') ?: 10);
+        
+        $db = Database::getInstance()->getConnection();
+        
+        if ($all) {
+            // Count all sent emails to be cleared
+            $stmt = $db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'sent'");
+            $count = (int)$stmt->fetchColumn();
+            
+            if ($count > 0) {
+                // Delete all sent
+                $db->query("DELETE FROM email_queue WHERE status = 'sent'");
+            }
+            $msg = 'purged_all';
+        } else {
+            // Count sent emails older than retentionDays
+            $stmt = $db->prepare("SELECT COUNT(*) FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - ? * INTERVAL '1 day'");
+            $stmt->execute([$retentionDays]);
+            $count = (int)$stmt->fetchColumn();
+            
+            if ($count > 0) {
+                // Delete sent emails older than retentionDays
+                $delStmt = $db->prepare("DELETE FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - ? * INTERVAL '1 day'");
+                $delStmt->execute([$retentionDays]);
+            }
+            $msg = 'purged_old';
+        }
+        
+        if ($count > 0) {
+            // Update cleared_sent_total in stats table
+            $stmtStats = $db->prepare("SELECT value FROM email_queue_stats WHERE key = 'cleared_sent_total'");
+            $stmtStats->execute();
+            $exists = $stmtStats->fetchColumn() !== false;
+            
+            if ($exists) {
+                $db->prepare("UPDATE email_queue_stats SET value = value + ? WHERE key = 'cleared_sent_total'")->execute([$count]);
+            } else {
+                $db->prepare("INSERT INTO email_queue_stats (key, value) VALUES ('cleared_sent_total', ?)")->execute([$count]);
+            }
+            
+            // Clear summary stats cache so count changes take effect immediately
+            \App\Core\Cache::forget('email_queue_summary_stats');
+        }
+        
+        $this->redirect(url('/admin/email-queue?msg=' . $msg));
     }
 }

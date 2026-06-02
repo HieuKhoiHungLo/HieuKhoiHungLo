@@ -99,10 +99,42 @@ class ApiController extends Controller
         // Reset them to 'pending' so they can be retried.
         $db->query("UPDATE email_queue SET status = 'pending' WHERE status = 'processing' AND (sent_at IS NULL OR sent_at < NOW() - INTERVAL '15 minutes')");
 
-        // --- AUTOMATED AUDIT PURGE (Throttle: Once per day) ---
+        // --- AUTOMATED AUDIT PURGE & EMAIL QUEUE PURGE (Throttle: Once per day) ---
         $today = date('Y-m-d');
         if ($this->masterData->getSetting('last_audit_purge') !== $today) {
             (new \App\Services\AuditService())->purgeOldRecords(20);
+            
+            // Purge sent emails older than configured retention days
+            try {
+                $retentionDays = (int)($this->masterData->getSetting('email_retention_days') ?: 10);
+                
+                // Count sent emails older than retentionDays
+                $countStmt = $db->prepare("SELECT COUNT(*) FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - ? * INTERVAL '1 day'");
+                $countStmt->execute([$retentionDays]);
+                $count = (int)$countStmt->fetchColumn();
+                
+                if ($count > 0) {
+                    $delStmt = $db->prepare("DELETE FROM email_queue WHERE status = 'sent' AND sent_at < NOW() - ? * INTERVAL '1 day'");
+                    $delStmt->execute([$retentionDays]);
+                    
+                    // Increment cleared_sent_total in stats table
+                    $stmtStats = $db->prepare("SELECT value FROM email_queue_stats WHERE key = 'cleared_sent_total'");
+                    $stmtStats->execute();
+                    $exists = $stmtStats->fetchColumn() !== false;
+                    
+                    if ($exists) {
+                        $db->prepare("UPDATE email_queue_stats SET value = value + ? WHERE key = 'cleared_sent_total'")->execute([$count]);
+                    } else {
+                        $db->prepare("INSERT INTO email_queue_stats (key, value) VALUES ('cleared_sent_total', ?)")->execute([$count]);
+                    }
+                    
+                    // Clear summary stats cache
+                    \App\Core\Cache::forget('email_queue_summary_stats');
+                }
+            } catch (\Exception $ex) {
+                error_log("Failed to auto purge old email queue: " . $ex->getMessage());
+            }
+            
             $this->masterData->setSetting('last_audit_purge', $today);
         }
 
