@@ -310,8 +310,8 @@ class ScoreCalculationService {
                 $admitted = false;
             }
             
-            $finalMethodCode = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($bestMethod ?? '', $majorDetails);
-            
+            $hasCert = !empty($certificates);
+            $finalMethodCode = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($bestMethod ?? '', $majorDetails, $hasCert);
             $resultItem = [
                 'cccd' => $cccd,
                 'nv_id' => $nvId,
@@ -321,7 +321,7 @@ class ScoreCalculationService {
                 'method' => $finalMethodCode,
                 'details' => $details,
                 'data_hash' => $currentHash,
-                'admitted' => $admitted
+                'admitted' => $admitted,
             ];
 
             if ($returnOnly) {

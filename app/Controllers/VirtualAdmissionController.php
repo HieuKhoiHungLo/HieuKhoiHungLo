@@ -311,9 +311,29 @@ class VirtualAdmissionController extends Controller {
 
     public function exportExcel() {
         $sessionId = $_GET['session_id'] ?? null;
-        if (!$sessionId) {
-            die("Chưa chọn đợt xét tuyển.");
-        }
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'all');
+    }
+
+    public function exportAdmitted() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'admitted');
+    }
+
+    public function exportFailed() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'failed');
+    }
+
+    public function exportAcademicFail() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'academic_fail');
+    }
+
+    private function doExportWithFilter($sessionId, $type = 'all') {
 
         // Fetch combinations to map to_hop_toi_uu to rich label and get subject IDs
         $combos = $this->db->query("
@@ -342,6 +362,7 @@ class VirtualAdmissionController extends Controller {
             'TOAN' => 'toan', 'TO' => 'toan',
             'VAN' => 'van', 'NGU_VAN' => 'van', 'VA' => 'van',
             'ANH' => 'ngoai_ngu', 'TIENG_ANH' => 'ngoai_ngu', 'NGOAI_NGU' => 'ngoai_ngu', 'TA' => 'ngoai_ngu', 'NN' => 'ngoai_ngu',
+            'N1' => 'ngoai_ngu', 'N2' => 'ngoai_ngu', 'N3' => 'ngoai_ngu', 'N4' => 'ngoai_ngu', 'N5' => 'ngoai_ngu', 'N6' => 'ngoai_ngu',
             'LY' => 'ly', 'VAT_LY' => 'ly', 'VAT LI' => 'ly', 'LI' => 'ly',
             'HOA' => 'hoa', 'HOA_HOC' => 'hoa', 'HO' => 'hoa',
             'SINH' => 'sinh', 'SINH_HOC' => 'sinh', 'SI' => 'sinh',
@@ -373,16 +394,48 @@ class VirtualAdmissionController extends Controller {
             $academicMap[$ar['so_cccd']][$ar['lop']] = $ar;
         }
 
+        // Xây dựng WHERE / ORDER BY / filename theo loại xuất
+        $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')";
+        $extraWhere = '';
+        $orderBy    = 'ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC';
+        $params     = [$sessionId];
+        $filename   = 'xet_tuyen_loc_ao_' . $sessionId . '.xls';
+
+        switch ($type) {
+            case 'admitted':
+                $extraWhere = " AND cs.trang_thai_trung_tuyen = TRUE";
+                $orderBy    = "ORDER BY nv.ma_nganh ASC, cs.diem_xet_tuyen DESC";
+                $filename   = 'danh_sach_trung_tuyen_' . $sessionId . '.xls';
+                break;
+            case 'failed':
+                $extraWhere = " AND nv.so_cccd NOT IN (
+                    SELECT DISTINCT nv2.so_cccd
+                    FROM nguyen_vong nv2
+                    JOIN v_calc_summary cs2 ON nv2.id = cs2.nguyen_vong_id
+                    WHERE nv2.dot_tuyen_sinh_id = ? AND cs2.trang_thai_trung_tuyen = TRUE
+                )";
+                $params[]   = $sessionId; // tham số thứ 2 cho subquery
+                $orderBy    = "ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC";
+                $filename   = 'danh_sach_truot_' . $sessionId . '.xls';
+                break;
+            case 'academic_fail':
+                $extraWhere = " AND (cs.chi_tiet_diem->>'threshold_note') ILIKE '%HỌC LỰC%'";
+                $orderBy    = "ORDER BY nv.ma_nganh ASC, cs.diem_xet_tuyen DESC";
+                $filename   = 'khong_dat_hoc_luc_' . $sessionId . '.xls';
+                break;
+        }
+
         $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
                        cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen,
                        cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.chi_tiet_diem
                 FROM nguyen_vong nv
                 JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                 LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')
-                ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC";
+                $baseWhere $extraWhere
+                $orderBy";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$sessionId]);
+        $stmt->execute($params);
+
         
         $ptLabels = [
             '100' => 'TS01',
@@ -414,26 +467,37 @@ class VirtualAdmissionController extends Controller {
             
             if ($combo && isset($comboSubjectsMap[$combo])) {
                 $subIds = $comboSubjectsMap[$combo];
-                $mon1Id = $subIds['mon_1_id'];
-                $mon2Id = $subIds['mon_2_id'];
-                $mon3Id = $subIds['mon_3_id'];
+                $col1 = $subjectIdToCol[$subIds['mon_1_id']] ?? null;
+                $col2 = $subjectIdToCol[$subIds['mon_2_id']] ?? null;
+                $col3 = $subjectIdToCol[$subIds['mon_3_id']] ?? null;
                 
-                $col1 = $subjectIdToCol[$mon1Id] ?? null;
-                $col2 = $subjectIdToCol[$mon2Id] ?? null;
-                $col3 = $subjectIdToCol[$mon3Id] ?? null;
+                $getScoreHelper = function($record, $colName) {
+                    if (!$colName) return null;
+                    if (isset($record[$colName]) && $record[$colName] !== '') {
+                        return (float)$record[$colName];
+                    }
+                    // GDCD <-> GDKTPL Cross fallback
+                    if ($colName === 'diem_gdcd_cn' && isset($record['diem_ktpl_cn']) && $record['diem_ktpl_cn'] !== '') {
+                        return (float)$record['diem_ktpl_cn'];
+                    }
+                    if ($colName === 'diem_ktpl_cn' && isset($record['diem_gdcd_cn']) && $record['diem_gdcd_cn'] !== '') {
+                        return (float)$record['diem_gdcd_cn'];
+                    }
+                    return null;
+                };
                 
                 foreach ([10, 11, 12] as $g) {
                     if (isset($academicMap[$cccd][$g])) {
                         $record = $academicMap[$cccd][$g];
-                        if ($col1 && isset($record[$col1]) && $record[$col1] !== '') {
-                            ${"m1_l$g"} = (float)$record[$col1];
-                        }
-                        if ($col2 && isset($record[$col2]) && $record[$col2] !== '') {
-                            ${"m2_l$g"} = (float)$record[$col2];
-                        }
-                        if ($col3 && isset($record[$col3]) && $record[$col3] !== '') {
-                            ${"m3_l$g"} = (float)$record[$col3];
-                        }
+                        
+                        $val1 = $getScoreHelper($record, $col1);
+                        if ($val1 !== null) ${"m1_l$g"} = $val1;
+                        
+                        $val2 = $getScoreHelper($record, $col2);
+                        if ($val2 !== null) ${"m2_l$g"} = $val2;
+                        
+                        $val3 = $getScoreHelper($record, $col3);
+                        if ($val3 !== null) ${"m3_l$g"} = $val3;
                     }
                 }
             }
@@ -457,8 +521,8 @@ class VirtualAdmissionController extends Controller {
                 $dkNguong = 'K.Đạt';
             }
 
-            $data[] = [
-                'CCCD'              => "\t" . $row['so_cccd'], // Prefix with tab for ExportService detection
+            $dataRow = [
+                'CCCD'              => $row['so_cccd'],
                 'Họ tên'            => $row['ho_va_ten'],
                 'Ngành'             => $row['ma_nganh'],
                 'NV'                => $row['thu_tu_nguyen_vong'],
@@ -474,21 +538,43 @@ class VirtualAdmissionController extends Controller {
                 'ĐK học lực'        => $dkHocLuc,
                 'ĐK Ngưỡng'         => $dkNguong,
                 'Kết quả xét tuyển' => ($row['trang_thai_trung_tuyen'] == 1) ? 'Trúng Tuyển' : 'Không đạt',
-                
-                // Detailed sub-scores columns at the very end
-                'M1 L10'            => $m1_l10,
-                'M1 L11'            => $m1_l11,
-                'M1 L12'            => $m1_l12,
-                'M2 L10'            => $m2_l10,
-                'M2 L11'            => $m2_l11,
-                'M2 L12'            => $m2_l12,
-                'M3 L10'            => $m3_l10,
-                'M3 L11'            => $m3_l11,
-                'M3 L12'            => $m3_l12
             ];
+
+            // Thêm cột Lý do không đỗ cho danh sách trượt
+            if ($type === 'failed') {
+                $reasons = [];
+                $upperNote = mb_strtoupper($thresholdNote, 'UTF-8');
+                if (mb_strpos($upperNote, 'HỌC LỰC') !== false) {
+                    $reasons[] = 'K.đạt ĐK Học lực';
+                }
+                if (mb_strpos($upperNote, 'NGƯỠNG') !== false) {
+                    $reasons[] = 'K.đạt Ngưỡng đầu vào';
+                }
+                if (empty($reasons)) {
+                    if ($row['diem_xet_tuyen'] !== null && $row['diem_xet_tuyen'] > 0) {
+                        $reasons[] = 'Điểm xét tuyển không đủ';
+                    } else {
+                        $reasons[] = 'Chưa có điểm hoặc thiếu dữ liệu';
+                    }
+                }
+                $dataRow['Lý do không đỗ'] = implode('; ', $reasons);
+            }
+
+            // Điểm thành phần theo lớp - luôn ở cuối
+            $dataRow['M1 L10'] = $m1_l10;
+            $dataRow['M1 L11'] = $m1_l11;
+            $dataRow['M1 L12'] = $m1_l12;
+            $dataRow['M2 L10'] = $m2_l10;
+            $dataRow['M2 L11'] = $m2_l11;
+            $dataRow['M2 L12'] = $m2_l12;
+            $dataRow['M3 L10'] = $m3_l10;
+            $dataRow['M3 L11'] = $m3_l11;
+            $dataRow['M3 L12'] = $m3_l12;
+
+            $data[] = $dataRow;
         }
 
         $exportService = new \App\Services\ExportService();
-        $exportService->toExcel($data, 'xet_tuyen_loc_ao_' . $sessionId . '.xls');
+        $exportService->toExcel($data, $filename);
     }
 }

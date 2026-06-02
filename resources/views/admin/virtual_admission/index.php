@@ -78,9 +78,63 @@ if (!empty($combinations)) {
                 <span>Chạy Lọc Ảo</span>
             </button>
             
-            <button @click="exportData()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
-                <i class="fas fa-file-excel"></i> Xuất Excel
-            </button>
+            <div class="relative" x-data="{ exportOpen: false }">
+                <button @click="exportOpen = !exportOpen"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+                    :disabled="isLoading || !selectedSession">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Xuất Excel</span>
+                    <i class="fas fa-chevron-down text-xs transition-transform" :class="{'rotate-180': exportOpen}"></i>
+                </button>
+
+                <div x-show="exportOpen" x-cloak @click.outside="exportOpen = false"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     class="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 py-1.5 overflow-hidden">
+
+                    <a @click="exportOpen = false; exportAll()"
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                        <i class="fas fa-table text-slate-400 w-4"></i>
+                        <div>
+                            <div class="font-medium">Xuất toàn bộ dữ liệu</div>
+                            <div class="text-xs text-slate-400">Tất cả nguyện vọng</div>
+                        </div>
+                    </a>
+
+                    <hr class="border-slate-100 my-1">
+
+                    <a @click="exportOpen = false; exportAdmitted()"
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 cursor-pointer">
+                        <i class="fas fa-check-circle text-emerald-500 w-4"></i>
+                        <div>
+                            <div class="font-medium">Danh sách trúng tuyển</div>
+                            <div class="text-xs text-emerald-400">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
+                        </div>
+                    </a>
+
+                    <a @click="exportOpen = false; exportFailed()"
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50 cursor-pointer">
+                        <i class="fas fa-times-circle text-rose-500 w-4"></i>
+                        <div>
+                            <div class="font-medium">Danh sách không đỗ NV nào</div>
+                            <div class="text-xs text-rose-400">Kèm cột Lý do không đỗ</div>
+                        </div>
+                    </a>
+
+                    <a @click="exportOpen = false; exportAcademicFail()"
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 cursor-pointer">
+                        <i class="fas fa-exclamation-triangle text-amber-500 w-4"></i>
+                        <div>
+                            <div class="font-medium">Không đạt ĐK học lực</div>
+                            <div class="text-xs text-amber-400">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -721,9 +775,24 @@ if (!empty($combinations)) {
                 });
             },
             
-            exportData() {
+            exportAll() {
                 if (!this.selectedSession) return;
                 window.location.href = '<?= url("/admin/api/vf/export") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportAdmitted() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-admitted") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportFailed() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-failed") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportAcademicFail() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-academic-fail") ?>?session_id=' + this.selectedSession;
             }
         }
     }

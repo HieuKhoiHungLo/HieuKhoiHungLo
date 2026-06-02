@@ -207,7 +207,8 @@ class ExportService {
                        h.ghi_chu AS \"Ghi chú\",
                        n.co_xet_chung_chi,
                        n.co_diem_nangkhieu_thpt,
-                       n.co_diem_nangkhieu_hochba
+                       n.co_diem_nangkhieu_hochba,
+                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = t.so_cccd) AS co_chung_chi_chuan
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
@@ -249,8 +250,8 @@ class ExportService {
                 'co_xet_chung_chi' => $r['co_xet_chung_chi'],
                 'co_diem_nangkhieu_thpt' => $r['co_diem_nangkhieu_thpt'],
                 'co_diem_nangkhieu_hochba' => $r['co_diem_nangkhieu_hochba'],
-            ]);
-            unset($r['co_xet_chung_chi'], $r['co_diem_nangkhieu_thpt'], $r['co_diem_nangkhieu_hochba']);
+            ], !empty($r['co_chung_chi_chuan']));
+            unset($r['co_xet_chung_chi'], $r['co_diem_nangkhieu_thpt'], $r['co_diem_nangkhieu_hochba'], $r['co_chung_chi_chuan']);
         }
         return $rows;
     }
@@ -557,7 +558,8 @@ class ExportService {
     }
 
     public function exportMoetWishesCsv($filters = []) {
-        $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba, hs.trang_thai, hs.ghi_chu
+        $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba, hs.trang_thai, hs.ghi_chu,
+                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = nv.so_cccd) AS co_chung_chi_chuan
                 FROM nguyen_vong nv
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
@@ -581,14 +583,14 @@ class ExportService {
         $data = [];
         $stt = 1;
         foreach ($wishes as $w) {
-            $maTho = $w['ma_phuong_thuc'] ?? $w['phuong_thuc_toi_uu'] ?? '';
+            $maTho = $w['phuong_thuc_toi_uu'] ?? $w['ma_phuong_thuc'] ?? '';
             $ptxtChu = '';
             if ($maTho) {
                 $ptxtChu = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($maTho, [
                     'co_xet_chung_chi' => $w['co_xet_chung_chi'],
                     'co_diem_nangkhieu_thpt' => $w['co_diem_nangkhieu_thpt'],
                     'co_diem_nangkhieu_hochba' => $w['co_diem_nangkhieu_hochba']
-                ]);
+                ], !empty($w['co_chung_chi_chuan']));
             }
 
             $data[] = [

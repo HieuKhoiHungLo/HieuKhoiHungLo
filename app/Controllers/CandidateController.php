@@ -1389,11 +1389,17 @@ class CandidateController extends Controller
 
                     if (!$applicationId) {
                         $sessionModel = new \App\Models\AdmissionSession();
-                        $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestActiveSession();
+                        $activeSession = $sessionModel->getActiveSession() 
+                            ?? $sessionModel->getLatestActiveSession()
+                            ?? $sessionModel->getLatestSession();
                         if ($activeSession) {
                             $appModel = new \App\Models\Application();
                             $app = $appModel->findByCCCDAndSession($cccd, $activeSession['id']);
-                            if ($app) $applicationId = $app->id;
+                            if ($app) {
+                                $applicationId = $app->id;
+                            } else {
+                                $applicationId = $appModel->create($cccd, $activeSession['id']);
+                            }
                         }
                     }
 

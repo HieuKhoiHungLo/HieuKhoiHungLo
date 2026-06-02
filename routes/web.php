@@ -272,6 +272,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/api/vf/sync', 'VirtualAdmissionController@apiSync');
     $router->get('/admin/api/vf/run-stress-seeder', 'VirtualAdmissionController@runStressSeeder');
     $router->get('/admin/api/vf/export', 'VirtualAdmissionController@exportExcel');
+    $router->get('/admin/api/vf/export-admitted',     'VirtualAdmissionController@exportAdmitted');
+    $router->get('/admin/api/vf/export-failed',       'VirtualAdmissionController@exportFailed');
+    $router->get('/admin/api/vf/export-academic-fail','VirtualAdmissionController@exportAcademicFail');
     $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
 
     // New Admission Management (Year/Session Based)

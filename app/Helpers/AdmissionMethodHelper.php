@@ -9,7 +9,7 @@ class AdmissionMethodHelper {
      * @param array $major Array of major details containing flags
      * @return string Method code TS01-TS05
      */
-    public static function resolvePhuongThuc(string $ma_hien_tai, array $major): string {
+    public static function resolvePhuongThuc(string $ma_hien_tai, array $major, bool $hasCertificate = false): string {
         // Nếu đã là mã TSxx thì trả về luôn (tránh xử lý lại)
         if (strpos($ma_hien_tai, 'TS') === 0) return $ma_hien_tai;
 
@@ -20,7 +20,7 @@ class AdmissionMethodHelper {
         
         if ($ma_hien_tai === '200') {
             // TS03: Học bạ + Chứng chỉ Quốc tế
-            if (!empty($major['co_xet_chung_chi'])) {
+            if (!empty($major['co_xet_chung_chi']) && $hasCertificate) {
                 return 'TS03';
             }
             // TS05: Học bạ + Năng khiếu

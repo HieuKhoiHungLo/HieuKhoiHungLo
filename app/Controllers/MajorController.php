@@ -69,7 +69,7 @@ class MajorController extends Controller {
                     'co_diem_nangkhieu_hochba' => isset($_POST['co_diem_nangkhieu_hochba']) ? 'true' : 'false'
                 ]);
                 $this->masterData->saveMajorCombinations($_POST['ma_nganh'], $_POST['combinations'] ?? []);
-                \App\Core\Cache::forget('master_majors_combinations');
+                $this->clearMajorCaches();
 
             } elseif ($action === 'update') {
                 $oldMa = $_POST['old_ma'];
@@ -97,7 +97,7 @@ class MajorController extends Controller {
                 }
                 
                 $this->masterData->saveMajorCombinations($newMa, $_POST['combinations'] ?? []);
-                \App\Core\Cache::forget('master_majors_combinations');
+                $this->clearMajorCaches();
             }
             $this->redirect(url('/admin/master-data/majors'));
         }
@@ -108,10 +108,9 @@ class MajorController extends Controller {
             $this->validateCsrf();
             $ma = $_POST['ma'] ?? '';
             if ($ma) {
-                // Also delete relationships
                 $this->masterData->delete('dm_nganh_to_hop', $ma, 'ma_nganh');
                 $this->masterData->delete('dm_nganh', $ma, 'ma_nganh');
-                \App\Core\Cache::forget('master_majors_combinations');
+                $this->clearMajorCaches();
                 $_SESSION['success'] = "Xóa ngành thành công";
             }
             $this->redirect(url('/admin/master-data/majors'));
@@ -131,9 +130,7 @@ class MajorController extends Controller {
                 $stmt->execute([$ma]);
                 
                 // Xóa cache
-                \App\Core\Cache::forget('master_majors_combinations');
-                \App\Core\Cache::forget('master_active_majors_combinations');
-                \App\Core\Cache::forget('active_majors_with_combinations_v2');
+                $this->clearMajorCaches();
                 
                 // Lấy trạng thái mới
                 $stmt2 = $db->prepare("SELECT COALESCE(kich_hoat, true) as kich_hoat FROM dm_nganh WHERE ma_nganh = ?");
@@ -162,7 +159,7 @@ class MajorController extends Controller {
                         // Delete relationships first
                         $this->masterData->deleteMany('dm_nganh_to_hop', $ids, 'ma_nganh');
                         $this->masterData->deleteMany('dm_nganh', $ids, 'ma_nganh');
-                        \App\Core\Cache::forget('master_majors_combinations');
+                        $this->clearMajorCaches();
                         $_SESSION['success'] = "Đã xóa " . count($ids) . " ngành";
                     }
                 } elseif ($action === 'import') {
@@ -259,11 +256,19 @@ class MajorController extends Controller {
                 $comboCodes = array_map('trim', explode(',', $khoi));
                 $this->masterData->saveMajorCombinations($ma, $comboCodes);
             }
-            \App\Core\Cache::forget('master_majors_combinations');
+            $this->clearMajorCaches();
             
             $count++;
         }
         fclose($handle);
         $_SESSION['success'] = "Đã nhập thành công $count ngành.";
+    }
+
+    private function clearMajorCaches() {
+        \App\Core\Cache::forget('master_majors');
+        \App\Core\Cache::forget('master_majors_combinations');
+        \App\Core\Cache::forget('master_active_majors_combinations');
+        \App\Core\Cache::forget('active_majors_with_combinations_v2');
+        \App\Core\Cache::forget('majors_with_combinations_v2');
     }
 }
