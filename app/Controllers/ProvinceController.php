@@ -65,7 +65,8 @@ class ProvinceController extends Controller {
             $oldMa = $_POST['old_ma'] ?? '';
             $data = [
                 'ma_tinh' => $_POST['ma_tinh'],
-                'ten_tinh' => $_POST['ten_tinh']
+                'ten_tinh' => $_POST['ten_tinh'],
+                'is_active' => true
             ];
 
             if ($oldMa) {
@@ -186,7 +187,8 @@ class ProvinceController extends Controller {
                 // Keep codes exactly as strings to avoid numeric stripping
                 $payload = [
                     'ma_tinh' => $ma,
-                    'ten_tinh' => $ten
+                    'ten_tinh' => $ten,
+                    'is_active' => true
                 ];
                 
                 $exists = $this->masterData->find('dm_tinh', $ma, 'ma_tinh');
@@ -224,7 +226,8 @@ class ProvinceController extends Controller {
                 
                 $payload = [
                     'ma_tinh' => $ma,
-                    'ten_tinh' => $ten
+                    'ten_tinh' => $ten,
+                    'is_active' => true
                 ];
 
                 $exists = $this->masterData->find('dm_tinh', $ma, 'ma_tinh');

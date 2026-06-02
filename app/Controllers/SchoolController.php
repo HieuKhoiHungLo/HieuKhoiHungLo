@@ -71,11 +71,22 @@ class SchoolController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();
             $oldMa = $_POST['old_ma'] ?? '';
+            
+            $ma_tinh = str_pad(trim($_POST['ma_tinh']), 2, '0', STR_PAD_LEFT);
+            $ma_truong = str_pad(trim($_POST['ma_truong']), 3, '0', STR_PAD_LEFT);
+            
+            if (strlen($ma_truong) === 3) {
+                $ma_truong_db = $ma_tinh . $ma_truong;
+            } else {
+                $ma_truong_db = $_POST['ma_truong'];
+            }
+
             $data = [
-                'ma_truong' => $_POST['ma_truong'],
+                'ma_truong' => $ma_truong_db,
                 'ten_truong' => $_POST['ten_truong'],
                 'khu_vuc' => $_POST['khu_vuc'],
-                'ma_tinh' => $_POST['ma_tinh']
+                'ma_tinh' => $ma_tinh,
+                'is_active' => true
             ];
 
             if ($oldMa) {
@@ -205,21 +216,27 @@ class SchoolController extends Controller {
                 if ($ma_tinh && !isset($provMap[$ma_tinh])) {
                     $this->masterData->create('dm_tinh', [
                         'ma_tinh' => $ma_tinh,
-                        'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh
+                        'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh,
+                        'is_active' => true
                     ]);
                     $provMap[$ma_tinh] = true;
                 }
                 
+                $ma_tinh_padded = str_pad($ma_tinh, 2, '0', STR_PAD_LEFT);
+                $ma_padded = str_pad($ma, 3, '0', STR_PAD_LEFT);
+                $ma_db = (strlen($ma) === 3) ? ($ma_tinh_padded . $ma_padded) : $ma;
+                
                 $payload = [
-                    'ma_truong' => $ma,
+                    'ma_truong' => $ma_db,
                     'ten_truong' => $ten,
                     'khu_vuc' => $khu_vuc ?: 'KV2',
-                    'ma_tinh' => $ma_tinh ?: null
+                    'ma_tinh' => $ma_tinh_padded ?: null,
+                    'is_active' => true
                 ];
                 
-                $exists = $this->masterData->find('dm_truong_thpt', $ma, 'ma_truong');
+                $exists = $this->masterData->find('dm_truong_thpt', $ma_db, 'ma_truong');
                 if ($exists) {
-                    $this->masterData->update('dm_truong_thpt', $ma, $payload, 'ma_truong');
+                    $this->masterData->update('dm_truong_thpt', $ma_db, $payload, 'ma_truong');
                 } else {
                     $this->masterData->create('dm_truong_thpt', $payload);
                 }
@@ -261,21 +278,27 @@ class SchoolController extends Controller {
                 if ($ma_tinh && !isset($provMap[$ma_tinh])) {
                     $this->masterData->create('dm_tinh', [
                         'ma_tinh' => $ma_tinh,
-                        'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh
+                        'ten_tinh' => 'Tỉnh/TP ' . $ma_tinh,
+                        'is_active' => true
                     ]);
                     $provMap[$ma_tinh] = true;
                 }
                 
+                $ma_tinh_padded = str_pad($ma_tinh, 2, '0', STR_PAD_LEFT);
+                $ma_padded = str_pad($ma, 3, '0', STR_PAD_LEFT);
+                $ma_db = (strlen($ma) === 3) ? ($ma_tinh_padded . $ma_padded) : $ma;
+
                 $payload = [
-                    'ma_truong' => $ma,
+                    'ma_truong' => $ma_db,
                     'ten_truong' => $ten,
                     'khu_vuc' => $khu_vuc ?: 'KV2',
-                    'ma_tinh' => $ma_tinh ?: null
+                    'ma_tinh' => $ma_tinh_padded ?: null,
+                    'is_active' => true
                 ];
  
-                $exists = $this->masterData->find('dm_truong_thpt', $ma, 'ma_truong');
+                $exists = $this->masterData->find('dm_truong_thpt', $ma_db, 'ma_truong');
                 if ($exists) {
-                    $this->masterData->update('dm_truong_thpt', $ma, $payload, 'ma_truong');
+                    $this->masterData->update('dm_truong_thpt', $ma_db, $payload, 'ma_truong');
                 } else {
                     $this->masterData->create('dm_truong_thpt', $payload);
                 }

@@ -72,7 +72,8 @@ class WardController extends Controller {
             $data = [
                 'ma_xa' => $_POST['ma_xa'],
                 'ten_xa' => $_POST['ten_xa'],
-                'ma_tinh' => $_POST['ma_tinh']
+                'ma_tinh' => $_POST['ma_tinh'],
+                'is_active' => true
             ];
 
             if ($oldMa) {
@@ -214,7 +215,8 @@ class WardController extends Controller {
                 $payload = [
                     'ma_xa' => $ma,
                     'ten_xa' => $ten,
-                    'ma_tinh' => $ma_tinh
+                    'ma_tinh' => $ma_tinh,
+                    'is_active' => true
                 ];
                 
                 $exists = $this->masterData->find('dm_xa', $ma, 'ma_xa');
@@ -268,7 +270,8 @@ class WardController extends Controller {
                 $payload = [
                     'ma_xa' => $ma,
                     'ten_xa' => $ten,
-                    'ma_tinh' => $ma_tinh
+                    'ma_tinh' => $ma_tinh,
+                    'is_active' => true
                 ];
 
                 $exists = $this->masterData->find('dm_xa', $ma, 'ma_xa');

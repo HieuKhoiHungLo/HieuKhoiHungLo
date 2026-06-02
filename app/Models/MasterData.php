@@ -53,7 +53,7 @@ class MasterData extends Model {
 
     public function getProvinces() {
         return \App\Core\Cache::remember('master_provinces', 1440, function() {
-            $stmt = $this->db->prepare("SELECT * FROM dm_tinh ORDER BY CASE WHEN ten_tinh LIKE '%Phú Thọ%' THEN 0 ELSE 1 END, ten_tinh");
+            $stmt = $this->db->prepare("SELECT * FROM dm_tinh WHERE COALESCE(is_active, true) = true ORDER BY CASE WHEN ten_tinh LIKE '%Phú Thọ%' THEN 0 ELSE 1 END, ten_tinh");
             $stmt->execute();
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         });
@@ -77,7 +77,7 @@ class MasterData extends Model {
 
     public function getWards($provinceId) {
         return \App\Core\Cache::remember("master_wards_{$provinceId}", 1440, function() use ($provinceId) {
-            $stmt = $this->db->prepare("SELECT * FROM dm_xa WHERE ma_tinh = ? ORDER BY ten_xa");
+            $stmt = $this->db->prepare("SELECT * FROM dm_xa WHERE ma_tinh = ? AND COALESCE(is_active, true) = true ORDER BY ten_xa");
             $stmt->execute([$provinceId]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         });
@@ -85,7 +85,7 @@ class MasterData extends Model {
 
     public function getSchools($provinceId) {
         return \App\Core\Cache::remember("master_schools_{$provinceId}", 1440, function() use ($provinceId) {
-            $stmt = $this->db->prepare("SELECT * FROM dm_truong_thpt WHERE ma_tinh = ? ORDER BY ten_truong");
+            $stmt = $this->db->prepare("SELECT * FROM dm_truong_thpt WHERE ma_tinh = ? AND COALESCE(is_active, true) = true ORDER BY ten_truong");
             $stmt->execute([$provinceId]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         });
