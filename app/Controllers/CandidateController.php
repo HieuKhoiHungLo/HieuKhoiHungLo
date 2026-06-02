@@ -174,6 +174,10 @@ class CandidateController extends Controller
             'f_note'      => $_GET['f_note'] ?? '',
             'f_transcript'=> $_GET['f_transcript'] ?? '',
             'f_reviewer'  => $_GET['f_reviewer'] ?? '',
+            'f_graduation_score' => $_GET['f_graduation_score'] ?? '',
+            'f_tb_chung_12'      => $_GET['f_tb_chung_12'] ?? '',
+            'f_hoc_luc_12'       => $_GET['f_hoc_luc_12'] ?? '',
+            'f_hanh_kiem_12'     => $_GET['f_hanh_kiem_12'] ?? '',
         ];
 
         // Clean extraFilters for SQL mapping (remove f_ prefix for Model)

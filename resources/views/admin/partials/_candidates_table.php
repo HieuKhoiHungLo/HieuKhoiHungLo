@@ -158,31 +158,136 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             </a>
                         </div>
                     </th>
-                    <th x-show="showCols.reviewer_name" class="w-32">Người duyệt</th>
+                    <th x-show="showCols.reviewer_name" class="w-32">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Người duyệt</span>
+                            <a href="<?= sort_url('reviewer_name', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('reviewer_name', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
 
                     <th x-show="showCols.phone" class="w-40">
-                        <div class="sort-trigger">
-                            <span>Điện thoại</span>
-                            <a href="<?= sort_url('dien_thoai', $sort, $dir, $baseUrl, $filters) ?>">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Điện thoại</span>
+                            <a href="<?= sort_url('dien_thoai', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
                                 <?= sort_icon('dien_thoai', $sort, $dir) ?>
                             </a>
                         </div>
                     </th>
 
-                    <th x-show="showCols.email" class="w-36">Email</th>
-                    <th x-show="showCols.province" class="w-32">Hộ khẩu</th>
-                    <th x-show="showCols.school" class="w-48">Trường THPT</th>
-                    <th x-show="showCols.nv1" class="w-40">Ngành NV1</th>
-                    <th x-show="showCols.gender" class="w-24 text-center">G.Tính</th>
-                    <th x-show="showCols.ethnicity" class="w-24 text-center">Dân tộc</th>
-                    <th x-show="showCols.area" class="w-24 text-center">Khu vực</th>
-                    <th x-show="showCols.object" class="w-28 text-center">Đối tượng</th>
-                    <th x-show="showCols.grad_year" class="w-24 text-center">Năm TN</th>
-                    <th x-show="showCols.transcript_status" class="w-32 text-center">Học bạ</th>
-                    <th x-show="showCols.graduation_score" class="w-28 text-center">Điểm TN</th>
-                    <th x-show="showCols.tb_chung_12" class="w-28 text-center">TB L12</th>
-                    <th x-show="showCols.hoc_luc_12" class="w-28 text-center">Học lực L12</th>
-                    <th x-show="showCols.hanh_kiem_12" class="w-28 text-center">Hạnh kiểm L12</th>
+                    <th x-show="showCols.email" class="w-36">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Email</span>
+                            <a href="<?= sort_url('email', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('email', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.province" class="w-32">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Hộ khẩu</span>
+                            <a href="<?= sort_url('province', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('province', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.school" class="w-48">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Trường THPT</span>
+                            <a href="<?= sort_url('school', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('school', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.nv1" class="w-40">
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-[10px]">Ngành NV1</span>
+                            <a href="<?= sort_url('nv1', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('nv1', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.gender" class="w-24 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">G.Tính</span>
+                            <a href="<?= sort_url('gender', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('gender', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.ethnicity" class="w-24 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Dân tộc</span>
+                            <a href="<?= sort_url('ethnicity', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('ethnicity', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.area" class="w-24 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Khu vực</span>
+                            <a href="<?= sort_url('area', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('area', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.object" class="w-28 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Đối tượng</span>
+                            <a href="<?= sort_url('object', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('object', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.grad_year" class="w-24 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Năm TN</span>
+                            <a href="<?= sort_url('grad_year', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('grad_year', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.transcript_status" class="w-32 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Học bạ</span>
+                            <a href="<?= sort_url('transcript_status', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('transcript_status', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.graduation_score" class="w-28 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Điểm TN</span>
+                            <a href="<?= sort_url('graduation_score', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('graduation_score', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.tb_chung_12" class="w-28 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">TB L12</span>
+                            <a href="<?= sort_url('tb_chung_12', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('tb_chung_12', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.hoc_luc_12" class="w-28 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Học lực L12</span>
+                            <a href="<?= sort_url('hoc_luc_12', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('hoc_luc_12', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
+                    <th x-show="showCols.hanh_kiem_12" class="w-28 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-[10px]">Hạnh kiểm L12</span>
+                            <a href="<?= sort_url('hanh_kiem_12', $sort, $dir, $baseUrl, $filters) ?>" class="sort-link">
+                                <?= sort_icon('hanh_kiem_12', $sort, $dir) ?>
+                            </a>
+                        </div>
+                    </th>
                 </tr>
 
                 <!-- Row 2: Search Filters -->
@@ -310,6 +415,30 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             <option value="missing_12" <?= ($filters['f_transcript'] ?? '') == 'missing_12' ? 'selected' : '' ?>>Thiếu lớp 12</option>
                             <option value="not_entered" <?= ($filters['f_transcript'] ?? '') == 'not_entered' ? 'selected' : '' ?>>Chưa nhập</option>
                         </select>
+                    </th>
+                    <th x-show="showCols.graduation_score" class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" id="f_graduation_score_search" name="f_graduation_score" data-filter-key="f_graduation_score" aria-label="Tìm kiếm điểm tốt nghiệp" placeholder="Điểm TN..."
+                            value="<?= htmlspecialchars($filters['f_graduation_score'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <th x-show="showCols.tb_chung_12" class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" id="f_tb_chung_12_search" name="f_tb_chung_12" data-filter-key="f_tb_chung_12" aria-label="Tìm kiếm điểm trung bình lớp 12" placeholder="TB L12..."
+                            value="<?= htmlspecialchars($filters['f_tb_chung_12'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <th x-show="showCols.hoc_luc_12" class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" id="f_hoc_luc_12_search" name="f_hoc_luc_12" data-filter-key="f_hoc_luc_12" aria-label="Tìm kiếm học lực lớp 12" placeholder="Học lực L12..."
+                            value="<?= htmlspecialchars($filters['f_hoc_luc_12'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
+                    </th>
+                    <th x-show="showCols.hanh_kiem_12" class="bg-slate-50/10 px-2 py-1">
+                        <input type="text" id="f_hanh_kiem_12_search" name="f_hanh_kiem_12" data-filter-key="f_hanh_kiem_12" aria-label="Tìm kiếm hạnh kiểm lớp 12" placeholder="Hạnh kiểm L12..."
+                            value="<?= htmlspecialchars($filters['f_hanh_kiem_12'] ?? '') ?>"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.applyCandidateFilters(); }"
+                            class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400">
                     </th>
                 </tr>
             </thead>

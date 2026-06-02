@@ -134,31 +134,50 @@ class ThiSinh extends Model {
             foreach ($extraFilters as $field => $val) {
                 if ($val === '' || $val === null) continue;
                 if ($field === 'phone') {
-                    $sql .= " AND t.dien_thoai ILIKE ?";
-                    $params[] = "%$val%";
-                } elseif ($field === 'dob') {
-                    // Optimized: Try to convert DD/MM/YYYY to YYYY-MM-DD for exact match
-                    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
-                        $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
-                        $sql .= " AND t.ngay_sinh = ?";
-                        $params[] = $formattedDate;
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.dien_thoai IS NULL OR t.dien_thoai = '')";
                     } else {
-                        $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                        $sql .= " AND t.dien_thoai ILIKE ?";
                         $params[] = "%$val%";
                     }
+                } elseif ($field === 'dob') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND t.ngay_sinh IS NULL";
+                    } else {
+                        if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
+                            $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                            $sql .= " AND t.ngay_sinh = ?";
+                            $params[] = $formattedDate;
+                        } else {
+                            $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                            $params[] = "%$val%";
+                        }
+                    }
                 } elseif ($field === 'province') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.ma_tinh_ho_khau IS NULL OR t.ma_tinh_ho_khau = '' OR NOT EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau))";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'school') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12))";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'nv1') {
-                    $trimVal = trim(mb_strtolower($val));
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     $nv1Where = "SELECT 1 FROM nguyen_vong nv LEFT JOIN dm_nganh dn ON nv.ma_nganh = dn.ma_nganh WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1";
                     if ($sessionId) {
                         $nv1Where .= " AND nv.dot_tuyen_sinh_id = " . (int)$sessionId;
                     }
-                    if ($trimVal === 'chưa đk') {
+                    if ($trimVal === 'chưa đk' || $trimVal === 'trống' || $trimVal === 'empty') {
                         $sql .= " AND NOT EXISTS ($nv1Where)";
                     } else {
                         $sql .= " AND EXISTS ($nv1Where AND (nv.ten_nganh ILIKE ? OR dn.ten_nganh ILIKE ?))";
@@ -166,26 +185,56 @@ class ThiSinh extends Model {
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'gender') {
-                    $sql .= " AND t.gioi_tinh ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.gioi_tinh IS NULL OR t.gioi_tinh = '')";
+                    } else {
+                        $sql .= " AND t.gioi_tinh ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'ethnicity') {
-                    $sql .= " AND t.dan_toc ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.dan_toc IS NULL OR t.dan_toc = '')";
+                    } else {
+                        $sql .= " AND t.dan_toc ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'area') {
-                    $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '')";
+                    } else {
+                        $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'object') {
-                    $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.doi_tuong_uu_tien IS NULL OR t.doi_tuong_uu_tien = '')";
+                    } else {
+                        $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'grad_year') {
-                    $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND t.nam_tot_nghiep IS NULL";
+                    } else {
+                        $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'email') {
-                    $sql .= " AND t.email ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.email IS NULL OR t.email = '')";
+                    } else {
+                        $sql .= " AND t.email ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'note') {
-                    $trimVal = trim(mb_strtolower($val));
-                    if ($trimVal === 'trống') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
                         $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
                     } else {
                         $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
@@ -203,19 +252,82 @@ class ThiSinh extends Model {
                      FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
                     $params[] = $val;
                 } elseif ($field === 'reviewer') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?)" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
-                    $params[] = "%$val%";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv WHERE hs_rv.so_cccd = t.so_cccd AND hs_rv.nguoi_duyet_id IS NOT NULL" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?)" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
+                        $params[] = "%$val%";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'graduation_score') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd AND dth.diem_xet_tot_nghiep IS NOT NULL" . ($year ? " AND dth.nam_thi = " . (int)$year : "") . ")";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd AND dth.diem_xet_tot_nghiep::text ILIKE ?" . ($year ? " AND dth.nam_thi = " . (int)$year : "") . ")";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'tb_chung_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.diem_tb_ca_nam IS NOT NULL)";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.diem_tb_ca_nam::text ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'hoc_luc_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hoc_luc_ca_nam IS NOT NULL AND hb.hoc_luc_ca_nam != '')";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hoc_luc_ca_nam ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'hanh_kiem_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hanh_kiem_ca_nam IS NOT NULL AND hb.hanh_kiem_ca_nam != '')";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hanh_kiem_ca_nam ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 }
             }
         }
 
-        // Validate sort field
-        $allowedSort = ['ho_va_ten', 'so_cccd', 'ngay_sinh', 'dien_thoai', 'ngay_tao', 'ghi_chu'];
-        if (!in_array($sort, $allowedSort)) $sort = 'ngay_tao';
+        // Validate sort field and map to exact SQL expressions
+        $sortMap = [
+            'ho_va_ten' => 't.ho_va_ten',
+            'so_cccd' => 't.so_cccd',
+            'ngay_sinh' => 't.ngay_sinh',
+            'dien_thoai' => 't.dien_thoai',
+            'ngay_tao' => 't.ngay_tao',
+            'ghi_chu' => 't.ghi_chu',
+            'email' => 't.email',
+            'reviewer_name' => 'reviewer_name',
+            'province' => 'p.ten_tinh',
+            'school' => 's.ten_truong',
+            'nv1' => 'nv1',
+            'gender' => 't.gioi_tinh',
+            'ethnicity' => 't.dan_toc',
+            'area' => 't.khu_vuc_uu_tien',
+            'object' => 't.doi_tuong_uu_tien',
+            'grad_year' => 't.nam_tot_nghiep',
+            'transcript_status' => 'transcript_status',
+            'graduation_score' => 'graduation_score',
+            'tb_chung_12' => 'tb_chung_12',
+            'hoc_luc_12' => 'hoc_luc_12',
+            'hanh_kiem_12' => 'hanh_kiem_12'
+        ];
+
+        $orderBy = 't.ngay_tao';
+        if (array_key_exists($sort, $sortMap)) {
+            $orderBy = $sortMap[$sort];
+        }
         $dir = strtoupper($dir) === 'ASC' ? 'ASC' : 'DESC';
 
-        $sql .= " ORDER BY t.$sort $dir LIMIT ? OFFSET ?";
+        $sql .= " ORDER BY $orderBy $dir LIMIT ? OFFSET ?";
         $params[] = (int)$limit;
         $params[] = (int)$offset;
 
@@ -393,30 +505,50 @@ class ThiSinh extends Model {
             foreach ($extraFilters as $field => $val) {
                 if ($val === '' || $val === null) continue;
                 if ($field === 'phone') {
-                    $sql .= " AND t.dien_thoai ILIKE ?";
-                    $params[] = "%$val%";
-                } elseif ($field === 'dob') {
-                    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
-                        $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
-                        $sql .= " AND t.ngay_sinh = ?";
-                        $params[] = $formattedDate;
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.dien_thoai IS NULL OR t.dien_thoai = '')";
                     } else {
-                        $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                        $sql .= " AND t.dien_thoai ILIKE ?";
                         $params[] = "%$val%";
                     }
+                } elseif ($field === 'dob') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND t.ngay_sinh IS NULL";
+                    } else {
+                        if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', trim($val), $matches)) {
+                            $formattedDate = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                            $sql .= " AND t.ngay_sinh = ?";
+                            $params[] = $formattedDate;
+                        } else {
+                            $sql .= " AND t.ngay_sinh::text ILIKE ?";
+                            $params[] = "%$val%";
+                        }
+                    }
                 } elseif ($field === 'province') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.ma_tinh_ho_khau IS NULL OR t.ma_tinh_ho_khau = '' OR NOT EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau))";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_tinh dt WHERE dt.ma_tinh = t.ma_tinh_ho_khau AND dt.ten_tinh ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'school') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12))";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'nv1') {
-                    $trimVal = trim(mb_strtolower($val));
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     $nv1Where = "SELECT 1 FROM nguyen_vong nv LEFT JOIN dm_nganh dn ON nv.ma_nganh = dn.ma_nganh WHERE nv.so_cccd = t.so_cccd AND nv.thu_tu_nguyen_vong = 1";
                     if ($sessionId) {
                         $nv1Where .= " AND nv.dot_tuyen_sinh_id = " . (int)$sessionId;
                     }
-                    if ($trimVal === 'chưa đk') {
+                    if ($trimVal === 'chưa đk' || $trimVal === 'trống' || $trimVal === 'empty') {
                         $sql .= " AND NOT EXISTS ($nv1Where)";
                     } else {
                         $sql .= " AND EXISTS ($nv1Where AND (nv.ten_nganh ILIKE ? OR dn.ten_nganh ILIKE ?))";
@@ -424,26 +556,56 @@ class ThiSinh extends Model {
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'gender') {
-                    $sql .= " AND t.gioi_tinh ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.gioi_tinh IS NULL OR t.gioi_tinh = '')";
+                    } else {
+                        $sql .= " AND t.gioi_tinh ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'ethnicity') {
-                    $sql .= " AND t.dan_toc ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.dan_toc IS NULL OR t.dan_toc = '')";
+                    } else {
+                        $sql .= " AND t.dan_toc ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'area') {
-                    $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.khu_vuc_uu_tien IS NULL OR t.khu_vuc_uu_tien = '')";
+                    } else {
+                        $sql .= " AND t.khu_vuc_uu_tien ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'object') {
-                    $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.doi_tuong_uu_tien IS NULL OR t.doi_tuong_uu_tien = '')";
+                    } else {
+                        $sql .= " AND t.doi_tuong_uu_tien ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'grad_year') {
-                    $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND t.nam_tot_nghiep IS NULL";
+                    } else {
+                        $sql .= " AND t.nam_tot_nghiep::text ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'email') {
-                    $sql .= " AND t.email ILIKE ?";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND (t.email IS NULL OR t.email = '')";
+                    } else {
+                        $sql .= " AND t.email ILIKE ?";
+                        $params[] = "%$val%";
+                    }
                 } elseif ($field === 'note') {
-                    $trimVal = trim(mb_strtolower($val));
-                    if ($trimVal === 'trống') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
                         $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
                     } else {
                         $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
@@ -461,9 +623,46 @@ class ThiSinh extends Model {
                      FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) = ?";
                     $params[] = $val;
                 } elseif ($field === 'reviewer') {
-                    $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?)" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
-                    $params[] = "%$val%";
-                    $params[] = "%$val%";
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv WHERE hs_rv.so_cccd = t.so_cccd AND hs_rv.nguoi_duyet_id IS NOT NULL" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_rv JOIN quan_tri_vien qtv_rv ON hs_rv.nguoi_duyet_id = qtv_rv.id WHERE hs_rv.so_cccd = t.so_cccd AND (qtv_rv.ho_ten ILIKE ? OR qtv_rv.ten_dang_nhap ILIKE ?)" . ($sessionId ? " AND hs_rv.dot_tuyen_sinh_id = " . (int)$sessionId : "") . ")";
+                        $params[] = "%$val%";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'graduation_score') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd AND dth.diem_xet_tot_nghiep IS NOT NULL" . ($year ? " AND dth.nam_thi = " . (int)$year : "") . ")";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd AND dth.diem_xet_tot_nghiep::text ILIKE ?" . ($year ? " AND dth.nam_thi = " . (int)$year : "") . ")";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'tb_chung_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.diem_tb_ca_nam IS NOT NULL)";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.diem_tb_ca_nam::text ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'hoc_luc_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hoc_luc_ca_nam IS NOT NULL AND hb.hoc_luc_ca_nam != '')";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hoc_luc_ca_nam ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
+                } elseif ($field === 'hanh_kiem_12') {
+                    $trimVal = trim(mb_strtolower($val, 'UTF-8'));
+                    if ($trimVal === 'trống' || $trimVal === 'empty') {
+                        $sql .= " AND NOT EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hanh_kiem_ca_nam IS NOT NULL AND hb.hanh_kiem_ca_nam != '')";
+                    } else {
+                        $sql .= " AND EXISTS (SELECT 1 FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 AND hb.hanh_kiem_ca_nam ILIKE ?)";
+                        $params[] = "%$val%";
+                    }
                 }
             }
         }
