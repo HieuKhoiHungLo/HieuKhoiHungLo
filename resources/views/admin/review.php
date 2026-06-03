@@ -435,7 +435,7 @@ updateActionBarOffset();
                 }
                 this.isLoading = true;
                 try {
-                    const cacheKey = `hvu_public_schools_${pid}`;
+                    const cacheKey = `hvu_public_schools_v3_${pid}`;
                     const cached = sessionStorage.getItem(cacheKey);
                     if (cached) {
                         this.schools = JSON.parse(cached);
@@ -447,7 +447,12 @@ updateActionBarOffset();
 
                     if (this.selectedCode) {
                         const found = this.schools.find(s => s.ma_truong == this.selectedCode);
-                        if (found) this.search = found.ten_truong;
+                        if (found) {
+                            this.search = found.ten_truong;
+                        } else {
+                            this.search = '';
+                            this.selectedCode = '';
+                        }
                     }
                 } catch (e) {
                     console.error(e);

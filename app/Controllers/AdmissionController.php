@@ -209,7 +209,7 @@ class AdmissionController extends Controller {
                     JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                     LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                     LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
-                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
                     WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
         $demoStmt = $db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);

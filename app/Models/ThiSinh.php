@@ -43,7 +43,7 @@ class ThiSinh extends Model {
                          (SELECT hb.hanh_kiem_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hanh_kiem_12
                          $transcriptStatusSql";
         $baseJoins = " LEFT JOIN dm_tinh p ON t.ma_tinh_ho_khau = p.ma_tinh
-                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                       LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
                        LEFT JOIN ho_so_xet_tuyen hs_base ON t.so_cccd = hs_base.so_cccd " . ($sessionId ? " AND hs_base.dot_tuyen_sinh_id = " . (int)$sessionId : "") . "
                        LEFT JOIN quan_tri_vien qtv_base ON hs_base.nguoi_duyet_id = qtv_base.id";
 
@@ -166,9 +166,9 @@ class ThiSinh extends Model {
                 } elseif ($field === 'school') {
                     $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     if ($trimVal === 'trống' || $trimVal === 'empty') {
-                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12))";
+                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.is_active = TRUE))";
                     } else {
-                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ? AND ds.is_active = TRUE)";
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'nv1') {
@@ -537,9 +537,9 @@ class ThiSinh extends Model {
                 } elseif ($field === 'school') {
                     $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     if ($trimVal === 'trống' || $trimVal === 'empty') {
-                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12))";
+                        $sql .= " AND (t.ma_truong_lop_12 IS NULL OR t.ma_truong_lop_12 = '' OR NOT EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.is_active = TRUE))";
                     } else {
-                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ?)";
+                        $sql .= " AND EXISTS (SELECT 1 FROM dm_truong_thpt ds WHERE ds.ma_truong = t.ma_truong_lop_12 AND ds.ten_truong ILIKE ? AND ds.is_active = TRUE)";
                         $params[] = "%$val%";
                     }
                 } elseif ($field === 'nv1') {
@@ -906,7 +906,7 @@ class ThiSinh extends Model {
          $sql = "SELECT COALESCE(truong.ten_truong, 'Chưa cập nhật') as label, COUNT(DISTINCT ts.so_cccd) as count 
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-                LEFT JOIN dm_truong_thpt truong ON ts.ma_truong_lop_12 = truong.ma_truong 
+                LEFT JOIN dm_truong_thpt truong ON ts.ma_truong_lop_12 = truong.ma_truong AND truong.is_active = TRUE
                 WHERE hs.deleted_at IS NULL";
         $params = [];
         if ($startDate && $endDate) {

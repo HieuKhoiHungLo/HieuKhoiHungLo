@@ -645,7 +645,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
                 }
                 this.isLoading = true;
                 try {
-                    const cacheKey = `hvu_schools_${pid}`;
+                    const cacheKey = `hvu_schools_v3_${pid}`;
                     const cached = sessionStorage.getItem(cacheKey);
                     if (cached) {
                         this.schools = JSON.parse(cached);
@@ -663,6 +663,7 @@ include __DIR__ . '/../layouts/header.php'; ?>
                             this.dispatchKV(found.khu_vuc);
                         } else {
                             this.search = '';
+                            this.selectedCode = '';
                         }
                     }
                 } catch (e) {

@@ -137,7 +137,7 @@ class ExportService {
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN dm_xa xa ON t.ma_xa_thuong_tru = xa.ma_xa
                 LEFT JOIN dm_tinh tinh_hk ON t.ma_tinh_ho_khau = tinh_hk.ma_tinh
-                LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong
+                LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong AND truong.is_active = TRUE
                 LEFT JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
                 LEFT JOIN quan_tri_vien qtv ON h.nguoi_duyet_id = qtv.id
                 WHERE 1=1";
@@ -214,7 +214,7 @@ class ExportService {
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 LEFT JOIN dm_xa xa ON t.ma_xa_thuong_tru = xa.ma_xa
                 LEFT JOIN dm_tinh tinh ON t.ma_tinh_thuong_tru = tinh.ma_tinh
-                LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong
+                LEFT JOIN dm_truong_thpt truong ON t.ma_truong_lop_12 = truong.ma_truong AND truong.is_active = TRUE
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
                 WHERE 1=1 AND (nv.trang_thai_trung_tuyen = TRUE OR nv.trang_thai = 'Trung tuyen' OR nv.trang_thai = 'Trúng tuyển')";
 
@@ -267,7 +267,7 @@ class ExportService {
                        t.dien_thoai AS \"Điện thoại\",
                        COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) AS \"Thứ tự NV\",
                        nv.ma_nganh AS \"Mã Ngành\",
-                       n.ten_nganh AS \"Tên Ngành\",
+                       n.ten_nganh AS \"Tên Nganh\",
                        nv.to_hop_toi_uu AS \"Tổ hợp\",
                        nv.diem_xet_tuyen AS \"Điểm xét tuyển\",
                        nv.trang_thai AS \"Trạng thái xét tuyển\",
@@ -474,7 +474,7 @@ class ExportService {
                 FROM thi_sinh t
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN dm_xa x ON t.ma_xa_thuong_tru = x.ma_xa
-                LEFT JOIN dm_truong_thpt tr ON t.ma_truong_lop_12 = tr.ma_truong
+                LEFT JOIN dm_truong_thpt tr ON t.ma_truong_lop_12 = tr.ma_truong AND tr.is_active = TRUE
                 JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
                 LEFT JOIN ket_qua_hoc_tap kq ON t.so_cccd = kq.so_cccd AND kq.lop = 12
                 LEFT JOIN diem_thi_thpt dt ON t.so_cccd = dt.so_cccd
@@ -769,7 +769,7 @@ class ExportService {
                            (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.dot_tuyen_sinh_id = ?) as wish_count,
                            (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hoc_luc_12
                     FROM thi_sinh t
-                    LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                    LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
                     LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                     LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd AND hs.dot_tuyen_sinh_id = ?
                     LEFT JOIN quan_tri_vien qtv ON hs.nguoi_duyet_id = qtv.id
@@ -833,7 +833,7 @@ class ExportService {
                        COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so,
                        qtv.ho_ten as nguoi_duyet
                 FROM thi_sinh t
-                LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd" . 
                 (!empty($filters['session_id']) ? " AND hs.dot_tuyen_sinh_id = " . (int)$filters['session_id'] : "") . "

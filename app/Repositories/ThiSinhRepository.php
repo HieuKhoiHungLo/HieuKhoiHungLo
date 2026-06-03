@@ -80,7 +80,7 @@ class ThiSinhRepository
                 LEFT JOIN dm_tinh p1 ON t.ma_tinh_ho_khau = p1.ma_tinh
                 LEFT JOIN dm_tinh p2 ON t.ma_tinh_thuong_tru = p2.ma_tinh
                 LEFT JOIN dm_xa x ON t.ma_xa_thuong_tru = x.ma_xa
-                LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+                LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
                 LEFT JOIN dm_doi_tuong dt ON t.doi_tuong_uu_tien = dt.ma_dt
                 LEFT JOIN dm_khu_vuc kv ON t.khu_vuc_uu_tien = kv.ma_kv
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
@@ -111,7 +111,7 @@ class ThiSinhRepository
             LEFT JOIN dm_tinh p1 ON t.ma_tinh_ho_khau = p1.ma_tinh
             LEFT JOIN dm_tinh p2 ON t.ma_tinh_thuong_tru = p2.ma_tinh
             LEFT JOIN dm_xa x ON t.ma_xa_thuong_tru = x.ma_xa
-            LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
+            LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
             LEFT JOIN dm_doi_tuong dt ON t.doi_tuong_uu_tien = dt.ma_dt
             LEFT JOIN dm_khu_vuc kv ON t.khu_vuc_uu_tien = kv.ma_kv
             LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
