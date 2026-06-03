@@ -40,14 +40,19 @@ class AptitudeScoreController extends Controller {
 
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : 0;
 
         $query = "SELECT d.id, d.so_cccd, d.sbd, d.diem, d.ghi_chu, d.ma_mon, ts.ho_va_ten, m.ten_mon 
                   FROM diem_nang_khieu d
                   LEFT JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
-                  LEFT JOIN dm_mon m ON UPPER(d.ma_mon) = UPPER(m.ma_mon)
-                  WHERE d.dot_tuyen_sinh_id = ?";
-        $params = [$sessionId];
+                  LEFT JOIN dm_mon m ON UPPER(d.ma_mon) = UPPER(m.ma_mon)";
+        $params = [];
+
+        if ($activeSession) {
+            $query .= " WHERE d.dot_tuyen_sinh_id = ?";
+            $params[] = $activeSession['id'];
+        } else {
+            $query .= " WHERE 1=1";
+        }
 
         if (!empty($searchValue)) {
             $query .= " AND (d.so_cccd LIKE ? OR d.sbd LIKE ? OR ts.ho_va_ten LIKE ?)";
@@ -57,8 +62,13 @@ class AptitudeScoreController extends Controller {
         }
 
         // Total count
-        $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu WHERE dot_tuyen_sinh_id = ?");
-        $stmtTotal->execute([$sessionId]);
+        if ($activeSession) {
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu WHERE dot_tuyen_sinh_id = ?");
+            $stmtTotal->execute([$activeSession['id']]);
+        } else {
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu");
+            $stmtTotal->execute([]);
+        }
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Filtered count

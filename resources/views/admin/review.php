@@ -378,6 +378,21 @@ updateActionBarOffset();
                 this.open = false;
             },
 
+            handleFocus() {
+                this.open = true;
+                this.search = '';
+            },
+
+            handleClickAway() {
+                this.open = false;
+                if (this.selectedCode) {
+                    const found = this.wards.find(w => w.ma_xa == this.selectedCode);
+                    if (found) this.search = found.ten_xa;
+                } else {
+                    this.search = '';
+                }
+            },
+
             get filteredWards() {
                 if (this.search === '') return this.wards;
                 const lower = this.search.toLowerCase();
@@ -438,6 +453,21 @@ updateActionBarOffset();
                         ma_kv: school.khu_vuc
                     }
                 }));
+            },
+
+            handleFocus() {
+                this.open = true;
+                this.search = '';
+            },
+
+            handleClickAway() {
+                this.open = false;
+                if (this.selectedCode) {
+                    const found = this.schools.find(s => s.ma_truong == this.selectedCode);
+                    if (found) this.search = found.ten_truong;
+                } else {
+                    this.search = '';
+                }
             },
 
             get filteredSchools() {

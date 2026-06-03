@@ -81,6 +81,7 @@ class ProvinceController extends Controller {
                     $_SESSION['success'] = "Thêm tỉnh/thành phố thành công.";
                 }
             }
+            \App\Core\Cache::forget('master_provinces');
             $this->redirect(url('/admin/master-data/provinces'));
         }
     }
@@ -105,6 +106,7 @@ class ProvinceController extends Controller {
 
                         if (!empty($deletableIds)) {
                             $this->masterData->deleteMany('dm_tinh', $deletableIds, 'ma_tinh');
+                            \App\Core\Cache::forget('master_provinces');
                             $msg = "Đã xóa " . count($deletableIds) . " tỉnh/thành phố.";
                             if ($inUseCount > 0) {
                                 $msg .= " Có $inUseCount tỉnh không thể xóa do đang được sử dụng.";
@@ -203,6 +205,7 @@ class ProvinceController extends Controller {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
             
+            \App\Core\Cache::forget('master_provinces');
             $_SESSION['success'] = "Đã nhập thành công $count tỉnh/thành phố.";
             return;
         } catch (\Exception $spreadsheetEx) {
@@ -239,6 +242,7 @@ class ProvinceController extends Controller {
                 $count++;
             }
             fclose($handle);
+            \App\Core\Cache::forget('master_provinces');
             $_SESSION['success'] = "Đã nhập thành công $count tỉnh/thành phố.";
         }
     }

@@ -94,9 +94,9 @@
                             </td>
                             <td style="padding: 5px 4px 5px 15px; width: 80px;" class="min-w-[80px] max-w-[80px] text-xs font-semibold text-slate-700 whitespace-nowrap align-middle">Phường/Xã:</td>
                             <td style="padding: 8px 0; width: 200px;" class="align-middle">
-                                <div class="relative" x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')" @province-change.window="handleProvinceChange($event.detail)">
+                                <div class="relative" x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')" @province-change.window="handleProvinceChange($event.detail)" @click.away="handleClickAway()">
                                     <input type="hidden" name="ma_xa_thuong_tru" :value="selectedCode">
-                                    <input type="text" x-model="search" @focus="open = true; search = ''" @click.away="open = false" placeholder="..."
+                                    <input type="text" x-model="search" @focus="handleFocus()" placeholder="..."
                                         class="w-full h-9 pl-3 pr-8 bg-white border border-slate-300 rounded text-xs font-medium text-slate-700 focus:border-[#0066FF] focus:ring-1 focus:ring-[#0066FF] transition-all outline-none">
                                     <i class="fas fa-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
                                     <!-- Dropdown -->

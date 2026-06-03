@@ -74,9 +74,9 @@
 
             <!-- Trường -->
             <span style="white-space: nowrap; font-weight: 400; color: #374151; flex-shrink: 0;">Trường:</span>
-            <div style="flex: 1; min-width: 80px; height: 28px; position: relative;" x-data="schoolSearch('<?= $user['ma_tinh_lop_12'] ?? '' ?>', '<?= $user['ma_truong_lop_12'] ?? '' ?>', '<?= htmlspecialchars($schoolName ?? '') ?>')" @province-school-change.window="handleProvinceChange($event.detail)">
+            <div style="flex: 1; min-width: 80px; height: 28px; position: relative;" x-data="schoolSearch('<?= $user['ma_tinh_lop_12'] ?? '' ?>', '<?= $user['ma_truong_lop_12'] ?? '' ?>', '<?= htmlspecialchars($schoolName ?? '') ?>')" @province-school-change.window="handleProvinceChange($event.detail)" @click.away="handleClickAway()">
                 <input type="hidden" name="ma_truong_lop_12" :value="selectedCode">
-                <input type="text" x-model="search" @focus="open = true" @click.away="open = false" placeholder="..." 
+                <input type="text" x-model="search" @focus="handleFocus()" placeholder="..." 
                     title="<?= htmlspecialchars($schoolName ?? '') ?>"
                     class="w-full h-full px-3 bg-white border border-slate-300 rounded text-[11px] font-normal text-[#374151] focus:border-[#0066FF] focus:ring-0 transition-all outline-none"
                     style="text-overflow: ellipsis;">

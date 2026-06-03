@@ -255,7 +255,7 @@ class MasterData extends Model {
         $sql = "SELECT s.*, p.ten_tinh 
                 FROM dm_truong_thpt s 
                 LEFT JOIN dm_tinh p ON s.ma_tinh = p.ma_tinh 
-                WHERE 1=1";
+                WHERE COALESCE(s.is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {
@@ -311,7 +311,7 @@ class MasterData extends Model {
         $sql = "SELECT COUNT(*) 
                 FROM dm_truong_thpt s 
                 LEFT JOIN dm_tinh p ON s.ma_tinh = p.ma_tinh 
-                WHERE 1=1";
+                WHERE COALESCE(s.is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {
@@ -337,7 +337,7 @@ class MasterData extends Model {
 
     // --- Province Paginated Queries ---
     public function getProvincesPaginated($search = '', $sort = 'ma_tinh', $dir = 'ASC', $limit = 15, $offset = 0) {
-        $sql = "SELECT * FROM dm_tinh WHERE 1=1";
+        $sql = "SELECT * FROM dm_tinh WHERE COALESCE(is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {
@@ -374,7 +374,7 @@ class MasterData extends Model {
     }
 
     public function countProvincesFiltered($search = '') {
-        $sql = "SELECT COUNT(*) FROM dm_tinh WHERE 1=1";
+        $sql = "SELECT COUNT(*) FROM dm_tinh WHERE COALESCE(is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {
@@ -412,7 +412,7 @@ class MasterData extends Model {
         $sql = "SELECT w.*, p.ten_tinh 
                 FROM dm_xa w 
                 LEFT JOIN dm_tinh p ON w.ma_tinh = p.ma_tinh 
-                WHERE 1=1";
+                WHERE COALESCE(w.is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {
@@ -464,7 +464,7 @@ class MasterData extends Model {
         $sql = "SELECT COUNT(*) 
                 FROM dm_xa w 
                 LEFT JOIN dm_tinh p ON w.ma_tinh = p.ma_tinh 
-                WHERE 1=1";
+                WHERE COALESCE(w.is_active, true) = true";
         $params = [];
 
         if (!empty($search)) {

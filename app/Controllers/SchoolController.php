@@ -94,6 +94,7 @@ class SchoolController extends Controller {
             } else {
                 $this->masterData->create('dm_truong_thpt', $data);
             }
+            \App\Core\Cache::forgetByPattern('/^master_schools_/');
             $this->redirect(url('/admin/master-data/schools'));
         }
     }
@@ -156,6 +157,7 @@ class SchoolController extends Controller {
 
                         if (!empty($deletableIds)) {
                             $this->masterData->deleteMany('dm_truong_thpt', $deletableIds, 'ma_truong');
+                            \App\Core\Cache::forgetByPattern('/^master_schools_/');
                             $msg = "Đã xóa " . count($deletableIds) . " trường.";
                             if ($inUseCount > 0) {
                                 $msg .= " Có $inUseCount trường không thể xóa do đang được sử dụng.";
@@ -246,6 +248,7 @@ class SchoolController extends Controller {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
             
+            \App\Core\Cache::forgetByPattern('/^master_schools_/');
             $_SESSION['success'] = "Đã nhập thành công $count trường.";
             return;
         } catch (\Exception $spreadsheetEx) {
@@ -305,6 +308,7 @@ class SchoolController extends Controller {
                 $count++;
             }
             fclose($handle);
+            \App\Core\Cache::forgetByPattern('/^master_schools_/');
             $_SESSION['success'] = "Đã nhập thành công $count trường.";
         }
     }

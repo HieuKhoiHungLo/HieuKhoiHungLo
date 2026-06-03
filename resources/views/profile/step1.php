@@ -202,14 +202,14 @@ include __DIR__ . '/../layouts/header.php'; ?>
                                 <label class="label"><i class="fas fa-graduation-cap"></i> Tên trường THPT</label>
                                 <div x-data="schoolSearch('<?= $user['ma_tinh_lop_12'] ?? '' ?>', '<?= $user['ma_truong_lop_12'] ?? '' ?>')"
                                     @school-province-change.window="handleProvinceChange($event.detail)"
+                                    @click.away="handleClickAway()"
                                     class="relative">
                                     <input type="hidden" name="ma_truong_lop_12" :value="selectedCode">
                                     <div class="relative group">
                                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-hvu-red transition-colors"></i>
                                         <input type="text"
                                             x-model="search"
-                                            @focus="open = true; if(search === '-- Chọn Trường --') search = ''"
-                                            @click.away="open = false"
+                                            @focus="handleFocus()"
                                             placeholder="-- Nhập tên trường để tìm kiếm --"
                                             class="w-full pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 focus:border-hvu-red focus:ring-4 focus:ring-red-50 transition-all outline-none shadow-sm">
                                         <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -321,14 +321,14 @@ include __DIR__ . '/../layouts/header.php'; ?>
                                 <label class="label"><i class="fas fa-building"></i> Xã / Phường</label>
                                 <div x-data="wardSearch('<?= $user['ma_tinh_thuong_tru'] ?? '' ?>', '<?= $user['ma_xa_thuong_tru'] ?? '' ?>')"
                                     @ward-province-change.window="handleProvinceChange($event.detail)"
+                                    @click.away="handleClickAway()"
                                     class="relative">
                                     <input type="hidden" name="ma_xa_thuong_tru" :value="selectedCode">
                                     <div class="relative group">
                                         <i class="fas fa-building absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-hvu-red transition-colors"></i>
                                         <input type="text"
                                             x-model="search"
-                                            @focus="open = true; if(search === '-- Chọn Xã/Phường --') search = ''"
-                                            @click.away="open = false"
+                                            @focus="handleFocus()"
                                             placeholder="-- Nhập tên xã/phường --"
                                             class="w-full pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 focus:border-hvu-red focus:ring-4 focus:ring-red-50 transition-all outline-none shadow-sm">
                                         <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -579,6 +579,25 @@ include __DIR__ . '/../layouts/header.php'; ?>
                 this.open = false;
             },
 
+            handleFocus() {
+                this.open = true;
+                this.search = '';
+            },
+
+            handleClickAway() {
+                this.open = false;
+                if (this.selectedCode) {
+                    const found = this.wards.find(w => w.ma_xa == this.selectedCode);
+                    if (found) {
+                        this.search = found.ten_xa;
+                    } else {
+                        this.search = '';
+                    }
+                } else {
+                    this.search = '';
+                }
+            },
+
             get filteredWards() {
                 if (!this.search || this.search === '') return this.wards;
                 const lower = this.search.toLowerCase();
@@ -645,6 +664,25 @@ include __DIR__ . '/../layouts/header.php'; ?>
 
                 // Cập nhật KV
                 this.dispatchKV(school.khu_vuc);
+            },
+
+            handleFocus() {
+                this.open = true;
+                this.search = '';
+            },
+
+            handleClickAway() {
+                this.open = false;
+                if (this.selectedCode) {
+                    const found = this.schools.find(s => s.ma_truong == this.selectedCode);
+                    if (found) {
+                        this.search = found.ten_truong;
+                    } else {
+                        this.search = '';
+                    }
+                } else {
+                    this.search = '';
+                }
             },
 
             dispatchKV(kv) {

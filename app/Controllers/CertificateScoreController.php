@@ -41,13 +41,18 @@ class CertificateScoreController extends Controller {
 
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : 0;
 
         $query = "SELECT c.id, c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
                   FROM diem_chung_chi c
-                  LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd
-                  WHERE c.dot_tuyen_sinh_id = ?";
-        $params = [$sessionId];
+                  LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd";
+        $params = [];
+
+        if ($activeSession) {
+            $query .= " WHERE c.dot_tuyen_sinh_id = ?";
+            $params[] = $activeSession['id'];
+        } else {
+            $query .= " WHERE 1=1";
+        }
 
         if (!empty($searchValue)) {
             $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
@@ -56,8 +61,13 @@ class CertificateScoreController extends Controller {
         }
 
         // Total count
-        $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
-        $stmtTotal->execute([$sessionId]);
+        if ($activeSession) {
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
+            $stmtTotal->execute([$activeSession['id']]);
+        } else {
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi");
+            $stmtTotal->execute([]);
+        }
         $recordsTotal = $stmtTotal->fetchColumn();
 
         // Filtered count
@@ -140,8 +150,15 @@ class CertificateScoreController extends Controller {
 
         $file = $_FILES['csv_file']['tmp_name'];
         $extension = pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION);
-        if (strtolower($extension) !== 'csv') {
-            $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .csv (UTF-8).";
+        $allowedExtensions = ['csv', 'xls', 'xlsx'];
+        if (!in_array(strtolower($extension), $allowedExtensions)) {
+            $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .xlsx, .xls hoặc .csv.";
+            $this->redirect(url('/admin/certificate-scores'));
+        }
+
+        $rows = $this->loadExcelOrCsv($file, $extension);
+        if ($rows === null || empty($rows)) {
+            $_SESSION['flash_error'] = "Không thể đọc dữ liệu hoặc file trống.";
             $this->redirect(url('/admin/certificate-scores'));
         }
 
@@ -151,42 +168,36 @@ class CertificateScoreController extends Controller {
             $db = $this->model->getDb();
             $db->beginTransaction();
 
-            if (($handle = fopen($file, "r")) !== FALSE) {
-                // Skip BOM if present
-                $bom = fread($handle, 3);
-                if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) {
-                    rewind($handle);
+            $headerSkipped = false;
+            foreach ($rows as $row) {
+                if (!$headerSkipped) {
+                    $headerSkipped = true;
+                    continue;
                 }
-                
-                // Skip header
-                fgetcsv($handle, 1000, ",");
-                
-                while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                    if (count($row) < 3) {
-                        $errorCount++;
-                        continue;
-                    }
 
-                    $cccd = trim($row[0] ?? '');
-                    $maMon = trim($row[1] ?? 'N1');
-                    $score = trim($row[2] ?? 0);
-                    $note = trim($row[3] ?? '');
-
-                    if ($cccd && is_numeric($score)) {
-                        // Delete old entry for this student and subject in THIS session
-                        $stmtDel = $db->prepare("DELETE FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-                        $stmtDel->execute([$cccd, $maMon, $sessionId]);
-                        
-                        // Insert new
-                        $stmtIns = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
-                        $stmtIns->execute([$cccd, $maMon, $score, $note, $sessionId]);
-                        
-                        $successCount++;
-                    } else {
-                        $errorCount++;
-                    }
+                if (count($row) < 3) {
+                    $errorCount++;
+                    continue;
                 }
-                fclose($handle);
+
+                $cccd = trim((string)($row[0] ?? ''));
+                $maMon = trim((string)($row[1] ?? 'N1'));
+                $score = trim((string)($row[2] ?? 0));
+                $note = trim((string)($row[3] ?? ''));
+
+                if ($cccd && is_numeric($score)) {
+                    // Delete old entry for this student and subject in THIS session
+                    $stmtDel = $db->prepare("DELETE FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
+                    $stmtDel->execute([$cccd, $maMon, $sessionId]);
+                    
+                    // Insert new
+                    $stmtIns = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
+                    $stmtIns->execute([$cccd, $maMon, $score, $note, $sessionId]);
+                    
+                    $successCount++;
+                } else {
+                    $errorCount++;
+                }
             }
 
             $db->commit();
@@ -199,6 +210,42 @@ class CertificateScoreController extends Controller {
         }
 
         $this->redirect(url('/admin/certificate-scores'));
+    }
+
+    private function loadExcelOrCsv($filePath, $extension) {
+        $extension = strtolower($extension);
+        $data = [];
+
+        if ($extension === 'xls') {
+            require_once __DIR__ . '/../Services/SimpleXLS.php';
+            if ($xls = \Shuchkin\SimpleXLS::parse($filePath)) {
+                return $xls->rows();
+            }
+        }
+        
+        if ($extension === 'xlsx') {
+            require_once __DIR__ . '/../Services/SimpleXLSX.php';
+            if ($xlsx = \Shuchkin\SimpleXLSX::parse($filePath)) {
+                return $xlsx->rows();
+            }
+        }
+        
+        if ($extension === 'csv') {
+            if (($handle = fopen($filePath, "r")) !== FALSE) {
+                // Skip BOM if present
+                $bom = fread($handle, 3);
+                if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) {
+                    rewind($handle);
+                }
+                while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                    $data[] = $row;
+                }
+                fclose($handle);
+            }
+            return $data;
+        }
+
+        return null;
     }
 
     public function delete() {

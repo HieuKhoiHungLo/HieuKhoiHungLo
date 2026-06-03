@@ -88,6 +88,7 @@ class WardController extends Controller {
                     $_SESSION['success'] = "Thêm xã/phường thành công.";
                 }
             }
+            \App\Core\Cache::forgetByPattern('/^master_wards_/');
             $this->redirect(url('/admin/master-data/wards'));
         }
     }
@@ -112,6 +113,7 @@ class WardController extends Controller {
 
                         if (!empty($deletableIds)) {
                             $this->masterData->deleteMany('dm_xa', $deletableIds, 'ma_xa');
+                            \App\Core\Cache::forgetByPattern('/^master_wards_/');
                             $msg = "Đã xóa " . count($deletableIds) . " xã/phường.";
                             if ($inUseCount > 0) {
                                 $msg .= " Có $inUseCount xã/phường không thể xóa do đang được sử dụng.";
@@ -231,6 +233,7 @@ class WardController extends Controller {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
             
+            \App\Core\Cache::forgetByPattern('/^master_wards_/');
             $_SESSION['success'] = "Đã nhập thành công $count xã/phường.";
             return;
         } catch (\Exception $spreadsheetEx) {
@@ -283,6 +286,7 @@ class WardController extends Controller {
                 $count++;
             }
             fclose($handle);
+            \App\Core\Cache::forgetByPattern('/^master_wards_/');
             $_SESSION['success'] = "Đã nhập thành công $count xã/phường.";
         }
     }

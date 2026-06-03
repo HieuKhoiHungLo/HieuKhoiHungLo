@@ -312,8 +312,15 @@ class ExportService {
         $sql = "SELECT t.so_cccd AS \"Số CCCD\",
                        t.ho_va_ten AS \"Họ và Tên\",
                        t.ngay_sinh AS \"Ngày Sinh\",
+                       t.dien_thoai AS \"Điện thoại\",
                        cc.loai_chung_chi AS \"Loại chứng chỉ\",
                        cc.diem_chung_chi AS \"Điểm/Xếp loại\",
+                       CASE WHEN EXISTS (
+                           SELECT 1 FROM nguyen_vong nv 
+                           WHERE nv.so_cccd = t.so_cccd 
+                             AND nv.dot_tuyen_sinh_id = h.dot_tuyen_sinh_id
+                             AND nv.ma_nganh IN ('7140231', '7220201', '7220204')
+                       ) THEN 'Có' ELSE 'Không' END AS \"Đăng ký ngành xét CC\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
                        h.ghi_chu AS \"Ghi chú\",
                        cc.file_minh_chung_cc
@@ -340,6 +347,7 @@ class ExportService {
         foreach ($rows as &$r) {
             $r["Số CCCD"]  = $this->textCell($r["Số CCCD"]);
             $r["Họ và Tên"] = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
+            $r["Điện thoại"] = $this->textCell($r["Điện thoại"] ?? '');
             $r["Ngày Sinh"] = $this->formatDate($r["Ngày Sinh"]);
         }
         return $rows;
@@ -375,7 +383,7 @@ class ExportService {
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
                 JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND h.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
-                WHERE (n.nhom_nganh = 'SuPhamDacThu' OR t.so_cccd IN (SELECT DISTINCT so_cccd FROM diem_nang_khieu))";
+                WHERE (n.ma_nganh IN ('7140201', '7140206', '7140221', '7140222') OR t.so_cccd IN (SELECT DISTINCT so_cccd FROM diem_nang_khieu))";
 
         $params = [];
         if (!empty($filters['session_id'])) {
@@ -756,6 +764,7 @@ class ExportService {
                            COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt,
                            COALESCE(p.ten_tinh, 'Chưa rõ') as ten_tinh_thuong_tru,
                            COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so,
+                           qtv.ho_ten as nguoi_duyet,
                            (SELECT COUNT(*) FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) as grade_count,
                            (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND nv.dot_tuyen_sinh_id = ?) as wish_count,
                            (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) as hoc_luc_12
@@ -763,6 +772,7 @@ class ExportService {
                     LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
                     LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                     LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd AND hs.dot_tuyen_sinh_id = ?
+                    LEFT JOIN quan_tri_vien qtv ON hs.nguoi_duyet_id = qtv.id
                     WHERE t.deleted_at IS NULL AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = t.so_cccd AND hs2.dot_tuyen_sinh_id = ?)
                     ORDER BY t.ho_va_ten ASC";
             
@@ -809,6 +819,7 @@ class ExportService {
                         'Tên trường THPT'   => $r['ten_truong_thpt'],
                         'Ghi chú rà soát'   => implode(', ', $errors),
                         'Tình trạng hồ sơ'  => $r['trang_thai_ho_so'],
+                        'Người duyệt'       => $r['nguoi_duyet'] ?? '',
                     ];
                 }
             }
@@ -819,12 +830,14 @@ class ExportService {
                        t.doi_tuong_uu_tien as ma_doi_tuong, t.khu_vuc_uu_tien as ma_khu_vuc, 
                        COALESCE(s.ten_truong, 'Chưa có') as ten_truong_thpt,
                        COALESCE(p.ten_tinh, 'Chưa rõ') as ten_tinh_thuong_tru,
-                       COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so
+                       COALESCE(hs.trang_thai, 'Chưa tạo') as trang_thai_ho_so,
+                       qtv.ho_ten as nguoi_duyet
                 FROM thi_sinh t
                 LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong
                 LEFT JOIN dm_tinh p ON t.ma_tinh_thuong_tru = p.ma_tinh
                 LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd" . 
                 (!empty($filters['session_id']) ? " AND hs.dot_tuyen_sinh_id = " . (int)$filters['session_id'] : "") . "
+                LEFT JOIN quan_tri_vien qtv ON hs.nguoi_duyet_id = qtv.id
                 WHERE 1=1";
         $params = [];
 
@@ -889,6 +902,7 @@ class ExportService {
                 'Tỉnh'              => $r['ten_tinh_thuong_tru'],
                 'Tên trường THPT'   => $r['ten_truong_thpt'],
                 'Tình trạng hồ sơ'  => $r['trang_thai_ho_so'],
+                'Người duyệt'       => $r['nguoi_duyet'] ?? '',
             ];
         }
 
@@ -897,7 +911,7 @@ class ExportService {
 
     public function toExcel($data, $filename) {
         // Ensure .xls extension for simple browser handling
-        $filename = str_replace(['.csv', '.xlsx'], '', $filename) . '.xls';
+        $filename = str_replace(['.csv', '.xlsx', '.xls'], '', $filename) . '.xls';
 
         ob_clean();
         header("Content-Type: application/vnd.ms-excel; charset=utf-8");
@@ -946,7 +960,10 @@ class ExportService {
                     $type = 'String';
                     $style = 'sText';
                     
-                    if (is_numeric($cell) && strpos((string)$cell, ',') === false && !in_array($key, [
+                    $cellStr = ($cell !== null) ? (string)$cell : '';
+                    $trimmedStr = trim($cellStr);
+                    
+                    if ($trimmedStr !== '' && is_numeric($trimmedStr) && strpos($trimmedStr, ',') === false && !in_array($key, [
                         'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng', 'Đối tượng ƯT', 'Khu vực ƯT',
                         'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
                         'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
@@ -962,6 +979,7 @@ class ExportService {
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';
+                        $cell = $trimmedStr;
                     }
 
                     echo '    <Cell ss:StyleID="' . $style . '"><Data ss:Type="' . $type . '">' . htmlspecialchars((string)$cell) . '</Data></Cell>' . "\n";
