@@ -1767,19 +1767,42 @@ class CandidateController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $headers = [
-            'STT', 'CCCD', 'Lớp', 'Toán', 'Văn', 'NN', 'Lý', 'Hóa', 'Sinh', 
-            'Sử', 'Địa', 'GDCD', 'Tin', 'CN', 'KTPL', 'ĐTB cả năm', 'Học lực', 'Hạnh kiểm', 'Ghi chú'
+            'STT', 'Số ĐDCN', 'Họ và tên', 'Ngày sinh', 'Giới tính', 'Lớp', 'Chương trình học',
+            'Điểm trung bình năm', 'Điểm tổng kết HK I', 'Điểm tổng kết HK II', 'Điểm tổng kết CN',
+            'Học lực HK I', 'Học lực HK II', 'Học lực CN', 'Hạnh kiểm HK I', 'Hạnh kiểm HK II', 'Hạnh kiểm CN',
+            'Kết quả học tập HK I', 'Kết quả học tập HK II', 'Kết quả học tập CN',
+            'Kết quả rèn luyện HK I', 'Kết quả rèn luyện HK II', 'Kết quả rèn luyện CN',
+            'Toán HK I', 'Toán HK II', 'Toán CN',
+            'Văn HK I', 'Văn HK II', 'Văn CN',
+            'Vật lí HK I', 'Vật lí HK II', 'Vật lí CN',
+            'Hóa học HK I', 'Hóa học HK II', 'Hóa học CN',
+            'Sinh học HK I', 'Sinh học HK II', 'Sinh học CN',
+            'Lịch sử HK I', 'Lịch sử HK II', 'Lịch sử CN',
+            'Địa lí HK I', 'Địa lí HK II', 'Địa lí CN',
+            'GDCD HK I', 'GDCD HK II', 'GDCD CN',
+            'KTPL HK I', 'KTPL HK II', 'KTPL CN',
+            'Tin học HK I', 'Tin học HK II', 'Tin học CN',
+            'CNCN HK I', 'CNCN HK II', 'CNCN CN',
+            'CNNN HK I', 'CNNN HK II', 'CNNN CN',
+            'Ngoại ngữ HK I', 'Ngoại ngữ HK II', 'Ngoại ngữ CN',
+            'Môn ngoại ngữ',
+            'Tự chọn song ngữ HK I', 'Tự chọn song ngữ HK II', 'Tự chọn song ngữ CN',
+            'QPAN HK I', 'QPAN HK II', 'QPAN CN',
+            'Tiếng dân tộc HK I', 'Tiếng dân tộc HK II', 'Tiếng dân tộc CN',
+            'Ngoại ngữ 2 HK I', 'Ngoại ngữ 2 HK II', 'Ngoại ngữ 2 CN',
+            'Toán Pháp HK I', 'Toán Pháp HK II', 'Toán Pháp CN',
+            'Ghi chú'
         ];
         foreach ($headers as $i => $h) {
             $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
             $sheet->setCellValue($colLetter . '1', $h);
         }
-        $sheet->getStyle('A1:S1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:CA1')->getFont()->setBold(true);
         $sheet->getColumnDimension('B')->setWidth(20);
-        $sheet->getColumnDimension('S')->setWidth(30);
+        $sheet->getColumnDimension('CA')->setWidth(30);
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="Mau_Cap_Nhat_Hoc_Ba_Moi_Nhat_V2.xlsx"');
+        header('Content-Disposition: attachment;filename="Mau_Cap_Nhat_Hoc_Ba_Bang9_V3.xlsx"');
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save('php://output');
         exit;
@@ -1798,8 +1821,31 @@ class CandidateController extends Controller
 
         $filePath = $_FILES['transcript_file']['tmp_name'];
         $academicModel = new \App\Models\AcademicRecord();
-        $colMap = [3=>'diem_toan_cn', 4=>'diem_van_cn', 5=>'diem_ngoai_ngu_cn', 6=>'diem_ly_cn', 7=>'diem_hoa_cn', 8=>'diem_sinh_cn', 9=>'diem_su_cn', 10=>'diem_dia_cn', 11=>'diem_gdcd_cn', 12=>'diem_tin_hoc_cn', 13=>'diem_cong_nghe_cn', 14=>'diem_ktpl_cn', 15=>'diem_tb_ca_nam'];
-        $textCols = [16=>'hoc_luc_ca_nam', 17=>'hanh_kiem_ca_nam', 18=>'ghi_chu'];
+        
+        // 0-indexed column mappings matching MoET Bảng 9 structure
+        $colMap = [
+            25 => 'diem_toan_cn',
+            28 => 'diem_van_cn',
+            61 => 'diem_ngoai_ngu_cn',
+            31 => 'diem_ly_cn',
+            34 => 'diem_hoa_cn',
+            37 => 'diem_sinh_cn',
+            40 => 'diem_su_cn',
+            43 => 'diem_dia_cn',
+            46 => 'diem_gdcd_cn',
+            52 => 'diem_tin_hoc_cn',
+            55 => 'diem_cong_nghe_cn',
+            49 => 'diem_ktpl_cn',
+            7  => 'diem_tb_ca_nam',
+            8  => 'diem_tb_hk1',
+            9  => 'diem_tb_hk2',
+            68 => 'diem_gdqp_cn'
+        ];
+        $textCols = [
+            19 => 'hoc_luc_ca_nam',
+            22 => 'hanh_kiem_ca_nam',
+            78 => 'ghi_chu'
+        ];
 
         try {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
@@ -1815,7 +1861,7 @@ class CandidateController extends Controller
             foreach ($rows as $index => $row) {
                 $rowValues = array_values($row);
                 $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
-                $lop = trim($rowValues[2] ?? '');
+                $lop = trim($rowValues[5] ?? '');
                 $lineNum = $index + 2;
 
                 if (empty($cccd)) continue;
@@ -1855,6 +1901,24 @@ class CandidateController extends Controller
                 }
 
                 $academicModel->save($cccd, (int)$lop, $scoreData);
+                
+                // ALSO Update candidate's ho_so_xet_tuyen.ghi_chu and thi_sinh.ghi_chu fields
+                $ghiChu = isset($rowValues[78]) ? trim($rowValues[78]) : null;
+                if ($ghiChu !== null) {
+                    $stmt1 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+                    $stmt1->execute([$ghiChu, $cccd]);
+
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession();
+                    if ($activeSession) {
+                        $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+                        $stmt2->execute([$ghiChu, $cccd, $activeSession['id']]);
+                    } else {
+                        $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
+                        $stmt2->execute([$ghiChu, $cccd]);
+                    }
+                }
+
                 if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS\n");
                 $success++;
             }
