@@ -17,6 +17,16 @@ ob_start();
             </div>
         </div>
         <div class="flex gap-2">
+            <!-- Nút xóa hàng loạt -->
+            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 hidden">
+                <i class="fas fa-minus-circle"></i>
+                <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
+            </button>
+            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition-colors border border-red-200 flex items-center gap-2">
+                <i class="fas fa-trash-alt"></i>
+                <span>Xóa tất cả</span>
+            </button>
+
             <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
                 <i class="fas fa-plus"></i>
                 <span>Thêm mới</span>
@@ -70,7 +80,10 @@ ob_start();
             <table id="aptitudeTable" class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                     <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tl-lg">ID</th>
+                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tl-lg text-center w-10">
+                            <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-indigo-600 focus:ring-indigo-500">
+                        </th>
+                        <th class="py-3 px-4 font-semibold border-b border-slate-200">ID</th>
                         <th class="py-3 px-4 font-semibold border-b border-slate-200">CCCD/CMND</th>
                         <th class="py-3 px-4 font-semibold border-b border-slate-200">SBD</th>
                         <th class="py-3 px-4 font-semibold border-b border-slate-200">Họ và tên</th>
@@ -227,6 +240,37 @@ ob_start();
                         alert(res.message || 'Lỗi khi lưu dữ liệu!');
                     }
                 }, 'json').fail(() => alert('Lỗi kết nối máy chủ!'));
+            },
+            deleteSelected() {
+                const ids = window.getSelectedIds();
+                if (ids.length === 0) return;
+                
+                if (confirm(`Bạn có chắc chắn muốn xóa ${ids.length} bản ghi điểm năng khiếu đã chọn?`)) {
+                    $.post('<?= url('/admin/aptitude-scores/delete') ?>', { 
+                        ids: ids, 
+                        _csrf_token: '<?= csrf_token() ?>' 
+                    }, (res) => {
+                        if (res.success) {
+                            $('#aptitudeTable').DataTable().ajax.reload(null, false);
+                        } else {
+                            alert('Lỗi khi xóa hàng loạt!');
+                        }
+                    }, 'json');
+                }
+            },
+            deleteAllScores() {
+                if (confirm('CẢNH BÁO: Hành động này sẽ xóa TOÀN BỘ dữ liệu điểm năng khiếu của đợt này. Bạn có chắc chắn muốn thực hiện?')) {
+                    $.post('<?= url('/admin/aptitude-scores/delete') ?>', { 
+                        delete_all: true, 
+                        _csrf_token: '<?= csrf_token() ?>' 
+                    }, (res) => {
+                        if (res.success) {
+                            $('#aptitudeTable').DataTable().ajax.reload();
+                        } else {
+                            alert('Lỗi khi xóa tất cả!');
+                        }
+                    }, 'json');
+                }
             }
         }
     }
@@ -243,6 +287,13 @@ ob_start();
                 }
             },
             columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    width: '40px',
+                    className: 'text-center',
+                    render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-indigo-600 focus:ring-indigo-500" value="${row.id}">`
+                },
                 { data: 'id', width: '60px', className: 'text-slate-500 font-mono text-xs' },
                 { data: 'so_cccd', className: 'font-medium font-mono text-indigo-600' },
                 { data: 'sbd' },
@@ -277,6 +328,48 @@ ob_start();
             }
         });
         
+        // Select all / Deselect all
+        $('#selectAll').on('change', function() {
+            const checked = this.checked;
+            $('.row-select').prop('checked', checked);
+            updateDeleteSelectedButton();
+        });
+
+        // Individual row checkbox change
+        $('#aptitudeTable tbody').on('change', '.row-select', function() {
+            const total = $('.row-select').length;
+            const checked = $('.row-select:checked').length;
+            $('#selectAll').prop('checked', total === checked && total > 0);
+            updateDeleteSelectedButton();
+        });
+
+        // Uncheck all when changing pages/searching
+        table.on('draw', function() {
+            $('#selectAll').prop('checked', false);
+            updateDeleteSelectedButton();
+        });
+
+        function updateDeleteSelectedButton() {
+            const selectedIds = getSelectedIds();
+            const count = selectedIds.length;
+            if (count > 0) {
+                $('#selectedCount').text(count);
+                $('#btnDeleteSelected').removeClass('hidden');
+            } else {
+                $('#btnDeleteSelected').addClass('hidden');
+            }
+        }
+
+        function getSelectedIds() {
+            const ids = [];
+            $('.row-select:checked').each(function() {
+                ids.push($(this).val());
+            });
+            return ids;
+        }
+
+        window.getSelectedIds = getSelectedIds;
+
         // Expose Alpine instance to outside (Alpine v3)
         window.aptitudeDataInstance = Alpine.$data(document.querySelector('[x-data]'));
     });
