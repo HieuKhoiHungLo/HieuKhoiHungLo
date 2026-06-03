@@ -250,10 +250,42 @@ class CertificateScoreController extends Controller {
 
     public function delete() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // 1. Xóa hàng loạt mục đã chọn
+            $ids = $_POST['ids'] ?? [];
+            if (!empty($ids) && is_array($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE id IN ($placeholders)");
+                if ($stmt->execute($ids)) {
+                    $this->json(['success' => true]);
+                    return;
+                }
+            }
+            
+            // 2. Xóa một mục cụ thể
             $id = $_POST['id'] ?? null;
             if ($id) {
                 $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE id = ?");
                 if ($stmt->execute([$id])) {
+                    $this->json(['success' => true]);
+                    return;
+                }
+            }
+            
+            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang kích hoạt
+            $deleteAll = $_POST['delete_all'] ?? false;
+            if ($deleteAll) {
+                $sessionModel = new \App\Models\AdmissionSession();
+                $activeSession = $sessionModel->getActiveSession();
+                
+                if ($activeSession) {
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
+                    $success = $stmt->execute([$activeSession['id']]);
+                } else {
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi");
+                    $success = $stmt->execute([]);
+                }
+                
+                if ($success) {
                     $this->json(['success' => true]);
                     return;
                 }
