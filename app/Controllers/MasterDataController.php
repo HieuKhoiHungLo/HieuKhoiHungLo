@@ -48,6 +48,10 @@ class MasterDataController extends Controller {
         $uri = $_SERVER['REQUEST_URI'] ?? '';
         if (strpos($uri, '/api/public/') !== false) {
             $this->masterData = new MasterData();
+            // Release session lock early for read-only API requests to prevent blocking concurrent fetch calls
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
             return; // Skip auth for public APIs
         }
 

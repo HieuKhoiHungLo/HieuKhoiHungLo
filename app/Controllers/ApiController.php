@@ -14,6 +14,11 @@ class ApiController extends Controller
     {
         \App\Core\Database::getInstance()->setSystemRole('admin');
         $this->masterData = new MasterData();
+        
+        // Release session lock early for read-only API requests to prevent blocking concurrent fetch calls
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
     }
 
     public function getWards()

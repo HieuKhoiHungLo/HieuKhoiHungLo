@@ -359,8 +359,15 @@ updateActionBarOffset();
                 }
                 this.isLoading = true;
                 try {
-                    const res = await fetch(`<?= url('/api/wards') ?>?province_id=${pid}`);
-                    this.wards = await res.json();
+                    const cacheKey = `hvu_wards_${pid}`;
+                    const cached = sessionStorage.getItem(cacheKey);
+                    if (cached) {
+                        this.wards = JSON.parse(cached);
+                    } else {
+                        const res = await fetch(`<?= url('/api/wards') ?>?province_id=${pid}`);
+                        this.wards = await res.json();
+                        sessionStorage.setItem(cacheKey, JSON.stringify(this.wards));
+                    }
 
                     if (this.selectedCode) {
                         const found = this.wards.find(w => w.ma_xa == this.selectedCode);
@@ -428,8 +435,15 @@ updateActionBarOffset();
                 }
                 this.isLoading = true;
                 try {
-                    const res = await fetch(`<?= url('/api/public/schools') ?>?province_id=${pid}`);
-                    this.schools = await res.json();
+                    const cacheKey = `hvu_public_schools_${pid}`;
+                    const cached = sessionStorage.getItem(cacheKey);
+                    if (cached) {
+                        this.schools = JSON.parse(cached);
+                    } else {
+                        const res = await fetch(`<?= url('/api/public/schools') ?>?province_id=${pid}`);
+                        this.schools = await res.json();
+                        sessionStorage.setItem(cacheKey, JSON.stringify(this.schools));
+                    }
 
                     if (this.selectedCode) {
                         const found = this.schools.find(s => s.ma_truong == this.selectedCode);
