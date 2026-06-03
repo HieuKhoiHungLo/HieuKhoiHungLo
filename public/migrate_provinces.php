@@ -48,7 +48,7 @@ $mapping = [
 
 try {
     $db = Database::getInstance()->getConnection();
-    echo "=== STARTING PROVINCE CODE MIGRATION ===\n";
+    echo "=== STARTING PROVINCE CODE MIGRATION (FIXED UNIQUE VIOLATION) ===\n";
     $db->beginTransaction();
 
     // 1. Fetch foreign keys dynamically
@@ -81,14 +81,10 @@ try {
         echo "Dropped constraint '{$fk['constraint_name']}' on table '{$fk['table_name']}'.\n";
     }
 
-    // 2. Stage 1: Add TEMP_ prefix to all old codes in all tables to prevent unique key violation
-    echo "\nStage 1: Renaming codes to TEMP_ prefix...\n";
+    // 2. Stage 1: Add TEMP_ prefix to all old codes in referencing tables to prevent collision/ordering issues
+    echo "\nStage 1: Renaming codes in referencing tables to TEMP_ prefix...\n";
     foreach ($mapping as $oldCode => $info) {
         $tempCode = "TEMP_" . $oldCode;
-        
-        // Update dm_tinh
-        $stmt = $db->prepare("UPDATE dm_tinh SET ma_tinh = ? WHERE ma_tinh = ?");
-        $stmt->execute([$tempCode, $oldCode]);
         
         // Update dm_xa
         $stmt = $db->prepare("UPDATE dm_xa SET ma_tinh = ? WHERE ma_tinh = ?");
@@ -114,16 +110,11 @@ try {
     }
     echo "Stage 1 finished successfully.\n";
 
-    // 3. Stage 2: Convert from TEMP_ prefix to new standard code and update names
-    echo "\nStage 2: Renaming to standard codes and updating names...\n";
+    // 3. Stage 2: Convert from TEMP_ prefix to new standard code in referencing tables
+    echo "\nStage 2: Renaming to standard codes in referencing tables...\n";
     foreach ($mapping as $oldCode => $info) {
         $tempCode = "TEMP_" . $oldCode;
         $newCode = $info['new_code'];
-        $newName = $info['name'];
-
-        // Update dm_tinh (code & name)
-        $stmt = $db->prepare("UPDATE dm_tinh SET ma_tinh = ?, ten_tinh = ? WHERE ma_tinh = ?");
-        $stmt->execute([$newCode, $newName, $tempCode]);
 
         // Update dm_xa
         $stmt = $db->prepare("UPDATE dm_xa SET ma_tinh = ? WHERE ma_tinh = ?");
@@ -149,7 +140,35 @@ try {
     }
     echo "Stage 2 finished successfully.\n";
 
-    // 4. Recreate foreign keys
+    // 4. Migrate dm_nganh.khu_vuc_tuyen_sinh (comma-separated string config)
+    echo "\nMigrating dm_nganh.khu_vuc_tuyen_sinh...\n";
+    $stmt = $db->query("SELECT ma_nganh, khu_vuc_tuyen_sinh FROM dm_nganh WHERE khu_vuc_tuyen_sinh IS NOT NULL AND khu_vuc_tuyen_sinh != ''");
+    $majors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $majorUpdateCount = 0;
+    foreach ($majors as $m) {
+        $allowed = explode(',', $m['khu_vuc_tuyen_sinh']);
+        $allowed = array_map('trim', $allowed);
+        $updated = false;
+        foreach ($allowed as &$code) {
+            // Standardize to 2-digit format if it was saved as single-digit
+            $paddedCode = str_pad($code, 2, '0', STR_PAD_LEFT);
+            if (isset($mapping[$paddedCode])) {
+                $code = $mapping[$paddedCode]['new_code'];
+                $updated = true;
+            }
+        }
+        unset($code);
+        if ($updated) {
+            $newKhuVuc = implode(',', array_unique($allowed));
+            $stmtUpdate = $db->prepare("UPDATE dm_nganh SET khu_vuc_tuyen_sinh = ? WHERE ma_nganh = ?");
+            $stmtUpdate->execute([$newKhuVuc, $m['ma_nganh']]);
+            echo "Updated major {$m['ma_nganh']} khu_vuc_tuyen_sinh to: $newKhuVuc\n";
+            $majorUpdateCount++;
+        }
+    }
+    echo "Migrated $majorUpdateCount majors admission area configs.\n";
+
+    // 5. Recreate foreign keys
     echo "\nRecreating foreign key constraints...\n";
     foreach ($fks as $fk) {
         $createSql = "ALTER TABLE {$fk['table_name']} ADD CONSTRAINT {$fk['constraint_name']} FOREIGN KEY ({$fk['column_name']}) REFERENCES {$fk['foreign_table_name']} ({$fk['foreign_column_name']})";
