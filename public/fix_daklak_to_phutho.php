@@ -16,7 +16,7 @@ if (php_sapi_name() !== 'cli') {
 
 try {
     $db = Database::getInstance()->getConnection();
-    echo "=== STARTING DAK LAK TO PHU THO MIGRATION (OPTIMIZED BULK UPDATE) ===\n";
+    echo "=== STARTING DAK LAK TO PHU THO MIGRATION (CANDIDATES & CATALOGS) ===\n";
     $db->beginTransaction();
 
     // 1. Fetch skipped candidates (Dak Lak with Miennam note) for logging
@@ -30,7 +30,7 @@ try {
     $stmtSkipped->execute();
     $skippedList = $stmtSkipped->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Perform bulk update using RETURNING clause to get updated records in a single query
+    // 2. Perform bulk update of candidate profiles using RETURNING clause
     $updateSql = "
         UPDATE thi_sinh 
         SET ma_tinh_ho_khau = CASE WHEN ma_tinh_ho_khau = '66' THEN '25' ELSE ma_tinh_ho_khau END,
@@ -49,16 +49,36 @@ try {
     $stmtUpdate->execute();
     $updatedList = $stmtUpdate->fetchAll(PDO::FETCH_ASSOC);
 
+    // 3. Fix dm_truong_thpt catalog: map Phú Thọ schools back to province 25
+    $stmtCatalog1 = $db->prepare("
+        UPDATE dm_truong_thpt
+        SET ma_tinh = '25'
+        WHERE ma_tinh = '66' AND ma_truong LIKE '25%'
+    ");
+    $stmtCatalog1->execute();
+    $updatedSchools = $stmtCatalog1->rowCount();
+
+    // 4. Fix dm_xa catalog: map Phú Thọ communes back to province 25
+    $stmtCatalog2 = $db->prepare("
+        UPDATE dm_xa
+        SET ma_tinh = '25'
+        WHERE ma_tinh = '66' AND (ma_xa LIKE '07%' OR ma_xa LIKE '08%')
+    ");
+    $stmtCatalog2->execute();
+    $updatedCommunes = $stmtCatalog2->rowCount();
+
     $db->commit();
     echo "Transaction committed successfully.\n\n";
 
     echo "=== RESULTS SUMMARY ===\n";
-    echo "Total Updated ( Dak Lak -> Phu Tho ): " . count($updatedList) . "\n";
-    echo "Total Skipped ( Miennam ): " . count($skippedList) . "\n\n";
+    echo "Total Candidates Updated ( Dak Lak -> Phu Tho ): " . count($updatedList) . "\n";
+    echo "Total Candidates Skipped ( Miennam ): " . count($skippedList) . "\n";
+    echo "Total Catalog Schools Updated ( dm_truong_thpt ): " . $updatedSchools . "\n";
+    echo "Total Catalog Communes Updated ( dm_xa ): " . $updatedCommunes . "\n\n";
 
     if (!empty($updatedList)) {
-        echo "--- SAMPLES OF UPDATED CANDIDATES (Showing first 50 of " . count($updatedList) . ") ---\n";
-        $displayLimit = 50;
+        echo "--- SAMPLES OF UPDATED CANDIDATES (Showing first 10 of " . count($updatedList) . ") ---\n";
+        $displayLimit = 10;
         foreach (array_slice($updatedList, 0, $displayLimit) as $index => $item) {
             echo ($index + 1) . ". {$item['ho_va_ten']} (CCCD: {$item['so_cccd']})\n";
         }
