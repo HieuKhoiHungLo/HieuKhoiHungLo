@@ -46,7 +46,7 @@ class WardController extends Controller {
         $wards = $this->masterData->getWardsPaginated($search, $maTinh, $sort, $dir, $limit, $offset);
         
         // Provinces still needed for filters and create dropdown
-        $provinces = $this->masterData->getAll('dm_tinh', 'ma_tinh');
+        $provinces = $this->masterData->getProvinces();
         
         $this->view('admin/master_data/wards', [
             'wards' => $wards,

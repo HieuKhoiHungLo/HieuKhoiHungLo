@@ -47,7 +47,7 @@ class SchoolController extends Controller {
         $schools = $this->masterData->getSchoolsPaginated($search, $maTinh, $khuVuc, $sort, $dir, $limit, $offset);
         
         // Provinces still needed for Filter/Create dropdown
-        $provinces = $this->masterData->getAll('dm_tinh', 'ma_tinh');
+        $provinces = $this->masterData->getProvinces();
         
         $this->view('admin/master_data/schools', [
             'schools' => $schools,

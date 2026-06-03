@@ -53,7 +53,7 @@ class MasterData extends Model {
 
     public function getProvinces() {
         return \App\Core\Cache::remember('master_provinces', 1440, function() {
-            $stmt = $this->db->prepare("SELECT * FROM dm_tinh WHERE COALESCE(is_active, true) = true ORDER BY CASE WHEN ten_tinh LIKE '%Phú Thọ%' THEN 0 ELSE 1 END, ten_tinh");
+            $stmt = $this->db->prepare("SELECT * FROM dm_tinh WHERE COALESCE(is_active, true) = true ORDER BY CASE WHEN ma_tinh = '25' THEN 0 ELSE 1 END, ma_tinh ASC");
             $stmt->execute();
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         });
