@@ -1849,8 +1849,14 @@ class CandidateController extends Controller
 
         try {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-            $rows = array_values($spreadsheet->getActiveSheet()->toArray(null, true, true, true));
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = array_values($sheet->toArray(null, true, true, true));
             array_shift($rows);
+
+            // Set result header at Column CB (Index 79 / Column 80)
+            $sheet->setCellValue('CB1', 'Kết quả xử lý');
+            $sheet->getStyle('CB1')->getFont()->setBold(true);
+            $sheet->getColumnDimension('CB')->setWidth(40);
 
             $success = 0; $skipped = 0; $warnings = [];
             $this->db->beginTransaction();
@@ -1858,14 +1864,43 @@ class CandidateController extends Controller
             $logFile = @fopen(dirname(__DIR__, 2) . '/storage/logs/bulk_transcript.log', 'a');
             if ($logFile) fwrite($logFile, "\n--- BULK TRANSCRIPT START: " . date('Y-m-d H:i:s') . " ---\n");
 
+            // Subject display names for change description
+            $colNames = [
+                'diem_toan_cn' => 'Toán',
+                'diem_van_cn' => 'Văn',
+                'diem_ngoai_ngu_cn' => 'Ngoại ngữ',
+                'diem_ly_cn' => 'Lý',
+                'diem_hoa_cn' => 'Hóa',
+                'diem_sinh_cn' => 'Sinh',
+                'diem_su_cn' => 'Sử',
+                'diem_dia_cn' => 'Địa',
+                'diem_gdcd_cn' => 'GDCD',
+                'diem_tin_hoc_cn' => 'Tin',
+                'diem_cong_nghe_cn' => 'Công nghệ',
+                'diem_ktpl_cn' => 'KTPL',
+                'diem_tb_ca_nam' => 'ĐTB cả năm',
+                'diem_tb_hk1' => 'ĐTB HK1',
+                'diem_tb_hk2' => 'ĐTB HK2',
+                'diem_gdqp_cn' => 'GDQP'
+            ];
+            $textColNames = [
+                'hoc_luc_ca_nam' => 'Học lực',
+                'hanh_kiem_ca_nam' => 'Hạnh kiểm',
+                'ghi_chu' => 'Ghi chú'
+            ];
+
             foreach ($rows as $index => $row) {
                 $rowValues = array_values($row);
                 $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
                 $lop = trim($rowValues[5] ?? '');
                 $lineNum = $index + 2;
 
-                if (empty($cccd)) continue;
+                if (empty($cccd)) {
+                    $sheet->setCellValue('CB' . $lineNum, 'Bỏ qua: CCCD trống');
+                    continue;
+                }
                 if (!in_array($lop, ['10', '11', '12'])) {
+                    $sheet->setCellValue('CB' . $lineNum, 'Lỗi: Lớp không hợp lệ');
                     $warnings[] = "Dòng $lineNum: Lớp '$lop' không hợp lệ.";
                     $skipped++; continue;
                 }
@@ -1873,61 +1908,101 @@ class CandidateController extends Controller
                 $stmtCheck = $this->db->prepare("SELECT so_cccd FROM thi_sinh WHERE so_cccd = ?");
                 $stmtCheck->execute([$cccd]);
                 if (!$stmtCheck->fetchColumn()) {
+                    $sheet->setCellValue('CB' . $lineNum, 'Lỗi: CCCD không tồn tại');
                     $warnings[] = "Dòng $lineNum: CCCD $cccd không tồn tại.";
                     $skipped++; continue;
                 }
 
+                // Fetch existing academic record to compare
+                $existing = $academicModel->getByCCCDAndGrade($cccd, (int)$lop);
                 $scoreData = [];
+                $changes = [];
+
                 foreach ($colMap as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
-                    if ($val === '') { $scoreData[$dbCol] = null; }
-                    else {
+                    $newVal = null;
+                    if ($val !== '') {
                         $numVal = str_replace(',', '.', $val);
-                        $scoreData[$dbCol] = is_numeric($numVal) ? (float)$numVal : null;
+                        $newVal = is_numeric($numVal) ? (float)$numVal : null;
+                    }
+                    
+                    $oldVal = isset($existing[$dbCol]) && $existing[$dbCol] !== '' ? (float)$existing[$dbCol] : null;
+                    
+                    if ($newVal !== $oldVal) {
+                        $scoreData[$dbCol] = $newVal;
+                        $label = $colNames[$dbCol] ?? $dbCol;
+                        $oldStr = $oldVal === null ? 'Trống' : $oldVal;
+                        $newStr = $newVal === null ? 'Trống' : $newVal;
+                        $changes[] = "$label ($oldStr -> $newStr)";
                     }
                 }
+
                 foreach ($textCols as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
-                    if ($val === '') {
-                        $scoreData[$dbCol] = null;
-                    } else {
-                        // Apply normalization for ratings
+                    $newVal = null;
+                    if ($val !== '') {
                         if (in_array($dbCol, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
-                            $scoreData[$dbCol] = $academicModel->normalizeRating($val);
+                            $newVal = $academicModel->normalizeRating($val);
                         } else {
-                            $scoreData[$dbCol] = $val;
+                            $newVal = $val;
                         }
                     }
-                }
-
-                $academicModel->save($cccd, (int)$lop, $scoreData);
-                
-                // ALSO Update candidate's ho_so_xet_tuyen.ghi_chu and thi_sinh.ghi_chu fields
-                $ghiChu = isset($rowValues[78]) ? trim($rowValues[78]) : null;
-                if ($ghiChu !== null) {
-                    $stmt1 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-                    $stmt1->execute([$ghiChu, $cccd]);
-
-                    $sessionModel = new \App\Models\AdmissionSession();
-                    $activeSession = $sessionModel->getActiveSession();
-                    if ($activeSession) {
-                        $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-                        $stmt2->execute([$ghiChu, $cccd, $activeSession['id']]);
-                    } else {
-                        $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
-                        $stmt2->execute([$ghiChu, $cccd]);
+                    
+                    $oldVal = isset($existing[$dbCol]) && $existing[$dbCol] !== '' ? trim($existing[$dbCol]) : null;
+                    
+                    if ($newVal !== $oldVal) {
+                        $scoreData[$dbCol] = $newVal;
+                        $label = $textColNames[$dbCol] ?? $dbCol;
+                        $oldStr = $oldVal === null ? 'Trống' : $oldVal;
+                        $newStr = $newVal === null ? 'Trống' : $newVal;
+                        $changes[] = "$label ($oldStr -> $newStr)";
                     }
                 }
 
-                if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS\n");
-                $success++;
+                if (!empty($scoreData)) {
+                    $academicModel->save($cccd, (int)$lop, $scoreData);
+                    
+                    // Update notes in other tables if changed
+                    if (array_key_exists('ghi_chu', $scoreData)) {
+                        $ghiChu = $scoreData['ghi_chu'];
+                        $stmt1 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+                        $stmt1->execute([$ghiChu, $cccd]);
+
+                        $sessionModel = new \App\Models\AdmissionSession();
+                        $activeSession = $sessionModel->getActiveSession();
+                        if ($activeSession) {
+                            $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
+                            $stmt2->execute([$ghiChu, $cccd, $activeSession['id']]);
+                        } else {
+                            $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
+                            $stmt2->execute([$ghiChu, $cccd]);
+                        }
+                    }
+
+                    $changeDesc = "Cập nhật: " . implode(', ', $changes);
+                    $sheet->setCellValue('CB' . $lineNum, $changeDesc);
+                    if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS ($changeDesc)\n");
+                    $success++;
+                } else {
+                    $sheet->setCellValue('CB' . $lineNum, 'Không thay đổi');
+                    if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
+                }
             }
 
             $this->db->commit();
             if ($logFile) fclose($logFile);
-            if (!empty($warnings)) $_SESSION['bulk_warnings'] = $warnings;
 
-            $this->redirect($redirectTo . '?success=' . urlencode("Đã cập nhật xong $success thí sinh."));
+            // Clean output buffer before sending file to avoid corruption
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="Ket_Qua_Cap_Nhat_Hoc_Ba_Bang9_' . date('Ymd_His') . '.xlsx"');
+            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save('php://output');
+            exit;
+
         } catch (\Exception $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
