@@ -114,6 +114,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/review', 'AdminController@review');
     $router->get('/admin/review/tab', 'AdminController@reviewTab');
     $router->get('/admin/review/batch-tabs', 'AdminController@reviewBatchTabs');
+    $router->post('/admin/review/update-note', 'AdminController@updateReviewNote');
     $router->post('/admin/update-status', 'AdminController@updateStatus');
     $router->post('/admin/review/submit', 'AdminController@submitReview');
     $router->get('/admin/stats', 'AdminController@stats');

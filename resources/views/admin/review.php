@@ -221,6 +221,9 @@
         <button type="button" onclick="confirmResetReviewStatus()" class="px-8 py-3.5 bg-[#0066FF] text-white font-medium rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap">
             Hủy duyệt
         </button>
+        <button type="button" onclick="openNoteModal()" class="px-8 py-3.5 bg-amber-500 text-white font-medium rounded-xl shadow-lg hover:bg-amber-600 hover:-translate-y-0.5 transition-all flex items-center text-sm whitespace-nowrap">
+            Ghi chú
+        </button>
 
         <!-- Quick Search CCCD (Refined Outline Style) -->
         <input type="text" placeholder="Tìm CCCD..." 
@@ -306,6 +309,34 @@
             </button>
             <button type="button" id="btnConfirmSubmit" onclick="confirmSubmitReview()" class="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
                 <i class="fas fa-paper-plane mr-2"></i> Lưu & Gửi Email
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Note Modal -->
+<div id="noteModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="text-xl font-black text-slate-800 uppercase tracking-tight">Cập nhật Ghi chú Hồ sơ</h3>
+            <button type="button" onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nội dung ghi chú hồ sơ</label>
+                <textarea id="modal_application_note" rows="5" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#0066FF] focus:ring focus:ring-blue-100 outline-none transition-all resize-none shadow-sm" placeholder="Nhập ghi chú cho hồ sơ tuyển sinh của thí sinh này..."><?= htmlspecialchars($user['ghi_chu'] ?? '') ?></textarea>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeNoteModal()" class="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">
+                Hủy bỏ
+            </button>
+            <button type="button" id="btnSaveNote" onclick="saveApplicationNote()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
+                <i class="fas fa-save mr-2"></i> Lưu Ghi chú
             </button>
         </div>
     </div>
@@ -669,6 +700,56 @@ updateActionBarOffset();
 
     function closeReviewModal() {
         document.getElementById('reviewModal').classList.add('hidden');
+    }
+
+    function openNoteModal() {
+        document.getElementById('noteModal').classList.remove('hidden');
+    }
+
+    function closeNoteModal() {
+        document.getElementById('noteModal').classList.add('hidden');
+    }
+
+    function saveApplicationNote() {
+        const btn = document.getElementById('btnSaveNote');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang lưu...';
+        btn.disabled = true;
+
+        const note = document.getElementById('modal_application_note').value;
+        const cccd = '<?= $user['so_cccd'] ?>';
+        const csrfToken = '<?= csrf_token() ?>';
+
+        const formData = new FormData();
+        formData.append('cccd', cccd);
+        formData.append('note', note);
+        formData.append('csrf_token', csrfToken);
+
+        fetch('<?= url('/admin/review/update-note') ?>', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (typeof Toast !== 'undefined') {
+                    Toast.success('Cập nhật ghi chú hồ sơ thành công!');
+                } else {
+                    alert('Cập nhật ghi chú hồ sơ thành công!');
+                }
+                closeNoteModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                alert(res.message || 'Có lỗi xảy ra khi lưu ghi chú');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
     }
 
     function confirmSubmitReview() {

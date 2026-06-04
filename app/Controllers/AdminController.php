@@ -335,6 +335,26 @@ class AdminController extends Controller
         $this->view('admin/review', $data);
     }
 
+    public function updateReviewNote()
+    {
+        $this->checkPermission('review');
+        $cccd = $_POST['cccd'] ?? '';
+        $note = $_POST['note'] ?? '';
+
+        if (empty($cccd)) {
+            $this->json(['success' => false, 'message' => 'Thiếu thông tin CCCD']);
+            return;
+        }
+
+        try {
+            $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?");
+            $success = $stmt->execute([$note, $cccd]);
+            $this->json(['success' => $success]);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     /**
      * AJAX Endpoint for lazy loading review tabs
      */
