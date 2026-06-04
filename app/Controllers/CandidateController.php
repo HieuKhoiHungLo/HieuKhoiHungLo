@@ -461,18 +461,11 @@ class CandidateController extends Controller
      */
     protected function bulkUpdateStatus($ids, $status)
     {
+        $reviewerId = $this->currentUser['id'] ?? null;
         // Use Repositories - ThiSinhRepository handles the bulk update logic for both nguyen_vong and ho_so_xet_tuyen
-        $this->thiSinhRepo->bulkUpdateStatus($ids, $status);
+        $this->thiSinhRepo->bulkUpdateStatus($ids, $status, $reviewerId);
 
-        // Note: Logic in AdminController::updateStatus also updated ho_so_xet_tuyen status. 
-        // CandidateController previously only updated nguyen_vong status in bulkUpdateStatus (line 92 original).
-        // Check original: only nguyen_vong update.
-        // It might be better to sync both, but I will stick to original logic to avoid changing behavior, 
-        // OR improve it. AdminController logic is newer/better.
-        // Let's stick to valid refactoring: mimic original behavior unless bug.
-        // Original: "UPDATE nguyen_vong ..." 
-        // Wait, if I only update nguyen_vong, ho_so_xet_tuyen might be out of sync?
-        // Let's presume original was simple. I will just use repo.
+        $this->clearCandidateStatsCache();
 
         $this->auditService->log('BULK_UPDATE_STATUS', 'candidates', null, null, [
             'count' => count($ids),

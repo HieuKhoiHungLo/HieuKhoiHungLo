@@ -1,55 +1,109 @@
 <?php
-$title = 'Quản lý Điểm Chứng chỉ (Quy đổi)';
+$title = 'Điểm Chứng chỉ';
 ob_start();
 ?>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    /* Spreadsheet style for Certificate Scores Table matching review-management */
+    #certTable {
+        border-collapse: separate !important;
+        border-spacing: 0;
+        width: 100% !important;
+        table-layout: fixed;
+    }
+    #certTable th, #certTable td {
+        padding: 0.4rem 0.5rem !important;
+        border: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        vertical-align: middle !important;
+        font-size: 13px !important;
+        color: #334155 !important;
+        background-clip: padding-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    #certTable th:first-child, #certTable td:first-child {
+        border-left: 1px solid #e2e8f0 !important;
+    }
+    #certTable thead tr:first-child th {
+        border-top: 1px solid #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    #certTable tbody tr:hover td {
+        background-color: #f1f5f9 !important;
+    }
+</style>
+
 <div class="p-6 h-full flex flex-col" x-data="certificateData()">
-    <div class="flex justify-between items-center mb-6">
+    <!-- Header Page Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Quản lý Điểm Chứng chỉ</h1>
-            <div class="flex items-center gap-2 mt-1">
-                <p class="text-slate-500 text-sm">Tổng cộng: <?= number_format($stats['total'] ?? 0) ?> bản ghi điểm quy đổi</p>
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
+            </div>
+            <div class="flex items-center gap-2 mt-1.5 ml-4">
+                <p class="text-slate-500 text-sm font-medium">Tổng cộng: <span class="text-indigo-600 font-bold"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
                 <?php if ($activeSession): ?>
-                    <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                    <span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold uppercase border border-emerald-100">
+                    <span class="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
+                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-extrabold uppercase border border-emerald-100 tracking-wider shadow-sm">
                         Đợt: <?= htmlspecialchars($activeSession['ten_dot']) ?>
                     </span>
                 <?php endif; ?>
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
             <!-- Nút xóa hàng loạt -->
-            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 hidden">
-                <i class="fas fa-minus-circle"></i>
+            <button id="btnDeleteSelected" @click="deleteSelected()" 
+                class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-rose-200 flex items-center gap-2 shadow-sm hover:shadow-rose-100/50 hover:scale-[1.02] active:scale-[0.98] hidden">
+                <i class="fas fa-minus-circle text-rose-500"></i>
                 <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
             </button>
-            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition-colors border border-red-200 flex items-center gap-2">
+            
+            <button @click="deleteAllScores()" 
+                class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-red-200 flex items-center gap-2 shadow-sm hover:shadow-red-100/50 hover:scale-[1.02] active:scale-[0.98]">
                 <i class="fas fa-trash-alt"></i>
                 <span>Xóa tất cả</span>
             </button>
 
-            <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+            <button @click="openAddModal()" 
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-indigo-100 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
                 <i class="fas fa-plus"></i>
                 <span>Thêm điểm</span>
             </button>
-            <button @click="openImportModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+            
+            <button @click="openImportModal = true" 
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-emerald-100 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
                 <i class="fas fa-file-excel"></i>
                 <span>Import Excel</span>
             </button>
-            <button @click="exportData()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-medium transition-colors border border-indigo-200 flex items-center gap-2">
+            
+            <button @click="exportData()" 
+                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-indigo-200 flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]">
                 <i class="fas fa-download"></i>
                 <span>Xuất dữ liệu</span>
             </button>
-            <a href="<?= url('/admin/certificate-scores/template') ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center gap-2">
+            
+            <a href="<?= url('/admin/certificate-scores/template') ?>" 
+                class="bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-slate-200 flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]">
                 <i class="fas fa-file-csv"></i>
                 <span>Mẫu Import</span>
             </a>
         </div>
     </div>
 
-    <!-- Alert Messages -->
+    <!-- Alert Messages (PHP Session Alerts) -->
     <?php if (isset($_SESSION['flash_success'])): ?>
-        <div class="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg flex items-start shadow-sm">
-            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-3"></i>
+        <div class="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-2xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-3 text-lg"></i>
             <div>
                 <h3 class="text-emerald-800 font-bold text-sm">Thành công!</h3>
                 <p class="text-emerald-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
@@ -59,8 +113,8 @@ ob_start();
     <?php endif; ?>
 
     <?php if (isset($_SESSION['flash_error'])): ?>
-        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex items-start shadow-sm">
-            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3 text-lg"></i>
             <div>
                 <h3 class="text-red-800 font-bold text-sm">Lỗi!</h3>
                 <p class="text-red-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
@@ -69,124 +123,180 @@ ob_start();
         <?php unset($_SESSION['flash_error']); ?>
     <?php endif; ?>
 
-    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-sm text-amber-800 flex items-start gap-3">
-        <i class="fas fa-info-circle mt-0.5"></i>
-        <div>
-            <p class="font-bold mb-1">Lưu ý quan trọng:</p>
-            <p>Đây là bảng lưu **Điểm đã quy đổi** (thang điểm 10) từ chứng chỉ ngoại ngữ của thí sinh. Hệ thống sẽ sử dụng điểm này để xét tuyển cho các tổ hợp có môn Ngoại ngữ trong phương thức <b>Xét học bạ (200)</b>.</p>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
-        <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-            <h2 class="font-bold text-slate-700 flex items-center gap-2">
-                <i class="fas fa-certificate text-slate-400"></i>
+    <!-- Data Table Container -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+            <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-certificate text-indigo-500"></i>
                 Danh sách điểm chứng chỉ quy đổi
             </h2>
         </div>
         <div class="flex-1 min-h-0 p-4 relative overflow-auto custom-scrollbar">
             <table id="certTable" class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tl-lg text-center w-10">
-                            <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-indigo-600 focus:ring-indigo-500">
+                    <tr class="bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                        <th class="py-3 px-4 rounded-tl-xl text-center w-[45px]">
+                            <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-[#0066FF] focus:ring-indigo-500 cursor-pointer">
                         </th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">ID</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">CCCD/CMND</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Họ và tên</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Mã Môn</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Điểm Quy đổi</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Ghi chú</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tr-lg text-right">Thao tác</th>
+                        <th class="py-3 px-4 w-[60px] text-center">ID</th>
+                        <th class="py-3 px-4 w-[110px] text-center">Thao tác</th>
+                        <th class="py-3 px-4 min-w-[220px]">Họ tên / CCCD</th>
+                        <th class="py-3 px-4 w-[110px] text-center">Mã Môn</th>
+                        <th class="py-3 px-4 w-[130px] text-center">Điểm Quy đổi</th>
+                        <th class="py-3 px-4 rounded-tr-xl">Ghi chú</th>
+                    </tr>
+                    <tr class="bg-gray-50/50">
+                        <th class="bg-white text-center"></th>
+                        <th class="bg-white text-center"></th>
+                        <th class="bg-white text-center"></th>
+                        <th class="bg-white px-2 py-1">
+                            <input type="text" id="search_name_cccd" placeholder="Tên / CCCD..." 
+                                class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium">
+                        </th>
+                        <th class="bg-white px-2 py-1">
+                            <input type="text" id="search_ma_mon" placeholder="Mã môn..." 
+                                class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium text-center">
+                        </th>
+                        <th class="bg-white px-2 py-1"></th>
+                        <th class="bg-white px-2 py-1">
+                            <input type="text" id="search_ghi_chu" placeholder="Tìm ghi chú..." 
+                                class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium">
+                        </th>
                     </tr>
                 </thead>
-                <tbody class="text-slate-700 text-sm divide-y divide-slate-100"></tbody>
+                <tbody class="text-slate-700 text-sm"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- Add/Edit Modal -->
+    <!-- Modal: Add/Edit Score -->
     <div x-show="showEditModal" class="fixed z-50 inset-0 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" @click="showEditModal = false">
-                <div class="absolute inset-0 bg-slate-900 opacity-75 backdrop-blur-sm"></div>
+                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form @submit.prevent="saveScore">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-bold text-slate-900 mb-4" x-text="editMode ? 'Chỉnh sửa điểm chứng chỉ' : 'Thêm điểm chứng chỉ mới'"></h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Số CCCD/CMND <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="formData.so_cccd" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Mã môn (Vd: N1, N2...) <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="formData.ma_mon" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" placeholder="N1 = Tiếng Anh, N2 = Tiếng Nga..." required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Điểm quy đổi <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.01" min="0" max="10" x-model="formData.diem" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Ghi chú (Tên chứng chỉ, mức đạt...)</label>
-                                <textarea x-model="formData.ghi_chu" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" rows="2" placeholder="Ví dụ: IELTS 6.5 quy đổi 10 điểm"></textarea>
-                            </div>
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-white font-extrabold text-base tracking-tight" x-text="editMode ? 'Chỉnh sửa điểm chứng chỉ' : 'Thêm điểm chứng chỉ mới'"></h3>
+                    <button type="button" @click="showEditModal = false" class="text-white/80 hover:text-white text-xl font-bold">&times;</button>
+                </div>
+                <form @submit.prevent="saveScore" class="p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Số CCCD/CMND <span class="text-rose-500">*</span></label>
+                            <input type="text" x-model="formData.so_cccd" placeholder="Nhập 12 số CCCD..." required
+                                class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Mã môn xét tuyển <span class="text-rose-500">*</span></label>
+                            <select x-model="formData.ma_mon" required
+                                class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-700">
+                                <option value="N1">N1 - Tiếng Anh</option>
+                                <option value="N2">N2 - Tiếng Nga</option>
+                                <option value="N3">N3 - Tiếng Pháp</option>
+                                <option value="N4">N4 - Tiếng Trung Quốc</option>
+                                <option value="N5">N5 - Tiếng Đức</option>
+                                <option value="N6">N6 - Tiếng Nhật</option>
+                                <option value="N7">N7 - Tiếng Hàn Quốc</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Điểm quy đổi (0.00 - 10.00) <span class="text-rose-500">*</span></label>
+                            <input type="number" step="0.01" min="0" max="10" x-model="formData.diem" required
+                                class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-indigo-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Ghi chú chứng chỉ</label>
+                            <textarea x-model="formData.ghi_chu" rows="2" placeholder="Ví dụ: IELTS 6.5, HSK 4..."
+                                class="w-full px-3.5 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"></textarea>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-200 gap-2">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:w-auto sm:text-sm">
-                            Lưu dữ liệu
-                        </button>
-                        <button type="button" @click="showEditModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
-                            Hủy
-                        </button>
+                    <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button type="button" @click="showEditModal = false" 
+                            class="px-4.5 py-2 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                        <button type="submit" 
+                            class="px-6 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-100 transition">Lưu dữ liệu</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Import Modal -->
+    <!-- Modal: Import Excel with Premium Drag & Drop & Progress bar -->
     <div x-show="openImportModal" class="fixed z-50 inset-0 overflow-y-auto" x-cloak>
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity" @click="openImportModal = false">
-                <div class="absolute inset-0 bg-slate-900 opacity-75 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 transition-opacity" @click="if(!isLoading) openImportModal = false">
+                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form action="<?= url('/admin/certificate-scores/import') ?>" method="POST" enctype="multipart/form-data">
-                    <?= csrf_field() ?>
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <i class="fas fa-file-excel text-emerald-600"></i>
-                            </div>
-                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                <h3 class="text-lg leading-6 font-bold text-slate-900">Import Điểm Chứng chỉ</h3>
-                                <div class="mt-2 text-sm text-slate-500 space-y-2">
-                                    <p>Tải lên file Excel (.xlsx hoặc .csv) có định dạng cột:</p>
-                                    <ol class="list-decimal ml-4 text-xs font-mono bg-slate-50 p-3 rounded-md border border-slate-200">
-                                        <li>CCCD/CMND</li>
-                                        <li>Mã môn (Vd: N1, N2)</li>
-                                        <li>Điểm quy đổi (0-10)</li>
-                                        <li>Ghi chú</li>
-                                    </ol>
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-white font-extrabold text-base tracking-tight"><i class="fas fa-file-excel mr-2"></i>Import Điểm Chứng chỉ quy đổi</h3>
+                    <button type="button" @click="if(!isLoading) openImportModal = false" class="text-white/80 hover:text-white text-xl font-bold">&times;</button>
+                </div>
+                
+                <form @submit.prevent="uploadExcel($event)" action="<?= url('/admin/certificate-scores/import') ?>" class="p-6">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    
+                    <div class="space-y-4" x-show="!isLoading">
+                        <div class="text-sm text-slate-500 space-y-1.5 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <p class="font-bold text-slate-700"><i class="fas fa-info-circle text-indigo-500 mr-1.5"></i>Yêu cầu file nạp:</p>
+                            <p class="text-xs">File Excel (.xlsx, .xls, .csv) có các cột lần lượt là:</p>
+                            <ol class="list-decimal ml-4 text-xs font-mono font-bold text-slate-600">
+                                <li>Số CCCD/CMND (Bắt buộc)</li>
+                                <li>Mã môn quy đổi (Vd: N1, N2...)</li>
+                                <li>Điểm quy đổi (Từ 0.0 đến 10.0)</li>
+                                <li>Ghi chú (Tên chứng chỉ, chi tiết quy đổi...)</li>
+                            </ol>
+                        </div>
+                        
+                        <!-- Drag & Drop Zone -->
+                        <div class="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-6 transition-all duration-300 bg-slate-50/50 hover:bg-emerald-50/10 text-center relative group cursor-pointer"
+                             @dragover.prevent="dragOver = true"
+                             @dragleave.prevent="dragOver = false"
+                             @drop.prevent="handleDrop($event)"
+                             :class="dragOver ? 'border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-50' : ''">
+                            
+                            <input type="file" id="file_input" name="csv_file" class="hidden" accept=".xlsx, .xls, .csv" required @change="handleFileSelected">
+                            <label for="file_input" class="cursor-pointer block">
+                                <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto text-emerald-500 mb-3 group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-cloud-upload-alt text-xl"></i>
                                 </div>
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Chọn file</label>
-                                    <input type="file" name="csv_file" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" accept=".xlsx, .xls, .csv" required>
-                                </div>
-                            </div>
+                                <p class="text-sm font-semibold text-slate-700 mb-0.5" x-text="fileName ? 'Tệp đã chọn: ' + fileName : 'Kéo thả tệp hoặc bấm để chọn'"></p>
+                                <p class="text-xs text-slate-400" x-text="fileSize ? fileSize : 'Hỗ trợ .xlsx, .xls, .csv'"></p>
+                            </label>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-200 gap-2">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 sm:w-auto sm:text-sm">
-                            Tiến hành Import
-                        </button>
-                        <button type="button" @click="openImportModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
-                            Hủy
+
+                    <!-- Progress Loading view inside modal during active upload -->
+                    <div class="py-6 space-y-4" x-show="isLoading" x-cloak>
+                        <div class="text-center">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 mb-3 animate-bounce">
+                                <i class="fas fa-tasks text-lg"></i>
+                            </div>
+                            <h4 class="text-base font-bold text-slate-800">Hệ thống đang xử lý dữ liệu</h4>
+                            <p class="text-xs text-slate-500 mt-1" x-text="currentLoadingMessage"></p>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300 shadow-md shadow-emerald-200" 
+                                 :style="`width: ${progress}%`">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            <span x-text="progress + '%'"></span>
+                            <span x-text="progress < 100 ? 'Vui lòng giữ kết nối...' : 'Hoàn thành!'"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100" x-show="!isLoading">
+                        <button type="button" @click="openImportModal = false" 
+                            class="px-4.5 py-2 text-sm font-medium text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                        <button type="submit" 
+                            class="px-6 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-100 transition">
+                            Bắt đầu Import
                         </button>
                     </div>
                 </form>
@@ -208,20 +318,55 @@ ob_start();
                 diem: 0,
                 ghi_chu: ''
             },
+            
+            // Drag and Drop State
+            dragOver: false,
+            fileName: '',
+            fileSize: '',
+
+            // Loading & Progress State
+            isLoading: false,
+            progress: 0,
+            currentLoadingMessage: '',
+
+            handleFileSelected(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.fileName = file.name;
+                    this.fileSize = (file.size / 1024).toFixed(1) + ' KB';
+                }
+            },
+
+            handleDrop(e) {
+                this.dragOver = false;
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const fileInput = document.getElementById('file_input');
+                    fileInput.files = files;
+                    this.fileName = files[0].name;
+                    this.fileSize = (files[0].size / 1024).toFixed(1) + ' KB';
+                }
+            },
+
             openAddModal() {
                 this.editMode = false;
                 this.formData = { id: null, so_cccd: '', ma_mon: 'N1', diem: 0, ghi_chu: '' };
                 this.showEditModal = true;
             },
+
             exportData() {
-                const search = $('#certTable').DataTable().search();
-                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?search=' + encodeURIComponent(search);
+                const nameCccd = $('#search_name_cccd').val() || '';
+                const maMon = $('#search_ma_mon').val() || '';
+                const ghiChu = $('#search_ghi_chu').val() || '';
+                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?f_name_cccd=' + encodeURIComponent(nameCccd) + '&f_ma_mon=' + encodeURIComponent(maMon) + '&f_ghi_chu=' + encodeURIComponent(ghiChu);
             },
+
             editScore(row) {
                 this.editMode = true;
                 this.formData = { ...row };
                 this.showEditModal = true;
             },
+
             saveScore() {
                 $.post('<?= url('/admin/certificate-scores/api-save') ?>', { ...this.formData, _csrf_token: '<?= csrf_token() ?>' }, (res) => {
                     if (res.success) {
@@ -232,6 +377,110 @@ ob_start();
                     }
                 }, 'json').fail(() => alert('Lỗi kết nối máy chủ!'));
             },
+
+            async uploadExcel(event) {
+                const form = event.target;
+                const fileInput = document.getElementById('file_input');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Vui lòng chọn file Excel.');
+                    return;
+                }
+
+                const importToken = 'imp_cc_score_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const formData = new FormData(form);
+                formData.append('import_token', importToken);
+                formData.append('csv_file', fileInput.files[0]);
+
+                this.isLoading = true;
+                this.progress = 0;
+                this.currentLoadingMessage = 'Đang tải file Excel lên máy chủ...';
+
+                try {
+                    let isPolling = true;
+                    const pollProgress = async () => {
+                        if (!isPolling) return;
+                        try {
+                            const res = await fetch('<?= url("/admin/import/progress") ?>?token=' + importToken + '&t=' + Date.now());
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.percent !== undefined) {
+                                    const currentPercent = parseInt(data.percent);
+                                    // Scale percent up to 95% before response finishes
+                                    const scaledPercent = Math.round(currentPercent * 0.95);
+                                    if (scaledPercent > this.progress || currentPercent === 0) {
+                                        this.progress = scaledPercent;
+                                        if (data.message) this.currentLoadingMessage = data.message;
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Progress polling error:', err);
+                        }
+                        if (isPolling) {
+                            setTimeout(pollProgress, 600);
+                        }
+                    };
+
+                    setTimeout(pollProgress, 400);
+
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    isPolling = false;
+
+                    if (!response.ok) {
+                        throw new Error('Lỗi máy chủ (HTTP ' + response.status + ')');
+                    }
+
+                    const result = await response.json();
+                    
+                    this.progress = 100;
+                    this.currentLoadingMessage = 'Hoàn tất xử lý!';
+                    
+                    setTimeout(() => {
+                        this.isLoading = false;
+                        this.openImportModal = false;
+                        
+                        // Clear file state
+                        this.fileName = '';
+                        this.fileSize = '';
+                        fileInput.value = '';
+
+                        if (result.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Nhập dữ liệu thành công!',
+                                text: result.message || 'Hồ sơ điểm chứng chỉ đã được cập nhật.',
+                                confirmButtonColor: '#10B981'
+                            });
+                            $('#certTable').DataTable().ajax.reload();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Thất bại',
+                                text: result.message || 'Lỗi không xác định khi nạp dữ liệu.',
+                                confirmButtonColor: '#EF4444'
+                            });
+                        }
+                    }, 500);
+
+                } catch (e) {
+                    isPolling = false;
+                    this.isLoading = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Đã xảy ra lỗi',
+                        text: e.message || 'Lỗi không kết nối được máy chủ.',
+                        confirmButtonColor: '#EF4444'
+                    });
+                }
+            },
+
             deleteSelected() {
                 const ids = window.getSelectedIds();
                 if (ids.length === 0) return;
@@ -249,6 +498,7 @@ ob_start();
                     }, 'json');
                 }
             },
+
             deleteAllScores() {
                 if (confirm('CẢNH BÁO: Hành động này sẽ xóa TOÀN BỘ dữ liệu điểm chứng chỉ quy đổi của đợt này. Bạn có chắc chắn muốn thực hiện?')) {
                     $.post('<?= url('/admin/certificate-scores/delete') ?>', { 
@@ -275,6 +525,9 @@ ob_start();
                 type: 'POST',
                 data: function(d) {
                     d._csrf_token = '<?= csrf_token() ?>';
+                    d.f_name_cccd = $('#search_name_cccd').val();
+                    d.f_ma_mon = $('#search_ma_mon').val();
+                    d.f_ghi_chu = $('#search_ghi_chu').val();
                 }
             },
             columns: [
@@ -282,40 +535,70 @@ ob_start();
                     data: null,
                     orderable: false,
                     width: '40px',
-                    className: 'text-center',
-                    render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-indigo-600 focus:ring-indigo-500" value="${row.id}">`
+                    className: 'text-center align-middle',
+                    render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-[#0066FF] focus:ring-indigo-500 cursor-pointer" value="${row.id}">`
                 },
-                { data: 'id', width: '60px', className: 'text-slate-500 font-mono text-xs' },
-                { data: 'so_cccd', className: 'font-medium font-mono text-indigo-600' },
-                { data: 'ho_va_ten', defaultContent: '<span class="text-slate-400 italic">Chưa đăng ký HS</span>' },
-                { data: 'ma_mon' },
-                { 
-                    data: 'diem',
-                    render: (data) => `<span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md font-bold">${data}</span>`
-                },
-                { data: 'ghi_chu' },
+                { data: 'id', width: '60px', className: 'text-slate-400 font-mono text-xs align-middle text-center' },
                 {
                     data: null,
                     orderable: false,
-                    className: 'text-right',
+                    width: '110px',
+                    className: 'text-center align-middle',
                     render: (data, type, row) => `
-                        <div class="flex justify-end gap-1">
-                            <button onclick='window.certDataInstance.editScore(${JSON.stringify(row)})' class="p-1 px-2 text-indigo-600 hover:bg-indigo-50 rounded transition-colors">
-                                <i class="fas fa-edit"></i>
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick='window.certDataInstance.editScore(${JSON.stringify(row)})' 
+                                class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded font-extrabold text-[10px] uppercase border border-blue-200 transition-all">
+                                SỬA
                             </button>
-                            <button onclick="deleteScore(${row.id})" class="p-1 px-2 text-red-600 hover:bg-red-50 rounded transition-colors">
-                                <i class="fas fa-trash"></i>
+                            <button onclick="deleteScore(${row.id})" 
+                                class="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Xóa">
+                                <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         </div>
                     `
-                }
+                },
+                { 
+                    data: 'ho_va_ten', 
+                    className: 'align-middle',
+                    render: (data, type, row) => {
+                        const nameHtml = data 
+                            ? `<div class="font-bold text-slate-800 uppercase">${data}</div>`
+                            : `<div class="text-slate-400 italic font-medium">Chưa đăng ký HS</div>`;
+                        return `
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 flex-shrink-0">
+                                    <i class="fas fa-user text-[10px]"></i>
+                                </div>
+                                <div>
+                                    ${nameHtml}
+                                    <div class="text-xs text-slate-400 font-mono">${row.so_cccd}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                },
+                { 
+                    data: 'ma_mon', 
+                    className: 'align-middle font-bold text-slate-700 text-center w-[110px]',
+                    render: (data) => `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-bold border border-slate-200">${data}</span>`
+                },
+                { 
+                    data: 'diem',
+                    className: 'align-middle text-center w-[130px]',
+                    render: (data) => `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold border border-emerald-100 shadow-sm">${data}</span>`
+                },
+                { data: 'ghi_chu', className: 'align-middle text-slate-600 whitespace-normal font-medium' }
             ],
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
-            dom: '<"flex justify-between items-center bg-white p-4 border-b border-slate-200"<"flex items-center gap-2"l><"search-box"f>>rt<"flex justify-between items-center p-4 bg-slate-50"ip>',
+            dom: '<"flex justify-between items-center bg-white p-4 border-b border-slate-200"<"flex items-center gap-2"l>>rt<"flex justify-between items-center p-4 bg-slate-50/50 border-t border-slate-200"ip>',
             initComplete: function() {
-                $('.dataTables_filter input').addClass('w-64 pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all').attr('placeholder', 'Tìm CCCD, Tên...');
-                $('.dataTables_length select').addClass('border border-slate-300 rounded-md text-sm py-1 pl-2 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500');
+                $('.dataTables_length select').addClass('border border-slate-200 rounded-xl text-sm py-1.5 pl-3 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer');
             }
+        });
+
+        // Custom column-based search events
+        $('#search_name_cccd, #search_ma_mon, #search_ghi_chu').on('keyup change clear', function() {
+            table.draw();
         });
         
         // Select all / Deselect all

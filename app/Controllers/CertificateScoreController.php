@@ -38,6 +38,9 @@ class CertificateScoreController extends Controller {
         $start = $_POST['start'] ?? 0;
         $length = $_POST['length'] ?? 10;
         $searchValue = $_POST['search']['value'] ?? '';
+        $fNameCccd = $_POST['f_name_cccd'] ?? '';
+        $fMaMon = $_POST['f_ma_mon'] ?? '';
+        $fGhiChu = $_POST['f_ghi_chu'] ?? '';
 
         $sessionModel = new \App\Models\AdmissionSession();
         $activeSession = $sessionModel->getActiveSession();
@@ -58,6 +61,22 @@ class CertificateScoreController extends Controller {
             $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
             $params[] = "%$searchValue%";
             $params[] = "%$searchValue%";
+        }
+
+        if (!empty($fNameCccd)) {
+            $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
+            $params[] = "%$fNameCccd%";
+            $params[] = "%$fNameCccd%";
+        }
+
+        if (!empty($fMaMon)) {
+            $query .= " AND c.ma_mon LIKE ?";
+            $params[] = "%$fMaMon%";
+        }
+
+        if (!empty($fGhiChu)) {
+            $query .= " AND c.ghi_chu LIKE ?";
+            $params[] = "%$fGhiChu%";
         }
 
         // Total count
@@ -139,7 +158,32 @@ class CertificateScoreController extends Controller {
             $this->redirect(url('/admin/certificate-scores'));
         }
 
+        $token = $_POST['import_token'] ?? '';
+        $updateProgress = function($current, $total, $message = '') use ($token) {
+            if (empty($token)) return;
+            $progressDir = dirname(__DIR__, 2) . '/storage/logs';
+            if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
+            
+            $status = [
+                'current' => $current,
+                'total' => $total,
+                'percent' => $total > 0 ? round(($current / $total) * 100) : 0,
+                'message' => $message,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            file_put_contents($progressDir . "/import_progress_{$token}.json", json_encode($status));
+        };
+
+        $isAjax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') 
+               || !empty($token);
+
         if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Vui lòng chọn file hợp lệ.']);
+                exit;
+            }
             $_SESSION['flash_error'] = "Vui lòng chọn file hợp lệ.";
             $this->redirect(url('/admin/certificate-scores'));
         }
@@ -152,12 +196,23 @@ class CertificateScoreController extends Controller {
         $extension = pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION);
         $allowedExtensions = ['csv', 'xls', 'xlsx'];
         if (!in_array(strtolower($extension), $allowedExtensions)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Vui lòng sử dụng định dạng file .xlsx, .xls hoặc .csv.']);
+                exit;
+            }
             $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .xlsx, .xls hoặc .csv.";
             $this->redirect(url('/admin/certificate-scores'));
         }
 
+        $updateProgress(5, 100, 'Đang đọc dữ liệu từ file Excel...');
         $rows = $this->loadExcelOrCsv($file, $extension);
         if ($rows === null || empty($rows)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Không thể đọc dữ liệu hoặc file trống.']);
+                exit;
+            }
             $_SESSION['flash_error'] = "Không thể đọc dữ liệu hoặc file trống.";
             $this->redirect(url('/admin/certificate-scores'));
         }
@@ -166,10 +221,13 @@ class CertificateScoreController extends Controller {
             $successCount = 0;
             $errorCount = 0;
             $db = $this->model->getDb();
-            $db->beginTransaction();
 
+            $updateProgress(15, 100, 'Đang xử lý và chuẩn hóa dữ liệu...');
+
+            // Pre-process and validate rows in memory to deduplicate and validate
+            $validRows = [];
             $headerSkipped = false;
-            foreach ($rows as $row) {
+            foreach ($rows as $index => $row) {
                 if (!$headerSkipped) {
                     $headerSkipped = true;
                     continue;
@@ -180,36 +238,116 @@ class CertificateScoreController extends Controller {
                     continue;
                 }
 
-                $cccd = trim((string)($row[0] ?? ''));
+                // SimpleXLSX returns 0-indexed values
+                $cccd = $this->normalizeCCCD($row[0] ?? '');
                 $maMon = trim((string)($row[1] ?? 'N1'));
                 $score = trim((string)($row[2] ?? 0));
                 $note = trim((string)($row[3] ?? ''));
 
-                if ($cccd && is_numeric($score)) {
-                    // Delete old entry for this student and subject in THIS session
-                    $stmtDel = $db->prepare("DELETE FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-                    $stmtDel->execute([$cccd, $maMon, $sessionId]);
-                    
-                    // Insert new
-                    $stmtIns = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
-                    $stmtIns->execute([$cccd, $maMon, $score, $note, $sessionId]);
-                    
-                    $successCount++;
+                if ($cccd !== '' && is_numeric($score)) {
+                    $scoreVal = (float)$score;
+                    if ($scoreVal < 0) $scoreVal = 0.0;
+                    if ($scoreVal > 10) $scoreVal = 10.0;
+
+                    $key = $cccd . '_' . $maMon;
+                    $validRows[$key] = [
+                        'so_cccd' => $cccd,
+                        'ma_mon' => $maMon,
+                        'diem' => $scoreVal,
+                        'ghi_chu' => $note
+                    ];
                 } else {
                     $errorCount++;
                 }
             }
 
-            $db->commit();
+            $totalImport = count($validRows);
+            $updateProgress(35, 100, "Đang chuẩn bị cập nhật CSDL cho $totalImport bản ghi...");
+
+            if ($totalImport > 0) {
+                $db->beginTransaction();
+
+                // Chunk queries to avoid PostgreSQL parameter limits (e.g. max 1000 parameters per query)
+                // Since each row in delete has 2 parameters (so_cccd, ma_mon), chunk by 300 rows (600 params)
+                $chunks = array_chunk($validRows, 300);
+                $totalChunks = count($chunks);
+
+                foreach ($chunks as $chunkIndex => $chunk) {
+                    $currentPercent = 35 + round(($chunkIndex / $totalChunks) * 55);
+                    $updateProgress($currentPercent, 100, "Đang cập nhật CSDL: Cụm " . ($chunkIndex + 1) . "/$totalChunks...");
+
+                    // 1. Batch delete matching rows in this session
+                    $deleteConditions = [];
+                    $deleteParams = [$sessionId];
+                    foreach ($chunk as $r) {
+                        $deleteConditions[] = "(so_cccd = ? AND ma_mon = ?)";
+                        $deleteParams[] = $r['so_cccd'];
+                        $deleteParams[] = $r['ma_mon'];
+                    }
+                    $sqlDel = "DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ? AND (" . implode(" OR ", $deleteConditions) . ")";
+                    $stmtDel = $db->prepare($sqlDel);
+                    $stmtDel->execute($deleteParams);
+
+                    // 2. Batch insert rows
+                    $insertValues = [];
+                    $insertParams = [];
+                    foreach ($chunk as $r) {
+                        $insertValues[] = "(?, ?, ?, ?, ?)";
+                        $insertParams[] = $r['so_cccd'];
+                        $insertParams[] = $r['ma_mon'];
+                        $insertParams[] = $r['diem'];
+                        $insertParams[] = $r['ghi_chu'];
+                        $insertParams[] = $sessionId;
+                        $successCount++;
+                    }
+                    $sqlIns = "INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES " . implode(", ", $insertValues);
+                    $stmtIns = $db->prepare($sqlIns);
+                    $stmtIns->execute($insertParams);
+                }
+
+                $db->commit();
+            }
+
+            $updateProgress(100, 100, "Hoàn tất! Đã nhập thành công $successCount bản ghi.");
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Import thành công $successCount bản ghi. Lỗi/Bỏ qua: $errorCount bản ghi.",
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount
+                ]);
+                exit;
+            }
+
             $_SESSION['flash_success'] = "Import thành công $successCount bản ghi. Lỗi/Bỏ qua: $errorCount bản ghi.";
+
         } catch (\Exception $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
+            }
+            $updateProgress(100, 100, "Lỗi: " . $e->getMessage());
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => "Lỗi xử lý: " . $e->getMessage()]);
+                exit;
             }
             $_SESSION['flash_error'] = "Lỗi xử lý file: " . $e->getMessage();
         }
 
         $this->redirect(url('/admin/certificate-scores'));
+    }
+
+    private function normalizeCCCD($cccd) {
+        $cccd = trim((string)$cccd);
+        // Strip Excel formatting like ="0123456"
+        if (str_starts_with($cccd, '="') && str_ends_with($cccd, '"')) {
+            $cccd = substr($cccd, 2, -1);
+        }
+        $cccd = preg_replace('/[^0-9a-zA-Z]/', '', $cccd); // Keep alphanumeric characters
+        return $cccd;
     }
 
     private function loadExcelOrCsv($filePath, $extension) {
@@ -296,6 +434,9 @@ class CertificateScoreController extends Controller {
 
     public function export() {
         $searchValue = $_GET['search'] ?? '';
+        $fNameCccd = $_GET['f_name_cccd'] ?? '';
+        $fMaMon = $_GET['f_ma_mon'] ?? '';
+        $fGhiChu = $_GET['f_ghi_chu'] ?? '';
         $db = $this->model->getDb();
 
         $query = "SELECT c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
@@ -308,6 +449,22 @@ class CertificateScoreController extends Controller {
             $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
             $params[] = "%$searchValue%";
             $params[] = "%$searchValue%";
+        }
+
+        if (!empty($fNameCccd)) {
+            $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
+            $params[] = "%$fNameCccd%";
+            $params[] = "%$fNameCccd%";
+        }
+
+        if (!empty($fMaMon)) {
+            $query .= " AND c.ma_mon LIKE ?";
+            $params[] = "%$fMaMon%";
+        }
+
+        if (!empty($fGhiChu)) {
+            $query .= " AND c.ghi_chu LIKE ?";
+            $params[] = "%$fGhiChu%";
         }
 
         $query .= " ORDER BY c.id DESC";

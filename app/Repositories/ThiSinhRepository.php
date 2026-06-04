@@ -314,7 +314,7 @@ class ThiSinhRepository
         return $this->model->countFiltered($search, $status, $hocBaStatus, $sessionId, $onlyEditRequests, $year, $excludeTrash, $extraFilters, $applicationStatus);
     }
 
-    public function bulkUpdateStatus($cccds, $status)
+    public function bulkUpdateStatus($cccds, $status, $reviewerId = null)
     {
         if (empty($cccds)) return false;
         if (!is_array($cccds)) $cccds = [$cccds];
@@ -333,8 +333,16 @@ class ThiSinhRepository
             $result1 = $stmt->execute($params);
 
             $ghiChuValue = ($status === 'Đã duyệt' ? 'Đã duyệt.' : null);
-            $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, ghi_chu = ?, yeu_cau_chinh_sua = FALSE WHERE so_cccd IN ($placeholders)";
-            $params2 = array_merge([$status, $ghiChuValue], $cccds);
+            
+            $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, ghi_chu = ?, yeu_cau_chinh_sua = FALSE";
+            $params2 = [$status, $ghiChuValue];
+            if ($reviewerId !== null) {
+                $sql2 .= ", nguoi_duyet_id = ?";
+                $params2[] = $reviewerId;
+            }
+            $sql2 .= " WHERE so_cccd IN ($placeholders)";
+            $params2 = array_merge($params2, $cccds);
+
             $stmt2 = $this->db->prepare($sql2);
             $result2 = $stmt2->execute($params2);
 
