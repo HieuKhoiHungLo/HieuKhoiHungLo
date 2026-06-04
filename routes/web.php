@@ -126,6 +126,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/review/bulk-update-transcript', 'CandidateController@bulkUpdateTranscript');
     $router->get('/admin/review/download-approve-template', 'CandidateController@downloadApproveTemplate');
     $router->get('/admin/review/download-transcript-template', 'CandidateController@downloadTranscriptTemplate');
+    $router->post('/admin/review/bulk-update-candidate-info', 'CandidateController@bulkUpdateCandidateInfo');
+    $router->get('/admin/review/download-candidate-update-template', 'CandidateController@downloadCandidateUpdateTemplate');
 
     // Admin Notifications
     $router->get('/admin/notifications', 'AdminNotificationController@index');

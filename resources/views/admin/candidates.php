@@ -320,6 +320,87 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Cập nhật thông tin thí sinh theo file -->
+<div x-data="bulkCandidateInfoApp()">
+    <div id="modal-bulk-candidate-info" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg"><i class="fas fa-user-edit mr-2"></i>Cập nhật thông tin thí sinh</h3>
+                <button type="button" onclick="document.getElementById('modal-bulk-candidate-info').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+            </div>
+            <form action="<?= url('/admin/review/bulk-update-candidate-info') ?>" method="POST" enctype="multipart/form-data" class="p-6" @submit.prevent="upload($event)">
+                <input type="hidden" id="bulk_candidate_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                
+                <div class="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-indigo-50/50 border border-indigo-100/80 rounded-2xl p-4">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-slate-700 mb-1">Cập nhật thông tin hàng loạt</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">Vui lòng tải về file mẫu cập nhật, điền thông tin họ tên, ngày sinh, giới tính chính xác theo Số ĐDCN và tải lên hệ thống.</p>
+                    </div>
+                    <a href="<?= url('/admin/review/download-candidate-update-template') ?>" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition whitespace-nowrap">
+                        <i class="fas fa-download"></i> Tải file mẫu cập nhật
+                    </a>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
+                    <input type="file" id="candidate_file_input" name="candidate_file" accept=".xlsx,.xls,.csv" required
+                        class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-slate-200 rounded-xl">
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-bulk-candidate-info').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl hover:from-indigo-600 hover:to-purple-600 shadow-lg shadow-indigo-200 transition">
+                        <i class="fas fa-upload mr-1"></i> Cập nhật thông tin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulsing-slow"></div>
+                <div class="absolute inset-1 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Hệ thống đang xử lý</h3>
+            <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
+            
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="candidateLoadingProgress">
+                </div>
+                <div class="shimmer-glare absolute inset-0"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Duyệt tất cả hồ sơ trong đợt -->
 <div id="modal-bulk-approve-all" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
@@ -449,17 +530,93 @@
                         throw new Error('Lỗi máy chủ (HTTP ' + response.status + ')');
                     }
 
+                    if (response.redirected) {
+                        this.isLoading = false;
+                        const urlObj = new URL(response.url);
+                        const errorMsg = urlObj.searchParams.get('error') || 'Lỗi không xác định';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra',
+                            text: decodeURIComponent(errorMsg),
+                            confirmButtonColor: '#3B82F6'
+                        });
+                        return;
+                    }
+
                     const contentType = response.headers.get('content-type') || '';
                     if (contentType.includes('application/json')) {
                         const result = await response.json();
                         this.isLoading = false;
+                        
+                        if (result.status === true) {
+                            // Import successful!
+                            let htmlContent = `<div class="text-left text-sm space-y-2">
+                                <p><i class="fas fa-check-circle text-emerald-500 mr-1.5"></i>Đã xử lý xong: <b>${result.total}</b> dòng.</p>
+                                <p><i class="fas fa-check-double text-blue-500 mr-1.5"></i>Cập nhật thành công: <b>${result.success}</b> dòng học bạ.</p>
+                                <p><i class="fas fa-info-circle text-slate-500 mr-1.5"></i>Số dòng không đổi / dòng trống: <b>${result.total - result.success - result.skipped}</b> dòng.</p>
+                            `;
+                            
+                            if (result.skipped > 0) {
+                                htmlContent += `
+                                    <p class="text-amber-600 font-semibold"><i class="fas fa-exclamation-triangle mr-1.5"></i>Phát hiện: <b>${result.skipped}</b> dòng dữ liệu bị lỗi.</p>
+                                    <p class="text-xs text-slate-500 leading-relaxed mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                        Hệ thống đã tự động xuất danh sách các dòng bị lỗi. Vui lòng tải về file đối chiếu bên dưới để sửa và import lại.
+                                    </p>
+                                `;
+                            }
+                            htmlContent += `</div>`;
+                            
+                            if (result.error_file_url) {
+                                const isError = result.skipped > 0;
+                                Swal.fire({
+                                    icon: isError ? 'warning' : 'success',
+                                    title: isError ? 'Hoàn tất nạp dữ liệu!' : 'Cập nhật học bạ thành công!',
+                                    html: htmlContent,
+                                    showCancelButton: true,
+                                    confirmButtonText: '<i class="fas fa-download mr-1"></i> Tải lịch sử cập nhật',
+                                    cancelButtonText: 'Đóng',
+                                    confirmButtonColor: isError ? '#F59E0B' : '#3B82F6',
+                                    cancelButtonColor: '#6B7280'
+                                }).then((action) => {
+                                    if (action.isConfirmed) {
+                                        // Trigger download
+                                        const a = document.createElement('a');
+                                        a.href = result.error_file_url;
+                                        a.download = result.error_file_url.split('/').pop();
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                    }
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Cập nhật học bạ thành công!',
+                                    html: htmlContent,
+                                    confirmButtonColor: '#3B82F6'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Có lỗi xảy ra',
+                                text: result.message || 'Lỗi không xác định',
+                                confirmButtonColor: '#3B82F6'
+                            });
+                        }
+                    } else if (contentType.includes('text/html')) {
+                        this.isLoading = false;
                         Swal.fire({
                             icon: 'error',
-                            title: 'Có lỗi xảy ra',
-                            text: result.message || 'Lỗi không xác định',
+                            title: 'Lỗi hệ thống',
+                            text: 'Đã xảy ra lỗi trong quá trình xử lý học bạ.',
                             confirmButtonColor: '#3B82F6'
                         });
                     } else {
+                        // Fallback in case spreadsheet is directly returned
                         const blob = await response.blob();
                         this.progress = 100;
                         this.currentLoadingMessage = 'Hoàn thành!';
@@ -470,14 +627,7 @@
                             const url = window.URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            const disposition = response.headers.get('content-disposition') || '';
-                            let filename = 'Ket_Qua_Cap_Nhat_Hoc_Ba.xlsx';
-                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                            const matches = filenameRegex.exec(disposition);
-                            if (matches != null && matches[1]) { 
-                                filename = matches[1].replace(/['"]/g, '');
-                            }
-                            a.download = filename;
+                            a.download = 'Ket_Qua_Cap_Nhat_Hoc_Ba.xlsx';
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
@@ -501,6 +651,161 @@
                         title: 'Lỗi Kết Nối',
                         text: error.message,
                         confirmButtonColor: '#3B82F6'
+                    });
+                }
+            }
+        };
+    }
+
+    function bulkCandidateInfoApp() {
+        return {
+            isLoading: false,
+            progress: 0,
+            currentLoadingMessage: '',
+            
+            async upload(event) {
+                const form = event.target;
+                const importToken = 'imp_cand_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const formData = new FormData(form);
+                formData.append('import_token', importToken);
+                
+                // Hide file select modal
+                document.getElementById('modal-bulk-candidate-info').classList.add('hidden');
+                
+                this.isLoading = true;
+                this.progress = 0;
+                this.currentLoadingMessage = 'Đang tải file lên máy chủ...';
+
+                try {
+                    let isPolling = true;
+                    const pollProgress = async () => {
+                        if (!isPolling) return;
+                        try {
+                            const res = await fetch('<?= url("/admin/import/progress") ?>?token=' + importToken + '&t=' + Date.now());
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.percent !== undefined) {
+                                    const currentPercent = parseInt(data.percent);
+                                    const scaledPercent = 10 + Math.round(currentPercent * 0.9);
+                                    if (scaledPercent > this.progress || currentPercent === 0) {
+                                        this.progress = scaledPercent;
+                                        if (data.message) this.currentLoadingMessage = data.message;
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Progress polling error:', err);
+                        }
+                        if (isPolling) {
+                            setTimeout(pollProgress, 1000);
+                        }
+                    };
+                    
+                    setTimeout(pollProgress, 1000);
+
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    isPolling = false;
+
+                    if (!response.ok) {
+                        throw new Error('Lỗi máy chủ (HTTP ' + response.status + ')');
+                    }
+
+                    if (response.redirected) {
+                        this.isLoading = false;
+                        const urlObj = new URL(response.url);
+                        const errorMsg = urlObj.searchParams.get('error') || 'Lỗi không xác định';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra',
+                            text: decodeURIComponent(errorMsg),
+                            confirmButtonColor: '#4F46E5'
+                        });
+                        return;
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const result = await response.json();
+                        this.isLoading = false;
+                        
+                        if (result.status === true) {
+                            let htmlContent = `<div class="text-left text-sm space-y-2">
+                                <p><i class="fas fa-check-circle text-emerald-500 mr-1.5"></i>Đã xử lý xong: <b>${result.total}</b> dòng.</p>
+                                <p><i class="fas fa-check-double text-indigo-500 mr-1.5"></i>Cập nhật thông tin thành công: <b>${result.success}</b> thí sinh.</p>
+                                <p><i class="fas fa-info-circle text-slate-500 mr-1.5"></i>Số dòng không đổi / dòng trống: <b>${result.total - result.success - result.skipped}</b> dòng.</p>
+                            `;
+                            
+                            if (result.skipped > 0) {
+                                htmlContent += `
+                                    <p class="text-amber-600 font-semibold"><i class="fas fa-exclamation-triangle mr-1.5"></i>Phát hiện: <b>${result.skipped}</b> dòng bị bỏ qua / lỗi.</p>
+                                    <p class="text-xs text-slate-500 leading-relaxed mt-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                        Hệ thống đã tự động xuất danh sách kết quả đối chiếu. Vui lòng tải về file đối chiếu bên dưới để kiểm tra.
+                                    </p>
+                                `;
+                            }
+                            htmlContent += `</div>`;
+                            
+                            if (result.error_file_url) {
+                                const isError = result.skipped > 0;
+                                Swal.fire({
+                                    icon: isError ? 'warning' : 'success',
+                                    title: isError ? 'Hoàn tất nạp dữ liệu!' : 'Cập nhật thông tin thành công!',
+                                    html: htmlContent,
+                                    showCancelButton: true,
+                                    confirmButtonText: '<i class="fas fa-download mr-1"></i> Tải lịch sử cập nhật',
+                                    cancelButtonText: 'Đóng',
+                                    confirmButtonColor: isError ? '#F59E0B' : '#4F46E5',
+                                    cancelButtonColor: '#6B7280'
+                                }).then((action) => {
+                                    if (action.isConfirmed) {
+                                        const a = document.createElement('a');
+                                        a.href = result.error_file_url;
+                                        a.download = result.error_file_url.split('/').pop();
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                    }
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Cập nhật thông tin thành công!',
+                                    html: htmlContent,
+                                    confirmButtonColor: '#4F46E5'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Có lỗi xảy ra',
+                                text: result.message || 'Lỗi không xác định',
+                                confirmButtonColor: '#4F46E5'
+                            });
+                        }
+                    } else {
+                        this.isLoading = false;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi hệ thống',
+                            text: 'Đã xảy ra lỗi trong quá trình cập nhật thông tin.',
+                            confirmButtonColor: '#4F46E5'
+                        });
+                    }
+                } catch (error) {
+                    isPolling = false;
+                    this.isLoading = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi Kết Nối',
+                        text: error.message,
+                        confirmButtonColor: '#4F46E5'
                     });
                 }
             }

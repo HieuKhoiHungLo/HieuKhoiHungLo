@@ -138,6 +138,9 @@
             <button onclick="document.getElementById('modal-bulk-transcript').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition shadow-sm">
                 <i class="fas fa-file-excel"></i> Cập nhật học bạ
             </button>
+            <button onclick="document.getElementById('modal-bulk-candidate-info').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
+                <i class="fas fa-user-edit"></i> Cập nhật thông tin
+            </button>
             <?php endif; ?>
 
             <?php if (isset($mode) && $mode === 'all'): ?>

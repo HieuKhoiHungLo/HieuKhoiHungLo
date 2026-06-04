@@ -1871,6 +1871,8 @@ class CandidateController extends Controller
 
         try {
             session_write_close();
+            $warningDetails = [];
+            $logDetails = [];
             $updateProgress(0, 100, 'Đang nạp file Excel vào bộ nhớ...');
             
             $extension = strtolower(pathinfo($_FILES['transcript_file']['name'], PATHINFO_EXTENSION));
@@ -1934,11 +1936,6 @@ class CandidateController extends Controller
                     }
                 }
             }
-
-            // Set result header at Column CB (Index 79 / Column 80)
-            $sheet->setCellValue('CB1', 'Kết quả xử lý');
-            $sheet->getStyle('CB1')->getFont()->setBold(true);
-            $sheet->getColumnDimension('CB')->setWidth(40);
 
             $success = 0; $skipped = 0; $warnings = [];
             $this->db->beginTransaction();
@@ -2140,12 +2137,49 @@ class CandidateController extends Controller
                 $lineNum = $index + 2;
 
                 if (empty($cccd)) {
-                    $results[$index] = 'Bỏ qua: CCCD trống';
+                    // Check if other columns are also empty to skip silent empty rows at the end of Excel sheets
+                    $isEmptyRow = true;
+                    for ($col = 2; $col <= 20; $col++) {
+                        if (isset($rowValues[$col]) && trim($rowValues[$col]) !== '') {
+                            $isEmptyRow = false;
+                            break;
+                        }
+                    }
+                    if (!$isEmptyRow) {
+                        $results[$index] = 'Bỏ qua: CCCD trống';
+                        $warningDetails[] = [
+                            'line' => $lineNum,
+                            'cccd' => '',
+                            'lop' => $lop,
+                            'msg' => 'Số CCCD trống'
+                        ];
+                        $logDetails[] = [
+                            'line' => $lineNum,
+                            'cccd' => '',
+                            'lop' => $lop,
+                            'msg' => 'Số CCCD trống'
+                        ];
+                        $skipped++;
+                    } else {
+                        $results[$index] = 'Bỏ qua: Dòng trống';
+                    }
                     continue;
                 }
                 if (!in_array($lop, ['10', '11', '12'])) {
                     $results[$index] = 'Lỗi: Lớp không hợp lệ';
                     $warnings[] = "Dòng $lineNum: Lớp '$lop' không hợp lệ.";
+                    $warningDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'lop' => $lop,
+                        'msg' => "Lớp '$lop' không hợp lệ (chỉ chấp nhận 10, 11, 12)"
+                    ];
+                    $logDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'lop' => $lop,
+                        'msg' => "Lớp '$lop' không hợp lệ (chỉ chấp nhận 10, 11, 12)"
+                    ];
                     $skipped++; continue;
                 }
 
@@ -2153,6 +2187,18 @@ class CandidateController extends Controller
                 if (!isset($validCCCDs[$cccd])) {
                     $results[$index] = 'Lỗi: CCCD không tồn tại';
                     $warnings[] = "Dòng $lineNum: CCCD $cccd không tồn tại.";
+                    $warningDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'lop' => $lop,
+                        'msg' => 'Số CCCD không tồn tại trên hệ thống'
+                    ];
+                    $logDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'lop' => $lop,
+                        'msg' => 'Số CCCD không tồn tại trên hệ thống'
+                    ];
                     $skipped++; continue;
                 }
 
@@ -2291,6 +2337,13 @@ class CandidateController extends Controller
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
                 }
 
+                $logDetails[] = [
+                    'line' => $lineNum,
+                    'cccd' => $cccd,
+                    'lop' => $lop,
+                    'msg' => $results[$index]
+                ];
+
                 if (count($academicBuffer) >= 1000) {
                     $flushBuffers();
                 }
@@ -2301,36 +2354,69 @@ class CandidateController extends Controller
             $this->db->commit();
             if ($logFile) fclose($logFile);
 
-            $updateProgress($totalRows, $totalRows, "Đang kết xuất file Excel kết quả...");
+            $updateProgress($totalRows, $totalRows, "Đang hoàn tất quá trình cập nhật...");
 
-            // Load the spreadsheet only now to write the results column
-            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
-            $spreadsheet = $reader->load($filePath);
-            $sheet = $spreadsheet->getActiveSheet();
+            $errorFileUrl = '';
+            if (!empty($logDetails)) {
+                $resultFileName = 'Lich_Su_Cap_Nhat_Hoc_Ba_' . date('Ymd_His') . '.csv';
+                $exportPath = dirname(__DIR__, 2) . '/public/uploads/imports/' . $resultFileName;
+                if (!is_dir(dirname($exportPath))) {
+                    mkdir(dirname($exportPath), 0777, true);
+                }
 
-            // Set result header at Column CB (Index 79 / Column 80)
-            $sheet->setCellValue('CB1', 'Kết quả xử lý');
-            $sheet->getStyle('CB1')->getFont()->setBold(true);
-            $sheet->getColumnDimension('CB')->setWidth(40);
+                $fp = fopen($exportPath, 'w');
+                if ($fp) {
+                    // Write UTF-8 BOM to ensure Excel opens it with correct Vietnamese character encoding
+                    fwrite($fp, "\xEF\xBB\xBF");
 
-            foreach ($results as $idx => $msg) {
-                $lineNum = $idx + 2;
-                $sheet->setCellValue('CB' . $lineNum, $msg);
+                    // Force Excel to use comma as the delimiter regardless of Windows regional settings
+                    fwrite($fp, "sep=,\r\n");
+
+                    // Write headers (manually to avoid fputcsv double quote escaping of formulas)
+                    fwrite($fp, "Dòng trong file gốc,Số CCCD,Lớp,Kết quả xử lý\r\n");
+
+                    // Write data rows
+                    foreach ($logDetails as $w) {
+                        // Formatting CCCD as ="012345678901" tells Excel to treat it as string and preserve leading zeros
+                        $cccdVal = $w['cccd'] !== '' ? '="' . $w['cccd'] . '"' : '';
+                        // Escape double quotes in message and wrap in double quotes
+                        $msgVal = '"' . str_replace('"', '""', $w['msg']) . '"';
+                        
+                        fwrite($fp, $w['line'] . ',' . $cccdVal . ',' . $w['lop'] . ',' . $msgVal . "\r\n");
+                    }
+                    fclose($fp);
+                    $errorFileUrl = url('/public/uploads/imports/' . $resultFileName);
+                }
             }
 
-            // Clean output buffer before sending file to avoid corruption
+            // Clear progress file
+            @unlink(dirname(__DIR__, 2) . "/storage/logs/import_progress_{$token}.json");
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => true,
+                'success' => $success,
+                'skipped' => $skipped,
+                'error_file_url' => $errorFileUrl,
+                'total' => $totalRows
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            
             if (ob_get_level()) {
                 ob_end_clean();
             }
 
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="Ket_Qua_Cap_Nhat_Hoc_Ba_Bang9_' . date('Ymd_His') . '.xlsx"');
-            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-            $writer->save('php://output');
-            exit;
-
-        } catch (\Exception $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
+            if (!empty($token)) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => false,
+                    'message' => $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
         }
     }
@@ -2369,6 +2455,306 @@ class CandidateController extends Controller
             \App\Core\Cache::forgetByPattern('/^stats_api_/');
         } catch (\Exception $e) {
             error_log("Error clearing candidate stats cache: " . $e->getMessage());
+        }
+    }
+
+    public function downloadCandidateUpdateTemplate()
+    {
+        $this->checkPermission('candidate.edit');
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $headers = ['STT', 'Số ĐDCN', 'Họ và tên', 'Ngày sinh', 'Giới tính'];
+        foreach ($headers as $i => $h) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->setCellValue($colLetter . '1', $h);
+        }
+        $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(25);
+        $sheet->getColumnDimension('D')->setWidth(15);
+        $sheet->getColumnDimension('E')->setWidth(10);
+        
+        $sheet->setCellValue('A2', 1);
+        $sheet->setCellValueExplicit('B2', '025308000001', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValue('C2', 'NGUYỄN VĂN A');
+        $sheet->setCellValue('D2', '20/10/2008');
+        $sheet->setCellValue('E2', 'Nam');
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Mau_Cap_Nhat_Thong_Tin_Thi_Sinh.xlsx"');
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function bulkUpdateCandidateInfo()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+        $redirectTo = url('/admin/review-management');
+
+        if (!isset($_FILES['candidate_file']) || $_FILES['candidate_file']['error'] !== UPLOAD_ERR_OK) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Vui lòng chọn file để upload.'));
+            return;
+        }
+
+        // Increase limits for processing large files
+        ini_set('max_execution_time', '900');
+        set_time_limit(900);
+        ini_set('memory_limit', '2048M');
+
+        $filePath = $_FILES['candidate_file']['tmp_name'];
+        $token = $_POST['import_token'] ?? '';
+        
+        $updateProgress = function($current, $total, $message = '') use ($token) {
+            if (empty($token)) return;
+            $progressDir = dirname(__DIR__, 2) . '/storage/logs';
+            if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
+            
+            $status = [
+                'current' => $current,
+                'total' => $total,
+                'percent' => $total > 0 ? round(($current / $total) * 100) : 0,
+                'message' => $message,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            file_put_contents($progressDir . "/import_progress_{$token}.json", json_encode($status));
+        };
+
+        try {
+            session_write_close();
+            $updateProgress(0, 100, 'Đang nạp file Excel vào bộ nhớ...');
+            
+            $extension = strtolower(pathinfo($_FILES['candidate_file']['name'], PATHINFO_EXTENSION));
+            $rows = [];
+            if ($extension === 'xlsx') {
+                require_once dirname(__DIR__) . '/Services/SimpleXLSX.php';
+                if ($xlsx = \Shuchkin\SimpleXLSX::parse($filePath)) {
+                    $rows = $xlsx->rows();
+                }
+            } elseif ($extension === 'xls') {
+                require_once dirname(__DIR__) . '/Services/SimpleXLS.php';
+                if ($xls = \Shuchkin\SimpleXLS::parse($filePath)) {
+                    $rows = $xls->rows();
+                }
+            }
+
+            if (empty($rows)) {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($filePath);
+                $sheet = $spreadsheet->getActiveSheet();
+                $rows = array_values($sheet->toArray(null, true, true, true));
+                array_shift($rows);
+            } else {
+                array_shift($rows);
+            }
+
+            $updateProgress(0, 100, 'Đang đối chiếu danh sách thí sinh...');
+
+            // Pre-collect all unique CCCDs
+            $allCccds = [];
+            foreach ($rows as $row) {
+                $rowValues = array_values($row);
+                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
+                if ($cccd !== '') {
+                    $allCccds[] = $cccd;
+                }
+            }
+
+            // Batch query valid candidates to reduce SQL queries
+            $validCandidates = [];
+            if (!empty($allCccds)) {
+                $cccdChunks = array_chunk(array_unique($allCccds), 1000);
+                foreach ($cccdChunks as $chunk) {
+                    $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                    $stmt1 = $this->db->prepare("SELECT so_cccd, ho_va_ten, ngay_sinh, gioi_tinh FROM thi_sinh WHERE so_cccd IN ($placeholders)");
+                    $stmt1->execute($chunk);
+                    while ($r = $stmt1->fetch(\PDO::FETCH_ASSOC)) {
+                        $validCandidates[$r['so_cccd']] = $r;
+                    }
+                }
+            }
+
+            $success = 0; $skipped = 0; $logDetails = [];
+            $this->db->beginTransaction();
+
+            $totalRows = count($rows);
+            foreach ($rows as $index => $row) {
+                if ($index % 500 === 0) {
+                    $updateProgress($index, $totalRows, "Đang cập nhật thông tin thí sinh: $index/$totalRows dòng...");
+                }
+                $rowValues = array_values($row);
+                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
+                $rawName = trim($rowValues[2] ?? '');
+                $rawDob = trim($rowValues[3] ?? '');
+                $rawGender = trim($rowValues[4] ?? '');
+                $lineNum = $index + 2;
+
+                if (empty($cccd)) {
+                    // Check if row is empty
+                    $isEmptyRow = true;
+                    for ($col = 2; $col <= 4; $col++) {
+                        if (isset($rowValues[$col]) && trim($rowValues[$col]) !== '') {
+                            $isEmptyRow = false;
+                            break;
+                        }
+                    }
+                    if (!$isEmptyRow) {
+                        $results[$index] = 'Bỏ qua: Số CCCD trống';
+                        $logDetails[] = [
+                            'line' => $lineNum,
+                            'cccd' => '',
+                            'name' => $rawName,
+                            'msg' => 'Bỏ qua: Số CCCD trống'
+                        ];
+                        $skipped++;
+                    }
+                    continue;
+                }
+
+                if (!isset($validCandidates[$cccd])) {
+                    $results[$index] = 'Lỗi: Số CCCD không tồn tại trên hệ thống';
+                    $logDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'name' => $rawName,
+                        'msg' => 'Lỗi: Số CCCD không tồn tại trên hệ thống'
+                    ];
+                    $skipped++;
+                    continue;
+                }
+
+                // Normalizations
+                $hoVaTen = mb_strtoupper(normalize_name($rawName), 'UTF-8');
+                
+                $ngaySinh = null;
+                if ($rawDob !== '') {
+                    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', $rawDob, $matches)) {
+                        $ngaySinh = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                    }
+                }
+
+                $gioiTinh = null;
+                if ($rawGender !== '') {
+                    $lowerGender = mb_strtolower($rawGender, 'UTF-8');
+                    if (in_array($lowerGender, ['nam', 'm'])) {
+                        $gioiTinh = 'Nam';
+                    } elseif (in_array($lowerGender, ['nữ', 'nu', 'f'])) {
+                        $gioiTinh = 'Nữ';
+                    } else {
+                        $gioiTinh = $rawGender;
+                    }
+                }
+
+                $existing = $validCandidates[$cccd];
+                $updateData = [];
+                $changes = [];
+
+                if ($hoVaTen !== '' && $hoVaTen !== $existing['ho_va_ten']) {
+                    $updateData['ho_va_ten'] = $hoVaTen;
+                    $changes[] = "Họ tên (" . ($existing['ho_va_ten'] ?: 'Trống') . " -> " . $hoVaTen . ")";
+                }
+
+                if ($ngaySinh !== null) {
+                    $oldDobFormatted = !empty($existing['ngay_sinh']) ? date('d/m/Y', strtotime($existing['ngay_sinh'])) : 'Trống';
+                    $newDobFormatted = date('d/m/Y', strtotime($ngaySinh));
+                    if ($ngaySinh !== $existing['ngay_sinh']) {
+                        $updateData['ngay_sinh'] = $ngaySinh;
+                        $changes[] = "Ngày sinh (" . $oldDobFormatted . " -> " . $newDobFormatted . ")";
+                    }
+                } elseif ($rawDob !== '') {
+                    $results[$index] = 'Lỗi: Định dạng ngày sinh không hợp lệ';
+                    $logDetails[] = [
+                        'line' => $lineNum,
+                        'cccd' => $cccd,
+                        'name' => $rawName,
+                        'msg' => 'Lỗi: Định dạng ngày sinh không hợp lệ (yêu cầu DD/MM/YYYY)'
+                    ];
+                    $skipped++;
+                    continue;
+                }
+
+                if ($gioiTinh !== null && $gioiTinh !== $existing['gioi_tinh']) {
+                    $updateData['gioi_tinh'] = $gioiTinh;
+                    $changes[] = "Giới tính (" . ($existing['gioi_tinh'] ?: 'Trống') . " -> " . $gioiTinh . ")";
+                }
+
+                if (!empty($updateData)) {
+                    $this->thiSinhRepo->updateFullProfile($cccd, $updateData);
+                    $changeDesc = "Cập nhật: " . implode(', ', $changes);
+                    $results[$index] = $changeDesc;
+                    $success++;
+                } else {
+                    $results[$index] = 'Không thay đổi';
+                }
+
+                $logDetails[] = [
+                    'line' => $lineNum,
+                    'cccd' => $cccd,
+                    'name' => $hoVaTen ?: $rawName,
+                    'msg' => $results[$index]
+                ];
+            }
+
+            $this->db->commit();
+            $updateProgress($totalRows, $totalRows, "Đang kết xuất file kết quả đối chiếu...");
+
+            $errorFileUrl = '';
+            if (!empty($logDetails)) {
+                $resultFileName = 'Lich_Su_Cap_Nhat_Thong_Tin_' . date('Ymd_His') . '.csv';
+                $exportPath = dirname(__DIR__, 2) . '/public/uploads/imports/' . $resultFileName;
+                if (!is_dir(dirname($exportPath))) {
+                    mkdir(dirname($exportPath), 0777, true);
+                }
+
+                $fp = fopen($exportPath, 'w');
+                if ($fp) {
+                    fwrite($fp, "\xEF\xBB\xBF");
+                    fwrite($fp, "sep=,\r\n");
+                    fwrite($fp, "Dòng trong file gốc,Số CCCD,Họ và tên,Kết quả xử lý\r\n");
+
+                    foreach ($logDetails as $w) {
+                        $cccdVal = $w['cccd'] !== '' ? '="' . $w['cccd'] . '"' : '';
+                        $nameVal = '"' . str_replace('"', '""', $w['name']) . '"';
+                        $msgVal = '"' . str_replace('"', '""', $w['msg']) . '"';
+                        
+                        fwrite($fp, $w['line'] . ',' . $cccdVal . ',' . $nameVal . ',' . $msgVal . "\r\n");
+                    }
+                    fclose($fp);
+                    $errorFileUrl = url('/public/uploads/imports/' . $resultFileName);
+                }
+            }
+
+            @unlink(dirname(__DIR__, 2) . "/storage/logs/import_progress_{$token}.json");
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => true,
+                'success' => $success,
+                'skipped' => $skipped,
+                'error_file_url' => $errorFileUrl,
+                'total' => $totalRows
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            if (!empty($token)) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => false,
+                    'message' => $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $this->redirect($redirectTo . '?error=' . urlencode($e->getMessage()));
         }
     }
 }
