@@ -1565,8 +1565,8 @@ class CandidateController extends Controller
         $adminId = $_SESSION['admin_id'] ?? null;
 
         try {
-            // OPTIMIZATION: Use Xlsx reader with ReadDataOnly for performance
-            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            // OPTIMIZATION: Use auto-detect reader with ReadDataOnly for performance
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
             
@@ -1853,7 +1853,7 @@ class CandidateController extends Controller
         ];
 
         try {
-            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
             $sheet = $spreadsheet->getActiveSheet();
@@ -1902,6 +1902,62 @@ class CandidateController extends Controller
 
             $success = 0; $skipped = 0; $warnings = [];
             $this->db->beginTransaction();
+
+            // Prepare statements and fetch subject mappings once for extreme optimization
+            $monToCol = [
+                'toan' => 'toan',
+                'van' => 'van',
+                'ngoai_ngu' => 'ngoai_ngu',
+                'ly' => 'ly',
+                'hoa' => 'hoa',
+                'sinh' => 'sinh',
+                'su' => 'su',
+                'dia' => 'dia',
+                'gdcd' => 'gdcd',
+                'GDKTPL' => 'ktpl',
+                'cong_nghe' => 'cong_nghe',
+                'tin_hoc' => 'tin_hoc'
+            ];
+            $stmtMons = $this->db->query("SELECT id, ma_mon FROM dm_mon");
+            $monIds = [];
+            while ($m = $stmtMons->fetch(\PDO::FETCH_ASSOC)) {
+                $monIds[$m['ma_mon']] = $m['id'];
+            }
+
+            $stmtDeleteDiemChiTiet = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = 'HB_CN_12'");
+            $stmtInsertDiemChiTiet = $this->db->prepare("INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES (?, ?, 'HB_CN_12', ?)");
+
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession();
+            $activeSessionId = $activeSession ? (int)$activeSession['id'] : null;
+
+            $stmtUpdateThiSinh = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+            $stmtUpdateHoSo = $activeSessionId
+                ? $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?")
+                : $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
+
+            $sqlUpdateAcademic = "
+                UPDATE ket_qua_hoc_tap SET
+                    diem_toan_cn = ?, diem_van_cn = ?, diem_ngoai_ngu_cn = ?, diem_ly_cn = ?,
+                    diem_hoa_cn = ?, diem_sinh_cn = ?, diem_su_cn = ?, diem_dia_cn = ?,
+                    diem_gdcd_cn = ?, diem_tin_hoc_cn = ?, diem_cong_nghe_cn = ?, diem_ktpl_cn = ?,
+                    diem_tb_hk1 = ?, diem_tb_hk2 = ?, diem_tb_ca_nam = ?,
+                    hoc_luc_ca_nam = ?, hanh_kiem_ca_nam = ?, ghi_chu = ?
+                WHERE so_cccd = ? AND lop = ?
+            ";
+            $stmtUpdateAcademic = $this->db->prepare($sqlUpdateAcademic);
+
+            $sqlInsertAcademic = "
+                INSERT INTO ket_qua_hoc_tap (
+                    so_cccd, lop,
+                    diem_toan_cn, diem_van_cn, diem_ngoai_ngu_cn, diem_ly_cn,
+                    diem_hoa_cn, diem_sinh_cn, diem_su_cn, diem_dia_cn,
+                    diem_gdcd_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_ktpl_cn,
+                    diem_tb_hk1, diem_tb_hk2, diem_tb_ca_nam,
+                    hoc_luc_ca_nam, hanh_kiem_ca_nam, ghi_chu
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ";
+            $stmtInsertAcademic = $this->db->prepare($sqlInsertAcademic);
 
             $logFile = @fopen(dirname(__DIR__, 2) . '/storage/logs/bulk_transcript.log', 'a');
             if ($logFile) fwrite($logFile, "\n--- BULK TRANSCRIPT START: " . date('Y-m-d H:i:s') . " ---\n");
@@ -2004,22 +2060,73 @@ class CandidateController extends Controller
                 }
 
                 if (!empty($scoreData)) {
-                    $academicModel->save($cccd, (int)$lop, $scoreData);
+                    // Decide INSERT vs UPDATE and build parameter arrays
+                    $fullData = $existing ?: [];
+                    foreach ($scoreData as $k => $v) {
+                        $fullData[$k] = $v;
+                    }
                     
+                    // Normalize ratings
+                    if (isset($fullData['hoc_luc_ca_nam']) && $fullData['hoc_luc_ca_nam'] !== '') {
+                        $fullData['hoc_luc_ca_nam'] = $academicModel->normalizeRating($fullData['hoc_luc_ca_nam']);
+                    }
+                    if (isset($fullData['hanh_kiem_ca_nam']) && $fullData['hanh_kiem_ca_nam'] !== '') {
+                        $fullData['hanh_kiem_ca_nam'] = $academicModel->normalizeRating($fullData['hanh_kiem_ca_nam']);
+                    }
+
+                    $orderedParams = [
+                        isset($fullData['diem_toan_cn']) && $fullData['diem_toan_cn'] !== '' ? (float)$fullData['diem_toan_cn'] : null,
+                        isset($fullData['diem_van_cn']) && $fullData['diem_van_cn'] !== '' ? (float)$fullData['diem_van_cn'] : null,
+                        isset($fullData['diem_ngoai_ngu_cn']) && $fullData['diem_ngoai_ngu_cn'] !== '' ? (float)$fullData['diem_ngoai_ngu_cn'] : null,
+                        isset($fullData['diem_ly_cn']) && $fullData['diem_ly_cn'] !== '' ? (float)$fullData['diem_ly_cn'] : null,
+                        isset($fullData['diem_hoa_cn']) && $fullData['diem_hoa_cn'] !== '' ? (float)$fullData['diem_hoa_cn'] : null,
+                        isset($fullData['diem_sinh_cn']) && $fullData['diem_sinh_cn'] !== '' ? (float)$fullData['diem_sinh_cn'] : null,
+                        isset($fullData['diem_su_cn']) && $fullData['diem_su_cn'] !== '' ? (float)$fullData['diem_su_cn'] : null,
+                        isset($fullData['diem_dia_cn']) && $fullData['diem_dia_cn'] !== '' ? (float)$fullData['diem_dia_cn'] : null,
+                        isset($fullData['diem_gdcd_cn']) && $fullData['diem_gdcd_cn'] !== '' ? (float)$fullData['diem_gdcd_cn'] : null,
+                        isset($fullData['diem_tin_hoc_cn']) && $fullData['diem_tin_hoc_cn'] !== '' ? (float)$fullData['diem_tin_hoc_cn'] : null,
+                        isset($fullData['diem_cong_nghe_cn']) && $fullData['diem_cong_nghe_cn'] !== '' ? (float)$fullData['diem_cong_nghe_cn'] : null,
+                        isset($fullData['diem_ktpl_cn']) && $fullData['diem_ktpl_cn'] !== '' ? (float)$fullData['diem_ktpl_cn'] : null,
+                        isset($fullData['diem_tb_hk1']) && $fullData['diem_tb_hk1'] !== '' ? (float)$fullData['diem_tb_hk1'] : null,
+                        isset($fullData['diem_tb_hk2']) && $fullData['diem_tb_hk2'] !== '' ? (float)$fullData['diem_tb_hk2'] : null,
+                        isset($fullData['diem_tb_ca_nam']) && $fullData['diem_tb_ca_nam'] !== '' ? (float)$fullData['diem_tb_ca_nam'] : null,
+                        !empty($fullData['hoc_luc_ca_nam']) ? $fullData['hoc_luc_ca_nam'] : null,
+                        !empty($fullData['hanh_kiem_ca_nam']) ? $fullData['hanh_kiem_ca_nam'] : null,
+                        !empty($fullData['ghi_chu']) ? $fullData['ghi_chu'] : null,
+                    ];
+
+                    if ($existing) {
+                        $orderedParams[] = $cccd;
+                        $orderedParams[] = (int)$lop;
+                        $stmtUpdateAcademic->execute($orderedParams);
+                    } else {
+                        $insertParams = array_merge([$cccd, (int)$lop], $orderedParams);
+                        $stmtInsertAcademic->execute($insertParams);
+                    }
+
                     // Update notes in other tables if changed
                     if (array_key_exists('ghi_chu', $scoreData)) {
                         $ghiChu = $scoreData['ghi_chu'];
-                        $stmt1 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-                        $stmt1->execute([$ghiChu, $cccd]);
-
-                        $sessionModel = new \App\Models\AdmissionSession();
-                        $activeSession = $sessionModel->getActiveSession();
-                        if ($activeSession) {
-                            $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-                            $stmt2->execute([$ghiChu, $cccd, $activeSession['id']]);
+                        $stmtUpdateThiSinh->execute([$ghiChu, $cccd]);
+                        if ($activeSessionId) {
+                            $stmtUpdateHoSo->execute([$ghiChu, $cccd, $activeSessionId]);
                         } else {
-                            $stmt2 = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
-                            $stmt2->execute([$ghiChu, $cccd]);
+                            $stmtUpdateHoSo->execute([$ghiChu, $cccd]);
+                        }
+                    }
+
+                    // Sync to diem_chi_tiet ONLY if Grade 12 is updated
+                    if ((int)$lop === 12) {
+                        $stmtDeleteDiemChiTiet->execute([$cccd]);
+                        foreach ($monToCol as $maMon => $colSuffix) {
+                            $colName = "diem_{$colSuffix}_cn";
+                            $score = isset($fullData[$colName]) && $fullData[$colName] !== '' ? (float)$fullData[$colName] : null;
+                            if ($score !== null) {
+                                $monId = $monIds[$maMon] ?? null;
+                                if ($monId) {
+                                    $stmtInsertDiemChiTiet->execute([$cccd, $monId, $score]);
+                                }
+                            }
                         }
                     }
 
@@ -2032,6 +2139,7 @@ class CandidateController extends Controller
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
                 }
             }
+
 
             $this->db->commit();
             if ($logFile) fclose($logFile);
