@@ -252,41 +252,14 @@
             <form action="<?= url('/admin/review/bulk-update-transcript') ?>" method="POST" enctype="multipart/form-data" class="p-6" @submit.prevent="upload($event)">
                 <input type="hidden" id="bulk_transcript_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 
-                <div class="mb-5">
-                    <div class="flex justify-between items-center mb-3">
-                        <p class="text-sm text-slate-600">Upload file Excel (.xlsx/.xls) chứa điểm cả năm theo mẫu. Mỗi dòng = 1 thí sinh × 1 lớp.</p>
-                        <a href="<?= url('/admin/review/download-transcript-template') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition">
-                            <i class="fas fa-download mr-1"></i> Tải file mẫu
-                        </a>
+                <div class="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-blue-50/50 border border-blue-100/80 rounded-2xl p-4">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-slate-700 mb-1">Cập nhật điểm học bạ hàng loạt</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">Vui lòng tải về file mẫu chuẩn MoET Bảng 9, điền thông tin điểm số học bạ và tải lên hệ thống.</p>
                     </div>
-                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 overflow-x-auto">
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cấu trúc file (19 cột):</p>
-                        <table class="w-full text-xs whitespace-nowrap">
-                            <thead><tr class="text-left text-slate-500 border-b border-slate-200">
-                                <th class="py-1 px-1">A</th><th class="py-1 px-1 font-bold text-slate-800">B</th><th class="py-1 px-1 font-bold text-slate-800">C</th>
-                                <th class="py-1 px-1">D</th><th class="py-1 px-1">E</th><th class="py-1 px-1">F</th><th class="py-1 px-1">G</th><th class="py-1 px-1">H</th>
-                                <th class="py-1 px-1">I</th><th class="py-1 px-1">J</th><th class="py-1 px-1">K</th><th class="py-1 px-1">L</th>
-                                <th class="py-1 px-1">M</th><th class="py-1 px-1">N</th><th class="py-1 px-1">O</th>
-                                <th class="py-1 px-1">P</th><th class="py-1 px-1">Q</th><th class="py-1 px-1">R</th><th class="py-1 px-1 font-bold text-blue-600">S</th>
-                            </tr></thead>
-                            <tbody class="text-slate-600">
-                                <tr class="border-b border-slate-100 font-medium text-[10px]">
-                                    <td class="py-1 px-1 text-slate-400">STT</td><td class="py-1 px-1 font-bold">CCCD</td><td class="py-1 px-1 font-bold">Lớp</td>
-                                    <td class="py-1 px-1">Toán</td><td class="py-1 px-1">Văn</td><td class="py-1 px-1">NN</td><td class="py-1 px-1">Lý</td><td class="py-1 px-1">Hóa</td>
-                                    <td class="py-1 px-1">Sinh</td><td class="py-1 px-1">Sử</td><td class="py-1 px-1">Địa</td><td class="py-1 px-1">GDCD</td>
-                                    <td class="py-1 px-1">Tin</td><td class="py-1 px-1">CN</td><td class="py-1 px-1">KTPL</td>
-                                    <td class="py-1 px-1">ĐTB</td><td class="py-1 px-1">HL</td><td class="py-1 px-1">HK</td><td class="py-1 px-1 font-semibold text-blue-600">Ghi chú</td>
-                                </tr>
-                                <tr class="text-[10px]">
-                                    <td class="py-1 px-1 text-slate-400">1</td><td class="py-1 px-1 font-mono">00123...</td><td class="py-1 px-1">12</td>
-                                    <td class="py-1 px-1">8.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">8.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
-                                    <td class="py-1 px-1">6.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
-                                    <td class="py-1 px-1">9.0</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1"></td>
-                                    <td class="py-1 px-1">7.7</td><td class="py-1 px-1">Khá</td><td class="py-1 px-1">Tốt</td><td class="py-1 px-1 text-blue-500 italic">Dữ liệu mẫu</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <a href="<?= url('/admin/review/download-transcript-template') ?>" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition whitespace-nowrap">
+                        <i class="fas fa-download"></i> Tải file mẫu Bảng 9
+                    </a>
                 </div>
 
                 <div class="mb-5">

@@ -1873,12 +1873,30 @@ class CandidateController extends Controller
             session_write_close();
             $updateProgress(0, 100, 'Đang nạp file Excel vào bộ nhớ...');
             
-            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
-            $reader->setReadDataOnly(true);
-            $spreadsheet = $reader->load($filePath);
-            $sheet = $spreadsheet->getActiveSheet();
-            $rows = array_values($sheet->toArray(null, true, true, true));
-            array_shift($rows);
+            $extension = strtolower(pathinfo($_FILES['transcript_file']['name'], PATHINFO_EXTENSION));
+            $rows = [];
+            if ($extension === 'xlsx') {
+                require_once dirname(__DIR__) . '/Services/SimpleXLSX.php';
+                if ($xlsx = \Shuchkin\SimpleXLSX::parse($filePath)) {
+                    $rows = $xlsx->rows();
+                }
+            } elseif ($extension === 'xls') {
+                require_once dirname(__DIR__) . '/Services/SimpleXLS.php';
+                if ($xls = \Shuchkin\SimpleXLS::parse($filePath)) {
+                    $rows = $xls->rows();
+                }
+            }
+
+            if (empty($rows)) {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($filePath);
+                $sheet = $spreadsheet->getActiveSheet();
+                $rows = array_values($sheet->toArray(null, true, true, true));
+                array_shift($rows);
+            } else {
+                array_shift($rows);
+            }
 
             $updateProgress(0, 100, 'Đang truy vấn đối chiếu thí sinh & học bạ...');
 
@@ -2122,18 +2140,18 @@ class CandidateController extends Controller
                 $lineNum = $index + 2;
 
                 if (empty($cccd)) {
-                    $sheet->setCellValue('CB' . $lineNum, 'Bỏ qua: CCCD trống');
+                    $results[$index] = 'Bỏ qua: CCCD trống';
                     continue;
                 }
                 if (!in_array($lop, ['10', '11', '12'])) {
-                    $sheet->setCellValue('CB' . $lineNum, 'Lỗi: Lớp không hợp lệ');
+                    $results[$index] = 'Lỗi: Lớp không hợp lệ';
                     $warnings[] = "Dòng $lineNum: Lớp '$lop' không hợp lệ.";
                     $skipped++; continue;
                 }
 
                 // In-memory lookups are extremely fast O(1)
                 if (!isset($validCCCDs[$cccd])) {
-                    $sheet->setCellValue('CB' . $lineNum, 'Lỗi: CCCD không tồn tại');
+                    $results[$index] = 'Lỗi: CCCD không tồn tại';
                     $warnings[] = "Dòng $lineNum: CCCD $cccd không tồn tại.";
                     $skipped++; continue;
                 }
@@ -2165,16 +2183,22 @@ class CandidateController extends Controller
                 foreach ($textCols as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
                     if ($dbCol === 'ghi_chu') {
-                        if ((int)$lop !== 12 || $val === '') {
-                            continue;
-                        }
-                    }
-                    $newVal = null;
-                    if ($val !== '') {
-                        if (in_array($dbCol, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
-                            $newVal = $academicModel->normalizeRating($val);
+                        if ((int)$lop !== 12) {
+                            $newVal = null;
                         } else {
+                            if ($val === '') {
+                                continue;
+                            }
                             $newVal = $val;
+                        }
+                    } else {
+                        $newVal = null;
+                        if ($val !== '') {
+                            if (in_array($dbCol, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
+                                $newVal = $academicModel->normalizeRating($val);
+                            } else {
+                                $newVal = $val;
+                            }
                         }
                     }
                     
@@ -2230,8 +2254,8 @@ class CandidateController extends Controller
 
                     $academicBuffer[$cccd . '_' . $lop] = $finalData;
 
-                    // Update notes in other tables if changed
-                    if (array_key_exists('ghi_chu', $scoreData)) {
+                    // Update notes in other tables if changed, but only if lop === 12
+                    if (array_key_exists('ghi_chu', $scoreData) && (int)$lop === 12) {
                         $ghiChu = $scoreData['ghi_chu'];
                         $noteBuffer[$cccd] = [
                             'so_cccd' => $cccd,
@@ -2259,11 +2283,11 @@ class CandidateController extends Controller
                     }
 
                     $changeDesc = "Cập nhật: " . implode(', ', $changes);
-                    $sheet->setCellValue('CB' . $lineNum, $changeDesc);
+                    $results[$index] = $changeDesc;
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS ($changeDesc)\n");
                     $success++;
                 } else {
-                    $sheet->setCellValue('CB' . $lineNum, 'Không thay đổi');
+                    $results[$index] = 'Không thay đổi';
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
                 }
 
@@ -2278,6 +2302,22 @@ class CandidateController extends Controller
             if ($logFile) fclose($logFile);
 
             $updateProgress($totalRows, $totalRows, "Đang kết xuất file Excel kết quả...");
+
+            // Load the spreadsheet only now to write the results column
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Set result header at Column CB (Index 79 / Column 80)
+            $sheet->setCellValue('CB1', 'Kết quả xử lý');
+            $sheet->getStyle('CB1')->getFont()->setBold(true);
+            $sheet->getColumnDimension('CB')->setWidth(40);
+
+            foreach ($results as $idx => $msg) {
+                $lineNum = $idx + 2;
+                $sheet->setCellValue('CB' . $lineNum, $msg);
+            }
 
             // Clean output buffer before sending file to avoid corruption
             if (ob_get_level()) {
