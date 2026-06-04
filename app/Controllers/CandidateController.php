@@ -1924,40 +1924,9 @@ class CandidateController extends Controller
                 $monIds[$m['ma_mon']] = $m['id'];
             }
 
-            $stmtDeleteDiemChiTiet = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd = ? AND loai_diem = 'HB_CN_12'");
-            $stmtInsertDiemChiTiet = $this->db->prepare("INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES (?, ?, 'HB_CN_12', ?)");
-
             $sessionModel = new \App\Models\AdmissionSession();
             $activeSession = $sessionModel->getActiveSession();
             $activeSessionId = $activeSession ? (int)$activeSession['id'] : null;
-
-            $stmtUpdateThiSinh = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-            $stmtUpdateHoSo = $activeSessionId
-                ? $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?")
-                : $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
-
-            $sqlUpdateAcademic = "
-                UPDATE ket_qua_hoc_tap SET
-                    diem_toan_cn = ?, diem_van_cn = ?, diem_ngoai_ngu_cn = ?, diem_ly_cn = ?,
-                    diem_hoa_cn = ?, diem_sinh_cn = ?, diem_su_cn = ?, diem_dia_cn = ?,
-                    diem_gdcd_cn = ?, diem_tin_hoc_cn = ?, diem_cong_nghe_cn = ?, diem_ktpl_cn = ?,
-                    diem_tb_hk1 = ?, diem_tb_hk2 = ?, diem_tb_ca_nam = ?,
-                    hoc_luc_ca_nam = ?, hanh_kiem_ca_nam = ?, ghi_chu = ?
-                WHERE so_cccd = ? AND lop = ?
-            ";
-            $stmtUpdateAcademic = $this->db->prepare($sqlUpdateAcademic);
-
-            $sqlInsertAcademic = "
-                INSERT INTO ket_qua_hoc_tap (
-                    so_cccd, lop,
-                    diem_toan_cn, diem_van_cn, diem_ngoai_ngu_cn, diem_ly_cn,
-                    diem_hoa_cn, diem_sinh_cn, diem_su_cn, diem_dia_cn,
-                    diem_gdcd_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_ktpl_cn,
-                    diem_tb_hk1, diem_tb_hk2, diem_tb_ca_nam,
-                    hoc_luc_ca_nam, hanh_kiem_ca_nam, ghi_chu
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ";
-            $stmtInsertAcademic = $this->db->prepare($sqlInsertAcademic);
 
             $logFile = @fopen(dirname(__DIR__, 2) . '/storage/logs/bulk_transcript.log', 'a');
             if ($logFile) fwrite($logFile, "\n--- BULK TRANSCRIPT START: " . date('Y-m-d H:i:s') . " ---\n");
@@ -1986,6 +1955,139 @@ class CandidateController extends Controller
                 'hanh_kiem_ca_nam' => 'Hạnh kiểm',
                 'ghi_chu' => 'Ghi chú'
             ];
+
+            $academicBuffer = [];
+            $noteBuffer = [];
+            $diemChiTietInserts = [];
+            $cccdsL12ToSync = [];
+
+            $flushBuffers = function() use (
+                &$academicBuffer, &$noteBuffer, &$diemChiTietInserts, &$cccdsL12ToSync, $activeSessionId
+            ) {
+                if (empty($academicBuffer) && empty($noteBuffer) && empty($diemChiTietInserts) && empty($cccdsL12ToSync)) {
+                    return;
+                }
+
+                // 1. Bulk Update/Insert ket_qua_hoc_tap
+                if (!empty($academicBuffer)) {
+                    $jsonParam = json_encode(array_values($academicBuffer), JSON_UNESCAPED_UNICODE);
+                    $sqlAcademic = "
+                        INSERT INTO ket_qua_hoc_tap (
+                            so_cccd, lop,
+                            diem_toan_cn, diem_van_cn, diem_ngoai_ngu_cn, diem_ly_cn,
+                            diem_hoa_cn, diem_sinh_cn, diem_su_cn, diem_dia_cn,
+                            diem_gdcd_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_ktpl_cn,
+                            diem_tb_hk1, diem_tb_hk2, diem_tb_ca_nam,
+                            hoc_luc_ca_nam, hanh_kiem_ca_nam, ghi_chu
+                        )
+                        SELECT
+                            elem->>'so_cccd',
+                            (elem->>'lop')::int,
+                            (elem->>'diem_toan_cn')::numeric,
+                            (elem->>'diem_van_cn')::numeric,
+                            (elem->>'diem_ngoai_ngu_cn')::numeric,
+                            (elem->>'diem_ly_cn')::numeric,
+                            (elem->>'diem_hoa_cn')::numeric,
+                            (elem->>'diem_sinh_cn')::numeric,
+                            (elem->>'diem_su_cn')::numeric,
+                            (elem->>'diem_dia_cn')::numeric,
+                            (elem->>'diem_gdcd_cn')::numeric,
+                            (elem->>'diem_tin_hoc_cn')::numeric,
+                            (elem->>'diem_cong_nghe_cn')::numeric,
+                            (elem->>'diem_ktpl_cn')::numeric,
+                            (elem->>'diem_tb_hk1')::numeric,
+                            (elem->>'diem_tb_hk2')::numeric,
+                            (elem->>'diem_tb_ca_nam')::numeric,
+                            elem->>'hoc_luc_ca_nam',
+                            elem->>'hanh_kiem_ca_nam',
+                            elem->>'ghi_chu'
+                        FROM json_array_elements(?::json) AS elem
+                        ON CONFLICT (so_cccd, lop) DO UPDATE SET
+                            diem_toan_cn = EXCLUDED.diem_toan_cn,
+                            diem_van_cn = EXCLUDED.diem_van_cn,
+                            diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
+                            diem_ly_cn = EXCLUDED.diem_ly_cn,
+                            diem_hoa_cn = EXCLUDED.diem_hoa_cn,
+                            diem_sinh_cn = EXCLUDED.diem_sinh_cn,
+                            diem_su_cn = EXCLUDED.diem_su_cn,
+                            diem_dia_cn = EXCLUDED.diem_dia_cn,
+                            diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
+                            diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
+                            diem_cong_nghe_cn = EXCLUDED.diem_cong_nghe_cn,
+                            diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
+                            diem_tb_hk1 = EXCLUDED.diem_tb_hk1,
+                            diem_tb_hk2 = EXCLUDED.diem_tb_hk2,
+                            diem_tb_ca_nam = EXCLUDED.diem_tb_ca_nam,
+                            hoc_luc_ca_nam = EXCLUDED.hoc_luc_ca_nam,
+                            hanh_kiem_ca_nam = EXCLUDED.hanh_kiem_ca_nam,
+                            ghi_chu = EXCLUDED.ghi_chu
+                    ";
+                    $this->db->prepare($sqlAcademic)->execute([$jsonParam]);
+                    $academicBuffer = [];
+                }
+
+                // 2. Bulk Update Notes in thi_sinh and ho_so_xet_tuyen
+                if (!empty($noteBuffer)) {
+                    $jsonParam = json_encode(array_values($noteBuffer), JSON_UNESCAPED_UNICODE);
+                    
+                    $sqlThiSinh = "
+                        UPDATE thi_sinh SET
+                            ghi_chu = elem->>'ghi_chu'
+                        FROM json_array_elements(?::json) AS elem
+                        WHERE thi_sinh.so_cccd = elem->>'so_cccd'
+                    ";
+                    $this->db->prepare($sqlThiSinh)->execute([$jsonParam]);
+
+                    if ($activeSessionId) {
+                        $sqlHoSo = "
+                            UPDATE ho_so_xet_tuyen SET
+                                ghi_chu = elem->>'ghi_chu'
+                            FROM json_array_elements(?::json) AS elem
+                            WHERE ho_so_xet_tuyen.so_cccd = elem->>'so_cccd'
+                              AND ho_so_xet_tuyen.dot_tuyen_sinh_id = ?
+                        ";
+                        $this->db->prepare($sqlHoSo)->execute([$jsonParam, $activeSessionId]);
+                    } else {
+                        $sqlHoSo = "
+                            UPDATE ho_so_xet_tuyen SET
+                                ghi_chu = elem->>'ghi_chu'
+                            FROM json_array_elements(?::json) AS elem
+                            WHERE ho_so_xet_tuyen.so_cccd = elem->>'so_cccd'
+                        ";
+                        $this->db->prepare($sqlHoSo)->execute([$jsonParam]);
+                    }
+                    $noteBuffer = [];
+                }
+
+                // 3. Bulk Sync Grade 12 scores to diem_chi_tiet
+                if (!empty($cccdsL12ToSync)) {
+                    $uniqueCccds = array_unique($cccdsL12ToSync);
+                    $cccdChunks = array_chunk($uniqueCccds, 1000);
+                    foreach ($cccdChunks as $chunk) {
+                        $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                        $sqlDelete = "DELETE FROM diem_chi_tiet WHERE loai_diem = 'HB_CN_12' AND so_cccd IN ($placeholders)";
+                        $this->db->prepare($sqlDelete)->execute($chunk);
+                    }
+                    $cccdsL12ToSync = [];
+                }
+
+                if (!empty($diemChiTietInserts)) {
+                    $insertChunks = array_chunk($diemChiTietInserts, 500);
+                    foreach ($insertChunks as $chunk) {
+                        $insertValues = [];
+                        $insertParams = [];
+                        foreach ($chunk as $row) {
+                            $insertValues[] = "(?, ?, 'HB_CN_12', ?)";
+                            $insertParams[] = $row['so_cccd'];
+                            $insertParams[] = $row['mon_id'];
+                            $insertParams[] = $row['diem'];
+                        }
+                        $sqlInsert = "INSERT INTO diem_chi_tiet (so_cccd, mon_id, loai_diem, diem) VALUES " . implode(', ', $insertValues);
+                        $this->db->prepare($sqlInsert)->execute($insertParams);
+                    }
+                    $diemChiTietInserts = [];
+                }
+            };
 
             foreach ($rows as $index => $row) {
                 $rowValues = array_values($row);
@@ -2074,57 +2176,55 @@ class CandidateController extends Controller
                         $fullData['hanh_kiem_ca_nam'] = $academicModel->normalizeRating($fullData['hanh_kiem_ca_nam']);
                     }
 
-                    $orderedParams = [
-                        isset($fullData['diem_toan_cn']) && $fullData['diem_toan_cn'] !== '' ? (float)$fullData['diem_toan_cn'] : null,
-                        isset($fullData['diem_van_cn']) && $fullData['diem_van_cn'] !== '' ? (float)$fullData['diem_van_cn'] : null,
-                        isset($fullData['diem_ngoai_ngu_cn']) && $fullData['diem_ngoai_ngu_cn'] !== '' ? (float)$fullData['diem_ngoai_ngu_cn'] : null,
-                        isset($fullData['diem_ly_cn']) && $fullData['diem_ly_cn'] !== '' ? (float)$fullData['diem_ly_cn'] : null,
-                        isset($fullData['diem_hoa_cn']) && $fullData['diem_hoa_cn'] !== '' ? (float)$fullData['diem_hoa_cn'] : null,
-                        isset($fullData['diem_sinh_cn']) && $fullData['diem_sinh_cn'] !== '' ? (float)$fullData['diem_sinh_cn'] : null,
-                        isset($fullData['diem_su_cn']) && $fullData['diem_su_cn'] !== '' ? (float)$fullData['diem_su_cn'] : null,
-                        isset($fullData['diem_dia_cn']) && $fullData['diem_dia_cn'] !== '' ? (float)$fullData['diem_dia_cn'] : null,
-                        isset($fullData['diem_gdcd_cn']) && $fullData['diem_gdcd_cn'] !== '' ? (float)$fullData['diem_gdcd_cn'] : null,
-                        isset($fullData['diem_tin_hoc_cn']) && $fullData['diem_tin_hoc_cn'] !== '' ? (float)$fullData['diem_tin_hoc_cn'] : null,
-                        isset($fullData['diem_cong_nghe_cn']) && $fullData['diem_cong_nghe_cn'] !== '' ? (float)$fullData['diem_cong_nghe_cn'] : null,
-                        isset($fullData['diem_ktpl_cn']) && $fullData['diem_ktpl_cn'] !== '' ? (float)$fullData['diem_ktpl_cn'] : null,
-                        isset($fullData['diem_tb_hk1']) && $fullData['diem_tb_hk1'] !== '' ? (float)$fullData['diem_tb_hk1'] : null,
-                        isset($fullData['diem_tb_hk2']) && $fullData['diem_tb_hk2'] !== '' ? (float)$fullData['diem_tb_hk2'] : null,
-                        isset($fullData['diem_tb_ca_nam']) && $fullData['diem_tb_ca_nam'] !== '' ? (float)$fullData['diem_tb_ca_nam'] : null,
-                        !empty($fullData['hoc_luc_ca_nam']) ? $fullData['hoc_luc_ca_nam'] : null,
-                        !empty($fullData['hanh_kiem_ca_nam']) ? $fullData['hanh_kiem_ca_nam'] : null,
-                        !empty($fullData['ghi_chu']) ? $fullData['ghi_chu'] : null,
+                    $initData = [
+                        'so_cccd' => $cccd,
+                        'lop' => (int)$lop,
+                        'diem_toan_cn' => null,
+                        'diem_van_cn' => null,
+                        'diem_ngoai_ngu_cn' => null,
+                        'diem_ly_cn' => null,
+                        'diem_hoa_cn' => null,
+                        'diem_sinh_cn' => null,
+                        'diem_su_cn' => null,
+                        'diem_dia_cn' => null,
+                        'diem_gdcd_cn' => null,
+                        'diem_tin_hoc_cn' => null,
+                        'diem_cong_nghe_cn' => null,
+                        'diem_ktpl_cn' => null,
+                        'diem_tb_hk1' => null,
+                        'diem_tb_hk2' => null,
+                        'diem_tb_ca_nam' => null,
+                        'hoc_luc_ca_nam' => null,
+                        'hanh_kiem_ca_nam' => null,
+                        'ghi_chu' => null
                     ];
+                    $finalData = array_merge($initData, $fullData);
 
-                    if ($existing) {
-                        $orderedParams[] = $cccd;
-                        $orderedParams[] = (int)$lop;
-                        $stmtUpdateAcademic->execute($orderedParams);
-                    } else {
-                        $insertParams = array_merge([$cccd, (int)$lop], $orderedParams);
-                        $stmtInsertAcademic->execute($insertParams);
-                    }
+                    $academicBuffer[$cccd . '_' . $lop] = $finalData;
 
                     // Update notes in other tables if changed
                     if (array_key_exists('ghi_chu', $scoreData)) {
                         $ghiChu = $scoreData['ghi_chu'];
-                        $stmtUpdateThiSinh->execute([$ghiChu, $cccd]);
-                        if ($activeSessionId) {
-                            $stmtUpdateHoSo->execute([$ghiChu, $cccd, $activeSessionId]);
-                        } else {
-                            $stmtUpdateHoSo->execute([$ghiChu, $cccd]);
-                        }
+                        $noteBuffer[$cccd] = [
+                            'so_cccd' => $cccd,
+                            'ghi_chu' => $ghiChu
+                        ];
                     }
 
                     // Sync to diem_chi_tiet ONLY if Grade 12 is updated
                     if ((int)$lop === 12) {
-                        $stmtDeleteDiemChiTiet->execute([$cccd]);
+                        $cccdsL12ToSync[] = $cccd;
                         foreach ($monToCol as $maMon => $colSuffix) {
                             $colName = "diem_{$colSuffix}_cn";
-                            $score = isset($fullData[$colName]) && $fullData[$colName] !== '' ? (float)$fullData[$colName] : null;
+                            $score = isset($finalData[$colName]) && $finalData[$colName] !== '' ? (float)$finalData[$colName] : null;
                             if ($score !== null) {
                                 $monId = $monIds[$maMon] ?? null;
                                 if ($monId) {
-                                    $stmtInsertDiemChiTiet->execute([$cccd, $monId, $score]);
+                                    $diemChiTietInserts[] = [
+                                        'so_cccd' => $cccd,
+                                        'mon_id' => $monId,
+                                        'diem' => $score
+                                    ];
                                 }
                             }
                         }
@@ -2138,8 +2238,13 @@ class CandidateController extends Controller
                     $sheet->setCellValue('CB' . $lineNum, 'Không thay đổi');
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
                 }
+
+                if (count($academicBuffer) >= 1000) {
+                    $flushBuffers();
+                }
             }
 
+            $flushBuffers();
 
             $this->db->commit();
             if ($logFile) fclose($logFile);
