@@ -2305,7 +2305,6 @@ class CandidateController extends Controller
 
             // Load the spreadsheet only now to write the results column
             $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
-            $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
             $sheet = $spreadsheet->getActiveSheet();
 
