@@ -1939,6 +1939,9 @@ class CandidateController extends Controller
 
                 foreach ($textCols as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
+                    if ($dbCol === 'ghi_chu' && $val === '') {
+                        continue;
+                    }
                     $newVal = null;
                     if ($val !== '') {
                         if (in_array($dbCol, ['hoc_luc_ca_nam', 'hanh_kiem_ca_nam'])) {
