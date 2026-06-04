@@ -1819,6 +1819,11 @@ class CandidateController extends Controller
             return;
         }
 
+        // Increase limits for processing large files (19,000+ rows)
+        ini_set('max_execution_time', '900');
+        set_time_limit(900);
+        ini_set('memory_limit', '2048M');
+
         $filePath = $_FILES['transcript_file']['tmp_name'];
         $academicModel = new \App\Models\AcademicRecord();
         
@@ -1848,10 +1853,47 @@ class CandidateController extends Controller
         ];
 
         try {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($filePath);
             $sheet = $spreadsheet->getActiveSheet();
             $rows = array_values($sheet->toArray(null, true, true, true));
             array_shift($rows);
+
+            // Pre-collect all unique CCCDs to batch query
+            $allCccds = [];
+            foreach ($rows as $row) {
+                $rowValues = array_values($row);
+                $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
+                if ($cccd !== '') {
+                    $allCccds[] = $cccd;
+                }
+            }
+
+            // Batch query valid candidates and pre-fetch academic records to reduce round-trips
+            $validCCCDs = [];
+            $existingRecordsMap = [];
+            
+            if (!empty($allCccds)) {
+                $cccdChunks = array_chunk(array_unique($allCccds), 1000);
+                foreach ($cccdChunks as $chunk) {
+                    $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                    
+                    // Check valid CCCDs
+                    $stmt1 = $this->db->prepare("SELECT so_cccd FROM thi_sinh WHERE so_cccd IN ($placeholders)");
+                    $stmt1->execute($chunk);
+                    foreach ($stmt1->fetchAll(\PDO::FETCH_COLUMN) as $c) {
+                        $validCCCDs[$c] = true;
+                    }
+
+                    // Pre-fetch academic records
+                    $stmt2 = $this->db->prepare("SELECT * FROM ket_qua_hoc_tap WHERE so_cccd IN ($placeholders)");
+                    $stmt2->execute($chunk);
+                    while ($r = $stmt2->fetch(\PDO::FETCH_ASSOC)) {
+                        $existingRecordsMap[$r['so_cccd'] . '_' . $r['lop']] = $r;
+                    }
+                }
+            }
 
             // Set result header at Column CB (Index 79 / Column 80)
             $sheet->setCellValue('CB1', 'Kết quả xử lý');
@@ -1905,16 +1947,15 @@ class CandidateController extends Controller
                     $skipped++; continue;
                 }
 
-                $stmtCheck = $this->db->prepare("SELECT so_cccd FROM thi_sinh WHERE so_cccd = ?");
-                $stmtCheck->execute([$cccd]);
-                if (!$stmtCheck->fetchColumn()) {
+                // In-memory lookups are extremely fast O(1)
+                if (!isset($validCCCDs[$cccd])) {
                     $sheet->setCellValue('CB' . $lineNum, 'Lỗi: CCCD không tồn tại');
                     $warnings[] = "Dòng $lineNum: CCCD $cccd không tồn tại.";
                     $skipped++; continue;
                 }
 
-                // Fetch existing academic record to compare
-                $existing = $academicModel->getByCCCDAndGrade($cccd, (int)$lop);
+                // In-memory lookup
+                $existing = $existingRecordsMap[$cccd . '_' . $lop] ?? null;
                 $scoreData = [];
                 $changes = [];
 
