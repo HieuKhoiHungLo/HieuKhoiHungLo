@@ -396,7 +396,9 @@ class ThiSinh extends Model {
         foreach ($transcriptNotes as $cccd => $tn) {
             $cleanedCCCD = trim($cccd);
             if (isset($noteMap[$cleanedCCCD]) && !empty($noteMap[$cleanedCCCD])) {
-                $noteMap[$cleanedCCCD] .= " (" . $tn . ")";
+                if (strpos($noteMap[$cleanedCCCD], $tn) === false) {
+                    $noteMap[$cleanedCCCD] .= " (" . $tn . ")";
+                }
             } else {
                 $noteMap[$cleanedCCCD] = $tn;
             }

@@ -2164,8 +2164,10 @@ class CandidateController extends Controller
 
                 foreach ($textCols as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
-                    if ($dbCol === 'ghi_chu' && $val === '') {
-                        continue;
+                    if ($dbCol === 'ghi_chu') {
+                        if ((int)$lop !== 12 || $val === '') {
+                            continue;
+                        }
                     }
                     $newVal = null;
                     if ($val !== '') {
