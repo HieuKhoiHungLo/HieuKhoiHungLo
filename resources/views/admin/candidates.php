@@ -110,6 +110,31 @@
     .sort-link.active {
         color: #0066FF;
     }
+
+    @keyframes loading-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    @keyframes pulsing-slow {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .animate-pulsing-slow {
+        animation: pulsing-slow 3s infinite ease-in-out;
+    }
+
+    @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .animate-spin-slow {
+        animation: spin-slow 6s infinite linear;
+    }
+
+    [x-cloak] { display: none !important; }
 </style>
 
 <div x-data="{ 
@@ -217,65 +242,109 @@
 </div>
 
 <!-- Modal: Cập nhật điểm học bạ theo file -->
-<div id="modal-bulk-transcript" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 flex justify-between items-center">
-            <h3 class="text-white font-bold text-lg"><i class="fas fa-file-excel mr-2"></i>Cập nhật điểm học bạ</h3>
-            <button onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+<div x-data="bulkTranscriptApp()">
+    <div id="modal-bulk-transcript" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg"><i class="fas fa-file-excel mr-2"></i>Cập nhật điểm học bạ</h3>
+                <button type="button" onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+            </div>
+            <form action="<?= url('/admin/review/bulk-update-transcript') ?>" method="POST" enctype="multipart/form-data" class="p-6" @submit.prevent="upload($event)">
+                <input type="hidden" id="bulk_transcript_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                
+                <div class="mb-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm text-slate-600">Upload file Excel (.xlsx/.xls) chứa điểm cả năm theo mẫu. Mỗi dòng = 1 thí sinh × 1 lớp.</p>
+                        <a href="<?= url('/admin/review/download-transcript-template') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition">
+                            <i class="fas fa-download mr-1"></i> Tải file mẫu
+                        </a>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 overflow-x-auto">
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cấu trúc file (19 cột):</p>
+                        <table class="w-full text-xs whitespace-nowrap">
+                            <thead><tr class="text-left text-slate-500 border-b border-slate-200">
+                                <th class="py-1 px-1">A</th><th class="py-1 px-1 font-bold text-slate-800">B</th><th class="py-1 px-1 font-bold text-slate-800">C</th>
+                                <th class="py-1 px-1">D</th><th class="py-1 px-1">E</th><th class="py-1 px-1">F</th><th class="py-1 px-1">G</th><th class="py-1 px-1">H</th>
+                                <th class="py-1 px-1">I</th><th class="py-1 px-1">J</th><th class="py-1 px-1">K</th><th class="py-1 px-1">L</th>
+                                <th class="py-1 px-1">M</th><th class="py-1 px-1">N</th><th class="py-1 px-1">O</th>
+                                <th class="py-1 px-1">P</th><th class="py-1 px-1">Q</th><th class="py-1 px-1">R</th><th class="py-1 px-1 font-bold text-blue-600">S</th>
+                            </tr></thead>
+                            <tbody class="text-slate-600">
+                                <tr class="border-b border-slate-100 font-medium text-[10px]">
+                                    <td class="py-1 px-1 text-slate-400">STT</td><td class="py-1 px-1 font-bold">CCCD</td><td class="py-1 px-1 font-bold">Lớp</td>
+                                    <td class="py-1 px-1">Toán</td><td class="py-1 px-1">Văn</td><td class="py-1 px-1">NN</td><td class="py-1 px-1">Lý</td><td class="py-1 px-1">Hóa</td>
+                                    <td class="py-1 px-1">Sinh</td><td class="py-1 px-1">Sử</td><td class="py-1 px-1">Địa</td><td class="py-1 px-1">GDCD</td>
+                                    <td class="py-1 px-1">Tin</td><td class="py-1 px-1">CN</td><td class="py-1 px-1">KTPL</td>
+                                    <td class="py-1 px-1">ĐTB</td><td class="py-1 px-1">HL</td><td class="py-1 px-1">HK</td><td class="py-1 px-1 font-semibold text-blue-600">Ghi chú</td>
+                                </tr>
+                                <tr class="text-[10px]">
+                                    <td class="py-1 px-1 text-slate-400">1</td><td class="py-1 px-1 font-mono">00123...</td><td class="py-1 px-1">12</td>
+                                    <td class="py-1 px-1">8.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">8.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
+                                    <td class="py-1 px-1">6.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
+                                    <td class="py-1 px-1">9.0</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1"></td>
+                                    <td class="py-1 px-1">7.7</td><td class="py-1 px-1">Khá</td><td class="py-1 px-1">Tốt</td><td class="py-1 px-1 text-blue-500 italic">Dữ liệu mẫu</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
+                    <input type="file" id="transcript_file_input" name="transcript_file" accept=".xlsx,.xls,.csv" required
+                        class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-xl">
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-200 transition">
+                        <i class="fas fa-upload mr-1"></i> Cập nhật điểm
+                    </button>
+                </div>
+            </form>
         </div>
-        <form action="<?= url('/admin/review/bulk-update-transcript') ?>" method="POST" enctype="multipart/form-data" class="p-6">
-            <input type="hidden" id="bulk_transcript_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+    </div>
+
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <div class="absolute inset-0 bg-blue-500/20 rounded-full animate-pulsing-slow"></div>
+                <div class="absolute inset-1 border-2 border-blue-200 border-dashed rounded-full animate-spin-slow"></div>
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Hệ thống đang xử lý</h3>
+            <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
             
-            <div class="mb-5">
-                <div class="flex justify-between items-center mb-3">
-                    <p class="text-sm text-slate-600">Upload file Excel (.xlsx/.xls) chứa điểm cả năm theo mẫu. Mỗi dòng = 1 thí sinh × 1 lớp.</p>
-                    <a href="<?= url('/admin/review/download-transcript-template') ?>" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition">
-                        <i class="fas fa-download mr-1"></i> Tải file mẫu
-                    </a>
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="loadingProgress">
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 overflow-x-auto">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Cấu trúc file (19 cột):</p>
-                    <table class="w-full text-xs whitespace-nowrap">
-                        <thead><tr class="text-left text-slate-500 border-b border-slate-200">
-                            <th class="py-1 px-1">A</th><th class="py-1 px-1 font-bold text-slate-800">B</th><th class="py-1 px-1 font-bold text-slate-800">C</th>
-                            <th class="py-1 px-1">D</th><th class="py-1 px-1">E</th><th class="py-1 px-1">F</th><th class="py-1 px-1">G</th><th class="py-1 px-1">H</th>
-                            <th class="py-1 px-1">I</th><th class="py-1 px-1">J</th><th class="py-1 px-1">K</th><th class="py-1 px-1">L</th>
-                            <th class="py-1 px-1">M</th><th class="py-1 px-1">N</th><th class="py-1 px-1">O</th>
-                            <th class="py-1 px-1">P</th><th class="py-1 px-1">Q</th><th class="py-1 px-1">R</th><th class="py-1 px-1 font-bold text-blue-600">S</th>
-                        </tr></thead>
-                        <tbody class="text-slate-600">
-                            <tr class="border-b border-slate-100 font-medium text-[10px]">
-                                <td class="py-1 px-1 text-slate-400">STT</td><td class="py-1 px-1 font-bold">CCCD</td><td class="py-1 px-1 font-bold">Lớp</td>
-                                <td class="py-1 px-1">Toán</td><td class="py-1 px-1">Văn</td><td class="py-1 px-1">NN</td><td class="py-1 px-1">Lý</td><td class="py-1 px-1">Hóa</td>
-                                <td class="py-1 px-1">Sinh</td><td class="py-1 px-1">Sử</td><td class="py-1 px-1">Địa</td><td class="py-1 px-1">GDCD</td>
-                                <td class="py-1 px-1">Tin</td><td class="py-1 px-1">CN</td><td class="py-1 px-1">KTPL</td>
-                                <td class="py-1 px-1">ĐTB</td><td class="py-1 px-1">HL</td><td class="py-1 px-1">HK</td><td class="py-1 px-1 font-semibold text-blue-600">Ghi chú</td>
-                            </tr>
-                            <tr class="text-[10px]">
-                                <td class="py-1 px-1 text-slate-400">1</td><td class="py-1 px-1 font-mono">00123...</td><td class="py-1 px-1">12</td>
-                                <td class="py-1 px-1">8.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">8.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
-                                <td class="py-1 px-1">6.5</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1">7.5</td><td class="py-1 px-1">8.0</td>
-                                <td class="py-1 px-1">9.0</td><td class="py-1 px-1">7.0</td><td class="py-1 px-1"></td>
-                                <td class="py-1 px-1">7.7</td><td class="py-1 px-1">Khá</td><td class="py-1 px-1">Tốt</td><td class="py-1 px-1 text-blue-500 italic">Dữ liệu mẫu</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div class="shimmer-glare absolute inset-0"></div>
             </div>
-
-            <div class="mb-5">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Chọn file:</label>
-                <input type="file" id="transcript_file_input" name="transcript_file" accept=".xlsx,.xls,.csv" required
-                    class="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-xl">
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
             </div>
-
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('modal-bulk-transcript').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
-                <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-200 transition">
-                    <i class="fas fa-upload mr-1"></i> Cập nhật điểm
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 <!-- Modal: Duyệt tất cả hồ sơ trong đợt -->
@@ -325,6 +394,7 @@
 <?php endif; ?>
 
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Checkbox Listeners
     if (selectAll) {
@@ -347,6 +417,121 @@
     function closeModal(id) {
         document.getElementById(id).classList.add('hidden');
         bulkActionSelect.value = ''; // Reset select
+    }
+
+    function bulkTranscriptApp() {
+        return {
+            isLoading: false,
+            progress: 0,
+            currentLoadingMessage: '',
+            
+            async upload(event) {
+                const form = event.target;
+                const importToken = 'imp_trans_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const formData = new FormData(form);
+                formData.append('import_token', importToken);
+                
+                // Hide file select modal first
+                document.getElementById('modal-bulk-transcript').classList.add('hidden');
+                
+                this.isLoading = true;
+                this.progress = 0;
+                this.currentLoadingMessage = 'Đang tải file lên máy chủ...';
+
+                try {
+                    let isPolling = true;
+                    const pollProgress = async () => {
+                        if (!isPolling) return;
+                        try {
+                            const res = await fetch('<?= url("/admin/import/progress") ?>?token=' + importToken + '&t=' + Date.now());
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.percent !== undefined) {
+                                    const currentPercent = parseInt(data.percent);
+                                    const scaledPercent = 10 + Math.round(currentPercent * 0.9);
+                                    if (scaledPercent > this.progress || currentPercent === 0) {
+                                        this.progress = scaledPercent;
+                                        if (data.message) this.currentLoadingMessage = data.message;
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Progress polling error:', err);
+                        }
+                        if (isPolling) {
+                            setTimeout(pollProgress, 1000);
+                        }
+                    };
+                    
+                    setTimeout(pollProgress, 1000);
+
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    isPolling = false;
+
+                    if (!response.ok) {
+                        throw new Error('Lỗi máy chủ (HTTP ' + response.status + ')');
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const result = await response.json();
+                        this.isLoading = false;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra',
+                            text: result.message || 'Lỗi không xác định',
+                            confirmButtonColor: '#3B82F6'
+                        });
+                    } else {
+                        const blob = await response.blob();
+                        this.progress = 100;
+                        this.currentLoadingMessage = 'Hoàn thành!';
+                        
+                        setTimeout(() => {
+                            this.isLoading = false;
+                            
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            const disposition = response.headers.get('content-disposition') || '';
+                            let filename = 'Ket_Qua_Cap_Nhat_Hoc_Ba.xlsx';
+                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            const matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) { 
+                                filename = matches[1].replace(/['"]/g, '');
+                            }
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            window.URL.revokeObjectURL(url);
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Hoàn tất cập nhật học bạ!',
+                                text: 'Đã cập nhật điểm học bạ thành công và tải về file kết quả.',
+                                confirmButtonColor: '#3B82F6'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        }, 500);
+                    }
+                } catch (error) {
+                    isPolling = false;
+                    this.isLoading = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi Kết Nối',
+                        text: error.message,
+                        confirmButtonColor: '#3B82F6'
+                    });
+                }
+            }
+        };
     }
 </script>
 

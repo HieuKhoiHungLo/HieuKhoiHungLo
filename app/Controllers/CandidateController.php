@@ -1852,13 +1852,35 @@ class CandidateController extends Controller
             78 => 'ghi_chu'
         ];
 
+        $token = $_POST['import_token'] ?? '';
+        $updateProgress = function($current, $total, $message = '') use ($token) {
+            if (empty($token)) return;
+            $progressDir = dirname(__DIR__, 2) . '/storage/logs';
+            if (!is_dir($progressDir)) mkdir($progressDir, 0777, true);
+            
+            $status = [
+                'current' => $current,
+                'total' => $total,
+                'percent' => $total > 0 ? round(($current / $total) * 100) : 0,
+                'message' => $message,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            file_put_contents($progressDir . "/import_progress_{$token}.json", json_encode($status));
+        };
+
         try {
+            session_write_close();
+            $updateProgress(0, 100, 'Đang nạp file Excel vào bộ nhớ...');
+            
             $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
             $sheet = $spreadsheet->getActiveSheet();
             $rows = array_values($sheet->toArray(null, true, true, true));
             array_shift($rows);
+
+            $updateProgress(0, 100, 'Đang truy vấn đối chiếu thí sinh & học bạ...');
 
             // Pre-collect all unique CCCDs to batch query
             $allCccds = [];
@@ -2089,7 +2111,11 @@ class CandidateController extends Controller
                 }
             };
 
+            $totalRows = count($rows);
             foreach ($rows as $index => $row) {
+                if ($index % 500 === 0) {
+                    $updateProgress($index, $totalRows, "Đang xử lý dữ liệu học bạ: $index/$totalRows dòng...");
+                }
                 $rowValues = array_values($row);
                 $cccd = $this->normalizeCCCD($rowValues[1] ?? '');
                 $lop = trim($rowValues[5] ?? '');
@@ -2248,6 +2274,8 @@ class CandidateController extends Controller
 
             $this->db->commit();
             if ($logFile) fclose($logFile);
+
+            $updateProgress($totalRows, $totalRows, "Đang kết xuất file Excel kết quả...");
 
             // Clean output buffer before sending file to avoid corruption
             if (ob_get_level()) {
