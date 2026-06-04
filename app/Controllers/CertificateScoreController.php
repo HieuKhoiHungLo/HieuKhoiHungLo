@@ -38,7 +38,8 @@ class CertificateScoreController extends Controller {
         $start = $_POST['start'] ?? 0;
         $length = $_POST['length'] ?? 10;
         $searchValue = $_POST['search']['value'] ?? '';
-        $fNameCccd = $_POST['f_name_cccd'] ?? '';
+        $fName = $_POST['f_name'] ?? '';
+        $fCccd = $_POST['f_cccd'] ?? '';
         $fMaMon = $_POST['f_ma_mon'] ?? '';
         $fGhiChu = $_POST['f_ghi_chu'] ?? '';
 
@@ -63,10 +64,14 @@ class CertificateScoreController extends Controller {
             $params[] = "%$searchValue%";
         }
 
-        if (!empty($fNameCccd)) {
-            $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
-            $params[] = "%$fNameCccd%";
-            $params[] = "%$fNameCccd%";
+        if (!empty($fName)) {
+            $query .= " AND ts.ho_va_ten LIKE ?";
+            $params[] = "%$fName%";
+        }
+
+        if (!empty($fCccd)) {
+            $query .= " AND c.so_cccd LIKE ?";
+            $params[] = "%$fCccd%";
         }
 
         if (!empty($fMaMon)) {
@@ -434,7 +439,8 @@ class CertificateScoreController extends Controller {
 
     public function export() {
         $searchValue = $_GET['search'] ?? '';
-        $fNameCccd = $_GET['f_name_cccd'] ?? '';
+        $fName = $_GET['f_name'] ?? '';
+        $fCccd = $_GET['f_cccd'] ?? '';
         $fMaMon = $_GET['f_ma_mon'] ?? '';
         $fGhiChu = $_GET['f_ghi_chu'] ?? '';
         $db = $this->model->getDb();
@@ -451,10 +457,14 @@ class CertificateScoreController extends Controller {
             $params[] = "%$searchValue%";
         }
 
-        if (!empty($fNameCccd)) {
-            $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
-            $params[] = "%$fNameCccd%";
-            $params[] = "%$fNameCccd%";
+        if (!empty($fName)) {
+            $query .= " AND ts.ho_va_ten LIKE ?";
+            $params[] = "%$fName%";
+        }
+
+        if (!empty($fCccd)) {
+            $query .= " AND c.so_cccd LIKE ?";
+            $params[] = "%$fCccd%";
         }
 
         if (!empty($fMaMon)) {

@@ -20,11 +20,15 @@ ob_start();
         border-right: 1px solid #e2e8f0 !important;
         vertical-align: middle !important;
         font-size: 13px !important;
-        color: #334155 !important;
         background-clip: padding-box;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    #certTable td {
+        font-weight: 400 !important;
+        text-transform: none !important;
+        color: #000000 !important;
     }
     #certTable th:first-child, #certTable td:first-child {
         border-left: 1px solid #e2e8f0 !important;
@@ -42,15 +46,15 @@ ob_start();
     }
 </style>
 
-<div class="p-6 h-full flex flex-col" x-data="certificateData()">
+<div class="p-4 h-full flex flex-col" x-data="certificateData()">
     <!-- Header Page Section -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
         <div>
             <div class="flex items-center gap-2.5">
                 <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
                 <h1 class="text-2xl font-black text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
             </div>
-            <div class="flex items-center gap-2 mt-1.5 ml-4">
+            <div class="flex items-center gap-2 mt-1 ml-4">
                 <p class="text-slate-500 text-sm font-medium">Tổng cộng: <span class="text-indigo-600 font-bold"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
                 <?php if ($activeSession): ?>
                     <span class="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
@@ -60,7 +64,7 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
-        <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
+        <div class="flex flex-wrap gap-4 w-full md:w-auto">
             <!-- Nút xóa hàng loạt -->
             <button id="btnDeleteSelected" @click="deleteSelected()" 
                 class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-rose-200 flex items-center gap-2 shadow-sm hover:shadow-rose-100/50 hover:scale-[1.02] active:scale-[0.98] hidden">
@@ -135,22 +139,24 @@ ob_start();
             <table id="certTable" class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                     <tr class="bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
-                        <th class="py-3 px-4 rounded-tl-xl text-center w-[45px]">
+                        <th class="py-3 px-4 rounded-tl-xl text-center w-[40px]">
                             <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-[#0066FF] focus:ring-indigo-500 cursor-pointer">
                         </th>
-                        <th class="py-3 px-4 w-[60px] text-center">ID</th>
-                        <th class="py-3 px-4 w-[110px] text-center">Thao tác</th>
-                        <th class="py-3 px-4 min-w-[220px]">Họ tên / CCCD</th>
-                        <th class="py-3 px-4 w-[110px] text-center">Mã Môn</th>
-                        <th class="py-3 px-4 w-[130px] text-center">Điểm Quy đổi</th>
-                        <th class="py-3 px-4 rounded-tr-xl">Ghi chú</th>
+                        <th class="py-3 px-4">Họ và tên</th>
+                        <th class="py-3 px-4 w-[150px]">Số CCCD</th>
+                        <th class="py-3 px-4 w-[100px] text-center">Mã Môn</th>
+                        <th class="py-3 px-4 w-[120px] text-center">Điểm Quy đổi</th>
+                        <th class="py-3 px-4">Ghi chú</th>
+                        <th class="py-3 px-4 w-[120px] rounded-tr-xl text-center">Thao tác</th>
                     </tr>
                     <tr class="bg-gray-50/50">
                         <th class="bg-white text-center"></th>
-                        <th class="bg-white text-center"></th>
-                        <th class="bg-white text-center"></th>
                         <th class="bg-white px-2 py-1">
-                            <input type="text" id="search_name_cccd" placeholder="Tên / CCCD..." 
+                            <input type="text" id="search_name" placeholder="Tên..." 
+                                class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium">
+                        </th>
+                        <th class="bg-white px-2 py-1">
+                            <input type="text" id="search_cccd" placeholder="CCCD..." 
                                 class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium">
                         </th>
                         <th class="bg-white px-2 py-1">
@@ -162,6 +168,7 @@ ob_start();
                             <input type="text" id="search_ghi_chu" placeholder="Tìm ghi chú..." 
                                 class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded outline-none focus:border-blue-400 font-medium">
                         </th>
+                        <th class="bg-white text-center"></th>
                     </tr>
                 </thead>
                 <tbody class="text-slate-700 text-sm"></tbody>
@@ -355,10 +362,11 @@ ob_start();
             },
 
             exportData() {
-                const nameCccd = $('#search_name_cccd').val() || '';
+                const name = $('#search_name').val() || '';
+                const cccd = $('#search_cccd').val() || '';
                 const maMon = $('#search_ma_mon').val() || '';
                 const ghiChu = $('#search_ghi_chu').val() || '';
-                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?f_name_cccd=' + encodeURIComponent(nameCccd) + '&f_ma_mon=' + encodeURIComponent(maMon) + '&f_ghi_chu=' + encodeURIComponent(ghiChu);
+                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?f_name=' + encodeURIComponent(name) + '&f_cccd=' + encodeURIComponent(cccd) + '&f_ma_mon=' + encodeURIComponent(maMon) + '&f_ghi_chu=' + encodeURIComponent(ghiChu);
             },
 
             editScore(row) {
@@ -520,12 +528,14 @@ ob_start();
         const table = $('#certTable').DataTable({
             processing: true,
             serverSide: true,
+            pageLength: 10,
             ajax: { 
                 url: '<?= url('/admin/certificate-scores/api-list') ?>', 
                 type: 'POST',
                 data: function(d) {
                     d._csrf_token = '<?= csrf_token() ?>';
-                    d.f_name_cccd = $('#search_name_cccd').val();
+                    d.f_name = $('#search_name').val();
+                    d.f_cccd = $('#search_cccd').val();
                     d.f_ma_mon = $('#search_ma_mon').val();
                     d.f_ghi_chu = $('#search_ghi_chu').val();
                 }
@@ -538,11 +548,30 @@ ob_start();
                     className: 'text-center align-middle',
                     render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-[#0066FF] focus:ring-indigo-500 cursor-pointer" value="${row.id}">`
                 },
-                { data: 'id', width: '60px', className: 'text-slate-400 font-mono text-xs align-middle text-center' },
+                { 
+                    data: 'ho_va_ten', 
+                    defaultContent: '<span class="text-slate-400 italic">Chưa đăng ký HS</span>',
+                    className: 'align-middle'
+                },
+                { 
+                    data: 'so_cccd', 
+                    className: 'align-middle font-mono w-[150px]'
+                },
+                { 
+                    data: 'ma_mon', 
+                    className: 'align-middle font-bold text-slate-700 text-center w-[100px]',
+                    render: (data) => `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-bold border border-slate-200">${data}</span>`
+                },
+                { 
+                    data: 'diem',
+                    className: 'align-middle text-center w-[120px]',
+                    render: (data) => `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold border border-emerald-100 shadow-sm">${data}</span>`
+                },
+                { data: 'ghi_chu', className: 'align-middle text-slate-600 whitespace-normal font-medium' },
                 {
                     data: null,
                     orderable: false,
-                    width: '110px',
+                    width: '120px',
                     className: 'text-center align-middle',
                     render: (data, type, row) => `
                         <div class="flex items-center justify-center gap-1.5">
@@ -556,38 +585,7 @@ ob_start();
                             </button>
                         </div>
                     `
-                },
-                { 
-                    data: 'ho_va_ten', 
-                    className: 'align-middle',
-                    render: (data, type, row) => {
-                        const nameHtml = data 
-                            ? `<div class="font-bold text-slate-800 uppercase">${data}</div>`
-                            : `<div class="text-slate-400 italic font-medium">Chưa đăng ký HS</div>`;
-                        return `
-                            <div class="flex items-center gap-2">
-                                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200 flex-shrink-0">
-                                    <i class="fas fa-user text-[10px]"></i>
-                                </div>
-                                <div>
-                                    ${nameHtml}
-                                    <div class="text-xs text-slate-400 font-mono">${row.so_cccd}</div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                },
-                { 
-                    data: 'ma_mon', 
-                    className: 'align-middle font-bold text-slate-700 text-center w-[110px]',
-                    render: (data) => `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-bold border border-slate-200">${data}</span>`
-                },
-                { 
-                    data: 'diem',
-                    className: 'align-middle text-center w-[130px]',
-                    render: (data) => `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold border border-emerald-100 shadow-sm">${data}</span>`
-                },
-                { data: 'ghi_chu', className: 'align-middle text-slate-600 whitespace-normal font-medium' }
+                }
             ],
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
             dom: '<"flex justify-between items-center bg-white p-4 border-b border-slate-200"<"flex items-center gap-2"l>>rt<"flex justify-between items-center p-4 bg-slate-50/50 border-t border-slate-200"ip>',
@@ -597,7 +595,7 @@ ob_start();
         });
 
         // Custom column-based search events
-        $('#search_name_cccd, #search_ma_mon, #search_ghi_chu').on('keyup change clear', function() {
+        $('#search_name, #search_cccd, #search_ma_mon, #search_ghi_chu').on('keyup change clear', function() {
             table.draw();
         });
         
