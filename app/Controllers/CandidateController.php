@@ -2199,6 +2199,7 @@ class CandidateController extends Controller
                 $existing = $existingRecordsMap[$cccd . '_' . $lop] ?? null;
                 $scoreData = [];
                 $changes = [];
+                $tempChanges = [];
 
                 foreach ($colMap as $colIdx => $dbCol) {
                     $val = trim($rowValues[$colIdx] ?? '');
@@ -2212,11 +2213,37 @@ class CandidateController extends Controller
                     
                     if ($newVal !== $oldVal) {
                         $scoreData[$dbCol] = $newVal;
-                        $label = $colNames[$dbCol] ?? $dbCol;
-                        $oldStr = $oldVal === null ? 'Trống' : $oldVal;
-                        $newStr = $newVal === null ? 'Trống' : $newVal;
-                        $changes[] = "$label ($oldStr -> $newStr)";
+                        $tempChanges[$dbCol] = [
+                            'old' => $oldVal,
+                            'new' => $newVal
+                        ];
                     }
+                }
+
+                // Check for equivalent transfer between GDCD and KTPL to avoid noise
+                $hasGdcdChange = isset($tempChanges['diem_gdcd_cn']);
+                $hasKtplChange = isset($tempChanges['diem_ktpl_cn']);
+                if ($hasGdcdChange && $hasKtplChange) {
+                    $gdcdOld = $tempChanges['diem_gdcd_cn']['old'];
+                    $gdcdNew = $tempChanges['diem_gdcd_cn']['new'];
+                    $ktplOld = $tempChanges['diem_ktpl_cn']['old'];
+                    $ktplNew = $tempChanges['diem_ktpl_cn']['new'];
+
+                    // Case 1: GDCD (Value -> Empty) and KTPL (Empty -> Same Value)
+                    if ($gdcdOld !== null && $gdcdNew === null && $ktplOld === null && $ktplNew !== null && abs($gdcdOld - $ktplNew) < 0.0001) {
+                        unset($tempChanges['diem_gdcd_cn'], $tempChanges['diem_ktpl_cn']);
+                    }
+                    // Case 2: KTPL (Value -> Empty) and GDCD (Empty -> Same Value)
+                    elseif ($ktplOld !== null && $ktplNew === null && $gdcdOld === null && $gdcdNew !== null && abs($ktplOld - $gdcdNew) < 0.0001) {
+                        unset($tempChanges['diem_gdcd_cn'], $tempChanges['diem_ktpl_cn']);
+                    }
+                }
+
+                foreach ($tempChanges as $dbCol => $cVals) {
+                    $label = $colNames[$dbCol] ?? $dbCol;
+                    $oldStr = $cVals['old'] === null ? 'Trống' : $cVals['old'];
+                    $newStr = $cVals['new'] === null ? 'Trống' : $cVals['new'];
+                    $changes[] = "$label ($oldStr -> $newStr)";
                 }
 
                 foreach ($textCols as $colIdx => $dbCol) {
@@ -2321,10 +2348,15 @@ class CandidateController extends Controller
                         }
                     }
 
-                    $changeDesc = "Cập nhật: " . implode(', ', $changes);
-                    $results[$index] = $changeDesc;
-                    if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS ($changeDesc)\n");
-                    $success++;
+                    if (!empty($changes)) {
+                        $changeDesc = "Cập nhật: " . implode(', ', $changes);
+                        $results[$index] = $changeDesc;
+                        if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> SUCCESS ($changeDesc)\n");
+                        $success++;
+                    } else {
+                        $results[$index] = 'Không thay đổi';
+                        if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE (Equivalent GDCD/KTPL Shift)\n");
+                    }
                 } else {
                     $results[$index] = 'Không thay đổi';
                     if ($logFile) fwrite($logFile, "Line $lineNum: CCCD $cccd (Lop $lop) -> NO CHANGE\n");
