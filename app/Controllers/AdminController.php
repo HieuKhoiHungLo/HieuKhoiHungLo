@@ -347,7 +347,8 @@ class AdminController extends Controller
         }
 
         try {
-            $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?");
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?");
             $success = $stmt->execute([$note, $cccd]);
             $this->json(['success' => $success]);
         } catch (\Exception $e) {
