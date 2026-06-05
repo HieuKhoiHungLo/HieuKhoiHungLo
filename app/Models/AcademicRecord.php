@@ -221,26 +221,27 @@ class AcademicRecord extends \App\Core\Model
     private function syncToNormalizedTable($cccd)
     {
         try {
-            // Map ma_mon to column suffix in ket_qua_hoc_tap
+            // Map cot_diem to column suffix in ket_qua_hoc_tap
             $monToCol = [
                 'toan' => 'toan',
                 'van' => 'van',
-                'ngoai_ngu' => 'ngoai_ngu',
+                'tieng_anh' => 'ngoai_ngu',
+                'tieng_trung' => 'ngoai_ngu',
                 'ly' => 'ly',
                 'hoa' => 'hoa',
                 'sinh' => 'sinh',
                 'su' => 'su',
                 'dia' => 'dia',
                 'gdcd' => 'gdcd',
-                'GDKTPL' => 'ktpl',
-                'cong_nghe' => 'cong_nghe',
+                'ktpl' => 'ktpl',
+                'cnnn' => 'cong_nghe',
                 'tin_hoc' => 'tin_hoc'
             ];
 
             // Get Subject Mapping based on our defined columns
             $monCodes = array_keys($monToCol);
             $placeholders = implode(',', array_fill(0, count($monCodes), '?'));
-            $stmt = $this->db->prepare("SELECT id, ma_mon FROM dm_mon WHERE ma_mon IN ($placeholders)");
+            $stmt = $this->db->prepare("SELECT id, cot_diem FROM dm_mon WHERE cot_diem IN ($placeholders)");
             $stmt->execute($monCodes);
             $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -257,7 +258,7 @@ class AcademicRecord extends \App\Core\Model
                 if (!$record) continue;
 
                 foreach ($subjects as $s) {
-                    $colKey = $monToCol[$s['ma_mon']] ?? null;
+                    $colKey = $monToCol[$s['cot_diem']] ?? null;
                     if (!$colKey) continue;
 
                     $dbCol = "diem_{$colKey}_cn";

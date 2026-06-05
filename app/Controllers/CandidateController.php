@@ -1937,21 +1937,22 @@ class CandidateController extends Controller
             $monToCol = [
                 'toan' => 'toan',
                 'van' => 'van',
-                'ngoai_ngu' => 'ngoai_ngu',
+                'tieng_anh' => 'ngoai_ngu',
+                'tieng_trung' => 'ngoai_ngu',
                 'ly' => 'ly',
                 'hoa' => 'hoa',
                 'sinh' => 'sinh',
                 'su' => 'su',
                 'dia' => 'dia',
                 'gdcd' => 'gdcd',
-                'GDKTPL' => 'ktpl',
-                'cong_nghe' => 'cong_nghe',
+                'ktpl' => 'ktpl',
+                'cnnn' => 'cong_nghe',
                 'tin_hoc' => 'tin_hoc'
             ];
-            $stmtMons = $this->db->query("SELECT id, ma_mon FROM dm_mon");
+            $stmtMons = $this->db->query("SELECT id, cot_diem FROM dm_mon WHERE cot_diem IS NOT NULL");
             $monIds = [];
             while ($m = $stmtMons->fetch(\PDO::FETCH_ASSOC)) {
-                $monIds[$m['ma_mon']] = $m['id'];
+                $monIds[$m['cot_diem']] = $m['id'];
             }
 
             $sessionModel = new \App\Models\AdmissionSession();
@@ -2332,11 +2333,11 @@ class CandidateController extends Controller
                     // Sync to diem_chi_tiet ONLY if Grade 12 is updated
                     if ((int)$lop === 12) {
                         $cccdsL12ToSync[] = $cccd;
-                        foreach ($monToCol as $maMon => $colSuffix) {
+                        foreach ($monToCol as $cotDiem => $colSuffix) {
                             $colName = "diem_{$colSuffix}_cn";
                             $score = isset($finalData[$colName]) && $finalData[$colName] !== '' ? (float)$finalData[$colName] : null;
                             if ($score !== null) {
-                                $monId = $monIds[$maMon] ?? null;
+                                $monId = $monIds[$cotDiem] ?? null;
                                 if ($monId) {
                                     $diemChiTietInserts[] = [
                                         'so_cccd' => $cccd,
