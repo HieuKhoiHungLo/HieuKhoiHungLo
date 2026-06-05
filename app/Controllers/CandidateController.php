@@ -444,6 +444,12 @@ class CandidateController extends Controller
                 $this->bulkResetPassword($ids);
                 break;
 
+            case 'update_note':
+                $this->checkPermission('review');
+                $note = $_POST['note'] ?? '';
+                $this->bulkUpdateNote($ids, $note);
+                break;
+
             default:
                 $this->redirect(url('/admin/dashboard?error=invalid_action'));
                 return;
@@ -471,6 +477,28 @@ class CandidateController extends Controller
             'count' => count($ids),
             'status' => $status
         ]);
+    }
+
+    /**
+     * Bulk update notes
+     */
+    protected function bulkUpdateNote($ids, $note)
+    {
+        if (empty($ids)) return;
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        try {
+            $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd IN ($placeholders)");
+            $params = array_merge([$note], $ids);
+            $stmt->execute($params);
+
+            $this->auditService->log('BULK_UPDATE_NOTE', 'candidates', null, null, [
+                'count' => count($ids),
+                'note' => $note
+            ]);
+        } catch (\PDOException $e) {
+            error_log("bulkUpdateNote PDO Error: " . $e->getMessage());
+        }
     }
 
     /**

@@ -33,6 +33,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                 <?php endif; ?>
                 <option value="send_email">Gửi thư</option>
                 <option value="change_password">Đổi mật khẩu</option>
+                <option value="update_note">Ghi chú</option>
                 <option value="delete">Xóa hồ sơ</option>
             </select>
 
@@ -697,6 +698,8 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
             openEmailModal();
         } else if (action === 'change_password') {
             openBulkPasswordModal();
+        } else if (action === 'update_note') {
+            openBulkNoteModal();
         }
     }
     
@@ -742,6 +745,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
             if (action === 'transfer') openTransferModal();
             else if (action === 'send_email') openEmailModal();
             else if (action === 'change_password') openBulkPasswordModal();
+            else if (action === 'update_note') openBulkNoteModal();
         }
     }
 
@@ -819,6 +823,39 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         };
 
         modal.classList.remove('hidden');
+    }
+
+    function openBulkNoteModal() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        if (checked.length === 0) {
+            if (typeof Toast !== 'undefined') Toast.warning('Vui lòng chọn ít nhất 1 hồ sơ');
+            else alert('Vui lòng chọn ít nhất 1 hồ sơ');
+            bulkActionSelect.value = '';
+            return;
+        }
+
+        Swal.fire({
+            title: 'Cập nhật Ghi chú hàng loạt',
+            html: `<div class="text-left mb-2 text-sm text-slate-600">Thay thế ghi chú cho <strong>\${checked.length}</strong> thí sinh đã chọn:</div>`,
+            input: 'textarea',
+            inputPlaceholder: 'Nhập nội dung ghi chú mới...',
+            inputValue: '',
+            inputAttributes: {
+                'aria-label': 'Nội dung ghi chú',
+                'rows': '4'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Lưu ghi chú',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#F59E0B',
+            cancelButtonColor: '#6B7280'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                submitBulk('update_note', { 'note': result.value });
+            } else {
+                bulkActionSelect.value = '';
+            }
+        });
     }
 
     function confirmBulkPassword() {
