@@ -2411,7 +2411,7 @@ class CandidateController extends Controller
                         fwrite($fp, $w['line'] . ',' . $cccdVal . ',' . $w['lop'] . ',' . $msgVal . "\r\n");
                     }
                     fclose($fp);
-                    $errorFileUrl = url('/public/uploads/imports/' . $resultFileName);
+                    $errorFileUrl = url('/uploads/imports/' . $resultFileName);
                 }
             }
 
@@ -2749,7 +2749,7 @@ class CandidateController extends Controller
                         fwrite($fp, $w['line'] . ',' . $cccdVal . ',' . $nameVal . ',' . $msgVal . "\r\n");
                     }
                     fclose($fp);
-                    $errorFileUrl = url('/public/uploads/imports/' . $resultFileName);
+                    $errorFileUrl = url('/uploads/imports/' . $resultFileName);
                 }
             }
 
