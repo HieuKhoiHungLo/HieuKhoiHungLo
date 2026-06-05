@@ -12,7 +12,7 @@ $subjects = [
     'su' => 'Lịch sử',
     'dia' => 'Địa lí',
     'gdcd' => 'GDKT & PL',
-    'cong_nghe' => 'Công nghệ',
+    'cong_nghe' => 'Công nghệ NN',
     'tin_hoc' => 'Tin học'
 ];
 

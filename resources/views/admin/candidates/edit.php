@@ -289,7 +289,7 @@ function submitForm() {
                                     'toan' => 'Toán', 'van' => 'Ngữ văn', 'ngoai_ngu' => 'Ngoại ngữ',
                                     'ly' => 'Vật lí', 'hoa' => 'Hóa học', 'sinh' => 'Sinh học',
                                     'su' => 'Lịch sử', 'dia' => 'Địa lí', 'gdcd' => 'GDKT & PL',
-                                    'cong_nghe' => 'Công nghệ', 'tin_hoc' => 'Tin học'
+                                    'cong_nghe' => 'Công nghệ NN', 'tin_hoc' => 'Tin học'
                                 ];
                                 ?>
                                 <?php foreach ($subjects as $key => $name): ?>

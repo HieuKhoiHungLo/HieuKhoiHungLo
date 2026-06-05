@@ -458,7 +458,7 @@ class AdminController extends Controller
             'ly' => 'Vật lí',
             'hoa' => 'Hóa học',
             'sinh' => 'Sinh học',
-            'cong_nghe' => 'Công nghệ',
+            'cong_nghe' => 'Công nghệ NN',
             'tin_hoc' => 'Tin học',
             'ngoai_ngu' => 'Ngoại ngữ'
         ];
