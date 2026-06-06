@@ -310,12 +310,12 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
                     <?php if ($mode !== 'all'): ?>
                     <th class="sticky-col sticky-col-trangthai bg-white px-2 py-1 relative">
-                        <select id="status_filter_select" aria-label="Lọc trạng thái" onchange="window.location.href=this.value" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
-                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => '', 'page' => 1])) ?>">(Trạng thái)</option>
-                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Chờ duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
-                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Đã duyệt', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
-                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Yêu cầu sửa', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Yêu cầu sửa' ? 'selected' : '' ?>>Yêu cầu sửa</option>
-                            <option value="<?= $baseUrl . '?' . http_build_query(array_merge($filters, ['status' => 'Từ chối', 'page' => 1])) ?>" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
+                        <select id="status_filter_select" name="status" data-filter-key="status" aria-label="Lọc trạng thái" onchange="window.applyCandidateFilters()" class="w-full text-[9px] border border-slate-200 rounded px-1 py-1 outline-none focus:border-blue-400 bg-white">
+                            <option value="" <?= ($filters['status'] ?? '') === '' ? 'selected' : '' ?>>(Trạng thái)</option>
+                            <option value="Chờ duyệt" <?= ($filters['status'] ?? '') == 'Chờ duyệt' ? 'selected' : '' ?>>Chờ duyệt</option>
+                            <option value="Đã duyệt" <?= ($filters['status'] ?? '') == 'Đã duyệt' ? 'selected' : '' ?>>Đã duyệt</option>
+                            <option value="Yêu cầu sửa" <?= ($filters['status'] ?? '') == 'Yêu cầu sửa' ? 'selected' : '' ?>>Yêu cầu sửa</option>
+                            <option value="Từ chối" <?= ($filters['status'] ?? '') == 'Từ chối' ? 'selected' : '' ?>>Từ chối</option>
                         </select>
                     </th>
                     <?php endif; ?>
