@@ -307,7 +307,10 @@
             <button type="button" onclick="closeReviewModal()" class="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">
                 Hủy bỏ
             </button>
-            <button type="button" id="btnConfirmSubmit" onclick="confirmSubmitReview()" class="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
+            <button type="button" id="btnConfirmSaveOnly" onclick="confirmSubmitReview(false)" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
+                <i class="fas fa-save mr-2"></i> Lưu
+            </button>
+            <button type="button" id="btnConfirmSubmit" onclick="confirmSubmitReview(true)" class="px-6 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center">
                 <i class="fas fa-paper-plane mr-2"></i> Lưu & Gửi Email
             </button>
         </div>
@@ -752,11 +755,16 @@ updateActionBarOffset();
         });
     }
 
-    function confirmSubmitReview() {
-        const btn = document.getElementById('btnConfirmSubmit');
+    function confirmSubmitReview(sendEmail = true) {
+        const btnId = sendEmail ? 'btnConfirmSubmit' : 'btnConfirmSaveOnly';
+        const btn = document.getElementById(btnId);
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...';
-        btn.disabled = true;
+        
+        // Disable both buttons
+        document.getElementById('btnConfirmSubmit').disabled = true;
+        const saveOnlyBtn = document.getElementById('btnConfirmSaveOnly');
+        if (saveOnlyBtn) saveOnlyBtn.disabled = true;
         
         Loading.show();
         const form = document.getElementById('reviewForm');
@@ -766,6 +774,7 @@ updateActionBarOffset();
         const masterNote = document.getElementById('modal_master_note').value;
         formData.append('master_status', masterStatus);
         formData.append('master_note', masterNote);
+        formData.append('send_email', sendEmail ? '1' : '0');
 
         fetch(form.action, {
                 method: 'POST',
@@ -780,7 +789,8 @@ updateActionBarOffset();
                 } else {
                     Loading.hide();
                     btn.innerHTML = originalHtml;
-                    btn.disabled = false;
+                    document.getElementById('btnConfirmSubmit').disabled = false;
+                    if (saveOnlyBtn) saveOnlyBtn.disabled = false;
                     closeReviewModal();
                     if (typeof Toast !== 'undefined') Toast.error(data.error || 'Có lỗi xảy ra');
                 }
@@ -788,7 +798,8 @@ updateActionBarOffset();
             .catch(err => {
                 Loading.hide();
                 btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                document.getElementById('btnConfirmSubmit').disabled = false;
+                if (saveOnlyBtn) saveOnlyBtn.disabled = false;
                 closeReviewModal();
                 if (typeof Toast !== 'undefined') Toast.error('Lỗi kết nối: ' + err.message);
             });

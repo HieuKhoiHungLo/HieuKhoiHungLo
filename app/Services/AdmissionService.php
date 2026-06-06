@@ -73,7 +73,8 @@ class AdmissionService
             $email = $candidate['email'] ?? null;
             $hoTen = $candidate['ho_va_ten'] ?? null;
         }
-        if (!empty($email)) {
+        $sendEmail = isset($reviewData['send_email']) ? filter_var($reviewData['send_email'], FILTER_VALIDATE_BOOLEAN) : true;
+        if ($sendEmail && !empty($email)) {
             $resultHtml = $this->emailService->buildReviewResultHtml($reviewResults);
             $generalNote = '';
             if ($finalStatus === \App\Core\UserStatus::REJECTED) {
