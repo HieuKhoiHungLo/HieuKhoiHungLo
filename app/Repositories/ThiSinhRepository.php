@@ -336,7 +336,9 @@ class ThiSinhRepository
             
             $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, ghi_chu = ?, yeu_cau_chinh_sua = FALSE";
             $params2 = [$status, $ghiChuValue];
-            if ($reviewerId !== null) {
+            if ($status === 'Chờ duyệt') {
+                $sql2 .= ", nguoi_duyet_id = NULL";
+            } elseif ($reviewerId !== null) {
                 $sql2 .= ", nguoi_duyet_id = ?";
                 $params2[] = $reviewerId;
             }
@@ -491,7 +493,7 @@ class ThiSinhRepository
 
     public function approveEditRequest($cccd)
     {
-        $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = FALSE, trang_thai = 'Chờ duyệt' WHERE so_cccd = ? AND yeu_cau_chinh_sua = TRUE");
+        $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET yeu_cau_chinh_sua = FALSE, trang_thai = 'Chờ duyệt', nguoi_duyet_id = NULL WHERE so_cccd = ? AND yeu_cau_chinh_sua = TRUE");
         return $stmt->execute([$cccd]);
     }
 
@@ -516,7 +518,9 @@ class ThiSinhRepository
             $params[] = $note;
         }
 
-        if ($reviewerId !== null) {
+        if ($status === 'Chờ duyệt') {
+            $sql .= ", nguoi_duyet_id = NULL";
+        } elseif ($reviewerId !== null) {
             $sql .= ", nguoi_duyet_id = ?";
             $params[] = $reviewerId;
         }
@@ -661,6 +665,10 @@ class ThiSinhRepository
     {
         $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = :status";
         $params = ['status' => $status, 'cccd' => $cccd];
+
+        if ($status === 'Chờ duyệt') {
+            $sql .= ", nguoi_duyet_id = NULL";
+        }
 
         if ($notes !== null) {
             $sql .= ", ghi_chu = :notes";
