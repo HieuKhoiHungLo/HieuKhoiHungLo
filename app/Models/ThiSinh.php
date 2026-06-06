@@ -412,15 +412,16 @@ class ThiSinh extends Model {
             $candidate['statuses'] = $statusMap[$cccd] ?? '';
             $candidate['master_status'] = $statusMapHoso[$cccd] ?? ''; // Use ho_so_xet_tuyen status
             
-            // Combine base_ghi_chu (from thi_sinh) and ghi_chu (aggregated from ho_so_xet_tuyen)
+            // Prioritize the application/review note (which includes transcript note suffixes).
+            // If it is set, it replaces/overrides the base candidate note (thi_sinh note).
             $hosoNotes = $noteMap[$cccd] ?? '';
             $baseNote = $candidate['base_ghi_chu'] ?? '';
             
-            $combinedNotes = [];
-            if (!empty($baseNote)) $combinedNotes[] = $baseNote;
-            if (!empty($hosoNotes)) $combinedNotes[] = $hosoNotes;
-            
-            $candidate['ghi_chu'] = implode("\n", array_unique($combinedNotes));
+            if (!empty($hosoNotes)) {
+                $candidate['ghi_chu'] = $hosoNotes;
+            } else {
+                $candidate['ghi_chu'] = $baseNote;
+            }
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
         }
 

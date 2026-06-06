@@ -488,15 +488,28 @@ class CandidateController extends Controller
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
         try {
+            $this->db->beginTransaction();
+
+            // 1. Update ho_so_xet_tuyen (Admission profile note)
             $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd IN ($placeholders)");
             $params = array_merge([$note], $ids);
             $stmt->execute($params);
+
+            // 2. Update thi_sinh (Candidate note)
+            $stmt2 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd IN ($placeholders)");
+            $params2 = array_merge([$note], $ids);
+            $stmt2->execute($params2);
+
+            $this->db->commit();
 
             $this->auditService->log('BULK_UPDATE_NOTE', 'candidates', null, null, [
                 'count' => count($ids),
                 'note' => $note
             ]);
         } catch (\PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("bulkUpdateNote PDO Error: " . $e->getMessage());
         }
     }

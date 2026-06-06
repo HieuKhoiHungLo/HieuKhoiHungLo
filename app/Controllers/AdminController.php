@@ -348,10 +348,22 @@ class AdminController extends Controller
 
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
+            $db->beginTransaction();
+
+            // 1. Update ho_so_xet_tuyen
             $stmt = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?");
-            $success = $stmt->execute([$note, $cccd]);
-            $this->json(['success' => $success]);
+            $stmt->execute([$note, $cccd]);
+
+            // 2. Update thi_sinh
+            $stmt2 = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+            $stmt2->execute([$note, $cccd]);
+
+            $db->commit();
+            $this->json(['success' => true]);
         } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             $this->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
