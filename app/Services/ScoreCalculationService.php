@@ -829,7 +829,11 @@ class ScoreCalculationService {
         
         $averages = [];
         foreach ($sums as $id => $total) {
-            if ($counts[$id] > 0) $averages[$id] = round($total / $counts[$id], 3);
+            if ($counts[$id] === 3) {
+                $averages[$id] = round($total / 3, 3);
+            } else {
+                $averages[$id] = 0.0;
+            }
         }
         return $averages;
     }

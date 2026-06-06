@@ -52,8 +52,75 @@ class ScoreCalculator {
             $scores[$row['loai_diem']][$row['mon_id']] = (float)$row['diem'];
         }
 
+        // Fetch raw academic records to calculate 3-year averages for transcript
+        $records = $this->academicModel->getByCCCD($cccd);
+        
+        $aliases = [
+            'toan' => ['TOAN', 'TO'],
+            'van' => ['VAN', 'NGU_VAN', 'VA'],
+            'ngoai_ngu' => ['ANH', 'TIENG_ANH', 'NGOAI_NGU', 'TA', 'NN', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6'],
+            'ly' => ['LY', 'VAT_LY', 'VAT LI', 'LI'],
+            'hoa' => ['HOA', 'HOA_HOC', 'HO'],
+            'sinh' => ['SINH', 'SINH_HOC', 'SI'],
+            'su' => ['SU', 'LICH_SU'],
+            'dia' => ['DIA', 'DIA_LY', 'DI'],
+            'gdcd' => ['GDCD', 'GD'],
+            'ktpl' => ['GDKT_PL', 'KTPL', 'GDKTPL'],
+            'cong_nghe' => ['CONG_NGHE', 'CN'],
+            'tin_hoc' => ['TIN', 'TIN_HOC', 'TH']
+        ];
+        
+        $stmtM = $db->query("SELECT id, ma_mon FROM dm_mon");
+        $subjects = $stmtM->fetchAll(\PDO::FETCH_ASSOC);
+        $subjectCodeToId = [];
+        foreach ($subjects as $s) {
+            $subjectCodeToId[strtoupper($s['ma_mon'])] = $s['id'];
+        }
+
+        $colToMonId = [];
+        foreach ($aliases as $colName => $possibleCodes) {
+            foreach ($possibleCodes as $code) {
+                if (isset($subjectCodeToId[$code])) {
+                    $colToMonId[$colName] = $subjectCodeToId[$code];
+                    break;
+                }
+            }
+        }
+
+        $sums = [];
+        $counts = [];
+        foreach ($records as $r) {
+            foreach ($colToMonId as $colKey => $monId) {
+                $colPrefix = ($colKey == 'ngoai_ngu') ? "diem_ngoai_ngu" : "diem_{$colKey}";
+                $valCn = isset($r["{$colPrefix}_cn"]) && $r["{$colPrefix}_cn"] !== '' ? (float)$r["{$colPrefix}_cn"] : null;
+                
+                // Fallback chéo giữa GDCD và GDKTPL
+                if ($colKey === 'gdcd' && $valCn === null) {
+                    $valCn = isset($r["diem_ktpl_cn"]) && $r["diem_ktpl_cn"] !== '' ? (float)$r["diem_ktpl_cn"] : null;
+                }
+                if ($colKey === 'ktpl' && $valCn === null) {
+                    $valCn = isset($r["diem_gdcd_cn"]) && $r["diem_gdcd_cn"] !== '' ? (float)$r["diem_gdcd_cn"] : null;
+                }
+
+                if ($valCn !== null) {
+                    if (!isset($sums[$monId])) { $sums[$monId] = 0; $counts[$monId] = 0; }
+                    $sums[$monId] += $valCn;
+                    $counts[$monId]++;
+                }
+            }
+        }
+        
+        $hbAverages = [];
+        foreach ($sums as $id => $total) {
+            if ($counts[$id] === 3) {
+                $hbAverages[$id] = round($total / 3, 3);
+            } else {
+                $hbAverages[$id] = 0.0;
+            }
+        }
+
         // 3. Fetch External Aptitude Scores
-        $stmtExt = $db->prepare("SELECT ma_mon, diem FROM diem_nang_khieu_ngoai WHERE so_cccd = ?");
+        $stmtExt = $db->prepare("SELECT ma_mon, diem FROM diem_nang_khieu WHERE so_cccd = ?");
         $stmtExt->execute([$cccd]);
         $extScores = $stmtExt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -75,9 +142,9 @@ class ScoreCalculator {
         $langRecord = $langScoreModel->getByCCCD($cccd);
         $convertedLangScore = $langRecord ? (float)$langRecord['diem_quy_doi'] : 0;
 
-        // Get Transcript Weight Ratio
-        $start = $db->query("SELECT value FROM settings WHERE key = 'transcript_weight_ratio'");
-        $weightRatio = (float)($start->fetchColumn() ?: 1.0);
+        // Get Transcript Weight Ratio from cau_hinh
+        $start = $db->query("SELECT value FROM cau_hinh WHERE key = 'he_so_hoc_ba' LIMIT 1");
+        $weightRatio = (float)($start->fetchColumn() ?: 0.95);
 
         $bestResult = [
             'total' => 0,
@@ -132,8 +199,8 @@ class ScoreCalculator {
             $hbValid = true;
 
             foreach ($subjectIds as $sId) {
-                // Prefer CN_12, fallback to others if logic dictates (currently just CN_12 based on requirements)
-                $rawScore = $scores['HB_CN_12'][$sId] ?? ($scores['NK'][$sId] ?? 0);
+                // Use 3-year average instead of only CN_12
+                $rawScore = $hbAverages[$sId] ?? ($scores['NK'][$sId] ?? 0);
 
                  // Handle Lang Cert for Transcript too? Usually Yes.
                  $subMeta = $subjectsMetadata[$sId] ?? null;
