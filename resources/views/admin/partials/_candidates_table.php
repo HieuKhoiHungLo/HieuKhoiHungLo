@@ -841,7 +841,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
 
         Swal.fire({
             title: 'Cập nhật Ghi chú hàng loạt',
-            html: `<div class="text-left mb-2 text-sm text-slate-600">Thay thế ghi chú cho <strong>\${checked.length}</strong> thí sinh đã chọn:</div>`,
+            html: '<div class="text-left mb-2 text-sm text-slate-600">Thay thế ghi chú cho <strong>' + checked.length + '</strong> thí sinh đã chọn:</div>',
             input: 'textarea',
             inputPlaceholder: 'Nhập nội dung ghi chú mới...',
             inputValue: '',
