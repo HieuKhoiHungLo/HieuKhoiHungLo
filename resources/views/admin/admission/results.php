@@ -256,43 +256,51 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </div>
         </div>
 
-        <div class="overflow-x-auto custom-scrollbar flex-1">
-            <table class="w-full text-left border-collapse whitespace-nowrap" id="resultsTable">
+        <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left whitespace-nowrap border border-slate-300" id="resultsTable" style="border-collapse:collapse">
                 <thead>
-                    <tr class="bg-slate-100/80 text-slate-500 uppercase tracking-[0.15em] text-[10px] font-black border-b border-slate-200 sticky top-0 z-10">
-                        <th class="py-4 px-3 text-center w-10"><input type="checkbox" class="hidden"></th>
-                        <th class="py-4 px-3 text-center w-12">STT</th>
-                        <th class="py-4 px-4">Ngành</th>
-                        <th class="py-4 px-3 text-center w-10">NV</th>
-                        <th class="py-4 px-3 text-center w-12">NV Bộ</th>
-                        <th class="py-4 px-4">CCCD</th>
-                        <th class="py-4 px-4">Họ và Tên</th>
-                        <th class="py-4 px-3">KV/ĐT</th>
-                        <th class="py-4 px-4">Tổ hợp / PT</th>
-                        <th class="py-4 px-4">Điểm chi tiết</th>
-                        <th class="py-4 px-3 text-center">Điểm XT</th>
-                        <th class="py-4 px-3 text-center">Trạng thái</th>
-                        <th class="py-4 px-3 text-center w-10"></th>
+                    <tr class="bg-gray-100 text-gray-700 text-xs">
+                        <th class="border border-slate-300 py-2 px-2 text-center w-8">
+                            <input type="checkbox" id="selectAllInline" onchange="toggleSelectAll(this.checked)" class="w-3.5 h-3.5">
+                        </th>
+                        <th class="border border-slate-300 py-2 px-2 text-center w-10">STT</th>
+                        <th class="border border-slate-300 py-2 px-3">Mã ngành</th>
+                        <th class="border border-slate-300 py-2 px-3">Tên ngành</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center w-10">NV</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center w-14">NV Bộ</th>
+                        <th class="border border-slate-300 py-2 px-3">CCCD</th>
+                        <th class="border border-slate-300 py-2 px-3">Họ và Tên</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">KV</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">ĐT UT</th>
+                        <th class="border border-slate-300 py-2 px-3">Tổ hợp</th>
+                        <th class="border border-slate-300 py-2 px-3">Phương thức</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">M1</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">M2</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">M3</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">UT</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">Điểm XT</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center w-20">Kết quả</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center w-8"></th>
                     </tr>
                 </thead>
-                <tbody id="tableBody" class="divide-y divide-slate-100 text-[11px]">
-                    <tr><td colspan="13" class="py-20 text-center"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
+                <tbody id="tableBody" class="text-xs text-gray-900">
+                    <tr><td colspan="19" class="py-16 text-center border border-slate-200"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
                 </tbody>
             </table>
         </div>
 
         <!-- Pagination -->
-        <div class="px-4 py-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Hiện</span>
+        <div class="px-4 py-2 bg-white border-t border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+                Hiện
                 <select id="pageLengthSelect" onchange="reloadTable()"
-                    class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-600">
+                    class="border border-slate-300 rounded px-2 py-1 text-xs text-gray-700 bg-white">
+                    <option value="10" selected>10</option>
                     <option value="25">25</option>
-                    <option value="50" selected>50</option>
+                    <option value="50">50</option>
                     <option value="100">100</option>
-                    <option value="200">200</option>
                 </select>
-                <span class="text-[10px] font-bold text-slate-400 uppercase">/ trang</span>
+                / trang
             </div>
             <div id="paginationControls" class="flex items-center gap-1"></div>
         </div>
@@ -693,7 +701,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
 <script>
 // State
 let currentPage = 0;
-let pageLength = 50;
+let pageLength = 10;
 let totalRecords = 0;
 let filteredRecords = 0;
 let drawCounter = 0;
@@ -735,7 +743,7 @@ function toggleMajorStats() {
 
 function reloadTable() {
     drawCounter++;
-    pageLength = parseInt(document.getElementById('pageLengthSelect').value) || 50;
+    pageLength = parseInt(document.getElementById('pageLengthSelect').value) || 10;
     const search = document.getElementById('searchInput').value;
     const major = document.getElementById('majorFilter').value;
     const status = document.getElementById('statusFilter').value;
@@ -766,10 +774,7 @@ function reloadTable() {
 function renderTable(rows, startIndex) {
     const tbody = document.getElementById('tableBody');
     if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="py-20 text-center">
-            <i class="fas fa-inbox text-slate-200 text-4xl block mb-3"></i>
-            <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">Không có dữ liệu phù hợp</p>
-        </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="19" class="py-16 text-center border border-slate-200 text-gray-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
         return;
     }
 
@@ -778,64 +783,51 @@ function renderTable(rows, startIndex) {
         const isPass = row.is_pass;
         const details = row.chi_tiet_diem || {};
         const checked = selectedIds.has(row.id) ? 'checked' : '';
-        const nhomLabels = {SuPham:'SP', SuPhamDacThu:'SPĐT', DieuDuong:'ĐD'};
-        const nhomBadge = nhomLabels[row.nhom_nganh] || '';
+        const rowBg = isPass ? '' : 'bg-gray-50 text-gray-400';
+        const utAmt = (details.priority_converted || 0) > 0 ? '+' + fmt(details.priority_converted) : '-';
 
-        html += `<tr class="hover:bg-indigo-50/30 transition-all group ${isPass ? '' : 'opacity-60'}">
-            <td class="py-3 px-3 text-center">
-                <input type="checkbox" class="rowCheck w-3.5 h-3.5 rounded border-slate-300 text-indigo-600" 
+        html += `<tr class="${rowBg} hover:bg-blue-50 transition-colors">
+            <td class="border border-slate-200 py-1.5 px-2 text-center">
+                <input type="checkbox" class="rowCheck w-3.5 h-3.5"
                     data-id="${row.id}" ${checked} onchange="toggleRowSelect(${row.id}, this.checked)">
             </td>
-            <td class="py-3 px-3 text-center text-slate-300 font-black">${startIndex + i + 1}</td>
-            <td class="py-3 px-4">
-                <span class="text-indigo-600 font-black text-[10px]">${row.ma_nganh}</span>
-                <p class="text-[9px] text-slate-400 font-medium truncate max-w-[140px]" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</p>
-                ${nhomBadge ? `<span class="px-1 py-0.5 text-[7px] font-black rounded bg-indigo-50 text-indigo-500 border border-indigo-100">${nhomBadge}</span>` : ''}
+            <td class="border border-slate-200 py-1.5 px-2 text-center text-gray-500">${startIndex + i + 1}</td>
+            <td class="border border-slate-200 py-1.5 px-3 font-mono">${row.ma_nganh}</td>
+            <td class="border border-slate-200 py-1.5 px-3 max-w-[180px]">
+                <span class="truncate block" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
             </td>
-            <td class="py-3 px-3 text-center">
-                <span class="w-6 h-6 inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-600 font-black text-[10px] border border-slate-200">${row.thu_tu_nguyen_vong || '-'}</span>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.thu_tu_nguyen_vong || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.thu_tu_nv_bo || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-3 font-mono">
+                <a href="${REVIEW_URL}?cccd=${row.so_cccd}&tab=wishes" target="_blank"
+                   class="text-blue-700 hover:underline">${row.so_cccd}</a>
             </td>
-            <td class="py-3 px-3 text-center">
-                ${row.thu_tu_nv_bo ? `<span class="w-6 h-6 inline-flex items-center justify-center rounded-md bg-indigo-50 text-indigo-600 font-black text-[10px] border border-indigo-100">${row.thu_tu_nv_bo}</span>` : '<span class="text-slate-300">-</span>'}
-            </td>
-            <td class="py-3 px-4">
-                <a href="${REVIEW_URL}?cccd=${row.so_cccd}&tab=wishes" target="_blank" 
-                   class="font-mono text-slate-600 font-bold hover:text-indigo-600 hover:underline transition-colors">${row.so_cccd}</a>
-            </td>
-            <td class="py-3 px-4">
+            <td class="border border-slate-200 py-1.5 px-3 min-w-[140px]">
                 <a href="${REVIEW_URL}?cccd=${row.so_cccd}" target="_blank"
-                   class="font-black text-slate-800 uppercase text-[10px] tracking-tight group-hover:text-indigo-600 transition-colors">${escHtml(row.ho_va_ten)}</a>
+                   class="hover:text-blue-700 hover:underline">${escHtml(row.ho_va_ten)}</a>
             </td>
-            <td class="py-3 px-3">
-                <div class="flex gap-1">
-                    ${row.khu_vuc_uu_tien ? `<span class="px-1.5 py-0.5 text-[8px] font-black rounded bg-sky-50 text-sky-600 border border-sky-100">${row.khu_vuc_uu_tien}</span>` : ''}
-                    ${row.doi_tuong_uu_tien ? `<span class="px-1.5 py-0.5 text-[8px] font-black rounded bg-amber-50 text-amber-600 border border-amber-100">${row.doi_tuong_uu_tien}</span>` : ''}
-                </div>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.khu_vuc_uu_tien || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.doi_tuong_uu_tien || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-3">${escHtml(row.to_hop_toi_uu || '-')}</td>
+            <td class="border border-slate-200 py-1.5 px-3 max-w-[120px]">
+                <span class="truncate block text-gray-500" title="${escHtml(row.phuong_thuc_toi_uu || row.phuong_thuc_xet_tuyen || '')}">${escHtml(row.phuong_thuc_toi_uu || row.phuong_thuc_xet_tuyen || '-')}</span>
             </td>
-            <td class="py-3 px-4">
-                <span class="font-black text-slate-700 text-[10px]">${escHtml(row.to_hop_toi_uu || '-')}</span>
-                <p class="text-[8px] font-bold text-slate-400 uppercase">${escHtml(row.phuong_thuc_toi_uu || row.phuong_thuc_xet_tuyen || '')}</p>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_1)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_2)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_3)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${utAmt}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center font-semibold ${isPass ? 'text-green-700' : 'text-gray-400'}">
+                ${row.diem_xet_tuyen != null ? parseFloat(row.diem_xet_tuyen).toFixed(2) : '-'}
             </td>
-            <td class="py-3 px-4">
-                <div class="flex items-center gap-1 font-bold">
-                    <span class="w-8 text-center py-0.5 bg-slate-50 rounded text-slate-500 text-[10px]">${fmt(row.diem_mon_1)}</span>
-                    <span class="w-8 text-center py-0.5 bg-slate-50 rounded text-slate-500 text-[10px]">${fmt(row.diem_mon_2)}</span>
-                    <span class="w-8 text-center py-0.5 bg-slate-50 rounded text-slate-500 text-[10px]">${fmt(row.diem_mon_3)}</span>
-                    ${(details.priority_raw || 0) > 0 ? `<span class="px-1 py-0.5 bg-amber-50 text-amber-600 rounded text-[8px] font-black border border-amber-100">+${fmt(details.priority_converted || 0)}</span>` : ''}
-                </div>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">
+                ${isPass
+                    ? '<span class="text-green-700">Đỗ</span>'
+                    : '<span class="text-red-500">Trượt</span>'}
             </td>
-            <td class="py-3 px-3 text-center">
-                <span class="text-base font-black ${isPass ? 'text-indigo-700' : 'text-slate-400'}">${row.diem_xet_tuyen != null ? parseFloat(row.diem_xet_tuyen).toFixed(2) : '-'}</span>
-            </td>
-            <td class="py-3 px-3 text-center">
-                ${isPass 
-                    ? '<span class="inline-flex items-center px-2 py-1 rounded-lg text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase"><i class="fas fa-check-circle mr-1"></i>ĐỖ</span>'
-                    : '<span class="inline-flex items-center px-2 py-1 rounded-lg text-[8px] font-black bg-rose-50 text-rose-500 border border-rose-200 uppercase"><i class="fas fa-times-circle mr-1"></i>TRƯỢT</span>'}
-            </td>
-            <td class="py-3 px-3 text-center">
-                <a href="${REVIEW_URL}?cccd=${row.so_cccd}" target="_blank" 
-                   class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-400 hover:text-indigo-600 transition-all" title="Xem hồ sơ">
-                    <i class="fas fa-external-link-alt text-[9px]"></i>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">
+                <a href="${REVIEW_URL}?cccd=${row.so_cccd}" target="_blank"
+                   class="text-gray-400 hover:text-blue-600 transition-colors" title="Xem hồ sơ">
+                    <i class="fas fa-external-link-alt text-[10px]"></i>
                 </a>
             </td>
         </tr>`;
@@ -848,27 +840,26 @@ function renderPagination() {
     const container = document.getElementById('paginationControls');
     if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-    let html = '';
-    html += `<button onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''} 
-        class="w-8 h-8 rounded-lg text-[10px] font-black ${currentPage === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'} transition-all flex items-center justify-center">
-        <i class="fas fa-chevron-left"></i></button>`;
+    const btn = (label, page, active = false, disabled = false) => {
+        if (disabled) return `<button disabled class="px-2.5 py-1 text-xs border border-slate-200 rounded text-gray-300 cursor-not-allowed bg-white">${label}</button>`;
+        if (active)  return `<button class="px-2.5 py-1 text-xs border border-blue-600 rounded bg-blue-600 text-white font-semibold">${label}</button>`;
+        return `<button onclick="goPage(${page})" class="px-2.5 py-1 text-xs border border-slate-300 rounded bg-white text-gray-700 hover:bg-gray-100 transition-colors">${label}</button>`;
+    };
 
-    const maxBtns = 7;
+    let html = btn('«', currentPage - 1, false, currentPage === 0);
+    html += btn('‹', currentPage - 1, false, currentPage === 0);
+
+    const maxBtns = 5;
     let startP = Math.max(0, currentPage - Math.floor(maxBtns / 2));
     let endP = Math.min(totalPages, startP + maxBtns);
     if (endP - startP < maxBtns) startP = Math.max(0, endP - maxBtns);
 
-    if (startP > 0) html += `<button onclick="goPage(0)" class="w-8 h-8 rounded-lg text-[10px] font-black text-slate-600 hover:bg-indigo-50 transition-all">1</button><span class="text-slate-300 text-xs">…</span>`;
-    
-    for (let p = startP; p < endP; p++) {
-        html += `<button onclick="goPage(${p})" class="w-8 h-8 rounded-lg text-[10px] font-black ${p === currentPage ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'} transition-all">${p + 1}</button>`;
-    }
-    
-    if (endP < totalPages) html += `<span class="text-slate-300 text-xs">…</span><button onclick="goPage(${totalPages - 1})" class="w-8 h-8 rounded-lg text-[10px] font-black text-slate-600 hover:bg-indigo-50 transition-all">${totalPages}</button>`;
+    if (startP > 0) html += `<span class="px-1 text-gray-400 text-xs">…</span>`;
+    for (let p = startP; p < endP; p++) html += btn(p + 1, p, p === currentPage);
+    if (endP < totalPages) html += `<span class="px-1 text-gray-400 text-xs">…</span>`;
 
-    html += `<button onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''} 
-        class="w-8 h-8 rounded-lg text-[10px] font-black ${currentPage >= totalPages - 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'} transition-all flex items-center justify-center">
-        <i class="fas fa-chevron-right"></i></button>`;
+    html += btn('›', currentPage + 1, false, currentPage >= totalPages - 1);
+    html += btn('»', totalPages - 1, false, currentPage >= totalPages - 1);
 
     container.innerHTML = html;
 }
