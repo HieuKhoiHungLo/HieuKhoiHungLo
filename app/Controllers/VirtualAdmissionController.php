@@ -342,6 +342,7 @@ class VirtualAdmissionController extends Controller {
     }
 
     private function doExportWithFilter($sessionId, $type = 'all') {
+        set_time_limit(600); // Cho phép tối đa 10 phút - an toàn cho dữ liệu lớn
 
         // Fetch combinations to map to_hop_toi_uu to rich label and get subject IDs
         $combos = $this->db->query("
@@ -400,6 +401,22 @@ class VirtualAdmissionController extends Controller {
         $academicMap = [];
         while ($ar = $academicRows->fetch(PDO::FETCH_ASSOC)) {
             $academicMap[$ar['so_cccd']][$ar['lop']] = $ar;
+        }
+
+        // Pre-load SBD (số báo danh) for all candidates - tránh N+1 query
+        $sbdStmt = $this->db->prepare("
+            SELECT DISTINCT ON (so_cccd) so_cccd, sbd
+            FROM diem_nang_khieu
+            WHERE so_cccd IN (
+                SELECT DISTINCT so_cccd FROM nguyen_vong
+                WHERE dot_tuyen_sinh_id = ?
+            )
+            ORDER BY so_cccd, id ASC
+        ");
+        $sbdStmt->execute([$sessionId]);
+        $sbdMap = [];
+        while ($sbdRow = $sbdStmt->fetch(PDO::FETCH_ASSOC)) {
+            $sbdMap[$sbdRow['so_cccd']] = $sbdRow['sbd'] ?? '';
         }
 
         // Xây dựng WHERE / ORDER BY / filename theo loại xuất
@@ -518,12 +535,7 @@ class VirtualAdmissionController extends Controller {
                     $formattedNgaySinh = date('d/m/Y', strtotime($row['ngay_sinh']));
                 }
                 
-                $sbd = '';
-                if (!empty($row['so_cccd'])) {
-                    $sbdStmt = $this->db->prepare("SELECT sbd FROM diem_nang_khieu WHERE so_cccd = ? LIMIT 1");
-                    $sbdStmt->execute([$row['so_cccd']]);
-                    $sbd = $sbdStmt->fetchColumn() ?: '';
-                }
+                $sbd = $sbdMap[$row['so_cccd']] ?? '';
 
                 $detail = null;
                 if (!empty($row['chi_tiet_diem'])) {
