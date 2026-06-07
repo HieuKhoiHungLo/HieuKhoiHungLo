@@ -828,7 +828,16 @@ class ThiSinh extends Model {
         $sql = "UPDATE {$this->table} SET " . implode(', ', $sets) . " WHERE so_cccd = ?";
         
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
+        $res = $stmt->execute($params);
+        if ($res) {
+            try {
+                $stmtTouch = $this->db->prepare("UPDATE nguyen_vong SET updated_at = CURRENT_TIMESTAMP WHERE so_cccd = ?");
+                $stmtTouch->execute([$cccd]);
+            } catch (\Exception $e) {
+                error_log("Failed to touch nguyen_vong in ThiSinh::updateFullProfile: " . $e->getMessage());
+            }
+        }
+        return $res;
     }
 
     // Keep legacy methods for potential backward compatibility or internal use during transition

@@ -68,6 +68,12 @@ class DiemThiTHPT extends Model {
 
         if ($success) {
             $this->syncToNormalizedTable($cccd, $data);
+            try {
+                $stmtTouch = $this->db->prepare("UPDATE nguyen_vong SET updated_at = CURRENT_TIMESTAMP WHERE so_cccd = ?");
+                $stmtTouch->execute([$cccd]);
+            } catch (\Exception $e) {
+                error_log("Failed to touch nguyen_vong in DiemThiTHPT::save: " . $e->getMessage());
+            }
         }
 
         return $success;
@@ -156,6 +162,18 @@ class DiemThiTHPT extends Model {
 
         // Bulk sync to diem_chi_tiet
         $this->syncBatchToNormalizedTable($scoresData);
+
+        // Touch nguyen_vong for all updated candidates in batch
+        $cccds = array_keys($scoresData);
+        if (!empty($cccds)) {
+            try {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtTouch = $this->db->prepare("UPDATE nguyen_vong SET updated_at = CURRENT_TIMESTAMP WHERE so_cccd IN ($placeholders)");
+                $stmtTouch->execute($cccds);
+            } catch (\Exception $e) {
+                error_log("Failed to touch nguyen_vong in DiemThiTHPT::upsertBatch: " . $e->getMessage());
+            }
+        }
 
         return count($scoresData);
     }

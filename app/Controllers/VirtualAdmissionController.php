@@ -131,13 +131,21 @@ class VirtualAdmissionController extends Controller {
                 if (!empty($row['chi_tiet_diem'])) {
                     $p = json_decode($row['chi_tiet_diem'], true);
                     if ($p && is_array($p)) {
-                        $row['chi_tiet_diem'] = json_encode([
+                        $filteredChiTiet = [
                             'all_combinations' => $p['all_combinations'] ?? [],
                             'total_raw' => $p['total_raw'] ?? 0,
                             'priority_raw' => $p['priority_raw'] ?? 0,
                             'priority_converted' => $p['priority_converted'] ?? 0,
                             'threshold_note' => $p['threshold_note'] ?? ''
-                        ], JSON_UNESCAPED_UNICODE);
+                        ];
+                        // Truyền các môn học (có chứa base_scaled) xuống UI
+                        foreach ($p as $k => $v) {
+                            if (is_array($v) && isset($v['base_scaled'])) {
+                                $filteredChiTiet[$k] = $v;
+                            }
+                        }
+                        
+                        $row['chi_tiet_diem'] = json_encode($filteredChiTiet, JSON_UNESCAPED_UNICODE);
                     }
                 }
                 $rows[] = $row;
@@ -479,10 +487,23 @@ class VirtualAdmissionController extends Controller {
             $toHopMax = isset($comboMap[$row['to_hop_toi_uu']]) ? $comboMap[$row['to_hop_toi_uu']] : ($row['to_hop_toi_uu'] ?: '-');
             $ptMax = isset($ptLabels[$row['phuong_thuc_toi_uu']]) ? $ptLabels[$row['phuong_thuc_toi_uu']] : ($row['phuong_thuc_toi_uu'] ?: '-');
 
-            $m1 = $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : 0.0;
-            $m2 = $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : 0.0;
-            $m3 = $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : 0.0;
-            $diemToHop = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? ($m1 + $m2 + $m3) : 0.0;
+            // Giải mã chi_tiet_diem để lấy điểm môn đã quy đổi (×0.95)
+            $chiTietRaw = [];
+            if (!empty($row['chi_tiet_diem'])) {
+                $chiTietRaw = json_decode($row['chi_tiet_diem'], true) ?: [];
+            }
+            // Lấy base_scaled của 3 môn theo thứ tự (bỏ qua các key không phải object môn học)
+            $monEntries = [];
+            foreach ($chiTietRaw as $k => $v) {
+                if (is_array($v) && isset($v['base_scaled'])) {
+                    $monEntries[] = $v;
+                }
+            }
+            $m1 = isset($monEntries[0]['base_scaled']) ? round((float)$monEntries[0]['base_scaled'], 3) : 0.0;
+            $m2 = isset($monEntries[1]['base_scaled']) ? round((float)$monEntries[1]['base_scaled'], 3) : 0.0;
+            $m3 = isset($monEntries[2]['base_scaled']) ? round((float)$monEntries[2]['base_scaled'], 3) : 0.0;
+            $diemToHop = $m1 + $m2 + $m3;
+
 
             // Get Grade 10, 11, 12 average subject scores
             $combo = $row['to_hop_toi_uu'];
@@ -537,14 +558,12 @@ class VirtualAdmissionController extends Controller {
                 
                 $sbd = $sbdMap[$row['so_cccd']] ?? '';
 
-                $detail = null;
-                if (!empty($row['chi_tiet_diem'])) {
-                    $detail = json_decode($row['chi_tiet_diem'], true);
-                }
+                $detail = $chiTietRaw;
                 $diemUt = isset($detail['priority_raw']) ? (float)$detail['priority_raw'] : ($row['diem_uu_tien_goc'] !== null ? (float)$row['diem_uu_tien_goc'] : 0.0);
                 $diemUtQd = isset($detail['priority_converted']) ? (float)$detail['priority_converted'] : ($row['diem_uu_tien_qd'] !== null ? (float)$row['diem_uu_tien_qd'] : 0.0);
                 $ghiChu = $row['nv_ghi_chu'] ?: ($row['ts_ghi_chu'] ?: '');
 
+                // Dùng tên cột chuẩn để ExportService tự động format thành Text
                 $data[] = [
                     'CCCD'       => $row['so_cccd'],
                     'HOTEN'      => $row['ho_va_ten'],
@@ -552,11 +571,11 @@ class VirtualAdmissionController extends Controller {
                     'SBD'        => $sbd,
                     'KV'         => $row['khu_vuc_uu_tien'] ?: '',
                     'DOITUONG'   => $row['doi_tuong_uu_tien'] ?: '',
-                    'TOHOP'      => $row['to_hop_toi_uu'] ?: '',
-                    'DM1'        => $m1,
-                    'DM2'        => $m2,
-                    'DM3'        => $m3,
-                    'DIEMTOHOP'  => $diemToHop,
+                    'TOHOP'      => $toHopMax,
+                    'DM1'        => $m1 > 0 ? $m1 : 0.0,
+                    'DM2'        => $m2 > 0 ? $m2 : 0.0,
+                    'DM3'        => $m3 > 0 ? $m3 : 0.0,
+                    'DIEMTOHOP'  => $diemToHop > 0 ? $diemToHop : 0.0,
                     'DIEMUT'     => $diemUt,
                     'UTQ'        => $diemUtQd,
                     'DIEMXT'     => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : 0.0,
@@ -583,15 +602,11 @@ class VirtualAdmissionController extends Controller {
                 continue;
             }
 
-            $diemToHopText = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? $diemToHop : '-';
+            $diemToHopText = $diemToHop > 0 ? $diemToHop : '-';
 
-            $detail = null;
-            if (!empty($row['chi_tiet_diem'])) {
-                $detail = json_decode($row['chi_tiet_diem'], true);
-            }
-
-            $diemQuyDoi = isset($detail['total_raw']) ? (float)$detail['total_raw'] : '-';
+            $detail = $chiTietRaw;
             $diemUtQd = isset($detail['priority_converted']) ? (float)$detail['priority_converted'] : '-';
+            $diemUt = isset($detail['priority_raw']) ? (float)$detail['priority_raw'] : '-';
             $thresholdNote = isset($detail['threshold_note']) ? (string)$detail['threshold_note'] : '';
 
             $dkHocLuc = 'Đạt';
@@ -608,14 +623,16 @@ class VirtualAdmissionController extends Controller {
                 'CCCD'              => $row['so_cccd'],
                 'Họ tên'            => $row['ho_va_ten'],
                 'Ngành'             => $row['ma_nganh'],
+                'Khu vực'           => $row['khu_vuc_uu_tien'] ?: '',
+                'Đối tượng'         => $row['doi_tuong_uu_tien'] ?: '',
                 'NV'                => $row['thu_tu_nguyen_vong'],
                 'Tổ hợp max'        => $toHopMax,
                 'PT max'            => $ptMax,
-                'Điểm M1'           => $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : '-',
-                'Điểm M2'           => $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : '-',
-                'Điểm M3'           => $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : '-',
+                'Điểm M1 (×0.95)'   => $m1 > 0 ? $m1 : '-',
+                'Điểm M2 (×0.95)'   => $m2 > 0 ? $m2 : '-',
+                'Điểm M3 (×0.95)'   => $m3 > 0 ? $m3 : '-',
                 'Điểm tổ hợp'       => $diemToHopText,
-                'Điểm quy đổi'      => $diemQuyDoi,
+                'Điểm UT gốc'       => $diemUt,
                 'Điểm UT QĐ'        => $diemUtQd,
                 'Điểm xét tuyển'    => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : '-',
                 'ĐK học lực'        => $dkHocLuc,

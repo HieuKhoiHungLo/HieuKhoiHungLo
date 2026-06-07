@@ -229,11 +229,10 @@ if (!empty($combinations)) {
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Tổ hợp max</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">PT max</th>
                         
-                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M1</th>
-                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M2</th>
-                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M3</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M1 QĐ</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M2 QĐ</th>
+                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm M3 QĐ</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-indigo-50 text-indigo-800 text-[11px] uppercase tracking-tighter">Điểm tổ hợp</th>
-                        <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm QĐ</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>gốc</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">Điểm UT<br>QĐ</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-indigo-50 text-indigo-800 text-[11px]">Điểm xét<br>tuyển</th>
@@ -468,28 +467,44 @@ if (!empty($combinations)) {
                     }
                 });
 
-                // M1, M2, M3
-                columns.push({ data: 'diem_mon_1', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
-                columns.push({ data: 'diem_mon_2', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
-                columns.push({ data: 'diem_mon_3', className: 'text-center', render: function(d) { return d !== null && d !== undefined ? parseFloat(d).toFixed(3) : '-'; } });
+                // M1, M2, M3 - hiển thị điểm đã quy đổi (×0.95) từ chi_tiet_diem
+                // Helper: lấy tổng base_scaled của môn theo thứ tự (mon_1/2/3)
+                function getScaledMonScore(chiTietDiem, monKey) {
+                    try {
+                        let p = JSON.parse(chiTietDiem);
+                        // Duyệt qua các môn, lấy base_scaled theo thứ tự index mon_1/2/3
+                        let idx = parseInt(monKey.replace('mon_', '')) - 1;
+                        let entries = [];
+                        for (let key in p) {
+                            if (typeof p[key] === 'object' && p[key] !== null && 'base_scaled' in p[key]) {
+                                entries.push({ key: key, val: p[key] });
+                            }
+                        }
+                        if (entries[idx] !== undefined) {
+                            let s = entries[idx].val.base_scaled;
+                            return s !== undefined && s !== null ? parseFloat(s).toFixed(3) : '-';
+                        }
+                        return '-';
+                    } catch(e) { return '-'; }
+                }
+
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) { return getScaledMonScore(data, 'mon_1'); } });
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) { return getScaledMonScore(data, 'mon_2'); } });
+                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) { return getScaledMonScore(data, 'mon_3'); } });
                 
-                // Điểm Tổ Hợp (M1 + M2 + M3)
+                // Điểm Tổ Hợp = tổng 3 base_scaled (= diem_xet_tuyen trước khi cộng UT)
                 columns.push({ 
-                    data: null, 
+                    data: 'chi_tiet_diem', 
                     className: 'text-center bg-indigo-50 font-bold text-indigo-700',
-                    render: function(data, type, row) {
-                        let m1 = parseFloat(row.diem_mon_1 || 0);
-                        let m2 = parseFloat(row.diem_mon_2 || 0);
-                        let m3 = parseFloat(row.diem_mon_3 || 0);
-                        let sum = m1 + m2 + m3;
-                        return sum > 0 ? sum.toFixed(3) : '-';
+                    render: function(data) {
+                        try {
+                            let p = JSON.parse(data);
+                            return p.total_raw ? parseFloat(p.total_raw).toFixed(3) : '-';
+                        } catch(e) { return '-'; }
                     }
                 });
 
-                // QD, UT Goc, UT QD
-                columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
-                    try { let p = JSON.parse(data); return p.total_raw ? parseFloat(p.total_raw).toFixed(3) : '-'; } catch(e){return '-'}
-                }});
+                // UT Goc, UT QD (bỏ cột Điểm QĐ)
                 columns.push({ data: 'chi_tiet_diem', className: 'text-center', render: function(data) {
                     try { let p = JSON.parse(data); return p.priority_raw !== undefined ? parseFloat(p.priority_raw).toFixed(3) : '-'; } catch(e){return '-'}
                 }});

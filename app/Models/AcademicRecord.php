@@ -138,6 +138,12 @@ class AcademicRecord extends \App\Core\Model
         $result = $stmt->execute($params);
         if ($result) {
             $this->syncToNormalizedTable($cccd);
+            try {
+                $stmtTouch = $this->db->prepare("UPDATE nguyen_vong SET updated_at = CURRENT_TIMESTAMP WHERE so_cccd = ?");
+                $stmtTouch->execute([$cccd]);
+            } catch (\Exception $e) {
+                error_log("Failed to touch nguyen_vong in AcademicRecord::save: " . $e->getMessage());
+            }
         }
         return $result;
     }
@@ -207,6 +213,13 @@ class AcademicRecord extends \App\Core\Model
 
             // Sync to normalized diem_chi_tiet table
             $this->syncToNormalizedTable($cccd);
+
+            try {
+                $stmtTouch = $this->db->prepare("UPDATE nguyen_vong SET updated_at = CURRENT_TIMESTAMP WHERE so_cccd = ?");
+                $stmtTouch->execute([$cccd]);
+            } catch (\Exception $e) {
+                error_log("Failed to touch nguyen_vong in AcademicRecord::saveBatch: " . $e->getMessage());
+            }
 
             return true;
         } catch (\Exception $e) {

@@ -144,7 +144,6 @@ class ScoreCalculationService {
             SELECT DISTINCT nv.so_cccd 
             FROM nguyen_vong nv
             LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-            LEFT JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
             WHERE nv.dot_tuyen_sinh_id = ? 
             AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai = 'approved' OR nv.trang_thai LIKE '%Đã duyệt%')
         ";
@@ -152,23 +151,11 @@ class ScoreCalculationService {
         if (!$force) {
             // SQL Dirty Checking: Only need to process if:
             // 1. Never calculated (cs.id is null)
-            // 2. Candidate profile/priority changed (ts.updated_at > cs.updated_at)
-            // 3. Application details/status changed (nv.updated_at > cs.updated_at)
+            // 2. Application/profile/scores updated (nv.updated_at > cs.updated_at)
             $sql .= "
                 AND (
                     cs.id IS NULL
-                    OR ts.updated_at > cs.updated_at
                     OR nv.updated_at > cs.updated_at
-                    OR EXISTS (
-                        SELECT 1 FROM ket_qua_hoc_tap kqHT 
-                        WHERE kqHT.so_cccd = nv.so_cccd 
-                        AND kqHT.updated_at > cs.updated_at
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM diem_thi_thpt dt 
-                        WHERE dt.so_cccd = nv.so_cccd 
-                        AND dt.updated_at > cs.updated_at
-                    )
                 )
             ";
         }
@@ -185,20 +172,62 @@ class ScoreCalculationService {
         $transcriptData = "";
         $thptData = "";
         $applicationData = "";
+        $candidateData = "";
+        $configData = "";
+
+        if ($this->cachedPriorityAreas === null) {
+            $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
+        }
+        if ($this->cachedPriorityObjects === null) {
+            $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
+        }
 
         if ($this->bulkData) {
             $transcriptData = json_encode($this->bulkData['transcripts'][$cccd] ?? []);
             $thptData = json_encode($this->bulkData['thpt'][$cccd] ?? []);
             $applicationData = json_encode($this->bulkData['applications'][$cccd] ?? []);
+            $cProfile = $this->bulkData['candidates_profile'][$cccd] ?? [];
+            $candidateData = json_encode($cProfile);
+
+            $rawKV = $cProfile['khu_vuc_uu_tien'] ?? '';
+            $rawDT = $cProfile['doi_tuong_uu_tien'] ?? '';
+            $maKV = $this->normalizePriorityCode($rawKV);
+            $maDT = $this->normalizePriorityCode($rawDT);
+            $valKV = $this->cachedPriorityAreas[$maKV] ?? $this->cachedPriorityAreas[trim($rawKV)] ?? 0;
+            $valDT = $this->cachedPriorityObjects[$maDT] ?? $this->cachedPriorityObjects[trim($rawDT)] ?? 0;
+
+            $configData = json_encode([
+                'he_so_hoc_ba' => $this->cachedHeSoHocBa,
+                'val_kv' => $valKV,
+                'val_dt' => $valDT
+            ]);
         } else {
             // Lazy fallback (rarely used in batch)
             $transcriptData = json_encode($this->academicModel->getByCCCD($cccd));
             $thptData = json_encode($this->diemThiModel->getByCCCD($cccd));
             $applicationData = json_encode($this->getApplications($cccd));
+
+            $stmt = $this->db->prepare("SELECT so_cccd, khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd = ?");
+            $stmt->execute([$cccd]);
+            $cProfile = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            $candidateData = json_encode($cProfile);
+
+            $rawKV = $cProfile['khu_vuc_uu_tien'] ?? '';
+            $rawDT = $cProfile['doi_tuong_uu_tien'] ?? '';
+            $maKV = $this->normalizePriorityCode($rawKV);
+            $maDT = $this->normalizePriorityCode($rawDT);
+            $valKV = $this->cachedPriorityAreas[$maKV] ?? $this->cachedPriorityAreas[trim($rawKV)] ?? 0;
+            $valDT = $this->cachedPriorityObjects[$maDT] ?? $this->cachedPriorityObjects[trim($rawDT)] ?? 0;
+
+            $configData = json_encode([
+                'he_so_hoc_ba' => $this->cachedHeSoHocBa,
+                'val_kv' => $valKV,
+                'val_dt' => $valDT
+            ]);
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . "v2");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v3");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -375,6 +404,7 @@ class ScoreCalculationService {
     protected function loadBatchDataPartial($sessionId, array $cccds) {
         $this->bulkData = [
             'candidates' => $cccds,
+            'candidates_profile' => [],
             'transcripts' => [],
             'thpt' => [],
             'certs' => [],
@@ -440,8 +470,8 @@ class ScoreCalculationService {
         }
 
         // Load Priority Areas/Objects (Quy chế: ưu tiên KV chỉ trong năm TN + 1 năm)
-        $stmt = $this->db->prepare("SELECT so_cccd, khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd IN ($placeholders)");
-        $stmt->execute($cccds);
+        $stmtThiSinh = $this->db->prepare("SELECT so_cccd, khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd IN ($placeholders)");
+        $stmtThiSinh->execute($cccds);
         
         if ($this->cachedPriorityAreas === null) $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
         if ($this->cachedPriorityObjects === null) $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
@@ -450,14 +480,15 @@ class ScoreCalculationService {
         $currentYear = (int)date('Y');
         static $sessionYearsCache = [];
         if (!isset($sessionYearsCache[$sessionId])) {
-            $stmt = $this->db->prepare("SELECT nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
-            $stmt->execute([$sessionId]);
-            $y = $stmt->fetchColumn();
+            $stmtYear = $this->db->prepare("SELECT nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+            $stmtYear->execute([$sessionId]);
+            $y = $stmtYear->fetchColumn();
             $sessionYearsCache[$sessionId] = $y ? (int)$y : (int)date('Y');
         }
         $currentYear = $sessionYearsCache[$sessionId];
         
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        foreach ($stmtThiSinh->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $this->bulkData['candidates_profile'][$row['so_cccd']] = $row;
             $rawKV = $row['khu_vuc_uu_tien'] ?? '';
             $rawDT = $row['doi_tuong_uu_tien'] ?? '';
             $namTN = $row['nam_tot_nghiep'] ?? null;
@@ -594,6 +625,7 @@ class ScoreCalculationService {
     protected function loadBatchData($sessionId) {
         $this->bulkData = [
             'candidates' => [],
+            'candidates_profile' => [],
             'transcripts' => [],
             'thpt' => [],
             'certs' => [],
@@ -664,7 +696,11 @@ class ScoreCalculationService {
         
         $currentYear = (int)date('Y');
         
+        $this->cachedPriorityAreas = $prioAreas;
+        $this->cachedPriorityObjects = $prioObjects;
+
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $this->bulkData['candidates_profile'][$row['so_cccd']] = $row;
             $rawKV = $row['khu_vuc_uu_tien'] ?? '';
             $rawDT = $row['doi_tuong_uu_tien'] ?? '';
             $namTN = $row['nam_tot_nghiep'] ?? null;
