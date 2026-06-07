@@ -427,7 +427,9 @@ class VirtualAdmissionController extends Controller {
 
         $sql = "SELECT nv.so_cccd, ts.ho_va_ten, nv.ma_nganh, nv.thu_tu_nguyen_vong, 
                        cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen,
-                       cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.chi_tiet_diem
+                       cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.chi_tiet_diem,
+                       ts.ngay_sinh, ts.email, ts.dien_thoai, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.ghi_chu as ts_ghi_chu,
+                       nv.diem_uu_tien_goc, nv.diem_uu_tien_qd, nv.ten_nganh, nv.ghi_chu as nv_ghi_chu
                 FROM nguyen_vong nv
                 JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                 LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
@@ -455,7 +457,7 @@ class VirtualAdmissionController extends Controller {
             $m1 = $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : 0.0;
             $m2 = $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : 0.0;
             $m3 = $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : 0.0;
-            $diemToHop = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? ($m1 + $m2 + $m3) : '-';
+            $diemToHop = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? ($m1 + $m2 + $m3) : 0.0;
 
             // Get Grade 10, 11, 12 average subject scores
             $combo = $row['to_hop_toi_uu'];
@@ -502,6 +504,67 @@ class VirtualAdmissionController extends Controller {
                 }
             }
 
+            if ($type === 'admitted') {
+                $formattedNgaySinh = '';
+                if (!empty($row['ngay_sinh'])) {
+                    $formattedNgaySinh = date('d/m/Y', strtotime($row['ngay_sinh']));
+                }
+                
+                $sbd = '';
+                if (!empty($row['so_cccd'])) {
+                    $sbdStmt = $this->db->prepare("SELECT sbd FROM diem_nang_khieu WHERE so_cccd = ? LIMIT 1");
+                    $sbdStmt->execute([$row['so_cccd']]);
+                    $sbd = $sbdStmt->fetchColumn() ?: '';
+                }
+
+                $detail = null;
+                if (!empty($row['chi_tiet_diem'])) {
+                    $detail = json_decode($row['chi_tiet_diem'], true);
+                }
+                $diemUt = isset($detail['priority_raw']) ? (float)$detail['priority_raw'] : ($row['diem_uu_tien_goc'] !== null ? (float)$row['diem_uu_tien_goc'] : 0.0);
+                $diemUtQd = isset($detail['priority_converted']) ? (float)$detail['priority_converted'] : ($row['diem_uu_tien_qd'] !== null ? (float)$row['diem_uu_tien_qd'] : 0.0);
+                $ghiChu = $row['nv_ghi_chu'] ?: ($row['ts_ghi_chu'] ?: '');
+
+                $data[] = [
+                    'CCCD'       => $row['so_cccd'],
+                    'HOTEN'      => $row['ho_va_ten'],
+                    'NGAYSINH'   => $formattedNgaySinh,
+                    'SBD'        => $sbd,
+                    'KV'         => $row['khu_vuc_uu_tien'] ?: '',
+                    'DOITUONG'   => $row['doi_tuong_uu_tien'] ?: '',
+                    'TOHOP'      => $row['to_hop_toi_uu'] ?: '',
+                    'DM1'        => $m1,
+                    'DM2'        => $m2,
+                    'DM3'        => $m3,
+                    'DIEMTOHOP'  => $diemToHop,
+                    'DIEMUT'     => $diemUt,
+                    'UTQ'        => $diemUtQd,
+                    'DIEMXT'     => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : 0.0,
+                    'MANGANH'    => $row['ma_nganh'],
+                    'NGANH'      => $row['ten_nganh'] ?: '',
+                    'SOTK'       => '',
+                    'NGANHANG'   => '',
+                    'SOTIEN'     => 0,
+                    'NOIDUNG'    => '',
+                    'EMAIL'      => $row['email'] ?: '',
+                    'SDT'        => $row['dien_thoai'] ?: '',
+                    'GHICHU'     => $ghiChu,
+                    'PHUONGTHUC' => $ptMax,
+                    'M1 L10'     => $m1_l10,
+                    'M1 L11'     => $m1_l11,
+                    'M1 L12'     => $m1_l12,
+                    'M2 L10'     => $m2_l10,
+                    'M2 L11'     => $m2_l11,
+                    'M2 L12'     => $m2_l12,
+                    'M3 L10'     => $m3_l10,
+                    'M3 L11'     => $m3_l11,
+                    'M3 L12'     => $m3_l12
+                ];
+                continue;
+            }
+
+            $diemToHopText = ($row['diem_mon_1'] !== null || $row['diem_mon_2'] !== null || $row['diem_mon_3'] !== null) ? $diemToHop : '-';
+
             $detail = null;
             if (!empty($row['chi_tiet_diem'])) {
                 $detail = json_decode($row['chi_tiet_diem'], true);
@@ -531,7 +594,7 @@ class VirtualAdmissionController extends Controller {
                 'Điểm M1'           => $row['diem_mon_1'] !== null ? (float)$row['diem_mon_1'] : '-',
                 'Điểm M2'           => $row['diem_mon_2'] !== null ? (float)$row['diem_mon_2'] : '-',
                 'Điểm M3'           => $row['diem_mon_3'] !== null ? (float)$row['diem_mon_3'] : '-',
-                'Điểm tổ hợp'       => $diemToHop,
+                'Điểm tổ hợp'       => $diemToHopText,
                 'Điểm quy đổi'      => $diemQuyDoi,
                 'Điểm UT QĐ'        => $diemUtQd,
                 'Điểm xét tuyển'    => $row['diem_xet_tuyen'] !== null ? (float)$row['diem_xet_tuyen'] : '-',

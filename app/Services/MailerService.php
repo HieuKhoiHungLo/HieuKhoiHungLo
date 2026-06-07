@@ -94,8 +94,14 @@ class MailerService {
         
         $params = [];
         if ($category && $category !== 'all') {
-            $sql .= " AND (category = ? OR category = 'all')";
-            $params[] = $category;
+            if ($category === 'admission_letter') {
+                $sql .= " AND (category = 'admission_letter' OR category = 'bulk' OR category = 'all')";
+            } elseif ($category === 'bulk') {
+                $sql .= " AND (category = 'bulk' OR category = 'admission_letter' OR category = 'all')";
+            } else {
+                $sql .= " AND (category = ? OR category = 'all')";
+                $params[] = $category;
+            }
         }
         
         $sql .= " ORDER BY last_sent_at ASC NULLS FIRST LIMIT 1";

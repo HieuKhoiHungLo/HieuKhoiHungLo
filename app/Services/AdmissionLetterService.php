@@ -370,6 +370,21 @@ class AdmissionLetterService {
      * Render nội dung thư
      */
     public function renderTemplate($templateHtml, $data) {
+        $chiTieu = '';
+        $diemNamTruoc = '';
+        if (!empty($data['ma_nganh'])) {
+            $stmt = $this->db->prepare("SELECT chi_tieu, diem_nam_truoc FROM dm_nganh WHERE ma_nganh = ? LIMIT 1");
+            $stmt->execute([$data['ma_nganh']]);
+            $nganhInfo = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($nganhInfo) {
+                $chiTieu = $nganhInfo['chi_tieu'] !== null ? $nganhInfo['chi_tieu'] : '';
+                $diemNamTruoc = $nganhInfo['diem_nam_truoc'] !== null ? number_format((float)$nganhInfo['diem_nam_truoc'], 2, '.', '') : '';
+                if ($diemNamTruoc !== '') {
+                    $diemNamTruoc = rtrim(rtrim($diemNamTruoc, '0'), '.');
+                }
+            }
+        }
+
         $replacements = [
             '{{HoTen}}' => $data['ho_ten'] ?? '',
             '{{name}}' => $data['ho_ten'] ?? '',
@@ -390,6 +405,10 @@ class AdmissionLetterService {
             '{{Nganh}}' => $data['ten_nganh'] ?? '',
             '{{major}}' => $data['ten_nganh'] ?? '',
             '{{MaNganh}}' => $data['ma_nganh'] ?? '',
+            '{{ChiTieu}}' => $chiTieu,
+            '{{DiemNamTruoc}}' => $diemNamTruoc,
+            '{{XepHang}}' => $data['ghi_chu'] ?? '',
+            '{{GhiChu}}' => $data['ghi_chu'] ?? '',
             '{{SoTien}}' => number_format((float)($data['so_tien'] ?? 0), 0, ',', '.'),
         ];
 
