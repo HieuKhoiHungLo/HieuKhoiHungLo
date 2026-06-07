@@ -189,13 +189,26 @@ if (!empty($combinations)) {
             </div>
         </div>
 
-        <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <div class="px-4 py-3 border-b border-slate-200 flex flex-wrap justify-between items-center bg-slate-50 gap-2">
             <h2 class="font-semibold text-slate-700 flex items-center gap-2">
                 <i class="fas fa-list text-slate-400"></i> Bảng Lưới Thí Sinh
             </h2>
-            <div class="text-sm font-medium text-slate-500">
-                Số hồ sơ: <span class="text-indigo-600" id="candidateCount">0</span> - 
-                Số nguyện vọng: <span class="text-indigo-600" id="rowCount">0</span>
+            <div class="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500">
+                <span>
+                    Hồ sơ đã duyệt: <span class="text-slate-700 font-bold" id="totalApprovedHoso">0</span>
+                </span>
+                <span class="text-slate-300">|</span>
+                <span>
+                    Có nguyện vọng: <span class="text-indigo-600 font-bold" id="candidateCount">0</span>
+                </span>
+                <span class="text-slate-300">|</span>
+                <span>
+                    Số nguyện vọng: <span class="text-indigo-600 font-bold" id="rowCount">0</span>
+                </span>
+                <span id="noAspirationAlert" class="hidden items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-bold">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="noAspirationCount">0</span> TS chưa đăng ký NV
+                </span>
             </div>
         </div>
 
@@ -548,8 +561,23 @@ if (!empty($combinations)) {
                         },
                         dataSrc: function (json) {
                             // Cập nhật Số lượng trên UI khi kéo xong trang
-                            document.getElementById('candidateCount').textContent = json.candidate_count || 0;
-                            document.getElementById('rowCount').textContent = json.recordsTotal || 0;
+                            document.getElementById('candidateCount').textContent = (json.candidate_count || 0).toLocaleString();
+                            document.getElementById('rowCount').textContent = (json.recordsTotal || 0).toLocaleString();
+                            
+                            // Hiển thị tổng hồ sơ đã duyệt và cảnh báo TS chưa có NV
+                            if (json.total_approved_hoso) {
+                                document.getElementById('totalApprovedHoso').textContent = (json.total_approved_hoso).toLocaleString();
+                            }
+                            const noNv = json.no_aspiration_count || 0;
+                            const alertEl = document.getElementById('noAspirationAlert');
+                            if (noNv > 0) {
+                                document.getElementById('noAspirationCount').textContent = noNv.toLocaleString();
+                                alertEl.classList.remove('hidden');
+                                alertEl.classList.add('flex');
+                            } else {
+                                alertEl.classList.add('hidden');
+                                alertEl.classList.remove('flex');
+                            }
                             return json.data;
                         },
                         error: (xhr) => {

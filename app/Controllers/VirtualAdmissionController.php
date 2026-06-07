@@ -100,6 +100,12 @@ class VirtualAdmissionController extends Controller {
             $stmtC->execute([$sessionId]);
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
+            // 5b. Tổng hồ sơ đã duyệt từ ho_so_xet_tuyen (bao gồm cả TS chưa đăng ký NV)
+            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai = 'Đã duyệt' OR trang_thai LIKE '%Đã duyệt%')");
+            $stmtHoso->execute([$sessionId]);
+            $totalApprovedHoso = $stmtHoso->fetchColumn() ?: 0;
+            $noAspirationCount = max(0, $totalApprovedHoso - $candidateCount);
+
             // 6. Truy vấn Dữ liệu Phân trang (OFFSET & LIMIT) trực tiếp trên Database
             // Cố định Order By cấu trúc để đảm bảo DataTables luôn hiện đúng
             $dataSql = "
@@ -144,7 +150,9 @@ class VirtualAdmissionController extends Controller {
                 'recordsFiltered' => intval($recordsFiltered),
                 'data' => $rows,
                 'candidate_count' => $candidateCount,
-                'aspiration_count' => $recordsTotal
+                'aspiration_count' => $recordsTotal,
+                'total_approved_hoso' => intval($totalApprovedHoso),
+                'no_aspiration_count' => intval($noAspirationCount)
             ]);
         } catch (\Exception $e) {
             error_log("loadBatchData SSP Error: " . $e->getMessage());
