@@ -226,7 +226,7 @@ class AdmissionController extends Controller {
         ];
 
         foreach ($demoRows as $r) {
-            $gt = trim($r['gioi_tinh']);
+            $gt = trim($r['gioi_tinh'] ?? '');
             // Standardize gender
             if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
             elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
