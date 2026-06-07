@@ -258,6 +258,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/results', 'AdmissionController@results');
     $router->get('/admin/admission/results/api', 'AdmissionController@resultsApi');
     $router->post('/admin/admission/results/bulk-email', 'AdmissionController@bulkEmail');
+    $router->post('/admin/admission/results/sync', 'AdmissionController@syncVirtualResults');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 

@@ -160,9 +160,11 @@ class AdmissionController extends Controller {
             foreach ($allSessions as $s) {
                 if ($s['id'] == $selectedSessionId) { $activeSession = $s; break; }
             }
-            if (!$activeSession) $activeSession = $sessionModel->getActiveSession();
+            if (!$activeSession) $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestSession();
         } else {
-            $activeSession = $sessionModel->getActiveSession();
+            // Fallback: nếu không có session đang kích hoạt hoặc trong thời hạn,
+            // lấy session mới nhất để hiển thị kết quả lọc ảo gần nhất
+            $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestSession();
         }
         $sessionId = $activeSession['id'] ?? 0;
 
@@ -372,6 +374,71 @@ class AdmissionController extends Controller {
             'data' => $rows
         ], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    /**
+     * Sync kết quả lọc ảo từ v_calc_summary → nguyen_vong.trang_thai
+     * Cập nhật trạng thái 'Trúng tuyển' hoặc 'Không đạt' cho các nguyện vọng đã tính điểm
+     */
+    public function syncVirtualResults() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $sessionModel = new AdmissionSession();
+        
+        $sessionId = intval($_POST['session_id'] ?? 0);
+        if (!$sessionId) {
+            $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestSession();
+            $sessionId = $activeSession['id'] ?? 0;
+        }
+        
+        if (!$sessionId) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Không tìm thấy đợt tuyển sinh.']);
+            exit;
+        }
+        
+        try {
+            // 1. Cập nhật trạng thái Trúng tuyển cho NV đỗ theo lọc ảo
+            $stmtPass = $db->prepare("
+                UPDATE nguyen_vong nv
+                SET trang_thai = 'Trúng tuyển'
+                FROM v_calc_summary cs
+                WHERE nv.id = cs.nguyen_vong_id
+                  AND nv.dot_tuyen_sinh_id = ?
+                  AND cs.trang_thai_trung_tuyen = TRUE
+                  AND nv.trang_thai NOT IN ('Trúng tuyển', 'Trung tuyen')
+            ");
+            $stmtPass->execute([$sessionId]);
+            $passCount = $stmtPass->rowCount();
+            
+            // 2. Cập nhật trạng thái Không đạt cho NV rớt (có điểm trong v_calc_summary nhưng không trúng tuyển)
+            $stmtFail = $db->prepare("
+                UPDATE nguyen_vong nv
+                SET trang_thai = 'Không đạt'
+                FROM v_calc_summary cs
+                WHERE nv.id = cs.nguyen_vong_id
+                  AND nv.dot_tuyen_sinh_id = ?
+                  AND cs.trang_thai_trung_tuyen = FALSE
+                  AND nv.trang_thai IN ('DaDuyet', 'Đã duyệt')
+            ");
+            $stmtFail->execute([$sessionId]);
+            $failCount = $stmtFail->rowCount();
+            
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => true,
+                'message' => "Đồng bộ thành công: {$passCount} trúng tuyển, {$failCount} không đạt được cập nhật.",
+                'pass_count' => $passCount,
+                'fail_count' => $failCount
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+            
+        } catch (\Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Lỗi đồng bộ: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     /**

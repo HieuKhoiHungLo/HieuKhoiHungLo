@@ -25,6 +25,7 @@ foreach ($majorStats as $ms) {
 
 $sessionId = $activeSession['id'] ?? 0;
 $baseUrl = url('/admin/admission/results');
+$isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat']);
 ?>
 
 <!-- Assets -->
@@ -106,12 +107,27 @@ $baseUrl = url('/admin/admission/results');
                 </button>
             </div>
 
+            <button id="syncBtn" onclick="syncFromVirtualFilter()" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
+                <i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo
+            </button>
             <a href="<?= url('/admin/admission/virtual-filter') ?>"
                class="bg-slate-800 hover:bg-black text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
                 <i class="fas fa-filter"></i> Lọc Ảo
             </a>
         </div>
     </div>
+
+    <?php if (!$isSessionActive && $sessionId > 0): ?>
+    <!-- Session Status Banner -->
+    <div class="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+        <i class="fas fa-exclamation-triangle text-amber-500"></i>
+        <div class="flex-1">
+            <span class="text-xs font-bold text-amber-800">Đang xem kết quả của đợt <strong><?= htmlspecialchars($activeSession['ten_dot'] ?? '') ?></strong> (<?= $activeSession['nam_tuyen_sinh'] ?? '' ?>).</span>
+            <span class="text-xs text-amber-600 ml-1">Đợt này không còn là đợt tuyển sinh đang hoạt động. Dữ liệu hiển thị là kết quả lọc ảo gần nhất.</span>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Tab Navigation -->
     <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
@@ -917,6 +933,42 @@ function bulkEmailSelected() {
 // Helpers
 function escHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function fmt(v) { return v != null ? parseFloat(v).toFixed(2) : '-'; }
+
+function syncFromVirtualFilter() {
+    if (!confirm('Đồng bộ kết quả lọc ảo vào trạng thái nguyện vọng?\n\nThao tác này sẽ cập nhật trạng thái "Trúng tuyển" / "Không đạt" dựa trên kết quả lọc ảo mới nhất.')) return;
+    
+    const btn = document.getElementById('syncBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đồng bộ...';
+
+    fetch('<?= url("/admin/admission/results/sync") ?>', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `session_id=${SESSION_ID}&csrf_token=${CSRF_TOKEN}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo';
+        if (data.success) {
+            // Show success notification
+            const notify = document.createElement('div');
+            notify.className = 'fixed top-4 right-4 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-bold animate-bounce';
+            notify.innerHTML = `<i class="fas fa-check-circle text-lg"></i><span>${data.message}</span>`;
+            document.body.appendChild(notify);
+            setTimeout(() => notify.remove(), 4000);
+            // Reload the table to reflect updated statuses
+            reloadTable();
+        } else {
+            alert('Lỗi: ' + (data.message || 'Không xác định'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo';
+        alert('Lỗi kết nối: ' + err.message);
+    });
+}
 </script>
 
 <style>
