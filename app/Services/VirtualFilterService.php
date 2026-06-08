@@ -234,7 +234,7 @@ class VirtualFilterService {
                 WHERE nv.dot_tuyen_sinh_id = ?
                 AND nv.so_cccd = hs.so_cccd 
                 AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
-                AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
+                AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 AND (nv.trang_thai IS NULL OR nv.trang_thai <> 'DaDuyet')
             ";
             $this->db->prepare($sqlSetDaDuyet)->execute([(int)$batchId]);
@@ -248,7 +248,7 @@ class VirtualFilterService {
                 AND NOT EXISTS (
                     SELECT 1 FROM ho_so_xet_tuyen hs 
                     WHERE hs.so_cccd = nv.so_cccd AND hs.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
-                    AND (hs.trang_thai = 'Đã duyệt' OR hs.trang_thai LIKE '%Đã duyệt%')
+                    AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 )
             ";
             $this->db->prepare($sqlSetChoDuyet)->execute([(int)$batchId]);

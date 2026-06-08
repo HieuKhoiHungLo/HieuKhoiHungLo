@@ -67,7 +67,7 @@ class VirtualAdmissionController extends Controller {
                          JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
                          LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id 
                          WHERE nv.dot_tuyen_sinh_id = ?
-                         AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
+                         AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')";
             
             $searchSql = "";
             $params = [$sessionId];
@@ -82,7 +82,7 @@ class VirtualAdmissionController extends Controller {
             }
 
             // 3. Đếm tổng số lượng bản ghi (trước khi tìm kiếm)
-            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')");
             $stmtTotal->execute([$sessionId]);
             $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
 
@@ -96,12 +96,12 @@ class VirtualAdmissionController extends Controller {
             }
 
             // 5. Tính tổng số thí sinh duy nhất (Candidate Count) - Độc lập tìm kiếm
-            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')");
             $stmtC->execute([$sessionId]);
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
             // 5b. Tổng hồ sơ đã duyệt từ ho_so_xet_tuyen (bao gồm cả TS chưa đăng ký NV)
-            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai = 'Đã duyệt' OR trang_thai LIKE '%Đã duyệt%')");
+            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR trang_thai LIKE '%Đã duyệt%')");
             $stmtHoso->execute([$sessionId]);
             $totalApprovedHoso = $stmtHoso->fetchColumn() ?: 0;
             $noAspirationCount = max(0, $totalApprovedHoso - $candidateCount);

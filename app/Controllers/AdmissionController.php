@@ -399,6 +399,15 @@ class AdmissionController extends Controller {
         }
         
         try {
+            // 0. Reset kết quả đồng bộ cũ về 'DaDuyet' để tránh trùng lặp khi chạy lại
+            $stmtReset = $db->prepare("
+                UPDATE nguyen_vong
+                SET trang_thai = 'DaDuyet'
+                WHERE dot_tuyen_sinh_id = ?
+                  AND trang_thai IN ('Trúng tuyển', 'Trung tuyen', 'Không đạt')
+            ");
+            $stmtReset->execute([$sessionId]);
+
             // 1. Cập nhật trạng thái Trúng tuyển cho NV đỗ theo lọc ảo
             $stmtPass = $db->prepare("
                 UPDATE nguyen_vong nv
