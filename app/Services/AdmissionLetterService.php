@@ -17,6 +17,8 @@ class AdmissionLetterService {
      * Import thí sinh từ file Excel
      */
     public function importFromExcel($filePath, $batchId) {
+        set_time_limit(0); // Cho phép chạy không giới hạn thời gian đối với file lớn
+        
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
         
