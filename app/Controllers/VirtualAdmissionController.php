@@ -563,6 +563,17 @@ class VirtualAdmissionController extends Controller {
                         if ($val3 !== null) ${"m3_l$g"} = $val3;
                     }
                 }
+                
+                // Ghi đè bằng điểm chứng chỉ gốc (chưa nhân hệ số) cho cả 3 năm nếu môn đó lấy từ chứng chỉ
+                if (isset($chiTietRaw['mon_1']['source']) && $chiTietRaw['mon_1']['source'] === 'CERT') {
+                    $m1_l10 = $m1_l11 = $m1_l12 = round((float)($chiTietRaw['diem_mon_1'] ?? 0), 3);
+                }
+                if (isset($chiTietRaw['mon_2']['source']) && $chiTietRaw['mon_2']['source'] === 'CERT') {
+                    $m2_l10 = $m2_l11 = $m2_l12 = round((float)($chiTietRaw['diem_mon_2'] ?? 0), 3);
+                }
+                if (isset($chiTietRaw['mon_3']['source']) && $chiTietRaw['mon_3']['source'] === 'CERT') {
+                    $m3_l10 = $m3_l11 = $m3_l12 = round((float)($chiTietRaw['diem_mon_3'] ?? 0), 3);
+                }
             }
 
             if ($type === 'admitted') {
