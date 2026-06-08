@@ -227,7 +227,7 @@ class ScoreCalculationService {
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v5");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v6");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -974,8 +974,8 @@ class ScoreCalculationService {
         $details = [];
         $monScores = []; // Trace individual subject points
         
-        // Chỉ cho phép quy đổi chứng chỉ ngoại ngữ với phương thức 200 (Học bạ)
-        $allowCert = ($method === 'HOC_BA'); 
+        // Chỉ cho phép quy đổi chứng chỉ ngoại ngữ với phương thức 200 (Học bạ) VÀ ngành có cấu hình cho phép xét chứng chỉ
+        $allowCert = ($method === 'HOC_BA' && !empty($majorDetails['co_xet_chung_chi']));
         
         $subjectIdx = 1;
         foreach ($subjects as $monId) {
