@@ -32,7 +32,7 @@
                 <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'deleted_all'): ?>
                     Đã xóa toàn bộ dữ liệu.
                 <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'test_queued'): ?>
-                    Đã gửi email test thành công. Vui lòng kiểm tra hòm thư của bạn!
+                    Đã đưa <?= htmlspecialchars($_GET['count'] ?? 1) ?> email test vào hàng đợi gửi thành công. Vui lòng kiểm tra hòm thư của bạn!
                 <?php elseif (isset($_GET['imported'])): ?>
                     Đã thêm <?= htmlspecialchars($_GET['imported'] ?? 0) ?> thí sinh từ file Excel.
                 <?php endif; ?>
@@ -306,6 +306,21 @@
 
 <script>
     function openTestEmailModal() {
+        const form = document.querySelector('#testEmailModal form');
+        if (form) {
+            // Xóa các input hidden cũ nếu có
+            form.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+
+            // Thêm các input hidden mới cho các thí sinh đang được chọn
+            const checked = document.querySelectorAll('.item-checkbox:checked');
+            checked.forEach(cb => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'ids[]';
+                hiddenInput.value = cb.value;
+                form.appendChild(hiddenInput);
+            });
+        }
         document.getElementById('testEmailModal').classList.remove('hidden');
     }
 

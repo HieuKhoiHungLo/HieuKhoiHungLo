@@ -252,6 +252,7 @@ class AdmissionLetterController extends Controller {
 
         $email = trim($_POST['test_email'] ?? '');
         $templateId = (int)($_POST['template_id'] ?? 0);
+        $ids = $_POST['ids'] ?? [];
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->redirect(url('/admin/admission-letters?error=' . urlencode('Email không hợp lệ')));
@@ -264,8 +265,8 @@ class AdmissionLetterController extends Controller {
         }
 
         try {
-            $this->service->sendTestEmail($email, $templateId);
-            $this->redirect(url('/admin/admission-letters?success=1&msg=test_queued'));
+            $count = $this->service->sendTestEmail($email, $templateId, $ids);
+            $this->redirect(url('/admin/admission-letters?success=1&msg=test_queued&count=' . $count));
         } catch (\Exception $e) {
             $this->redirect(url('/admin/admission-letters?error=' . urlencode('Lỗi gửi test: ' . $e->getMessage())));
         }

@@ -476,7 +476,7 @@ class AdmissionLetterService {
     /**
      * Gửi test email
      */
-    public function sendTestEmail($email, $templateId) {
+    public function sendTestEmail($email, $templateId, $ids = []) {
         $tplStmt = $this->db->prepare("SELECT * FROM email_templates WHERE id = ?");
         $tplStmt->execute([$templateId]);
         $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
@@ -485,39 +485,54 @@ class AdmissionLetterService {
             throw new \Exception("Mẫu email không tồn tại.");
         }
 
-        // Tạo dữ liệu giả lập cho email test
-        $fakeData = [
-            'ho_ten' => 'Nguyễn Văn Test',
-            'so_cccd' => '012345678912',
-            'sbd' => 'T12345',
-            'ngay_sinh' => '01/01/2005',
-            'khu_vuc' => 'KV1',
-            'doi_tuong' => 'UT1',
-            'to_hop' => 'A00',
-            'diem_mon_1' => 8.5,
-            'diem_mon_2' => 8.0,
-            'diem_mon_3' => 9.0,
-            'diem_to_hop' => 25.5,
-            'diem_ut' => 1.5,
-            'ut_quy_doi' => 1.0,
-            'diem_xt' => 28.0,
-            'ten_nganh' => 'Công nghệ thông tin',
-            'ma_nganh' => '7480201',
-            'phuong_thuc' => 'Xét điểm thi THPT',
-            'so_tk' => '1903123456789',
-            'ngan_hang' => 'Techcombank',
-            'so_tien' => 5000000,
-            'noi_dung_ck' => 'Nguyễn Văn Test nop hoc phi',
-            'email' => $email,
-            'sdt' => '0987654321',
-            'ghi_chu' => 'Test Ghi chú'
-        ];
-
         $subject = '[TEST] ' . ($template['subject'] ?? 'Thông báo trúng tuyển');
-        $body = $this->renderTemplate($template['body'], $fakeData);
 
-        // Send directly or enqueue
-        return $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter');
+        if (!empty($ids)) {
+            // Gửi email test cho các thí sinh được chọn tới email nhận test
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $this->db->prepare("SELECT * FROM thu_trung_tuyen WHERE id IN ($placeholders)");
+            $stmt->execute($ids);
+            $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            foreach ($candidates as $candidate) {
+                $body = $this->renderTemplate($template['body'], $candidate);
+                // Gắn thêm tên thí sinh vào tiêu đề để người test nhận biết được thư của ai
+                $candidateSubject = $subject . ' - TS: ' . $candidate['ho_ten'];
+                $this->mailer->enqueue($email, $candidateSubject, $body, true, 'admission_letter');
+            }
+            return count($candidates);
+        } else {
+            // Tạo dữ liệu giả lập cho email test (logic cũ khi không chọn thí sinh nào)
+            $fakeData = [
+                'ho_ten' => 'Nguyễn Văn Test',
+                'so_cccd' => '012345678912',
+                'sbd' => 'T12345',
+                'ngay_sinh' => '01/01/2005',
+                'khu_vuc' => 'KV1',
+                'doi_tuong' => 'UT1',
+                'to_hop' => 'A00',
+                'diem_mon_1' => 8.5,
+                'diem_mon_2' => 8.0,
+                'diem_mon_3' => 9.0,
+                'diem_to_hop' => 25.5,
+                'diem_ut' => 1.5,
+                'ut_quy_doi' => 1.0,
+                'diem_xt' => 28.0,
+                'ten_nganh' => 'Công nghệ thông tin',
+                'ma_nganh' => '7480201',
+                'phuong_thuc' => 'Xét điểm thi THPT',
+                'so_tk' => '1903123456789',
+                'ngan_hang' => 'Techcombank',
+                'so_tien' => 5000000,
+                'noi_dung_ck' => 'Nguyễn Văn Test nop hoc phi',
+                'email' => $email,
+                'sdt' => '0987654321',
+                'ghi_chu' => 'Test Ghi chú'
+            ];
+
+            $body = $this->renderTemplate($template['body'], $fakeData);
+            return $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter') ? 1 : 0;
+        }
     }
 
     /**
