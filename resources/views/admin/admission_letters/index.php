@@ -206,8 +206,8 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 border-r border-slate-50 text-center">
-                                        <span class="text-slate-300 italic text-[10px]">Trống</span>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-center text-slate-600 font-medium">
+                                        <?= htmlspecialchars($c['ghi_chu'] ?: '-') ?>
                                     </td>
                                     <td class="px-4 py-3 border-r border-slate-50 text-center text-slate-600 font-medium">
                                         <?= htmlspecialchars($c['ngay_sinh'] ?: '-') ?>

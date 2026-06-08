@@ -38,16 +38,42 @@ class AdmissionLetterService {
         $headers = array_map('trim', array_map('strval', $data[1]));
         $colMap  = [];
         foreach ($headers as $col => $header) {
-            $h = strtolower($header);
+            $h = $this->normalizeHeader($header);
             $fieldMap = [
-                'cccd' => 'cccd', 'hoten' => 'hoten', 'ngaysinh' => 'ngaysinh',
-                'sbd' => 'sbd', 'kv' => 'kv', 'doituong' => 'doituong',
-                'tohop' => 'tohop', 'dm1' => 'dm1', 'dm2' => 'dm2', 'dm3' => 'dm3',
-                'diemtohop' => 'diemtohop', 'diemut' => 'diemut', 'utq' => 'utq',
-                'diemxt' => 'diemxt', 'manganh' => 'manganh', 'nganh' => 'nganh',
-                'ten_nganh' => 'nganh', 'sotk' => 'sotk', 'nganhang' => 'nganhang',
-                'sotien' => 'sotien', 'noidung' => 'noidung', 'noidungck' => 'noidung',
-                'email' => 'email', 'sdt' => 'sdt', 'ghichu' => 'ghichu',
+                'cccd' => 'cccd',
+                'hoten' => 'hoten',
+                'hovaten' => 'hoten',
+                'ngaysinh' => 'ngaysinh',
+                'sbd' => 'sbd',
+                'sobaodanh' => 'sbd',
+                'kv' => 'kv',
+                'khuvuc' => 'kv',
+                'doituong' => 'doituong',
+                'tohop' => 'tohop',
+                'dm1' => 'dm1',
+                'dm2' => 'dm2',
+                'dm3' => 'dm3',
+                'diemtohop' => 'diemtohop',
+                'diemut' => 'diemut',
+                'diemuutien' => 'diemut',
+                'utq' => 'utq',
+                'utquydoi' => 'utq',
+                'diemxt' => 'diemxt',
+                'diemxettuyen' => 'diemxt',
+                'manganh' => 'manganh',
+                'nganh' => 'nganh',
+                'tennganh' => 'nganh',
+                'sotk' => 'sotk',
+                'sotaikhoan' => 'sotk',
+                'nganhang' => 'nganhang',
+                'sotien' => 'sotien',
+                'noidung' => 'noidung',
+                'noidungck' => 'noidung',
+                'noidungchuyenkhoan' => 'noidung',
+                'email' => 'email',
+                'sdt' => 'sdt',
+                'sodienthoai' => 'sdt',
+                'ghichu' => 'ghichu',
                 'phuongthuc' => 'phuongthuc',
             ];
             if (isset($fieldMap[$h])) $colMap[$fieldMap[$h]] = $col;
@@ -86,35 +112,35 @@ class AdmissionLetterService {
             // Đánh dấu in-memory để bắt duplicate ngay trong file
             $existingCCCDs[$cccd] = true;
 
-            $soTienStr = preg_replace('/[^0-9]/', '', strval($rowData[$colMap['sotien']] ?? ''));
+            $soTienStr = isset($colMap['sotien']) ? preg_replace('/[^0-9]/', '', strval($rowData[$colMap['sotien']] ?? '')) : '';
             $soTien    = $soTienStr ? (int)$soTienStr : 0;
 
             $rows[] = [
                 $batchId,
                 $cccd,
-                trim($rowData[$colMap['hoten']]      ?? ''),
-                trim($rowData[$colMap['ngaysinh']]   ?? ''),
-                trim($rowData[$colMap['sbd']]        ?? ''),
-                trim($rowData[$colMap['kv']]         ?? ''),
-                trim($rowData[$colMap['doituong']]   ?? ''),
-                trim($rowData[$colMap['tohop']]      ?? ''),
-                $parseFloat($rowData[$colMap['dm1']]       ?? null),
-                $parseFloat($rowData[$colMap['dm2']]       ?? null),
-                $parseFloat($rowData[$colMap['dm3']]       ?? null),
-                $parseFloat($rowData[$colMap['diemtohop']] ?? null),
-                $parseFloat($rowData[$colMap['diemut']]    ?? null),
-                $parseFloat($rowData[$colMap['utq']]       ?? null),
-                $parseFloat($rowData[$colMap['diemxt']]    ?? null),
-                trim($rowData[$colMap['manganh']]    ?? ''),
-                trim($rowData[$colMap['nganh']]      ?? ''),
-                trim($rowData[$colMap['phuongthuc']] ?? ''),
-                str_replace(' ', '', trim($rowData[$colMap['sotk']]    ?? '')),
-                trim($rowData[$colMap['nganhang']]   ?? ''),
+                trim(isset($colMap['hoten']) ? ($rowData[$colMap['hoten']] ?? '') : ''),
+                trim(isset($colMap['ngaysinh']) ? ($rowData[$colMap['ngaysinh']] ?? '') : ''),
+                trim(isset($colMap['sbd']) ? ($rowData[$colMap['sbd']] ?? '') : ''),
+                trim(isset($colMap['kv']) ? ($rowData[$colMap['kv']] ?? '') : ''),
+                trim(isset($colMap['doituong']) ? ($rowData[$colMap['doituong']] ?? '') : ''),
+                trim(isset($colMap['tohop']) ? ($rowData[$colMap['tohop']] ?? '') : ''),
+                $parseFloat(isset($colMap['dm1']) ? ($rowData[$colMap['dm1']] ?? null) : null),
+                $parseFloat(isset($colMap['dm2']) ? ($rowData[$colMap['dm2']] ?? null) : null),
+                $parseFloat(isset($colMap['dm3']) ? ($rowData[$colMap['dm3']] ?? null) : null),
+                $parseFloat(isset($colMap['diemtohop']) ? ($rowData[$colMap['diemtohop']] ?? null) : null),
+                $parseFloat(isset($colMap['diemut']) ? ($rowData[$colMap['diemut']] ?? null) : null),
+                $parseFloat(isset($colMap['utq']) ? ($rowData[$colMap['utq']] ?? null) : null),
+                $parseFloat(isset($colMap['diemxt']) ? ($rowData[$colMap['diemxt']] ?? null) : null),
+                trim(isset($colMap['manganh']) ? ($rowData[$colMap['manganh']] ?? '') : ''),
+                trim(isset($colMap['nganh']) ? ($rowData[$colMap['nganh']] ?? '') : ''),
+                trim(isset($colMap['phuongthuc']) ? ($rowData[$colMap['phuongthuc']] ?? '') : ''),
+                str_replace(' ', '', trim(isset($colMap['sotk']) ? ($rowData[$colMap['sotk']] ?? '') : '')),
+                trim(isset($colMap['nganhang']) ? ($rowData[$colMap['nganhang']] ?? '') : ''),
                 $soTien,
-                trim($rowData[$colMap['noidung']]    ?? ''),
+                trim(isset($colMap['noidung']) ? ($rowData[$colMap['noidung']] ?? '') : ''),
                 $email,
-                trim($rowData[$colMap['sdt']]        ?? ''),
-                trim($rowData[$colMap['ghichu']]     ?? ''),
+                trim(isset($colMap['sdt']) ? ($rowData[$colMap['sdt']] ?? '') : ''),
+                trim(isset($colMap['ghichu']) ? ($rowData[$colMap['ghichu']] ?? '') : ''),
             ];
         }
 
@@ -492,5 +518,25 @@ class AdmissionLetterService {
 
         // Send directly or enqueue
         return $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter');
+    }
+
+    /**
+     * Chuẩn hóa tiêu đề: viết thường, xóa dấu Tiếng Việt, xóa tất cả các ký tự không phải chữ/số
+     */
+    private function normalizeHeader($str) {
+        $str = mb_strtolower(trim((string)$str), 'UTF-8');
+        $unicode = [
+            'a' => 'á|à|ả|ã|ạ|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ',
+            'd' => 'đ',
+            'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+            'i' => 'í|ì|ỉ|ĩ|ị',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+            'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
+        ];
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/($uni)/i", $nonUnicode, $str);
+        }
+        return preg_replace('/[^a-z0-9]/', '', $str);
     }
 }
