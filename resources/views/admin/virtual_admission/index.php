@@ -472,16 +472,11 @@ if (!empty($combinations)) {
                 function getScaledMonScore(chiTietDiem, monKey) {
                     try {
                         let p = JSON.parse(chiTietDiem);
-                        // Duyệt qua các môn, lấy base_scaled theo thứ tự index mon_1/2/3
                         let idx = parseInt(monKey.replace('mon_', '')) - 1;
-                        let entries = [];
-                        for (let key in p) {
-                            if (typeof p[key] === 'object' && p[key] !== null && 'base_scaled' in p[key]) {
-                                entries.push({ key: key, val: p[key] });
-                            }
-                        }
-                        if (entries[idx] !== undefined) {
-                            let s = entries[idx].val.base_scaled;
+                        if (p.subjects && p.subjects[idx]) {
+                            // Ưu tiên hiển thị điểm "final" nếu có chứng chỉ, nếu không thì hiện base_scaled (đã quy đổi x0.95)
+                            // "final" ở đây là điểm cao nhất giữa chứng chỉ và học bạ đã quy đổi
+                            let s = p.subjects[idx].final !== undefined ? p.subjects[idx].final : p.subjects[idx].base_scaled;
                             return s !== undefined && s !== null ? parseFloat(s).toFixed(3) : '-';
                         }
                         return '-';

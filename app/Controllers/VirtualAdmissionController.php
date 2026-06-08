@@ -67,7 +67,7 @@ class VirtualAdmissionController extends Controller {
                          JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
                          LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id 
                          WHERE nv.dot_tuyen_sinh_id = ?
-                         AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')";
+                         AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
             
             $searchSql = "";
             $params = [$sessionId];
@@ -82,7 +82,7 @@ class VirtualAdmissionController extends Controller {
             }
 
             // 3. Đếm tổng số lượng bản ghi (trước khi tìm kiếm)
-            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')");
             $stmtTotal->execute([$sessionId]);
             $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
 
@@ -96,7 +96,7 @@ class VirtualAdmissionController extends Controller {
             }
 
             // 5. Tính tổng số thí sinh duy nhất (Candidate Count) - Độc lập tìm kiếm
-            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')");
             $stmtC->execute([$sessionId]);
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
@@ -139,11 +139,14 @@ class VirtualAdmissionController extends Controller {
                             'threshold_note' => $p['threshold_note'] ?? ''
                         ];
                         // Truyền các môn học (có chứa base_scaled) xuống UI
+                        $subjects = [];
                         foreach ($p as $k => $v) {
                             if (is_array($v) && isset($v['base_scaled'])) {
-                                $filteredChiTiet[$k] = $v;
+                                $v['mon_id'] = $k;
+                                $subjects[] = $v;
                             }
                         }
+                        $filteredChiTiet['subjects'] = $subjects;
                         
                         $row['chi_tiet_diem'] = json_encode($filteredChiTiet, JSON_UNESCAPED_UNICODE);
                     }
@@ -402,7 +405,7 @@ class VirtualAdmissionController extends Controller {
             SELECT * FROM ket_qua_hoc_tap 
             WHERE so_cccd IN (
                 SELECT DISTINCT so_cccd FROM nguyen_vong 
-                WHERE dot_tuyen_sinh_id = ? AND (trang_thai = 'DaDuyet' OR trang_thai LIKE '%Đã duyệt%')
+                WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR trang_thai LIKE '%Đã duyệt%')
             )
         ");
         $academicRows->execute([$sessionId]);
@@ -428,7 +431,7 @@ class VirtualAdmissionController extends Controller {
         }
 
         // Xây dựng WHERE / ORDER BY / filename theo loại xuất
-        $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai LIKE '%Đã duyệt%')";
+        $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
         $extraWhere = '';
         $orderBy    = 'ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC';
         $params     = [$sessionId];
@@ -492,16 +495,28 @@ class VirtualAdmissionController extends Controller {
             if (!empty($row['chi_tiet_diem'])) {
                 $chiTietRaw = json_decode($row['chi_tiet_diem'], true) ?: [];
             }
-            // Lấy base_scaled của 3 môn theo thứ tự (bỏ qua các key không phải object môn học)
-            $monEntries = [];
-            foreach ($chiTietRaw as $k => $v) {
-                if (is_array($v) && isset($v['base_scaled'])) {
-                    $monEntries[] = $v;
+            // Đọc điểm 3 môn đã quy đổi (x0.95) từ JSON mới có key mon_1/mon_2/mon_3
+            // 'final' = điểm thực sự được dùng tính tổ hợp: max(học bạ×0.95, chứng chỉ×0.95)
+            // Với TS02: final = base_scaled (học bạ×0.95)
+            // Với TS03: môn ngoại ngữ dùng chứng chỉ nên final = cert×0.95 (cao hơn học bạ)
+            $m1Score = $chiTietRaw['mon_1']['final'] ?? ($chiTietRaw['mon_1']['base_scaled'] ?? null);
+            $m2Score = $chiTietRaw['mon_2']['final'] ?? ($chiTietRaw['mon_2']['base_scaled'] ?? null);
+            $m3Score = $chiTietRaw['mon_3']['final'] ?? ($chiTietRaw['mon_3']['base_scaled'] ?? null);
+            // Fallback: nếu JSON cũ không có mon_x key, dùng thứ tự iteration
+            if ($m1Score === null) {
+                $monEntries = [];
+                foreach ($chiTietRaw as $k => $v) {
+                    if (is_array($v) && isset($v['base_scaled'])) {
+                        $monEntries[] = $v;
+                    }
                 }
+                $m1Score = $monEntries[0]['base_scaled'] ?? null;
+                $m2Score = $monEntries[1]['base_scaled'] ?? null;
+                $m3Score = $monEntries[2]['base_scaled'] ?? null;
             }
-            $m1 = isset($monEntries[0]['base_scaled']) ? round((float)$monEntries[0]['base_scaled'], 3) : 0.0;
-            $m2 = isset($monEntries[1]['base_scaled']) ? round((float)$monEntries[1]['base_scaled'], 3) : 0.0;
-            $m3 = isset($monEntries[2]['base_scaled']) ? round((float)$monEntries[2]['base_scaled'], 3) : 0.0;
+            $m1 = $m1Score !== null ? round((float)$m1Score, 3) : 0.0;
+            $m2 = $m2Score !== null ? round((float)$m2Score, 3) : 0.0;
+            $m3 = $m3Score !== null ? round((float)$m3Score, 3) : 0.0;
             $diemToHop = $m1 + $m2 + $m3;
 
 

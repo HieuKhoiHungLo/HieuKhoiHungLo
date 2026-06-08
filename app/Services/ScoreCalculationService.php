@@ -227,7 +227,7 @@ class ScoreCalculationService {
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v3");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v5");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -339,8 +339,14 @@ class ScoreCalculationService {
                 $admitted = false;
             }
             
-            $hasCert = !empty($certificates);
-            $finalMethodCode = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($bestMethod ?? '', $majorDetails, $hasCert);
+            $certActuallyUsed = false;
+            foreach ($details as $k => $d) {
+                if (is_array($d) && isset($d['source']) && $d['source'] === 'CERT') {
+                    $certActuallyUsed = true;
+                    break;
+                }
+            }
+            $finalMethodCode = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($bestMethod ?? '', $majorDetails, $certActuallyUsed);
             $resultItem = [
                 'cccd' => $cccd,
                 'nv_id' => $nvId,
@@ -1019,9 +1025,8 @@ class ScoreCalculationService {
             } else {
                 $monScores['mon_'.$subjectIdx] = $scores[$monId] ?? 0;
             }
-            $subjectIdx++;
-            
-            $details[$monId] = [
+            $details['mon_'.$subjectIdx] = [
+                'mon_id' => $monId,
                 'raw' => $scores[$monId] ?? 0,
                 'base_scaled' => $baseScore, 
                 'cert' => $certScore, 
@@ -1029,6 +1034,7 @@ class ScoreCalculationService {
                 'final' => $finalScore,
                 'source' => $source
             ];
+            $subjectIdx++;
         }
         
         // Công thức tính Điểm Ưu tiên Quy đổi của Bộ GD&ĐT (Áp dụng từ mốc 22.5 điểm)

@@ -332,10 +332,8 @@ class ThiSinhRepository
             $stmt = $this->db->prepare($sql);
             $result1 = $stmt->execute($params);
 
-            $ghiChuValue = ($status === 'Đã duyệt' ? 'Đã duyệt.' : null);
-            
-            $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, ghi_chu = ?, yeu_cau_chinh_sua = FALSE";
-            $params2 = [$status, $ghiChuValue];
+            $sql2 = "UPDATE ho_so_xet_tuyen SET trang_thai = ?, yeu_cau_chinh_sua = FALSE";
+            $params2 = [$status];
             if ($status === 'Chờ duyệt') {
                 $sql2 .= ", nguoi_duyet_id = NULL";
             } elseif ($reviewerId !== null) {
