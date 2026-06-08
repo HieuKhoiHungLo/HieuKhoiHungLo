@@ -223,6 +223,55 @@ class AdmissionLetterController extends Controller {
     }
 
     /**
+     * Xóa toàn bộ dữ liệu trong đợt hoặc toàn bộ bảng
+     */
+    public function deleteAll() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+
+        $batchId = trim($_POST['batch_id'] ?? '');
+
+        try {
+            if ($batchId) {
+                $this->service->deleteBatch($batchId);
+            } else {
+                $this->service->deleteAll();
+            }
+            $this->redirect(url('/admin/admission-letters?success=1&msg=deleted_all'));
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Lỗi xóa: ' . $e->getMessage())));
+        }
+    }
+
+    /**
+     * Gửi test email
+     */
+    public function sendTest() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+
+        $email = trim($_POST['test_email'] ?? '');
+        $templateId = (int)($_POST['template_id'] ?? 0);
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Email không hợp lệ')));
+            return;
+        }
+
+        if (!$templateId) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Chưa chọn mẫu email')));
+            return;
+        }
+
+        try {
+            $this->service->sendTestEmail($email, $templateId);
+            $this->redirect(url('/admin/admission-letters?success=1&msg=test_queued'));
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Lỗi gửi test: ' . $e->getMessage())));
+        }
+    }
+
+    /**
      * Xóa tài khoản email
      */
     public function deleteSender() {

@@ -8,6 +8,9 @@
             <p class="text-sm text-gray-500 mt-1">Quản lý và gửi thư thông báo linh hoạt cho thí sinh</p>
         </div>
         <div class="flex gap-2">
+            <button type="button" onclick="openTestEmailModal()" class="px-4 py-2 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition shadow-lg shadow-amber-200 flex items-center">
+                <i class="fas fa-paper-plane mr-2"></i> Gửi test
+            </button>
             <a href="<?= url('/admin/admission-letters/senders') ?>" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition flex items-center">
                 <i class="fas fa-envelope-open-text mr-2"></i> Cấu hình Email
             </a>
@@ -26,6 +29,10 @@
                     Đã đưa <?= htmlspecialchars($_GET['count'] ?? 0) ?> email vào hàng đợi gửi.
                 <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'deleted'): ?>
                     Đã xóa các hồ sơ được chọn.
+                <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'deleted_all'): ?>
+                    Đã xóa toàn bộ dữ liệu.
+                <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'test_queued'): ?>
+                    Đã gửi email test thành công. Vui lòng kiểm tra hòm thư của bạn!
                 <?php elseif (isset($_GET['imported'])): ?>
                     Đã thêm <?= htmlspecialchars($_GET['imported'] ?? 0) ?> thí sinh từ file Excel.
                 <?php endif; ?>
@@ -46,6 +53,15 @@
             <span class="text-xs font-bold text-slate-500 uppercase flex items-center">
                 <i class="fas fa-cog mr-2"></i> Chức năng:
             </span>
+            <form action="<?= url('/admin/admission-letters/delete-all') ?>" method="POST" onsubmit="return confirm('Bạn có CHẮC CHẮN muốn xóa TOÀN BỘ danh sách thư báo trúng tuyển? Thao tác này không thể hoàn tác!')" class="inline">
+                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                <?php if (!empty($filters['batch_id'])): ?>
+                    <input type="hidden" name="batch_id" value="<?= htmlspecialchars($filters['batch_id']) ?>">
+                <?php endif; ?>
+                <button type="submit" class="px-4 py-2 bg-white border border-red-200 rounded-xl text-red-600 text-xs font-bold hover:bg-red-50 shadow-sm transition flex items-center mr-1">
+                    <i class="fas fa-trash mr-2"></i> Xóa toàn bộ <?= !empty($filters['batch_id']) ? 'đợt này' : '' ?>
+                </button>
+            </form>
             <button type="button" onclick="window.location.href='<?= url('/admin/admission-letters/trash') ?>'" 
                 class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-sm transition flex items-center">
                 <i class="fas fa-trash-alt mr-2 text-slate-400"></i> Thùng rác
@@ -249,7 +265,54 @@
     </form>
 </div>
 
+<!-- Test Email Modal -->
+<div id="testEmailModal" class="hidden fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <form action="<?= url('/admin/admission-letters/send-test') ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-black text-slate-800">Gửi Test Email</h3>
+                    <p class="text-xs text-slate-500 mt-1">Gửi 1 email thử nghiệm để kiểm tra giao diện và kết nối.</p>
+                </div>
+                <button type="button" onclick="closeTestEmailModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Chọn mẫu email <span class="text-red-500">*</span></label>
+                    <select name="template_id" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm" required>
+                        <option value="">-- Chọn mẫu --</option>
+                        <?php foreach($templates as $t): ?>
+                            <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['subject']) ?> (<?= $t['code'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Email người nhận <span class="text-red-500">*</span></label>
+                    <input type="email" name="test_email" required class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm" placeholder="example@gmail.com">
+                </div>
+            </div>
+            <div class="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+                <button type="button" onclick="closeTestEmailModal()" class="px-5 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-sm">Hủy</button>
+                <button type="submit" onclick="if(typeof Loading !== 'undefined') Loading.show();" class="px-5 py-2 bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-200 hover:bg-amber-600 transition flex items-center text-sm">
+                    <i class="fas fa-paper-plane mr-2"></i> Gửi Ngay
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    function openTestEmailModal() {
+        document.getElementById('testEmailModal').classList.remove('hidden');
+    }
+
+    function closeTestEmailModal() {
+        document.getElementById('testEmailModal').classList.add('hidden');
+    }
+
     const selectAll = document.getElementById('select-all');
     const checkboxes = document.querySelectorAll('.item-checkbox');
     const bulkToolbar = document.getElementById('bulk-toolbar');

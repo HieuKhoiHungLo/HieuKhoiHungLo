@@ -337,6 +337,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission-letters/template', 'AdmissionLetterController@template');
     $router->get('/admin/admission-letters/preview', 'AdmissionLetterController@preview');
     $router->post('/admin/admission-letters/bulk-action', 'AdmissionLetterController@bulkAction');
+    $router->post('/admin/admission-letters/delete-all', 'AdmissionLetterController@deleteAll');
+    $router->post('/admin/admission-letters/send-test', 'AdmissionLetterController@sendTest');
     
     // Legacy redirects for email senders
     $router->get('/admin/admission-letters/senders', function() {
