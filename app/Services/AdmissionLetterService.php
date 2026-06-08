@@ -413,7 +413,7 @@ class AdmissionLetterService {
             '{{DiemToHop}}' => $data['diem_to_hop'] ?? '',
             '{{DiemUT}}' => $data['diem_ut'] ?? '',
             '{{UTQ}}' => $data['ut_quy_doi'] ?? '',
-            '{{DiemXT}}' => $data['diem_xt'] ?? '',
+            '{{DiemXT}}' => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{Nganh}}' => $data['ten_nganh'] ?? '',
             '{{major}}' => $data['ten_nganh'] ?? '',
             '{{MaNganh}}' => $data['ma_nganh'] ?? '',
