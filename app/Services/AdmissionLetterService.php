@@ -275,7 +275,7 @@ class AdmissionLetterService {
         $totalPages = ceil($totalItems / $limit);
 
         // Get data
-        $dataSql = "SELECT * " . $sql . " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $dataSql = "SELECT * " . $sql . " ORDER BY ma_nganh ASC, diem_xt DESC, id ASC LIMIT $limit OFFSET $offset";
         $stmt = $this->db->prepare($dataSql);
         $stmt->execute($params);
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
