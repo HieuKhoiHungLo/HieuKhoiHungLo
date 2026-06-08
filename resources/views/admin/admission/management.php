@@ -47,6 +47,18 @@ ob_start();
                 <input type="text" x-model="searchQuery" placeholder="Tìm tên ngành, mã ngành..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
             </div>
             <div class="flex items-center gap-3">
+                <!-- Export Excel Button -->
+                <a :href="selectedSession
+                        ? '<?= url('/admin/admission/management/export') ?>?session_id=' + selectedSession
+                        : '<?= url('/admin/admission/management/export') ?>'"
+                   :class="!selectedSession ? 'pointer-events-none opacity-40' : ''"
+                   target="_blank"
+                   title="Xuất danh sách ngành & điểm chuẩn ra Excel"
+                   class="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50 shadow-sm transition-all">
+                    <i class="fas fa-file-excel text-emerald-600"></i>
+                    <span>Xuất Excel</span>
+                </a>
+                <!-- Save Button -->
                 <button @click="saveData" :disabled="!selectedSession || isSaving" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-indigo-200 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:shadow-none">
                     <template x-if="!isSaving">
                         <i class="fas fa-save group-hover:scale-110 transition-transform"></i>
@@ -58,6 +70,7 @@ ob_start();
                 </button>
             </div>
         </div>
+
 
         <!-- Table -->
         <div class="flex-1 overflow-auto custom-scrollbar">

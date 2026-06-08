@@ -286,6 +286,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/management/api-sessions', 'AdmissionManagementController@apiGetSessions');
     $router->get('/admin/admission/management/api-data', 'AdmissionManagementController@apiGetData');
     $router->post('/admin/admission/management/api-save', 'AdmissionManagementController@apiSave');
+    $router->get('/admin/admission/management/export', 'AdmissionManagementController@exportExcel');
+
 
     // Aptitude Scores
     $router->get('/admin/aptitude-scores', 'AptitudeScoreController@index');
