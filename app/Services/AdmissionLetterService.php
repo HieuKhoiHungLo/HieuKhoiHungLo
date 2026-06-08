@@ -14,150 +14,134 @@ class AdmissionLetterService {
     }
 
     /**
-     * Import thí sinh từ file Excel
+     * Import thí sinh từ file Excel — tối ưu cho file lớn (batch insert + in-memory dedup)
      */
     public function importFromExcel($filePath, $batchId) {
-        set_time_limit(0); // Cho phép chạy không giới hạn thời gian đối với file lớn
-        
-        $spreadsheet = IOFactory::load($filePath);
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        // ── 1. ĐỌC EXCEL: chỉ lấy dữ liệu thô, bỏ qua formula/formatting ──────
+        $reader = IOFactory::createReaderForFile($filePath);
+        $reader->setReadDataOnly(true);        // bỏ style, formula → nhanh hơn ~3×
+        $spreadsheet = $reader->load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
-        
-        $highestRow = $sheet->getHighestDataRow();
+
+        $highestRow    = $sheet->getHighestDataRow();
         $highestColumn = $sheet->getHighestDataColumn();
-        
+
         $data = $sheet->rangeToArray(
             'A1:' . $highestColumn . $highestRow,
-            null,
-            true,
-            true,
-            true
+            null, true, false, true   // false = không tính formula
         );
 
-        // Map column headers to finding indexes
+        // ── 2. MAP HEADER ────────────────────────────────────────────────────────
         $headers = array_map('trim', array_map('strval', $data[1]));
-        $colMap = [];
+        $colMap  = [];
         foreach ($headers as $col => $header) {
             $h = strtolower($header);
-            if ($h == 'cccd') $colMap['cccd'] = $col;
-            if ($h == 'hoten') $colMap['hoten'] = $col;
-            if ($h == 'ngaysinh') $colMap['ngaysinh'] = $col;
-            if ($h == 'sbd') $colMap['sbd'] = $col;
-            if ($h == 'kv') $colMap['kv'] = $col;
-            if ($h == 'doituong') $colMap['doituong'] = $col;
-            if ($h == 'tohop') $colMap['tohop'] = $col;
-            if ($h == 'dm1') $colMap['dm1'] = $col;
-            if ($h == 'dm2') $colMap['dm2'] = $col;
-            if ($h == 'dm3') $colMap['dm3'] = $col;
-            if ($h == 'diemtohop') $colMap['diemtohop'] = $col;
-            if ($h == 'diemut') $colMap['diemut'] = $col;
-            if ($h == 'utq') $colMap['utq'] = $col;
-            if ($h == 'diemxt') $colMap['diemxt'] = $col;
-            if ($h == 'manganh') $colMap['manganh'] = $col;
-            if ($h == 'nganh' || $h == 'ten_nganh') $colMap['nganh'] = $col;
-            if ($h == 'sotk') $colMap['sotk'] = $col;
-            if ($h == 'nganhang') $colMap['nganhang'] = $col;
-            if ($h == 'sotien') $colMap['sotien'] = $col;
-            if ($h == 'noidung' || $h == 'noidungck') $colMap['noidung'] = $col;
-            if ($h == 'email') $colMap['email'] = $col;
-            if ($h == 'sdt') $colMap['sdt'] = $col;
-            if ($h == 'ghichu') $colMap['ghichu'] = $col;
-            if ($h == 'phuongthuc') $colMap['phuongthuc'] = $col;
+            $fieldMap = [
+                'cccd' => 'cccd', 'hoten' => 'hoten', 'ngaysinh' => 'ngaysinh',
+                'sbd' => 'sbd', 'kv' => 'kv', 'doituong' => 'doituong',
+                'tohop' => 'tohop', 'dm1' => 'dm1', 'dm2' => 'dm2', 'dm3' => 'dm3',
+                'diemtohop' => 'diemtohop', 'diemut' => 'diemut', 'utq' => 'utq',
+                'diemxt' => 'diemxt', 'manganh' => 'manganh', 'nganh' => 'nganh',
+                'ten_nganh' => 'nganh', 'sotk' => 'sotk', 'nganhang' => 'nganhang',
+                'sotien' => 'sotien', 'noidung' => 'noidung', 'noidungck' => 'noidung',
+                'email' => 'email', 'sdt' => 'sdt', 'ghichu' => 'ghichu',
+                'phuongthuc' => 'phuongthuc',
+            ];
+            if (isset($fieldMap[$h])) $colMap[$fieldMap[$h]] = $col;
         }
 
         if (!isset($colMap['email']) || !isset($colMap['cccd'])) {
             throw new \Exception("File Excel thiếu cột 'Email' hoặc 'CCCD' bắt buộc.");
         }
 
-        $imported = 0;
+        // ── 3. PRE-LOAD CCCD đã tồn tại vào bộ nhớ (1 query duy nhất) ──────────
+        $existStmt = $this->db->prepare(
+            "SELECT so_cccd FROM thu_trung_tuyen WHERE batch_id = ?"
+        );
+        $existStmt->execute([$batchId]);
+        $existingCCCDs = array_flip($existStmt->fetchAll(\PDO::FETCH_COLUMN));
+
+        // ── 4. CHUẨN BỊ DỮ LIỆU (không query DB) ───────────────────────────────
+        $parseFloat = function($val) {
+            $val = str_replace(',', '.', trim((string)($val ?? '0')));
+            return is_numeric($val) ? (float)$val : 0;
+        };
+
+        $rows    = [];
         $ignored = 0;
 
-        $stmt = $this->db->prepare("
-            INSERT INTO thu_trung_tuyen (
-                batch_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
-                diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
-                diem_xt, ma_nganh, ten_nganh, phuong_thuc,
-                so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
-                email, sdt, ghi_chu, status
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, 'Chờ duyệt'
-            )
-        ");
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $rowData = $data[$row] ?? [];
+
+            $email = trim($rowData[$colMap['email']] ?? '');
+            $cccd  = trim($rowData[$colMap['cccd']]  ?? '');
+
+            if (empty($email) || empty($cccd)) { $ignored++; continue; }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $ignored++; continue; }
+            if (isset($existingCCCDs[$cccd])) { $ignored++; continue; }
+
+            // Đánh dấu in-memory để bắt duplicate ngay trong file
+            $existingCCCDs[$cccd] = true;
+
+            $soTienStr = preg_replace('/[^0-9]/', '', strval($rowData[$colMap['sotien']] ?? ''));
+            $soTien    = $soTienStr ? (int)$soTienStr : 0;
+
+            $rows[] = [
+                $batchId,
+                $cccd,
+                trim($rowData[$colMap['hoten']]      ?? ''),
+                trim($rowData[$colMap['ngaysinh']]   ?? ''),
+                trim($rowData[$colMap['sbd']]        ?? ''),
+                trim($rowData[$colMap['kv']]         ?? ''),
+                trim($rowData[$colMap['doituong']]   ?? ''),
+                trim($rowData[$colMap['tohop']]      ?? ''),
+                $parseFloat($rowData[$colMap['dm1']]       ?? null),
+                $parseFloat($rowData[$colMap['dm2']]       ?? null),
+                $parseFloat($rowData[$colMap['dm3']]       ?? null),
+                $parseFloat($rowData[$colMap['diemtohop']] ?? null),
+                $parseFloat($rowData[$colMap['diemut']]    ?? null),
+                $parseFloat($rowData[$colMap['utq']]       ?? null),
+                $parseFloat($rowData[$colMap['diemxt']]    ?? null),
+                trim($rowData[$colMap['manganh']]    ?? ''),
+                trim($rowData[$colMap['nganh']]      ?? ''),
+                trim($rowData[$colMap['phuongthuc']] ?? ''),
+                str_replace(' ', '', trim($rowData[$colMap['sotk']]    ?? '')),
+                trim($rowData[$colMap['nganhang']]   ?? ''),
+                $soTien,
+                trim($rowData[$colMap['noidung']]    ?? ''),
+                $email,
+                trim($rowData[$colMap['sdt']]        ?? ''),
+                trim($rowData[$colMap['ghichu']]     ?? ''),
+            ];
+        }
+
+        // ── 5. BATCH INSERT — mỗi lần 500 dòng ──────────────────────────────────
+        $imported   = 0;
+        $batchSize  = 500;
+        $colCount   = 25;
+
+        $baseSql = "INSERT INTO thu_trung_tuyen (
+            batch_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
+            diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
+            diem_xt, ma_nganh, ten_nganh, phuong_thuc,
+            so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
+            email, sdt, ghi_chu
+        ) VALUES ";
+
+        $chunks = array_chunk($rows, $batchSize);
 
         $this->db->beginTransaction();
-
-        // Prepare duplicate check statement
-        $dupStmt = $this->db->prepare("SELECT COUNT(*) FROM thu_trung_tuyen WHERE so_cccd = ? AND batch_id = ?");
-
         try {
-            for ($row = 2; $row <= $highestRow; $row++) {
-                $rowData = $data[$row];
-                
-                $email = trim($rowData[$colMap['email']] ?? '');
-                $cccd = trim($rowData[$colMap['cccd']] ?? '');
-                
-                // Bỏ qua nếu email/cccd rỗng
-                if (empty($email) || empty($cccd)) {
-                    $ignored++;
-                    continue;
-                }
+            foreach ($chunks as $chunk) {
+                $placeholderRow = '(' . implode(',', array_fill(0, $colCount, '?')) . ')';
+                $sql = $baseSql . implode(',', array_fill(0, count($chunk), $placeholderRow));
+                $flat = array_merge(...$chunk);
 
-                // Validate email format
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $ignored++;
-                    continue;
-                }
-
-                // Kiểm tra trùng lặp CCCD trong cùng đợt
-                $dupStmt->execute([$cccd, $batchId]);
-                if ((int)$dupStmt->fetchColumn() > 0) {
-                    $ignored++;
-                    continue;
-                }
-
-                // Parse số tiền (xóa dấu chấm phẩy, lấy số nguyên)
-                $soTienStr = strval($rowData[$colMap['sotien']] ?? '0');
-                $soTienStr = preg_replace('/[^0-9]/', '', $soTienStr);
-                $soTien = $soTienStr ? (int)$soTienStr : 0;
-
-                // Hàm hỗ trợ ép kiểu số thực
-                $parseFloat = function($val) {
-                    $val = str_replace(',', '.', trim($val ?? '0'));
-                    return is_numeric($val) ? (float)$val : 0;
-                };
-
-                $stmt->execute([
-                    $batchId,
-                    $cccd,
-                    trim($rowData[$colMap['hoten']] ?? ''),
-                    trim($rowData[$colMap['ngaysinh']] ?? ''),
-                    trim($rowData[$colMap['sbd']] ?? ''),
-                    trim($rowData[$colMap['kv']] ?? ''),
-                    trim($rowData[$colMap['doituong']] ?? ''),
-                    trim($rowData[$colMap['tohop']] ?? ''),
-                    $parseFloat($rowData[$colMap['dm1']] ?? null),
-                    $parseFloat($rowData[$colMap['dm2']] ?? null),
-                    $parseFloat($rowData[$colMap['dm3']] ?? null),
-                    $parseFloat($rowData[$colMap['diemtohop']] ?? null),
-                    $parseFloat($rowData[$colMap['diemut']] ?? null),
-                    $parseFloat($rowData[$colMap['utq']] ?? null),
-                    $parseFloat($rowData[$colMap['diemxt']] ?? null),
-                    trim($rowData[$colMap['manganh']] ?? ''),
-                    trim($rowData[$colMap['nganh']] ?? ''),
-                    trim($rowData[$colMap['phuongthuc']] ?? ''),
-                    str_replace(' ', '', trim($rowData[$colMap['sotk']] ?? '')), // clear spaces
-                    trim($rowData[$colMap['nganhang']] ?? ''),
-                    $soTien,
-                    trim($rowData[$colMap['noidung']] ?? ''),
-                    $email,
-                    trim($rowData[$colMap['sdt']] ?? ''),
-                    trim($rowData[$colMap['ghichu']] ?? '')
-                ]);
-                
-                $imported++;
+                $this->db->prepare($sql)->execute($flat);
+                $imported += count($chunk);
             }
             $this->db->commit();
         } catch (\Exception $e) {
