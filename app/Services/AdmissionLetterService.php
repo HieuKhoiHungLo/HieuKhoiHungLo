@@ -485,7 +485,7 @@ class AdmissionLetterService {
             throw new \Exception("Mẫu email không tồn tại.");
         }
 
-        $subject = '[TEST] ' . ($template['subject'] ?? 'Thông báo trúng tuyển');
+        $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
 
         if (!empty($ids)) {
             // Gửi email test cho các thí sinh được chọn tới email nhận test
@@ -496,9 +496,7 @@ class AdmissionLetterService {
 
             foreach ($candidates as $candidate) {
                 $body = $this->renderTemplate($template['body'], $candidate);
-                // Gắn thêm tên thí sinh vào tiêu đề để người test nhận biết được thư của ai
-                $candidateSubject = $subject . ' - TS: ' . $candidate['ho_ten'];
-                $this->mailer->enqueue($email, $candidateSubject, $body, true, 'admission_letter');
+                $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter');
             }
             return count($candidates);
         } else {
