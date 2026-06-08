@@ -128,7 +128,7 @@ function virtualFilterApp() {
             this.isLoading = true;
             this.majors = [];
             
-            fetch('/TS/admin/admission/virtual-filter/api-load?batch_id=' + this.selectedBatch)
+            fetch('/TS/admin/api/vf/batch-load?batch_id=' + this.selectedBatch)
                 .then(response => response.json())
                 .then(data => {
                     this.isLoading = false;
@@ -153,18 +153,18 @@ function virtualFilterApp() {
             this.showMessage('Hệ thống đang chạy hàm tìm tổ hợp/phương thức tối ưu cho hàng vạn nguyện vọng. Vui lòng KHÔNG đóng trình duyệt...', 'info');
 
             const formData = new FormData();
-            formData.append('batch_id', this.selectedBatch);
+            formData.append('session_id', this.selectedBatch);
             // formData.append('force', '1'); // Uncomment nếu muốn bắt buộc tính lại từ số 0 kể cả ng đã có điểm
 
-            fetch('/TS/admin/admission/virtual-filter/api-recalculate', {
+            fetch('/TS/admin/api/vf/recalculate', {
                 method: 'POST',
                 body: formData
             })
             .then(res => res.json())
             .then(data => {
                 this.isCalculating = false;
-                if (data.status) {
-                    this.showMessage(data.message, 'success');
+                if (data.success || data.status) {
+                    this.showMessage(data.message || 'Đã đưa vào hàng đợi tính điểm thành công!', 'success');
                 } else {
                     this.showMessage(data.message || 'Có lỗi xảy ra', 'error');
                 }
@@ -188,7 +188,7 @@ function virtualFilterApp() {
                 formData.append('quotas[' + m.ma_nganh + ']', m.chi_tieu);
             });
 
-            fetch('/TS/admin/admission/virtual-filter/api-run', {
+            fetch('/TS/admin/api/vf/run', {
                 method: 'POST',
                 body: formData
             })

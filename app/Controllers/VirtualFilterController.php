@@ -13,15 +13,7 @@ class VirtualFilterController extends Controller {
     protected $db;
 
     public function __construct() {
-        try {
-            $this->db = Database::getInstance()->getConnection();
-            
-            // Self-healing: Ensure column exists using the app's own connection
-            // This bypasses any external connection issues.
-            $this->db->exec("ALTER TABLE v_calc_summary ADD COLUMN IF NOT EXISTS trang_thai_do BOOLEAN DEFAULT TRUE");
-        } catch (\Throwable $e) {
-            // Early fallback if DB connection fails
-        }
+        $this->db = Database::getInstance()->getConnection();
     }
 
     private function getFilterService() {

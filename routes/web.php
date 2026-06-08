@@ -280,6 +280,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/api/vf/export-failed',       'VirtualAdmissionController@exportFailed');
     $router->get('/admin/api/vf/export-academic-fail','VirtualAdmissionController@exportAcademicFail');
     $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
+    $router->get('/admin/api/vf/batch-load', 'VirtualFilterController@loadBatchData');
 
     // New Admission Management (Year/Session Based)
     $router->get('/admin/admission/management', 'AdmissionManagementController@index');
