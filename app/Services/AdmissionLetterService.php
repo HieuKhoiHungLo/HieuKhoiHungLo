@@ -534,6 +534,60 @@ class AdmissionLetterService {
     }
 
     /**
+     * Gắn toàn bộ email (theo đợt hoặc tất cả) vào queue để gửi dần
+     */
+    public function enqueueAll($templateId, $batchId = '') {
+        $db = $this->db;
+        
+        // Fetch Template
+        $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+        $tplStmt->execute([$templateId]);
+        $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if (!$template) {
+            throw new \Exception("Mẫu email không tồn tại.");
+        }
+
+        // Fetch candidates
+        if (!empty($batchId)) {
+            $stmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE batch_id = ? AND status IN ('pending', 'failed')");
+            $stmt->execute([$batchId]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE status IN ('pending', 'failed')");
+            $stmt->execute();
+        }
+        $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($candidates)) {
+            return 0;
+        }
+
+        $db->beginTransaction();
+        try {
+            $insertStmt = $db->prepare("INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES (?, ?, ?, 'pending', 'admission_letter', NOW())");
+            $updateStmt = $db->prepare("UPDATE thu_trung_tuyen SET status = 'queued' WHERE id = ?");
+
+            $enqueuedCount = 0;
+            foreach ($candidates as $candidate) {
+                if (empty($candidate['email'])) continue;
+
+                $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
+                $body = $this->renderTemplate($template['body'], $candidate);
+
+                $insertStmt->execute([$candidate['email'], $subject, $body]);
+                $updateStmt->execute([$candidate['id']]);
+
+                $enqueuedCount++;
+            }
+            $db->commit();
+            return $enqueuedCount;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Chuẩn hóa tiêu đề: viết thường, xóa dấu Tiếng Việt, xóa tất cả các ký tự không phải chữ/số
      */
     private function normalizeHeader($str) {

@@ -8,6 +8,9 @@
             <p class="text-sm text-gray-500 mt-1">Quản lý và gửi thư thông báo linh hoạt cho thí sinh</p>
         </div>
         <div class="flex gap-2">
+            <button type="button" onclick="openSendAllModal()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center">
+                <i class="fas fa-mail-bulk mr-2"></i> Gửi toàn bộ
+            </button>
             <button type="button" onclick="openTestEmailModal()" class="px-4 py-2 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition shadow-lg shadow-amber-200 flex items-center">
                 <i class="fas fa-paper-plane mr-2"></i> Gửi test
             </button>
@@ -309,6 +312,67 @@
     </div>
 </div>
 
+<!-- Send All Email Modal -->
+<div id="sendAllModal" class="hidden fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <form action="<?= url('/admin/admission-letters/send-all') ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <?php if (!empty($filters['batch_id'])): ?>
+                <input type="hidden" name="batch_id" value="<?= htmlspecialchars($filters['batch_id']) ?>">
+            <?php endif; ?>
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50">
+                <div>
+                    <h3 class="text-lg font-black text-slate-800">Gửi Toàn Bộ Thư</h3>
+                    <p class="text-xs text-slate-500 mt-1">Đưa tất cả thí sinh vào hàng đợi gửi thư tự động.</p>
+                </div>
+                <button type="button" onclick="closeSendAllModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-700">
+                    <i class="fas fa-info-circle mr-1"></i> <strong>Lưu ý:</strong> Hệ thống sử dụng hàng đợi tự động chạy ngầm. Khi bấm xác nhận, toàn bộ thư sẽ được chuyển vào hàng gửi dần để tránh quá tải máy chủ.
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Phạm vi gửi thư <span class="text-red-500">*</span></label>
+                    <div class="space-y-2">
+                        <?php if (!empty($filters['batch_id'])): ?>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                                <input type="radio" name="scope" value="batch" checked class="text-blue-600 focus:ring-blue-500">
+                                Chỉ đợt hiện tại: <span class="font-bold text-blue-600"><?= htmlspecialchars($filters['batch_id']) ?></span>
+                            </label>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                                <input type="radio" name="scope" value="all" class="text-blue-600 focus:ring-blue-500">
+                                Toàn bộ danh sách (tất cả các đợt)
+                            </label>
+                        <?php else: ?>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                                <input type="radio" name="scope" value="all" checked class="text-blue-600 focus:ring-blue-500">
+                                Toàn bộ danh sách (tất cả các đợt)
+                            </label>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Chọn mẫu email <span class="text-red-500">*</span></label>
+                    <select name="template_id" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm" required>
+                        <option value="">-- Chọn mẫu --</option>
+                        <?php foreach($templates as $t): ?>
+                            <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['subject']) ?> (<?= $t['code'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+                <button type="button" onclick="closeSendAllModal()" class="px-5 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-sm">Hủy</button>
+                <button type="submit" onclick="if(typeof Loading !== 'undefined') Loading.show();" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex items-center text-sm">
+                    <i class="fas fa-paper-plane mr-2"></i> Xác Nhận Gửi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function openTestEmailModal() {
         const form = document.querySelector('#testEmailModal form');
@@ -331,6 +395,14 @@
 
     function closeTestEmailModal() {
         document.getElementById('testEmailModal').classList.add('hidden');
+    }
+
+    function openSendAllModal() {
+        document.getElementById('sendAllModal').classList.remove('hidden');
+    }
+
+    function closeSendAllModal() {
+        document.getElementById('sendAllModal').classList.add('hidden');
     }
 
     const selectAll = document.getElementById('select-all');

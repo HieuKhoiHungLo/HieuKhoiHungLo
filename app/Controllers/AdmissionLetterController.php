@@ -273,6 +273,34 @@ class AdmissionLetterController extends Controller {
     }
 
     /**
+     * Gửi toàn bộ thư trúng tuyển (xếp hàng loạt vào queue)
+     */
+    public function sendAll() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+
+        $templateId = (int)($_POST['template_id'] ?? 0);
+        $scope = $_POST['scope'] ?? 'all';
+        $batchId = $scope === 'batch' ? trim($_POST['batch_id'] ?? '') : '';
+
+        if (!$templateId) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Chưa chọn mẫu email')));
+            return;
+        }
+
+        try {
+            $count = $this->service->enqueueAll($templateId, $batchId);
+            if ($count > 0) {
+                $this->redirect(url("/admin/admission-letters?success=1&msg=queued&count=$count"));
+            } else {
+                $this->redirect(url('/admin/admission-letters?error=' . urlencode('Không có thí sinh nào ở trạng thái Chờ gửi hoặc Gửi lỗi')));
+            }
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission-letters?error=' . urlencode('Lỗi xếp hàng gửi thư: ' . $e->getMessage())));
+        }
+    }
+
+    /**
      * Xóa tài khoản email
      */
     public function deleteSender() {
