@@ -137,6 +137,7 @@
                             <th class="px-4 py-3 border-r border-slate-200 w-36">Điện thoại</th>
                             <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">Email</th>
                             <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">Ngành Xét Tuyển</th>
+                            <th class="px-4 py-3 border-r border-slate-200 w-32 text-center">Điểm xét tuyển</th>
                             <th class="px-4 py-3 text-center w-20 sticky right-0 bg-slate-50 z-10">Xem</th>
                         </tr>
                         <!-- Row 2: Search Filters -->
@@ -172,12 +173,13 @@
                                 <input type="text" data-filter-key="f_major" placeholder="Ngành học..." value="<?= htmlspecialchars($filters['f_major'] ?? '') ?>"
                                     class="w-full px-2 py-1 text-[10px] border border-slate-200 rounded outline-none focus:border-blue-400 font-normal">
                             </th>
+                            <th class="px-4 py-1 border-r border-slate-200"></th>
                             <th class="px-4 py-1 sticky right-0 bg-slate-50"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($candidates)): ?>
-                            <tr><td colspan="9" class="py-12 text-center text-slate-400 bg-slate-50/50 italic">Không tìm thấy thí sinh nào phù hợp.</td></tr>
+                            <tr><td colspan="10" class="py-12 text-center text-slate-400 bg-slate-50/50 italic">Không tìm thấy thí sinh nào phù hợp.</td></tr>
                         <?php else: ?>
                             <?php foreach($candidates as $c): ?>
                                 <tr class="hover:bg-blue-50/30 transition-colors group">
@@ -222,6 +224,9 @@
                                         <div class="font-semibold text-slate-700 text-xs truncate w-56" title="<?= htmlspecialchars($c['ten_nganh']) ?>">
                                             <?= htmlspecialchars($c['ten_nganh']) ?>
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-3 border-r border-slate-50 text-center text-slate-700 font-bold">
+                                        <?= number_format((float)($c['diem_xt'] ?? 0), 3, '.', '') ?>
                                     </td>
                                     <td class="px-4 py-3 text-center sticky right-0 bg-white group-hover:bg-blue-50/30 transition-colors">
                                         <a href="<?= url('/admin/admission-letters/preview?id=' . $c['id']) ?>" target="_blank" 
