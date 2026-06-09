@@ -64,6 +64,7 @@ class ApiController extends Controller
      */
     public function processEmailQueue()
     {
+        set_time_limit(120);
         // Security: verify cron key from .env (timing-safe comparison)
         $key = $_GET['key'] ?? '';
         $expectedKey = $_ENV['CRON_SECRET_KEY'] ?? '';
@@ -155,7 +156,7 @@ class ApiController extends Controller
                     SELECT id FROM email_queue 
                     WHERE status = 'pending' 
                     ORDER BY created_at ASC 
-                    LIMIT 20 
+                    LIMIT 40 
                     FOR UPDATE SKIP LOCKED
                 )
                 RETURNING *
@@ -195,8 +196,8 @@ class ApiController extends Controller
                 }
             }
 
-            // Throttling: Add 1s delay between emails to avoid being flagged by Gmail/SMTP
-            sleep(1);
+            // Throttling: Add 0.1s delay between emails (rotating accounts is safe)
+            usleep(100000);
         }
 
         // Release lock

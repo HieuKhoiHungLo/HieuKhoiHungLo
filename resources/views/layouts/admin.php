@@ -689,9 +689,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                // If there are still emails remaining, run again sooner (30s), 
+                // If there are still emails remaining, run again sooner (5s), 
                 // otherwise wait longer (5 minutes) to check for new work.
-                let nextRun = (data.remaining > 0) ? 30000 : 300000;
+                let nextRun = (data.remaining > 0) ? 5000 : 300000;
                 setTimeout(triggerEmailQueue, nextRun);
             })
             .catch(() => {
