@@ -537,54 +537,90 @@ class AdmissionLetterService {
      * Gắn toàn bộ email (theo đợt hoặc tất cả) vào queue để gửi dần
      */
     public function enqueueAll($templateId, $batchId = '') {
+        set_time_limit(0);
+        ini_set('memory_limit', '256M');
+
         $db = $this->db;
-        
+
         // Fetch Template
         $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
         $tplStmt->execute([$templateId]);
         $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
-        
+
         if (!$template) {
             throw new \Exception("Mẫu email không tồn tại.");
         }
 
-        // Fetch candidates
-        if (!empty($batchId)) {
-            $stmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE batch_id = ? AND status IN ('pending', 'failed')");
-            $stmt->execute([$batchId]);
-        } else {
-            $stmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE status IN ('pending', 'failed')");
-            $stmt->execute();
-        }
-        $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
 
-        if (empty($candidates)) {
+        // Xây dựng điều kiện lọc theo scope
+        if (!empty($batchId)) {
+            $baseWhere  = "WHERE batch_id = ? AND status IN ('pending', 'failed')";
+            $baseParams = [$batchId];
+        } else {
+            $baseWhere  = "WHERE status IN ('pending', 'failed')";
+            $baseParams = [];
+        }
+
+        // Đếm tổng
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM thu_trung_tuyen $baseWhere");
+        $countStmt->execute($baseParams);
+        $total = (int)$countStmt->fetchColumn();
+
+        if ($total === 0) {
             return 0;
         }
 
-        $db->beginTransaction();
-        try {
-            $insertStmt = $db->prepare("INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES (?, ?, ?, 'pending', 'admission_letter', NOW())");
-            $updateStmt = $db->prepare("UPDATE thu_trung_tuyen SET status = 'queued' WHERE id = ?");
+        // === BƯỚC 1: INSERT vào email_queue theo batch nhỏ 50 dòng ===
+        // Không kèm UPDATE, không transaction lớn — tránh Supabase statement_timeout
+        $batchSize     = 50;
+        $offset        = 0;
+        $totalEnqueued = 0;
+        $insertedIds   = [];
 
-            $enqueuedCount = 0;
+        $insertStmt = $db->prepare(
+            "INSERT INTO email_queue (recipient, subject, body, status, category, created_at)
+             VALUES (?, ?, ?, 'pending', 'admission_letter', NOW())"
+        );
+
+        while ($offset < $total) {
+            $params = array_merge($baseParams, [$batchSize, $offset]);
+            $fetchStmt = $db->prepare("SELECT * FROM thu_trung_tuyen $baseWhere ORDER BY id ASC LIMIT ? OFFSET ?");
+            $fetchStmt->execute($params);
+            $candidates = $fetchStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($candidates)) break;
+
             foreach ($candidates as $candidate) {
                 if (empty($candidate['email'])) continue;
-
-                $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
                 $body = $this->renderTemplate($template['body'], $candidate);
-
-                $insertStmt->execute([$candidate['email'], $subject, $body]);
-                $updateStmt->execute([$candidate['id']]);
-
-                $enqueuedCount++;
+                try {
+                    $insertStmt->execute([$candidate['email'], $subject, $body]);
+                    $insertedIds[] = $candidate['id'];
+                    $totalEnqueued++;
+                } catch (\Exception $e) {
+                    error_log("enqueueAll insert skip id={$candidate['id']}: " . $e->getMessage());
+                }
             }
-            $db->commit();
-            return $enqueuedCount;
-        } catch (\Exception $e) {
-            $db->rollBack();
-            throw $e;
+
+            $offset += $batchSize;
+            unset($candidates);
+            gc_collect_cycles();
         }
+
+        // === BƯỚC 2: UPDATE status='queued' theo batch nhỏ 50 ID ===
+        // Tách hoàn toàn với INSERT để tránh lock contention
+        foreach (array_chunk($insertedIds, 50) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            try {
+                $db->prepare("UPDATE thu_trung_tuyen SET status = 'queued' WHERE id IN ($placeholders)")
+                   ->execute($chunk);
+            } catch (\Exception $e) {
+                error_log("enqueueAll status update skip: " . $e->getMessage());
+            }
+        }
+
+        return $totalEnqueued;
     }
 
     /**
