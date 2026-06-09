@@ -80,18 +80,6 @@ class ApiController extends Controller
             return;
         }
 
-        // --- CONCURRENCY LOCKING ---
-        // Use a file-based lock to prevent overlapping runs from multiple admin page loads.
-        // This is crucial to avoid "Too many login attempts" from SMTP providers like Google.
-        $lockFile = __DIR__ . '/../../storage/email_queue.lock';
-        if (!file_exists(dirname($lockFile))) mkdir(dirname($lockFile), 0777, true);
-        $fp = fopen($lockFile, 'w+');
-        if (!$fp || !flock($fp, LOCK_EX | LOCK_NB)) {
-            $this->json(['success' => true, 'message' => 'Một tiến trình khác đang chạy. Bỏ qua.']);
-            if ($fp) fclose($fp);
-            return;
-        }
-
         // Release session lock immediately. 
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
@@ -166,8 +154,6 @@ class ApiController extends Controller
             $db->commit();
         } catch (\Exception $e) {
             $db->rollBack();
-            flock($fp, LOCK_UN);
-            fclose($fp);
             $this->json(['success' => false, 'error' => $e->getMessage()]);
             return;
         }
@@ -200,9 +186,7 @@ class ApiController extends Controller
             usleep(100000);
         }
 
-        // Release lock
-        flock($fp, LOCK_UN);
-        fclose($fp);
+
 
         // Count remaining pending emails
         $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
