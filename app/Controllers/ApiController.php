@@ -80,6 +80,18 @@ class ApiController extends Controller
             return;
         }
 
+        // --- CONCURRENCY LOCKING ---
+        // File lock prevents multiple tabs from authenticating the same SMTP accounts simultaneously.
+        // Google blocks accounts with "Too many login attempts" if concurrent logins happen.
+        $lockFile = __DIR__ . '/../../storage/email_queue.lock';
+        if (!file_exists(dirname($lockFile))) mkdir(dirname($lockFile), 0777, true);
+        $fp = fopen($lockFile, 'w+');
+        if (!$fp || !flock($fp, LOCK_EX | LOCK_NB)) {
+            $this->json(['success' => true, 'message' => 'Một tiến trình khác đang chạy. Bỏ qua.', 'remaining' => 0]);
+            if ($fp) fclose($fp);
+            return;
+        }
+
         // Release session lock immediately. 
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
@@ -186,7 +198,9 @@ class ApiController extends Controller
             usleep(100000);
         }
 
-
+        // Release lock
+        flock($fp, LOCK_UN);
+        fclose($fp);
 
         // Count remaining pending emails
         $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
