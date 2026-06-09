@@ -76,8 +76,22 @@ class MailerService {
 
     protected function ensureDailyReset() {
         $db = \App\Core\Database::getInstance()->getConnection();
-        // Auto-reset sent_today nếu sang ngày mới (last_sent_at của ngày hôm trước)
-        $db->exec("UPDATE email_senders SET sent_today = 0 WHERE DATE(last_sent_at) < CURRENT_DATE");
+        $today = date('Y-m-d');
+        
+        // Robust settings-based check using PHP's timezone to avoid PostgreSQL timezone mismatches.
+        $stmt = $db->prepare("SELECT value FROM settings WHERE \"key\" = 'last_email_reset_date'");
+        $stmt->execute();
+        $lastReset = $stmt->fetchColumn();
+        
+        if ($lastReset !== $today) {
+            $db->exec("UPDATE email_senders SET sent_today = 0");
+            
+            $stmtUpdate = $db->prepare("UPDATE settings SET value = ? WHERE \"key\" = 'last_email_reset_date'");
+            $stmtUpdate->execute([$today]);
+            if ($stmtUpdate->rowCount() === 0) {
+                $db->prepare("INSERT INTO settings (\"key\", value) VALUES ('last_email_reset_date', ?)")->execute([$today]);
+            }
+        }
     }
 
     protected function getRotatingSender($category = null) {
