@@ -12,7 +12,6 @@ class HomeController extends Controller {
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $offset = ($page - 1) * 10;
         // Redirect logged-in admins to the admin dashboard
-        /*
         if (isset($_SESSION['admin_id'])) {
             header('Location: ' . url('/admin/dashboard'));
             exit;
@@ -23,7 +22,6 @@ class HomeController extends Controller {
             header('Location: ' . url('/application/index'));
             exit;
         }
-        */
 
         $postModel = new \App\Models\Post();
         $sessionModel = new \App\Models\AdmissionSession();

@@ -33,16 +33,16 @@ class TalentTestPublicController extends Controller
         
         // Tìm kiếm theo CCCD hoặc SBD
         $stmt = $db->prepare("
-            SELECT a.exam_number, c.name, c.cccd, c.birth_date, 
+            SELECT a.exam_number, c.ho_va_ten AS name, c.so_cccd AS cccd, c.ngay_sinh AS birth_date, 
                    s.subject_name, r.room_name, sc.score, sc.note,
                    sess.session_name, sess.year
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             JOIN talent_test_sessions sess ON sess.id = s.session_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
-            WHERE (c.cccd = ? OR a.exam_number = ?)
+            WHERE (c.so_cccd = ? OR a.exam_number = ?)
             ORDER BY sess.year DESC
             LIMIT 1
         ");

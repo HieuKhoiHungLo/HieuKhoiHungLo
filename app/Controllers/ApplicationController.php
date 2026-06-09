@@ -540,11 +540,34 @@ class ApplicationController extends Controller
         // Use Repository
         $user = $this->thiSinhRepo->findByCCCD($cccd);
 
+        // Lấy thông tin trúng tuyển chi tiết để render thư
+        $admissionRecord = null;
+        $renderedAdmissionLetter = null;
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $admStmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
+        $admStmt->execute([$cccd]);
+        $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($admissionRecord) {
+            // Lấy mẫu thư trúng tuyển
+            $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
+            $tplStmt->execute();
+            $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($template) {
+                $letterService = new \App\Services\AdmissionLetterService();
+                $renderedAdmissionLetter = $letterService->renderTemplate($template['body'], $admissionRecord);
+            }
+        }
+
         $this->view('application/results', [
             'results' => $results,
             'user' => $user,
             'enableResults' => $enableResults,
-            'talentResults' => $this->getTalentTestResults($cccd)
+            'talentResults' => $this->getTalentTestResults($cccd),
+            'admissionRecord' => $admissionRecord,
+            'renderedAdmissionLetter' => $renderedAdmissionLetter
         ]);
     }
 
@@ -558,12 +581,12 @@ class ApplicationController extends Controller
             SELECT a.exam_number, s.subject_name, r.room_name, sc.score, sc.note,
                    sess.session_name, sess.is_published
             FROM talent_test_assignments a
-            JOIN candidates c ON c.id = a.candidate_id
+            JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             JOIN talent_test_sessions sess ON sess.id = s.session_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
-            WHERE c.cccd = ? AND sess.is_published = 1
+            WHERE c.so_cccd = ? AND sess.is_published = TRUE
             ORDER BY sess.year DESC
         ");
         $stmt->execute([$cccd]);

@@ -152,7 +152,8 @@ class MailerService {
             $upd->execute([$config['id']]);
         } else {
             // Release lock on failure so it can be retried by other processes immediately or later
-            $upd = $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?");
+            // Still update last_sent_at to allow rotation
+            $upd = $db->prepare("UPDATE email_senders SET last_sent_at = NOW(), locked_until = NULL WHERE id = ?");
             $upd->execute([$config['id']]);
         }
 
@@ -170,22 +171,22 @@ class MailerService {
             
             $socket = @fsockopen($prefix . $host, $port, $errno, $errstr, 30);
             if (!$socket) return "Connection failed: $errstr ($errno)";
-
+ 
             stream_set_timeout($socket, 30);
             $this->getResponse($socket);
-
+ 
             fwrite($socket, "EHLO localhost\r\n");
             $this->getResponse($socket);
             
             if ($secure === 'tls') {
                 fwrite($socket, "STARTTLS\r\n");
                 $response = $this->getResponse($socket);
-                if (strpos($response, '220') === false) { fclose($socket); return "STARTTLS failed"; }
+                if (strpos($response, '220') === false) { fclose($socket); return "STARTTLS failed: $response"; }
                 if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)) { fclose($socket); return "TLS failed"; }
                 fwrite($socket, "EHLO localhost\r\n");
                 $this->getResponse($socket);
             }
-
+ 
             fwrite($socket, "AUTH LOGIN\r\n");
             $this->getResponse($socket);
             fwrite($socket, base64_encode($user) . "\r\n");
@@ -193,14 +194,19 @@ class MailerService {
             fwrite($socket, base64_encode($pass) . "\r\n");
             $response = $this->getResponse($socket);
             if (strpos($response, '235') === false) { fclose($socket); return "Auth failed: $response"; }
-
+ 
             fwrite($socket, "MAIL FROM:<$from>\r\n");
-            $this->getResponse($socket);
-            fwrite($socket, "RCPT TO:<$to>\r\n");
-            $this->getResponse($socket);
-            fwrite($socket, "DATA\r\n");
-            $this->getResponse($socket);
+            $response = $this->getResponse($socket);
+            if (strpos($response, '250') === false) { fclose($socket); return "MAIL FROM failed: $response"; }
 
+            fwrite($socket, "RCPT TO:<$to>\r\n");
+            $response = $this->getResponse($socket);
+            if (strpos($response, '250') === false) { fclose($socket); return "RCPT TO failed: $response"; }
+
+            fwrite($socket, "DATA\r\n");
+            $response = $this->getResponse($socket);
+            if (strpos($response, '354') === false) { fclose($socket); return "DATA failed: $response"; }
+ 
             $contentType = $isHtml ? "text/html" : "text/plain";
             $message = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <$from>\r\n";
             $message .= "To: $to\r\n";
@@ -211,11 +217,30 @@ class MailerService {
             $message .= chunk_split(base64_encode($body));
             $message .= "\r\n.\r\n";
             
-            fwrite($socket, $message);
+            // Write in chunks to avoid SSL bad-length errors on large bodies
+            $writeOk = true;
+            $offset = 0;
+            $chunkSize = 4096;
+            $msgLen = strlen($message);
+            while ($offset < $msgLen) {
+                $chunk = substr($message, $offset, $chunkSize);
+                $written = @fwrite($socket, $chunk);
+                if ($written === false || $written === 0) {
+                    $writeOk = false;
+                    break;
+                }
+                $offset += $written;
+            }
+
+            if (!$writeOk) {
+                fclose($socket);
+                return "SSL write error";
+            }
+
             $response = $this->getResponse($socket);
             fwrite($socket, "QUIT\r\n");
             fclose($socket);
-
+ 
             return (strpos($response, '250') !== false) ? true : "Send failed: $response";
         } catch (\Exception $e) {
             return "SMTP Error: " . $e->getMessage();
@@ -223,9 +248,25 @@ class MailerService {
     }
 
     public function enqueue($to, $subject, $body, $isHtml = true, $category = 'system') {
+        // Fix common domain typos
+        $email = trim(strtolower($to));
+        $domainFixes = [
+            '@gmai.com' => '@gmail.com',
+            '@gamil.com' => '@gmail.com',
+            '@gmail.con' => '@gmail.com',
+            '@gmal.com'  => '@gmail.com',
+            '@yaho.com'  => '@yahoo.com',
+        ];
+        foreach ($domainFixes as $wrong => $right) {
+            if (str_ends_with($email, $wrong)) {
+                $email = substr($email, 0, -strlen($wrong)) . $right;
+                break;
+            }
+        }
+
         $db = \App\Core\Database::getInstance()->getConnection();
         $stmt = $db->prepare("INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES (?, ?, ?, 'pending', ?, NOW())");
-        return $stmt->execute([$to, $subject, $body, $category]);
+        return $stmt->execute([$email, $subject, $body, $category]);
     }
 
     protected function sendBasicMail($to, $subject, $body, $isHtml) {
@@ -411,148 +452,83 @@ class MailerService {
         ];
     }
 
+
     public function sendBatch(array $emails, array $config) {
-        $host = $config['smtp_host'];
-        $port = (int)$config['smtp_port'];
-        $user = $config['smtp_user'];
-        $pass = str_replace(' ', '', $config['smtp_pass']);
-        $secure = $config['smtp_encryption'];
-        $from = $config['email'];
+        $host     = $config['smtp_host'];
+        $port     = (int)$config['smtp_port'];
+        $user     = $config['smtp_user'];
+        $pass     = str_replace(' ', '', $config['smtp_pass']);
+        $secure   = $config['smtp_encryption'];
+        $from     = $config['email'];
         $fromName = $config['name'] ?: ($this->settings['email_from_name'] ?? 'Tuyen Sinh');
 
-        try {
-            if ($secure === 'ssl') {
-                $prefix = 'ssl://';
-            } else {
-                $prefix = ''; 
-            }
-            
-            $socket = @fsockopen($prefix . $host, $port, $errno, $errstr, 30);
-            if (!$socket) {
-                // Release lock
+        $results   = [];
+        $sentCount = 0;
+
+        // Send each email with its own fresh SMTP connection.
+        // This avoids SSL bad-length errors caused by Google dropping the TLS
+        // session after receiving large HTML bodies over a persistent connection.
+        foreach ($emails as $email) {
+            $to      = $email['recipient'];
+            $subject = $email['subject'];
+            $body    = $email['body'];
+
+            $result = $this->executeSmtpSend($to, $subject, $body, true, $host, $port, $user, $pass, $secure, $from, $fromName);
+
+            $results[$email['id']] = $result;
+            if ($result === true) {
+                $sentCount++;
+                // Update stats immediately in database to prevent exceeding limit during active batch
                 $db = \App\Core\Database::getInstance()->getConnection();
-                $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                return ["success" => false, "error" => "Connection failed: $errstr ($errno)"];
-            }
-
-            stream_set_timeout($socket, 30);
-            $this->getResponse($socket);
-
-            fwrite($socket, "EHLO localhost\r\n");
-            $this->getResponse($socket);
-            
-            if ($secure === 'tls') {
-                fwrite($socket, "STARTTLS\r\n");
-                $response = $this->getResponse($socket);
-                if (strpos($response, '220') === false) { 
-                    fclose($socket); 
-                    $db = \App\Core\Database::getInstance()->getConnection();
-                    $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                    return ["success" => false, "error" => "STARTTLS failed: $response"]; 
-                }
-                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)) { 
-                    fclose($socket); 
-                    $db = \App\Core\Database::getInstance()->getConnection();
-                    $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                    return ["success" => false, "error" => "TLS encryption failed"]; 
-                }
-                fwrite($socket, "EHLO localhost\r\n");
-                $this->getResponse($socket);
-            }
-
-            fwrite($socket, "AUTH LOGIN\r\n");
-            $response = $this->getResponse($socket);
-            if (strpos($response, '334') === false) { 
-                fclose($socket); 
-                $db = \App\Core\Database::getInstance()->getConnection();
-                $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                return ["success" => false, "error" => "AUTH LOGIN not supported: $response"]; 
-            }
-
-            fwrite($socket, base64_encode($user) . "\r\n");
-            $response = $this->getResponse($socket);
-            if (strpos($response, '334') === false) { 
-                fclose($socket); 
-                $db = \App\Core\Database::getInstance()->getConnection();
-                $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                return ["success" => false, "error" => "Username rejected: $response"]; 
-            }
-
-            fwrite($socket, base64_encode($pass) . "\r\n");
-            $response = $this->getResponse($socket);
-            if (strpos($response, '235') === false) { 
-                fclose($socket); 
-                $db = \App\Core\Database::getInstance()->getConnection();
-                $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-                return ["success" => false, "error" => "Authentication failed: $response"]; 
-            }
-
-            $results = [];
-            $sentCount = 0;
-
-            foreach ($emails as $email) {
-                $to = $email['recipient'];
-                $subject = $email['subject'];
-                $body = $email['body'];
-                $isHtml = true;
-
-                // Send MAIL FROM
-                fwrite($socket, "MAIL FROM:<$from>\r\n");
-                $this->getResponse($socket);
-
-                // Send RCPT TO
-                fwrite($socket, "RCPT TO:<$to>\r\n");
-                $this->getResponse($socket);
-
-                // Send DATA
-                fwrite($socket, "DATA\r\n");
-                $this->getResponse($socket);
-
-                $contentType = $isHtml ? "text/html" : "text/plain";
-                $message = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <$from>\r\n";
-                $message .= "To: $to\r\n";
-                $message .= "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n";
-                $message .= "MIME-Version: 1.0\r\n";
-                $message .= "Content-Type: $contentType; charset=UTF-8\r\n";
-                $message .= "Content-Transfer-Encoding: base64\r\n\r\n";
-                $message .= chunk_split(base64_encode($body));
-                $message .= "\r\n.\r\n";
-
-                fwrite($socket, $message);
-                $responseData = $this->getResponse($socket);
-
-                if (strpos($responseData, '250') !== false) {
-                    $results[$email['id']] = true;
-                    $sentCount++;
-                } else {
-                    $results[$email['id']] = "Send failed: $responseData";
-                }
-                
-                // Throttling within connection: 50ms delay
-                usleep(50000);
-            }
-
-            fwrite($socket, "QUIT\r\n");
-            fclose($socket);
-
-            // Update stats
-            $db = \App\Core\Database::getInstance()->getConnection();
-            if ($sentCount > 0) {
-                $upd = $db->prepare("UPDATE email_senders SET sent_today = sent_today + ?, last_sent_at = NOW(), locked_until = NULL WHERE id = ?");
-                $upd->execute([$sentCount, $config['id']]);
-            } else {
-                $upd = $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?");
+                $upd = $db->prepare("UPDATE email_senders SET sent_today = sent_today + 1, last_sent_at = NOW() WHERE id = ?");
                 $upd->execute([$config['id']]);
+            } else {
+                // Check if this error warrants deactivating the sender (e.g. limit hit, auth error)
+                $errLower = strtolower((string)$result);
+                $shouldDeactivate = false;
+                if (
+                    strpos($errLower, 'daily user sending limit exceeded') !== false ||
+                    strpos($errLower, '550 5.4.5') !== false ||
+                    strpos($errLower, 'too many login attempts') !== false ||
+                    strpos($errLower, 'auth failed') !== false ||
+                    strpos($errLower, 'authentication failed') !== false ||
+                    strpos($errLower, 'username rejected') !== false ||
+                    strpos($errLower, 'credentials') !== false
+                ) {
+                    $shouldDeactivate = true;
+                }
+
+                if ($shouldDeactivate) {
+                    error_log("[EmailDeactivate] Deactivating sender ID {$config['id']} ({$config['email']}) due to error: $result");
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $db->prepare("UPDATE email_senders SET is_active = FALSE, locked_until = NULL WHERE id = ?")->execute([$config['id']]);
+                    
+                    // Stop sending subsequent emails in this batch using this sender.
+                    // Mark remaining emails as skipped so they will be retried with a different sender.
+                    $remaining = array_slice($emails, array_search($email, $emails) + 1);
+                    foreach ($remaining as $rem) {
+                        $results[$rem['id']] = "Sender deactivated: $result";
+                    }
+                    break;
+                }
             }
 
-            return ["success" => true, "results" => $results];
-
-        } catch (\Exception $e) {
-            // Release lock
-            $db = \App\Core\Database::getInstance()->getConnection();
-            $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?")->execute([$config['id']]);
-            return ["success" => false, "error" => "SMTP Error: " . $e->getMessage()];
+            // Small delay between connections to stay within rate limits
+            usleep(150000); // 150ms
         }
+
+        // Release sender lock
+        $db = \App\Core\Database::getInstance()->getConnection();
+        if ($sentCount > 0) {
+            $upd = $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?");
+            $upd->execute([$config['id']]);
+        } else {
+            // Still update last_sent_at to prevent this failing sender from being prioritized forever
+            $upd = $db->prepare("UPDATE email_senders SET last_sent_at = NOW(), locked_until = NULL WHERE id = ?");
+            $upd->execute([$config['id']]);
+        }
+
+        return ["success" => true, "results" => $results];
     }
 
     protected function getResponse($socket) {

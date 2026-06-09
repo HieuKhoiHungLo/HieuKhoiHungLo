@@ -146,7 +146,7 @@ class ApiController extends Controller
                     SELECT id FROM email_queue 
                     WHERE status = 'pending' 
                     ORDER BY created_at ASC 
-                    LIMIT 40 
+                    LIMIT 20 
                     FOR UPDATE SKIP LOCKED
                 )
                 RETURNING *
@@ -177,6 +177,14 @@ class ApiController extends Controller
                     
                     if ($result === true) {
                         $db->prepare("UPDATE email_queue SET status = 'sent', sent_at = NOW() WHERE id = ?")->execute([$id]);
+                        
+                        // Sync status to thu_trung_tuyen table
+                        $db->prepare("
+                            UPDATE thu_trung_tuyen 
+                            SET status = 'sent', sent_at = NOW() 
+                            WHERE email = ? AND status = 'queued'
+                        ")->execute([$email['recipient']]);
+
                         $processed++;
                     } else {
                         // Increment retry or mark failed

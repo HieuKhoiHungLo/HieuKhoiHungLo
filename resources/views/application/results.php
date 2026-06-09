@@ -9,7 +9,7 @@ include __DIR__ . '/../layouts/header.php';
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-l-8 border-hvu-red pl-6 py-2">
         <div>
             <h1 class="text-3xl font-black text-gray-900 tracking-tight">TRA CỨU KẾT QUẢ</h1>
-            <p class="text-gray-500 mt-2 font-medium">Bảng điểm xét tuyển dự kiến dựa trên hồ sơ của bạn.</p>
+            <p class="text-gray-500 mt-2 font-medium">Kết quả xử lý dựa trên hồ sơ của bạn cung cấp và hồ sơ thí sinh đăng ký.</p>
         </div>
         <div>
             <a href="<?= url('/application/index') ?>" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">
@@ -18,63 +18,54 @@ include __DIR__ . '/../layouts/header.php';
         </div>
     </div>
 
-    <?php
-    // Kiểm tra thí sinh có trong danh sách trúng tuyển không (từ thu_trung_tuyen)
-    $cccdCheck = $_SESSION['cccd'] ?? '';
-    $admissionRecord = null;
-    if ($cccdCheck) {
-        $dbAdm = \App\Core\Database::getInstance()->getConnection();
-        $admStmt = $dbAdm->prepare("SELECT ho_ten, ten_nganh, status FROM thu_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
-        $admStmt->execute([$cccdCheck]);
-        $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
-    }
-    ?>
-
-    <?php if ($admissionRecord): ?>
-    <!-- Admission Letter Banner -->
-    <div class="relative overflow-hidden rounded-3xl shadow-2xl">
-        <div class="absolute inset-0 bg-gradient-to-r from-red-700 via-red-600 to-orange-500"
-             style="background-size:200% 200%; animation: gradientShift 4s ease infinite;"></div>
-        <div class="absolute inset-0 opacity-10"
-             style="background-image:repeating-linear-gradient(45deg,white 0,white 1px,transparent 0,transparent 50%);background-size:20px 20px;"></div>
-        <div class="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-3xl"></div>
-
-        <div class="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-5">
-                <div class="relative flex-shrink-0">
-                    <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center border border-white/30">
-                        <i class="fas fa-envelope-open-text text-white text-2xl"></i>
-                    </div>
-                    <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-4 w-4 bg-yellow-400 border-2 border-red-600"></span>
-                    </span>
-                </div>
-                <div>
-                    <div class="text-yellow-300 text-xs font-black uppercase tracking-widest mb-1">📢 Thông báo chính thức</div>
-                    <h2 class="text-white font-black text-xl leading-tight">
-                        <?= htmlspecialchars($admissionRecord['ho_ten']) ?> — Trúng tuyển <?= htmlspecialchars($admissionRecord['ten_nganh']) ?>
-                    </h2>
-                    <p class="text-white/80 text-sm mt-1">
-                        <?php if ($admissionRecord['status'] === 'sent'): ?>
-                            <i class="fas fa-check-circle text-green-300 mr-1"></i> Email đã gửi — nếu bị chặn, xem trực tiếp tại đây.
-                        <?php else: ?>
-                            <i class="fas fa-exclamation-circle text-yellow-300 mr-1"></i> Email có thể bị chặn — xem thông báo trực tiếp tại đây.
-                        <?php endif; ?>
-                    </p>
+    <?php if ($admissionRecord && !empty($renderedAdmissionLetter)): ?>
+    <!-- Section: Thư trúng tuyển -->
+    <div id="thu-trung-tuyen-chinh-thuc" class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden mt-6 scroll-mt-6">
+        <!-- Header of the Paper Letter -->
+        <div class="bg-gradient-to-r from-gray-50 to-gray-100/50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                <h3 class="text-sm font-black text-gray-800 uppercase tracking-wider">Thông báo xử lý dữ liệu ghi danh</h3>
+            </div>
+            <div>
+                <span class="text-xs text-gray-500 font-bold bg-white px-3 py-1 rounded-lg border border-gray-100">
+                    Mã số: <?= htmlspecialchars($admissionRecord['sbd'] ?: $admissionRecord['so_cccd']) ?>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Body of the Paper Letter (rendered template) -->
+        <div class="p-4 md:p-8 bg-gray-50/20">
+            <div class="max-w-4xl mx-auto bg-white p-4 md:p-10 rounded-2xl shadow-sm border border-gray-100/80 leading-relaxed text-gray-700 overflow-x-auto">
+                <div class="min-w-[600px] sm:min-w-0">
+                    <?= $renderedAdmissionLetter ?>
                 </div>
             </div>
-            <a href="<?= url('/tra-cuu-trung-tuyen') ?>?q=<?= urlencode($cccdCheck) ?>"
-               class="flex-shrink-0 inline-flex items-center gap-3 px-7 py-4 bg-white text-red-700 font-black rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all text-sm whitespace-nowrap group">
-                <i class="fas fa-file-alt text-lg"></i>
-                Xem Thông báo Trúng tuyển
-                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-            </a>
+        </div>
+        
+        <!-- Footer notes -->
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-100 text-center">
+            <p class="text-xs text-gray-400 font-medium">
+                Hội đồng Tuyển sinh Trường Đại học Hùng Vương - Tuyển sinh 2026.
+            </p>
         </div>
     </div>
-    <style>
-        @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-    </style>
+    <?php elseif (!empty($enableResults)): ?>
+    <!-- Section: Thông báo chưa có kết quả trúng tuyển -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-3xl shadow-sm">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <i class="fas fa-bullhorn text-yellow-500 text-xl mt-1"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-lg font-bold text-yellow-800 font-black">Thông báo từ Hội đồng Tuyển sinh</h3>
+                <p class="mt-2 text-yellow-700 font-medium">
+                    Hiện tại, tài khoản của bạn chưa có thông tin trúng tuyển hoặc kết quả xử lý dữ liệu. 
+                    Vui lòng quay lại sau khi có thông báo mới nhất từ nhà trường.
+                </p>
+            </div>
+        </div>
+    </div>
     <?php endif; ?>
 
     <!-- Talent Test Results -->
@@ -127,8 +118,8 @@ include __DIR__ . '/../layouts/header.php';
                     </div>
                     <div class="ml-4">
                         <h3 class="text-lg font-bold text-yellow-800">Thông báo từ Hội đồng Tuyển sinh</h3>
-                        <p class="mt-2 text-yellow-700">
-                            Hiện tại, hệ thống tra cứu kết quả xét tuyển <strong>chưa mở</strong> hoặc <strong>chưa có kết quả chính thức</strong>. 
+                        <p class="mt-2 text-yellow-700 font-medium">
+                            Hiện tại, Hồ sơ của em chưa có kết quả xử lý hoặc chưa đủ thông tin. 
                             Vui lòng quay lại sau khi có thông báo mới nhất từ nhà trường.
                         </p>
                         <div class="mt-4">
