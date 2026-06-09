@@ -84,7 +84,7 @@ class MailerService {
         $lastReset = $stmt->fetchColumn();
         
         if ($lastReset !== $today) {
-            $db->exec("UPDATE email_senders SET sent_today = 0");
+            $db->exec("UPDATE email_senders SET sent_today = 0, locked_until = NULL");
             
             $stmtUpdate = $db->prepare("UPDATE settings SET value = ? WHERE \"key\" = 'last_email_reset_date'");
             $stmtUpdate->execute([$today]);
@@ -97,28 +97,37 @@ class MailerService {
     protected function getRotatingSender($category = null) {
         $db = \App\Core\Database::getInstance()->getConnection();
         
-        // Pick an active sender that hasn't reached daily limit, isn't default, sorted by oldest last_sent_at
-        // If category is provided, try matching it first, otherwise take any from 'all' or matching category
-        $sql = "
-            SELECT * FROM email_senders 
-            WHERE is_active = TRUE 
-            AND is_default = FALSE
-            AND sent_today < daily_limit
-        ";
-        
+        // Pick and lock an active sender that hasn't reached daily limit, isn't default, and isn't locked.
+        // We atomically set locked_until = NOW() + 45 seconds to prevent concurrent worker usage.
         $params = [];
+        $categorySql = "";
         if ($category && $category !== 'all') {
             if ($category === 'admission_letter') {
-                $sql .= " AND (category = 'admission_letter' OR category = 'bulk' OR category = 'all')";
+                $categorySql = " AND (category = 'admission_letter' OR category = 'bulk' OR category = 'all')";
             } elseif ($category === 'bulk') {
-                $sql .= " AND (category = 'bulk' OR category = 'admission_letter' OR category = 'all')";
+                $categorySql = " AND (category = 'bulk' OR category = 'admission_letter' OR category = 'all')";
             } else {
-                $sql .= " AND (category = ? OR category = 'all')";
+                $categorySql = " AND (category = ? OR category = 'all')";
                 $params[] = $category;
             }
         }
         
-        $sql .= " ORDER BY last_sent_at ASC NULLS FIRST LIMIT 1";
+        $sql = "
+            UPDATE email_senders 
+            SET locked_until = NOW() + INTERVAL '45 seconds'
+            WHERE id = (
+                SELECT id FROM email_senders 
+                WHERE is_active = TRUE 
+                AND is_default = FALSE
+                AND sent_today < daily_limit
+                AND (locked_until IS NULL OR locked_until < NOW())
+                $categorySql
+                ORDER BY last_sent_at ASC NULLS FIRST 
+                LIMIT 1 
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING *
+        ";
         
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -136,10 +145,14 @@ class MailerService {
 
         $result = $this->executeSmtpSend($to, $subject, $body, $isHtml, $host, $port, $user, $pass, $secure, $from, $fromName);
 
+        $db = \App\Core\Database::getInstance()->getConnection();
         if ($result === true) {
-            // Update sender stats
-            $db = \App\Core\Database::getInstance()->getConnection();
-            $upd = $db->prepare("UPDATE email_senders SET sent_today = sent_today + 1, last_sent_at = NOW() WHERE id = ?");
+            // Update sender stats and release lock
+            $upd = $db->prepare("UPDATE email_senders SET sent_today = sent_today + 1, last_sent_at = NOW(), locked_until = NULL WHERE id = ?");
+            $upd->execute([$config['id']]);
+        } else {
+            // Release lock on failure so it can be retried by other processes immediately or later
+            $upd = $db->prepare("UPDATE email_senders SET locked_until = NULL WHERE id = ?");
             $upd->execute([$config['id']]);
         }
 
