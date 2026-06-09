@@ -163,29 +163,50 @@ class ApiController extends Controller
         $processed = 0;
         $failed = 0;
 
-        foreach ($emails as $email) {
-            $id = $email['id'];
-
-            $result = $mailer->send($email['recipient'], $email['subject'], $email['body'], true, $email['category'] ?? 'system');
-
-            if ($result === true) {
-                $db->prepare("UPDATE email_queue SET status = 'sent', sent_at = NOW() WHERE id = ?")->execute([$id]);
-                $processed++;
+        if (!empty($emails)) {
+            $category = $emails[0]['category'] ?? 'system';
+            
+            // Execute batch send using a single SMTP connection
+            $batchResult = $mailer->sendBatchByCategory($emails, $category);
+            
+            if (isset($batchResult['success']) && $batchResult['success'] === true) {
+                $results = $batchResult['results'];
+                foreach ($emails as $email) {
+                    $id = $email['id'];
+                    $result = $results[$id] ?? 'Not processed';
+                    
+                    if ($result === true) {
+                        $db->prepare("UPDATE email_queue SET status = 'sent', sent_at = NOW() WHERE id = ?")->execute([$id]);
+                        $processed++;
+                    } else {
+                        // Increment retry or mark failed
+                        $attempts = ($email['attempts'] ?? 0) + 1;
+                        $maxAttempts = 3;
+                        
+                        if ($attempts >= $maxAttempts) {
+                            $db->prepare("UPDATE email_queue SET status = 'failed', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
+                            $failed++;
+                        } else {
+                            $db->prepare("UPDATE email_queue SET status = 'pending', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
+                        }
+                    }
+                }
             } else {
-                // Increment retry or mark failed
-                $attempts = ($email['attempts'] ?? 0) + 1;
-                $maxAttempts = 3;
-
-                if ($attempts >= $maxAttempts) {
-                    $db->prepare("UPDATE email_queue SET status = 'failed', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
-                    $failed++;
-                } else {
-                    $db->prepare("UPDATE email_queue SET status = 'pending', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
+                // If SMTP connection/auth failed completely, reset the entire batch to pending/failed
+                $errorMsg = $batchResult['error'] ?? 'SMTP Connection/Authentication failed';
+                foreach ($emails as $email) {
+                    $id = $email['id'];
+                    $attempts = ($email['attempts'] ?? 0) + 1;
+                    $maxAttempts = 3;
+                    
+                    if ($attempts >= $maxAttempts) {
+                        $db->prepare("UPDATE email_queue SET status = 'failed', error = ?, attempts = ? WHERE id = ?")->execute([$errorMsg, $attempts, $id]);
+                        $failed++;
+                    } else {
+                        $db->prepare("UPDATE email_queue SET status = 'pending', error = ?, attempts = ? WHERE id = ?")->execute([$errorMsg, $attempts, $id]);
+                    }
                 }
             }
-
-            // Throttling: Add 0.1s delay between emails (rotating accounts is safe)
-            usleep(100000);
         }
 
 
