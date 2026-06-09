@@ -18,6 +18,65 @@ include __DIR__ . '/../layouts/header.php';
         </div>
     </div>
 
+    <?php
+    // Kiểm tra thí sinh có trong danh sách trúng tuyển không (từ thu_trung_tuyen)
+    $cccdCheck = $_SESSION['cccd'] ?? '';
+    $admissionRecord = null;
+    if ($cccdCheck) {
+        $dbAdm = \App\Core\Database::getInstance()->getConnection();
+        $admStmt = $dbAdm->prepare("SELECT ho_ten, ten_nganh, status FROM thu_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
+        $admStmt->execute([$cccdCheck]);
+        $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
+    }
+    ?>
+
+    <?php if ($admissionRecord): ?>
+    <!-- Admission Letter Banner -->
+    <div class="relative overflow-hidden rounded-3xl shadow-2xl">
+        <div class="absolute inset-0 bg-gradient-to-r from-red-700 via-red-600 to-orange-500"
+             style="background-size:200% 200%; animation: gradientShift 4s ease infinite;"></div>
+        <div class="absolute inset-0 opacity-10"
+             style="background-image:repeating-linear-gradient(45deg,white 0,white 1px,transparent 0,transparent 50%);background-size:20px 20px;"></div>
+        <div class="absolute -top-12 -right-12 w-56 h-56 bg-white/10 rounded-full blur-3xl"></div>
+
+        <div class="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+                <div class="relative flex-shrink-0">
+                    <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center border border-white/30">
+                        <i class="fas fa-envelope-open-text text-white text-2xl"></i>
+                    </div>
+                    <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-4 w-4 bg-yellow-400 border-2 border-red-600"></span>
+                    </span>
+                </div>
+                <div>
+                    <div class="text-yellow-300 text-xs font-black uppercase tracking-widest mb-1">📢 Thông báo chính thức</div>
+                    <h2 class="text-white font-black text-xl leading-tight">
+                        <?= htmlspecialchars($admissionRecord['ho_ten']) ?> — Trúng tuyển <?= htmlspecialchars($admissionRecord['ten_nganh']) ?>
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                        <?php if ($admissionRecord['status'] === 'sent'): ?>
+                            <i class="fas fa-check-circle text-green-300 mr-1"></i> Email đã gửi — nếu bị chặn, xem trực tiếp tại đây.
+                        <?php else: ?>
+                            <i class="fas fa-exclamation-circle text-yellow-300 mr-1"></i> Email có thể bị chặn — xem thông báo trực tiếp tại đây.
+                        <?php endif; ?>
+                    </p>
+                </div>
+            </div>
+            <a href="<?= url('/tra-cuu-trung-tuyen') ?>?q=<?= urlencode($cccdCheck) ?>"
+               class="flex-shrink-0 inline-flex items-center gap-3 px-7 py-4 bg-white text-red-700 font-black rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all text-sm whitespace-nowrap group">
+                <i class="fas fa-file-alt text-lg"></i>
+                Xem Thông báo Trúng tuyển
+                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+            </a>
+        </div>
+    </div>
+    <style>
+        @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    </style>
+    <?php endif; ?>
+
     <!-- Talent Test Results -->
     <?php if (!empty($talentResults)): ?>
         <div class="space-y-4">

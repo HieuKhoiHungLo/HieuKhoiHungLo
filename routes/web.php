@@ -92,6 +92,10 @@ $router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
     $router->post('/admin/login', 'AuthController@adminLogin');
 });
 
+// Admission Letter Public Lookup (không cần đăng nhập — dùng khi email bị chặn)
+$router->get('/tra-cuu-trung-tuyen', 'AdmissionLookupController@index');
+$router->post('/tra-cuu-trung-tuyen/search', 'AdmissionLookupController@search');
+
 // Talent Test Public Lookup
 $router->get('/tra-cuu-nang-khieu', 'TalentTestPublicController@index');
 $router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search');
