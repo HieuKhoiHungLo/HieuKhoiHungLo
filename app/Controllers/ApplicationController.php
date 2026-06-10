@@ -265,6 +265,29 @@ class ApplicationController extends Controller
         // Use MasterDataRepository for Majors - Chỉ ngành đang kích hoạt
         $majors = $this->masterDataRepo->getActiveMajorsWithCombinations();
 
+        // Đảm bảo các ngành đã chọn của thí sinh (ngay cả khi bị ngưng kích hoạt) vẫn xuất hiện trong danh sách để hiển thị
+        if (!empty($choices)) {
+            $allMajors = $this->masterDataRepo->getMajorsWithCombinations();
+            $majorMap = [];
+            foreach ($majors as $m) {
+                $majorMap[$m['ma_nganh']] = true;
+            }
+            foreach ($choices as $choice) {
+                $maNganhChoice = $choice['ma_nganh'] ?? '';
+                if ($maNganhChoice && !isset($majorMap[$maNganhChoice])) {
+                    // Tìm ngành này trong danh mục tổng và thêm vào $majors
+                    foreach ($allMajors as $m) {
+                        if ($m['ma_nganh'] === $maNganhChoice) {
+                            $m['is_inactive_choice'] = true; // Đánh dấu ngành này đã bị ngưng tuyển
+                            $majors[] = $m;
+                            $majorMap[$maNganhChoice] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Block POST if locked
             if ($isLocked) {

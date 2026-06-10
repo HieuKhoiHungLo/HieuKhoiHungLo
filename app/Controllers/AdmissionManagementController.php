@@ -111,7 +111,7 @@ class AdmissionManagementController extends Controller {
                     $stmtIns->execute([
                         $sessionId,
                         $maNganh,
-                        round($diemChuan, 2),
+                        round($diemChuan, 3),
                         $tieuchiPhu
                     ]);
                 }
@@ -237,6 +237,10 @@ class AdmissionManagementController extends Controller {
             $sheet->setCellValue("F{$row}", $nguong ?: '—');
             $sheet->setCellValue("G{$row}", $m['diem_chuan'] !== '' ? (float)$m['diem_chuan'] : '');
             $sheet->setCellValue("H{$row}", $m['tieuchi_phu'] ?? '');
+            
+            if ($m['diem_chuan'] !== '') {
+                $sheet->getStyle("G{$row}")->getNumberFormat()->setFormatCode('0.000');
+            }
 
             // Row fill: green = has benchmark, red = inactive
             $fillStyle = null;
