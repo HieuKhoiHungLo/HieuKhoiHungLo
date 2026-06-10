@@ -433,23 +433,123 @@ class MailerService {
     public function sendBatchByCategory(array $emails, $category = 'system') {
         $this->ensureDailyReset();
 
-        // 1. Get rotating sender
-        $sender = $this->getRotatingSender($category);
-        if ($sender) {
-            return $this->sendBatch($emails, $sender);
+        $results = [];
+        $db = \App\Core\Database::getInstance()->getConnection();
+
+        // Count active senders to calculate delay (Thay đổi 3)
+        $senderCountStmt = $db->query("SELECT COUNT(*) FROM email_senders WHERE is_active = TRUE AND is_default = FALSE");
+        $activeSendersCount = $senderCountStmt ? (int)$senderCountStmt->fetchColumn() : 0;
+        
+        // Calculate delay between emails in microseconds
+        if ($activeSendersCount >= 7) {
+            $delayMicroseconds = 1500000; // 1.5s
+        } elseif ($activeSendersCount >= 4) {
+            $delayMicroseconds = 2000000; // 2s
+        } else {
+            $delayMicroseconds = 3000000; // 3s
         }
 
-        // 2. Try default sender as fallback
-        $default = $this->getDefaultSender();
-        if ($default) {
-            return $this->sendBatch($emails, $default);
+        foreach ($emails as $index => $email) {
+            // Apply delay before sending (except for the first email)
+            if ($index > 0) {
+                usleep($delayMicroseconds);
+            }
+
+            // Check organization rate limit first (Thay đổi 1)
+            if (!$this->checkAndIncrementOrgRateLimit()) {
+                $results[$email['id']] = "Organization hourly sending limit reached (1500/hour).";
+                continue;
+            }
+
+            // Get rotating sender for this specific email (Thay đổi 2)
+            $sender = $this->getRotatingSender($category);
+            if (!$sender) {
+                $sender = $this->getDefaultSender();
+            }
+
+            if (!$sender) {
+                $results[$email['id']] = "No active SMTP sender available.";
+                continue;
+            }
+
+            $to      = $email['recipient'];
+            $subject = $email['subject'];
+            $body    = $email['body'];
+
+            $result = $this->sendSmtpWithConfig($to, $subject, $body, true, $sender);
+            
+            $results[$email['id']] = $result;
+
+            if ($result !== true) {
+                // Check if this error warrants deactivating the sender (e.g. limit hit, auth error)
+                $errLower = strtolower((string)$result);
+                $shouldDeactivate = false;
+                if (
+                    strpos($errLower, 'daily user sending limit exceeded') !== false ||
+                    strpos($errLower, '550 5.4.5') !== false ||
+                    strpos($errLower, 'too many login attempts') !== false ||
+                    strpos($errLower, 'auth failed') !== false ||
+                    strpos($errLower, 'authentication failed') !== false ||
+                    strpos($errLower, 'username rejected') !== false ||
+                    strpos($errLower, 'credentials') !== false
+                ) {
+                    $shouldDeactivate = true;
+                }
+
+                if ($shouldDeactivate) {
+                    error_log("[EmailDeactivate] Deactivating sender ID {$sender['id']} ({$sender['email']}) due to error: $result");
+                    $updDeact = $db->prepare("UPDATE email_senders SET is_active = FALSE, locked_until = NULL WHERE id = ?");
+                    $updDeact->execute([$sender['id']]);
+                }
+            }
         }
 
-        // 3. Fallback error
-        return [
-            "success" => false, 
-            "error" => "No active SMTP sender available."
-        ];
+        return ["success" => true, "results" => $results];
+    }
+
+    protected function checkAndIncrementOrgRateLimit() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $now = time();
+        $limitPerHour = 1500;
+
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("SELECT \"key\", value FROM settings WHERE \"key\" IN ('org_sent_hour_start', 'org_sent_this_hour') FOR UPDATE");
+            $stmt->execute();
+            $settings = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+            $hourStart = (int)($settings['org_sent_hour_start'] ?? 0);
+            $sentThisHour = (int)($settings['org_sent_this_hour'] ?? 0);
+
+            if ($now - $hourStart >= 3600) {
+                $hourStart = $now;
+                $sentThisHour = 0;
+                $this->updateSettingValue($db, 'org_sent_hour_start', (string)$hourStart);
+            }
+
+            if ($sentThisHour >= $limitPerHour) {
+                $db->rollBack();
+                return false;
+            }
+
+            $sentThisHour++;
+            $this->updateSettingValue($db, 'org_sent_this_hour', (string)$sentThisHour);
+
+            $db->commit();
+            return true;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            error_log("Error in checkAndIncrementOrgRateLimit: " . $e->getMessage());
+            return true; // fallback
+        }
+    }
+
+    protected function updateSettingValue($db, $key, $value) {
+        $stmt = $db->prepare("UPDATE settings SET value = ? WHERE \"key\" = ?");
+        $stmt->execute([$value, $key]);
+        if ($stmt->rowCount() === 0) {
+            $db->prepare("INSERT INTO settings (\"key\", value) VALUES (?, ?)")->execute([$key, $value]);
+        }
     }
 
 

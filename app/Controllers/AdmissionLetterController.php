@@ -315,4 +315,48 @@ class AdmissionLetterController extends Controller {
         
         $this->redirect(url('/admin/admission-letters/senders?success=1'));
     }
+
+    /**
+     * API monitor stats for admission letters dashboard
+     */
+    public function monitorStats() {
+        $this->requireAdmin();
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        // 1. Get queue counts
+        $queueStats = $db->query("
+            SELECT 
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+                SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+            FROM email_queue
+        ")->fetch(\PDO::FETCH_ASSOC);
+
+        $pending = (int)($queueStats['pending'] ?? 0);
+        $processing = (int)($queueStats['processing'] ?? 0);
+        $sent = (int)($queueStats['sent'] ?? 0);
+        $failed = (int)($queueStats['failed'] ?? 0);
+        $total = $pending + $processing + $sent + $failed;
+
+        // 2. Get SMTP senders stats
+        $senders = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 3. Get current org limit
+        $orgSent = (int)$db->query("SELECT value FROM settings WHERE \"key\" = 'org_sent_this_hour'")->fetchColumn();
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'total' => $total,
+            'pending' => $pending,
+            'processing' => $processing,
+            'sent' => $sent,
+            'failed' => $failed,
+            'senders' => $senders,
+            'orgSent' => $orgSent,
+            'orgLimit' => 1500
+        ]);
+        exit;
+    }
 }

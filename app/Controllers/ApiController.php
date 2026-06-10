@@ -88,6 +88,36 @@ class ApiController extends Controller
         }
 
         $db = \App\Core\Database::getInstance()->getConnection();
+
+        // --- SECURE TABLE-BASED LOCK TO PREVENT PARALLEL RUNS ---
+        $now = time();
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("SELECT value FROM settings WHERE \"key\" = 'email_queue_lock' FOR UPDATE");
+            $stmt->execute();
+            $lockTime = $stmt->fetchColumn();
+            
+            // If lock exists and is not stale (less than 2 minutes ago), another process is running
+            if ($lockTime && ($now - (int)$lockTime < 120)) {
+                $db->rollBack();
+                $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
+                $this->json(['success' => true, 'message' => 'Một tiến trình gửi thư khác đang chạy.', 'remaining' => $remaining]);
+                return;
+            }
+            
+            // Acquire lock by setting it to current timestamp
+            $stmtUpdate = $db->prepare("UPDATE settings SET value = ? WHERE \"key\" = 'email_queue_lock'");
+            $stmtUpdate->execute([(string)$now]);
+            if ($stmtUpdate->rowCount() === 0) {
+                $db->prepare("INSERT INTO settings (\"key\", value) VALUES ('email_queue_lock', ?)")->execute([(string)$now]);
+            }
+            $db->commit();
+        } catch (\Exception $ex) {
+            $db->rollBack();
+            $this->json(['success' => false, 'error' => 'Failed to acquire queue lock: ' . $ex->getMessage()]);
+            return;
+        }
+
         $mailer = new \App\Services\MailerService();
 
         // --- STUCK JOBS CLEANUP ---
@@ -143,11 +173,11 @@ class ApiController extends Controller
                 UPDATE email_queue 
                 SET status = 'processing' 
                 WHERE id IN (
-                    SELECT id FROM email_queue 
-                    WHERE status = 'pending' 
-                    ORDER BY created_at ASC 
-                    LIMIT 20 
-                    FOR UPDATE SKIP LOCKED
+                     SELECT id FROM email_queue 
+                     WHERE status = 'pending' 
+                     ORDER BY created_at ASC 
+                     LIMIT 20 
+                     FOR UPDATE SKIP LOCKED
                 )
                 RETURNING *
             ");
@@ -156,6 +186,8 @@ class ApiController extends Controller
             $db->commit();
         } catch (\Exception $e) {
             $db->rollBack();
+            // Release lock before returning
+            $db->prepare("UPDATE settings SET value = '0' WHERE \"key\" = 'email_queue_lock'")->execute();
             $this->json(['success' => false, 'error' => $e->getMessage()]);
             return;
         }
@@ -166,7 +198,7 @@ class ApiController extends Controller
         if (!empty($emails)) {
             $category = $emails[0]['category'] ?? 'system';
             
-            // Execute batch send using a single SMTP connection
+            // Execute batch send using rotating SMTP connections
             $batchResult = $mailer->sendBatchByCategory($emails, $category);
             
             if (isset($batchResult['success']) && $batchResult['success'] === true) {
@@ -187,11 +219,15 @@ class ApiController extends Controller
 
                         $processed++;
                     } else {
-                        // Increment retry or mark failed
-                        $attempts = ($email['attempts'] ?? 0) + 1;
-                        $maxAttempts = 3;
+                        // If it's a rate limit error, do not increment retry attempts so it can be retried indefinitely
+                        $isRateLimit = (strpos(strtolower((string)$result), 'limit reached') !== false);
+                        $attempts = $email['attempts'] ?? 0;
+                        if (!$isRateLimit) {
+                            $attempts++;
+                        }
                         
-                        if ($attempts >= $maxAttempts) {
+                        $maxAttempts = 3;
+                        if ($attempts >= $maxAttempts && !$isRateLimit) {
                             $db->prepare("UPDATE email_queue SET status = 'failed', error = ?, attempts = ? WHERE id = ?")->execute([(string)$result, $attempts, $id]);
                             $failed++;
                         } else {
@@ -202,12 +238,17 @@ class ApiController extends Controller
             } else {
                 // If SMTP connection/auth failed completely, reset the entire batch to pending/failed
                 $errorMsg = $batchResult['error'] ?? 'SMTP Connection/Authentication failed';
+                $isRateLimit = (strpos(strtolower((string)$errorMsg), 'limit reached') !== false);
+                
                 foreach ($emails as $email) {
                     $id = $email['id'];
-                    $attempts = ($email['attempts'] ?? 0) + 1;
+                    $attempts = $email['attempts'] ?? 0;
+                    if (!$isRateLimit) {
+                        $attempts++;
+                    }
                     $maxAttempts = 3;
                     
-                    if ($attempts >= $maxAttempts) {
+                    if ($attempts >= $maxAttempts && !$isRateLimit) {
                         $db->prepare("UPDATE email_queue SET status = 'failed', error = ?, attempts = ? WHERE id = ?")->execute([$errorMsg, $attempts, $id]);
                         $failed++;
                     } else {
@@ -217,12 +258,14 @@ class ApiController extends Controller
             }
         }
 
-
-
         // Count remaining pending emails
         $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
 
         $msg = date('Y-m-d H:i:s') . " - Processed: $processed, Failed: $failed, Total: " . count($emails);
+        
+        // Release lock
+        $db->prepare("UPDATE settings SET value = '0' WHERE \"key\" = 'email_queue_lock'")->execute();
+        
         $this->json(['success' => true, 'message' => $msg, 'remaining' => $remaining]);
     }
 

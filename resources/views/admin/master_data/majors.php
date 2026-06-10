@@ -96,12 +96,23 @@
                             </td>
                             <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] ? number_format($major['nguong_diem_thpt'], 1) : '--' ?></td>
                             <td class="px-6 py-4 text-center">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" <?= ($major['kich_hoat'] ?? true) ? 'checked' : '' ?> 
+                                <?php 
+                                    $rawKichHoat = $major['kich_hoat'] ?? null;
+                                    // PostgreSQL boolean trả về 't'/'f' qua PDO
+                                    if ($rawKichHoat === null) {
+                                        $isActive = true; // Mặc định kích hoạt
+                                    } elseif ($rawKichHoat === 't' || $rawKichHoat === true || $rawKichHoat === '1' || $rawKichHoat === 1) {
+                                        $isActive = true;
+                                    } else {
+                                        $isActive = false;
+                                    }
+                                ?>
+                                <label class="relative inline-flex items-center cursor-pointer" style="display:inline-flex;align-items:center;">
+                                    <input type="checkbox" <?= $isActive ? 'checked' : '' ?> 
                                            onchange="toggleMajorActive('<?= $major['ma_nganh'] ?>', this)" 
-                                           class="sr-only peer">
-                                    <div class="w-11 h-6 bg-slate-200 rounded-full transition-all peer-checked:bg-green-500 relative peer-focus:ring-2 peer-focus:ring-green-100">
-                                        <div class="absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-all transform peer-checked:translate-x-full peer-checked:border-white"></div>
+                                           style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">
+                                    <div class="toggle-track" style="width:44px;height:24px;border-radius:12px;background:<?= $isActive ? '#22c55e' : '#cbd5e1' ?>;position:relative;transition:background 0.3s;cursor:pointer;">
+                                        <div class="toggle-thumb" style="position:absolute;top:2px;left:<?= $isActive ? '22px' : '2px' ?>;width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid <?= $isActive ? '#fff' : '#d1d5db' ?>;transition:left 0.3s,border-color 0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.1);"></div>
                                     </div>
                                 </label>
                             </td>
@@ -441,6 +452,11 @@
         formData.append('ma_nganh', ma);
         formData.append('csrf_token', '<?= (string) $this->csrfToken() ?>');
 
+        // Get toggle elements
+        const label = checkbox.closest('label');
+        const track = label ? label.querySelector('.toggle-track') : null;
+        const thumb = label ? label.querySelector('.toggle-thumb') : null;
+
         try {
             const response = await fetch('<?= url('/admin/master-data/majors/toggle-active') ?>', {
                 method: 'POST',
@@ -449,6 +465,16 @@
             const result = await response.json();
             
             if (result.status) {
+                // Update visual toggle state based on server response
+                const isActive = result.kich_hoat;
+                checkbox.checked = isActive;
+                if (track) {
+                    track.style.background = isActive ? '#22c55e' : '#cbd5e1';
+                }
+                if (thumb) {
+                    thumb.style.left = isActive ? '22px' : '2px';
+                    thumb.style.borderColor = isActive ? '#fff' : '#d1d5db';
+                }
                 if (typeof showToast === 'function') {
                     showToast(result.message, 'success');
                 } else {
@@ -457,11 +483,25 @@
             } else {
                 alert(result.message || 'Có lỗi xảy ra');
                 checkbox.checked = !checkbox.checked; // Revert
+                // Revert visual
+                const reverted = checkbox.checked;
+                if (track) track.style.background = reverted ? '#22c55e' : '#cbd5e1';
+                if (thumb) {
+                    thumb.style.left = reverted ? '22px' : '2px';
+                    thumb.style.borderColor = reverted ? '#fff' : '#d1d5db';
+                }
             }
         } catch (error) {
             console.error('Error:', error);
             alert('Lỗi kết nối máy chủ');
             checkbox.checked = !checkbox.checked; // Revert
+            // Revert visual
+            const reverted = checkbox.checked;
+            if (track) track.style.background = reverted ? '#22c55e' : '#cbd5e1';
+            if (thumb) {
+                thumb.style.left = reverted ? '22px' : '2px';
+                thumb.style.borderColor = reverted ? '#fff' : '#d1d5db';
+            }
         }
     }
 </script>

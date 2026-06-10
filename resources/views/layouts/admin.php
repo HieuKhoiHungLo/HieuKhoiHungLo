@@ -678,31 +678,55 @@
             // Badge is updated only when user clicks bell or explicitly reloaded.
             // fetchAdminNotifications(); 
         }
-
         // Auto-process email queue in background (non-blocking) via API Route
-        // DELAY execution by 3 seconds so it doesn't compete with primary render/assets.
-        // LOOP execution every 30 seconds as long as the tab is open.
+        // Only 1 tab (leader) is active to prevent redundant/parallel requests.
+        const LEADER_KEY = 'email_queue_leader_id';
+        const LEADER_PING_KEY = 'email_queue_leader_ping';
+        const TAB_ID = Math.random().toString(36).substring(2, 15);
+
+        function checkLeadership() {
+            const now = Date.now();
+            const leaderId = localStorage.getItem(LEADER_KEY);
+            const leaderPing = parseInt(localStorage.getItem(LEADER_PING_KEY) || '0', 10);
+
+            // If no leader, leader ping is stale (> 12 seconds), or current tab is leader, claim/renew leadership
+            if (!leaderId || (now - leaderPing > 12000) || leaderId === TAB_ID) {
+                localStorage.setItem(LEADER_KEY, TAB_ID);
+                localStorage.setItem(LEADER_PING_KEY, now.toString());
+                return true;
+            }
+            return false;
+        }
+
         function triggerEmailQueue() {
+            if (!checkLeadership()) {
+                // Not the leader? Check leadership status again in 15 seconds
+                setTimeout(triggerEmailQueue, 15000);
+                return;
+            }
+
             fetch('<?= url("/api/cron/process_email_queue?key=" . ($_ENV["CRON_SECRET_KEY"] ?? "")) ?>', {
                 method: 'GET',
                 keepalive: true
             })
             .then(response => response.json())
             .then(data => {
-                // If there are still emails remaining, run again sooner (5s), 
-                // otherwise wait longer (5 minutes) to check for new work.
-                let nextRun = (data.remaining > 0) ? 5000 : 300000;
+                // Renew leadership ping on successful response to keep control
+                localStorage.setItem(LEADER_PING_KEY, Date.now().toString());
+
+                // If remaining pending emails exist, run again in 15 seconds.
+                // Otherwise check again in 10 minutes.
+                let nextRun = (data.remaining > 0) ? 15000 : 600000;
                 setTimeout(triggerEmailQueue, nextRun);
             })
             .catch(() => {
-                // On network error, try again in 1 minute
+                // On error, check again in 1 minute
                 setTimeout(triggerEmailQueue, 60000);
             });
         }
 
-        // Initial trigger
+        // Initial delay
         setTimeout(triggerEmailQueue, 3000);
-
         // Auto-trigger scheduled backup (non-blocking, runs once per page load)
         // The API checks: is backup enabled? correct hour? already ran today?
         setTimeout(() => {

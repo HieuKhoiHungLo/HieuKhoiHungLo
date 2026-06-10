@@ -50,6 +50,154 @@
         </div>
     <?php endif; ?>
 
+    <?php
+    $db = \App\Core\Database::getInstance()->getConnection();
+    
+    // 1. Get queue counts
+    $queueStats = $db->query("
+        SELECT 
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+            SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+        FROM email_queue
+    ")->fetch(\PDO::FETCH_ASSOC);
+
+    $pendingCount = (int)($queueStats['pending'] ?? 0);
+    $processingCount = (int)($queueStats['processing'] ?? 0);
+    $sentCount = (int)($queueStats['sent'] ?? 0);
+    $failedCount = (int)($queueStats['failed'] ?? 0);
+    $totalQueue = $pendingCount + $processingCount + $sentCount + $failedCount;
+
+    // 2. Get SMTP senders stats
+    $sendersList = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+
+    // 3. Get current org limit
+    $orgSentCount = (int)$db->query("SELECT value FROM settings WHERE \"key\" = 'org_sent_this_hour'")->fetchColumn();
+    $orgLimit = 1500;
+    ?>
+
+    <!-- Real-time Queue Monitor Dashboard -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                <i class="fas fa-desktop text-blue-500 mr-2"></i> Giám Sát Tiến Trình Gửi Thư (Real-time)
+            </h3>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 animate-pulse">
+                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span> Đang hoạt động
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <!-- Total -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div class="text-xs font-bold text-slate-500">Tổng cộng</div>
+                <div class="text-2xl font-black text-slate-800 mt-1" id="dash-total"><?= number_format($totalQueue) ?></div>
+                <p class="text-[10px] text-slate-400 mt-1">Thư trong hàng đợi</p>
+            </div>
+            <!-- Pending -->
+            <div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <div class="text-xs font-bold text-amber-700">Chờ gửi</div>
+                <div class="text-2xl font-black text-amber-600 mt-1" id="dash-pending"><?= number_format($pendingCount) ?></div>
+                <p class="text-[10px] text-amber-500 mt-1">Sẽ gửi tiếp theo</p>
+            </div>
+            <!-- Processing -->
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <div class="text-xs font-bold text-blue-700">Đang gửi</div>
+                <div class="text-2xl font-black text-blue-600 mt-1" id="dash-processing"><?= number_format($processingCount) ?></div>
+                <p class="text-[10px] text-blue-500 mt-1">Đang xử lý...</p>
+            </div>
+            <!-- Sent -->
+            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                <div class="text-xs font-bold text-emerald-700">Đã gửi</div>
+                <div class="text-2xl font-black text-emerald-600 mt-1" id="dash-sent"><?= number_format($sentCount) ?></div>
+                <p class="text-[10px] text-emerald-500 mt-1">Thành công</p>
+            </div>
+            <!-- Failed -->
+            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100">
+                <div class="text-xs font-bold text-rose-700">Gửi lỗi</div>
+                <div class="text-2xl font-black text-rose-600 mt-1" id="dash-failed"><?= number_format($failedCount) ?></div>
+                <p class="text-[10px] text-rose-500 mt-1">Cần gửi lại</p>
+            </div>
+        </div>
+
+        <!-- Org quota and senders status -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Org hourly limit -->
+            <div class="md:col-span-1 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-700">Quota Tổ Chức (Domain)</span>
+                    <span class="text-xs font-bold text-slate-600" id="dash-org-text"><?= $orgSentCount ?> / <?= $orgLimit ?> / giờ</span>
+                </div>
+                <!-- Progress bar -->
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div id="dash-org-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: <?= min(100, ($orgSentCount / $orgLimit) * 100) ?>%"></div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">Bảo vệ domain hvu.edu.vn khỏi bị Google chặn giới hạn gửi thư tổ chức (ngưỡng an toàn 1.500 thư/giờ).</p>
+            </div>
+
+            <!-- Senders list status rotation -->
+            <div class="md:col-span-2 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                <span class="text-xs font-bold text-slate-700 block mb-2">Trạng thái SMTP Senders (Xoay vòng)</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-24 overflow-y-auto pr-1" id="dash-senders-list">
+                    <?php foreach ($sendersList as $s): ?>
+                        <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs">
+                            <span class="font-medium text-slate-700 truncate max-w-[120px]" title="<?= htmlspecialchars($s['email']) ?>"><?= htmlspecialchars($s['name'] ?: $s['email']) ?></span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-400 font-bold"><?= $s['sent_today'] ?>/<?= $s['daily_limit'] ?></span>
+                                <span class="w-2 h-2 rounded-full <?= $s['is_active'] ? 'bg-emerald-500' : 'bg-red-500' ?>" title="<?= $s['is_active'] ? 'Active' : 'Deactivated' ?>"></span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateMonitorStats() {
+            fetch('<?= url("/admin/admission-letters/monitor-stats") ?>')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('dash-total').innerText = Number(data.total).toLocaleString();
+                        document.getElementById('dash-pending').innerText = Number(data.pending).toLocaleString();
+                        document.getElementById('dash-processing').innerText = Number(data.processing).toLocaleString();
+                        document.getElementById('dash-sent').innerText = Number(data.sent).toLocaleString();
+                        document.getElementById('dash-failed').innerText = Number(data.failed).toLocaleString();
+
+                        document.getElementById('dash-org-text').innerText = data.orgSent + ' / ' + data.orgLimit + ' / giờ';
+                        const pct = Math.min(100, (data.orgSent / data.orgLimit) * 100);
+                        document.getElementById('dash-org-bar').style.width = pct + '%';
+
+                        if (data.senders && data.senders.length > 0) {
+                            const listHtml = data.senders.map(s => {
+                                const name = s.name || s.email;
+                                const activeClass = s.is_active ? 'bg-emerald-500' : 'bg-red-500';
+                                const activeTitle = s.is_active ? 'Active' : 'Deactivated';
+                                return `
+                                    <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs">
+                                        <span class="font-medium text-slate-700 truncate max-w-[120px]" title="${s.email}">${name}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-slate-400 font-bold">${s.sent_today}/${s.daily_limit}</span>
+                                            <span class="w-2 h-2 rounded-full ${activeClass}" title="${activeTitle}"></span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                            document.getElementById('dash-senders-list').innerHTML = listHtml;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching monitor stats:', err));
+        }
+
+        // Update stats every 5 seconds
+        setInterval(updateMonitorStats, 5000);
+    });
+    </script>
+
     <!-- Toolbar & Pagination Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div class="flex items-center gap-2">
