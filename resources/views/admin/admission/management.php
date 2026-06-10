@@ -171,20 +171,17 @@ ob_start();
                     <template x-for="(item, index) in filteredData" :key="item.ma_nganh">
                         <tr class="hover-row-highlight border-b border-slate-100"
                             :class="{
-                                'bg-emerald-50/30 border-l-4 border-l-emerald-500': item.has_benchmark && item.kich_hoat,
-                                'opacity-55 bg-slate-100/40': !item.kich_hoat
+                                'bg-emerald-50/30 border-l-4 border-l-emerald-500': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
+                                'opacity-55 bg-slate-100/40': !item.has_benchmark
                             }">
                             <!-- Cột công tắc Xét -->
                             <td class="px-6 py-4 text-center">
-                                <template x-if="item.kich_hoat">
-                                    <label class="relative inline-flex items-center cursor-pointer select-none">
-                                        <input type="checkbox" x-model="item.has_benchmark" class="sr-only peer">
-                                        <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
-                                    </label>
-                                </template>
-                                <template x-if="!item.kich_hoat">
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-600 border border-rose-200">Ngưng</span>
-                                </template>
+                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" x-model="item.has_benchmark" @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.tieuchi_phu = ''; }" class="sr-only peer">
+                                    <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                                </label>
+                                <div x-show="!item.has_benchmark" class="text-[9px] font-bold text-rose-500 mt-1 uppercase tracking-wide">Ngưng</div>
+                                <div x-show="item.has_benchmark" class="text-[9px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Xét</div>
                             </td>
                             
                             <!-- Cột Ngành & Nhóm -->
@@ -230,7 +227,7 @@ ob_start();
                                        max="30"
                                        placeholder="0.000"
                                        x-model.number="item.diem_chuan" 
-                                       :disabled="!item.has_benchmark || !item.kich_hoat" 
+                                       :disabled="!item.has_benchmark" 
                                        @wheel.prevent
                                        @keydown.up.prevent
                                        @keydown.down.prevent
@@ -242,7 +239,7 @@ ob_start();
                                 <input type="text" 
                                        placeholder="VD: Toán >= 8.0"
                                        x-model="item.tieuchi_phu" 
-                                       :disabled="!item.has_benchmark || !item.kich_hoat" 
+                                       :disabled="!item.has_benchmark" 
                                        class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-100/50 disabled:text-slate-400 disabled:border-slate-100 text-slate-600 shadow-sm premium-input">
                             </td>
                         </tr>
@@ -263,8 +260,8 @@ ob_start();
         <div class="px-6 py-4 border-t border-slate-150 bg-slate-50 flex justify-between items-center text-xs font-bold text-slate-500">
             <div class="flex gap-4">
                 <span>Tổng số ngành: <span class="text-slate-800 font-extrabold" x-text="data.length"></span></span>
-                <span>Đang xét tuyển: <span class="text-emerald-600 font-extrabold" x-text="data.filter(x => x.has_benchmark).length"></span></span>
-                <span>Ngưng tuyển: <span class="text-rose-600 font-extrabold" x-text="data.filter(x => !x.kich_hoat).length"></span></span>
+                <span>Đang xét tuyển: <span class="text-emerald-600 font-extrabold" x-text="data.filter(x => x.has_benchmark && x.diem_chuan > 0).length"></span></span>
+                <span>Ngưng tuyển: <span class="text-rose-600 font-extrabold" x-text="data.filter(x => !x.has_benchmark).length"></span></span>
             </div>
             <div class="flex items-center gap-2">
                 <i class="fas fa-id-badge text-indigo-400"></i>
@@ -317,11 +314,11 @@ function admissionManager() {
             // 3. Lọc theo trạng thái điểm chuẩn / kích hoạt
             if (this.selectedStatus) {
                 if (this.selectedStatus === 'has_benchmark') {
-                    result = result.filter(item => item.has_benchmark && item.kich_hoat);
+                    result = result.filter(item => item.has_benchmark && item.diem_chuan > 0);
                 } else if (this.selectedStatus === 'no_benchmark') {
-                    result = result.filter(item => !item.has_benchmark && item.kich_hoat);
+                    result = result.filter(item => item.has_benchmark && (!item.diem_chuan || item.diem_chuan == 0));
                 } else if (this.selectedStatus === 'inactive') {
-                    result = result.filter(item => !item.kich_hoat);
+                    result = result.filter(item => !item.has_benchmark);
                 }
             }
 

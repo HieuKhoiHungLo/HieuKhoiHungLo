@@ -232,6 +232,11 @@ class ApplicationController extends Controller
             }
             $editRequestPending = !empty($currentApp->yeu_cau_chinh_sua);
             $applicationStatus = $status;
+            
+            // Đảm bảo load activeSession nếu có hồ sơ nhưng chưa có activeSession
+            if (!$activeSession && !empty($currentApp->dot_tuyen_sinh_id)) {
+                $activeSession = $this->sessionRepo->find($currentApp->dot_tuyen_sinh_id);
+            }
         }
 
         $isSessionClosed = false;
@@ -262,8 +267,9 @@ class ApplicationController extends Controller
         // Use Repository
         $choices = $this->nguyenVongRepo->getByCCCD($_SESSION['cccd']);
 
-        // Use MasterDataRepository for Majors - Chỉ ngành đang kích hoạt
-        $majors = $this->masterDataRepo->getActiveMajorsWithCombinations();
+        // Use MasterDataRepository for Majors - Chỉ ngành đang kích hoạt theo đợt này
+        $sessionId = $activeSession['id'] ?? 0;
+        $majors = $this->masterDataRepo->getActiveMajorsWithCombinationsBySession($sessionId);
 
         // Đảm bảo các ngành đã chọn của thí sinh (ngay cả khi bị ngưng kích hoạt) vẫn xuất hiện trong danh sách để hiển thị
         if (!empty($choices)) {

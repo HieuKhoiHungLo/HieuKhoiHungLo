@@ -56,24 +56,35 @@ class AdmissionManagementController extends Controller {
         // Lấy tất cả ngành - chi_tieu và kich_hoat từ dm_nganh (Source of Truth)
         $allMajors = $this->db->query("SELECT ma_nganh, ten_nganh, nhom_nganh, chi_tieu, nguong_hoc_luc, nguong_diem_thpt, COALESCE(kich_hoat, true) as kich_hoat FROM dm_nganh ORDER BY ma_nganh ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-        // Lấy cấu hình điểm chuẩn cho đợt này
-        $stmt = $this->db->prepare("SELECT ma_nganh, diem_chuan, tieuchi_phu FROM admission_benchmarks WHERE session_id = ?");
+        // Lấy cấu hình điểm chuẩn cho đợt này bao gồm cả cột kich_hoat
+        $stmt = $this->db->prepare("SELECT ma_nganh, diem_chuan, tieuchi_phu, kich_hoat FROM admission_benchmarks WHERE session_id = ?");
         $stmt->execute([$sessionId]);
         $benchmarks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $benchmarkMap = [];
+        $hasSavedConfig = count($benchmarks) > 0;
         foreach ($benchmarks as $b) {
             $benchmarkMap[$b['ma_nganh']] = $b;
         }
 
         foreach ($allMajors as &$m) {
             $mCode = $m['ma_nganh'];
-            $m['has_benchmark'] = isset($benchmarkMap[$mCode]);
+            $hasBenchmarkRecord = isset($benchmarkMap[$mCode]);
+            
             // chi_tieu luôn từ dm_nganh (read-only trên UI)
             $m['chi_tieu'] = (int)($m['chi_tieu'] ?? 0);
-            $m['diem_chuan'] = $m['has_benchmark'] ? $benchmarkMap[$mCode]['diem_chuan'] : 0;
-            $m['tieuchi_phu'] = $m['has_benchmark'] ? $benchmarkMap[$mCode]['tieuchi_phu'] : '';
-            $m['kich_hoat'] = ($m['kich_hoat'] === true || $m['kich_hoat'] === 't' || $m['kich_hoat'] === '1' || $m['kich_hoat'] === 1);
+            $m['diem_chuan'] = $hasBenchmarkRecord ? $benchmarkMap[$mCode]['diem_chuan'] : 0;
+            $m['tieuchi_phu'] = $hasBenchmarkRecord ? $benchmarkMap[$mCode]['tieuchi_phu'] : '';
+            
+            if ($hasSavedConfig) {
+                // Nếu đợt tuyển sinh này ĐÃ có cấu hình lưu trong DB: lấy theo cột kich_hoat của đợt này
+                $m['kich_hoat'] = $hasBenchmarkRecord ? ($benchmarkMap[$mCode]['kich_hoat'] === true || $benchmarkMap[$mCode]['kich_hoat'] === 't' || $benchmarkMap[$mCode]['kich_hoat'] === '1' || $benchmarkMap[$mCode]['kich_hoat'] === 1 || $benchmarkMap[$mCode]['kich_hoat'] == 'true') : false;
+                $m['has_benchmark'] = $m['kich_hoat'];
+            } else {
+                // Nếu là đợt tuyển sinh mới (chưa có cấu hình), mặc định theo dm_nganh.kich_hoat
+                $m['kich_hoat'] = ($m['kich_hoat'] === true || $m['kich_hoat'] === 't' || $m['kich_hoat'] === '1' || $m['kich_hoat'] === 1 || $m['kich_hoat'] == 'true');
+                $m['has_benchmark'] = $m['kich_hoat'];
+            }
         }
 
         $this->json(['status' => true, 'data' => $allMajors]);
@@ -93,28 +104,23 @@ class AdmissionManagementController extends Controller {
             $stmtDel = $this->db->prepare("DELETE FROM admission_benchmarks WHERE session_id = ?");
             $stmtDel->execute([$sessionId]);
 
-            // Lấy chi_tieu từ dm_nganh để đồng bộ
-            $chiTieuMap = [];
-            $ctRows = $this->db->query("SELECT ma_nganh, COALESCE(chi_tieu, 0) as chi_tieu FROM dm_nganh")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($ctRows as $r) {
-                $chiTieuMap[$r['ma_nganh']] = (int)$r['chi_tieu'];
-            }
-
-            $stmtIns = $this->db->prepare("INSERT INTO admission_benchmarks (session_id, ma_nganh, diem_chuan, tieuchi_phu) VALUES (?, ?, ?, ?)");
+            $stmtIns = $this->db->prepare("INSERT INTO admission_benchmarks (session_id, ma_nganh, diem_chuan, tieuchi_phu, kich_hoat) VALUES (?, ?, ?, ?, ?)");
             
             foreach ($data as $item) {
-                if (isset($item['has_benchmark']) && ($item['has_benchmark'] == 'true' || $item['has_benchmark'] === true || $item['has_benchmark'] == 1)) {
-                    $maNganh = $item['ma_nganh'];
-                    $diemChuan = isset($item['diem_chuan']) ? (float)$item['diem_chuan'] : 0.0;
-                    $tieuchiPhu = isset($item['tieuchi_phu']) && trim($item['tieuchi_phu']) !== '' ? $item['tieuchi_phu'] : null;
+                $maNganh = $item['ma_nganh'];
+                $isKichHoat = isset($item['has_benchmark']) && ($item['has_benchmark'] == 'true' || $item['has_benchmark'] === true || $item['has_benchmark'] == 1);
+                
+                // Nếu không kích hoạt trong đợt này, điểm chuẩn mặc định 0 và tiêu chí phụ null
+                $diemChuan = $isKichHoat && isset($item['diem_chuan']) ? (float)$item['diem_chuan'] : 0.0;
+                $tieuchiPhu = $isKichHoat && isset($item['tieuchi_phu']) && trim($item['tieuchi_phu']) !== '' ? $item['tieuchi_phu'] : null;
 
-                    $stmtIns->execute([
-                        $sessionId,
-                        $maNganh,
-                        round($diemChuan, 3),
-                        $tieuchiPhu
-                    ]);
-                }
+                $stmtIns->execute([
+                    $sessionId,
+                    $maNganh,
+                    round($diemChuan, 3),
+                    $tieuchiPhu,
+                    $isKichHoat ? 1 : 0
+                ]);
             }
 
             $this->db->commit();
@@ -150,12 +156,15 @@ class AdmissionManagementController extends Controller {
              FROM dm_nganh ORDER BY ma_nganh ASC"
         )->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch benchmarks for the session
+        // Fetch benchmarks for the session including column kich_hoat
         $benchmarkMap = [];
+        $hasSavedConfig = false;
         if ($sessionId) {
-            $stmtB = $this->db->prepare("SELECT ma_nganh, diem_chuan, tieuchi_phu FROM admission_benchmarks WHERE session_id = ?");
+            $stmtB = $this->db->prepare("SELECT ma_nganh, diem_chuan, tieuchi_phu, kich_hoat FROM admission_benchmarks WHERE session_id = ?");
             $stmtB->execute([$sessionId]);
-            foreach ($stmtB->fetchAll(PDO::FETCH_ASSOC) as $b) {
+            $benchmarks = $stmtB->fetchAll(PDO::FETCH_ASSOC);
+            $hasSavedConfig = count($benchmarks) > 0;
+            foreach ($benchmarks as $b) {
                 $benchmarkMap[$b['ma_nganh']] = $b;
             }
         }
@@ -163,10 +172,17 @@ class AdmissionManagementController extends Controller {
         // Merge data
         foreach ($allMajors as &$m) {
             $code = $m['ma_nganh'];
-            $m['has_benchmark'] = isset($benchmarkMap[$code]);
+            $hasBenchmarkRecord = isset($benchmarkMap[$code]);
+            
+            $m['has_benchmark'] = $hasBenchmarkRecord && ($benchmarkMap[$code]['kich_hoat'] === true || $benchmarkMap[$code]['kich_hoat'] === 't' || $benchmarkMap[$code]['kich_hoat'] === '1' || $benchmarkMap[$code]['kich_hoat'] === 1 || $benchmarkMap[$code]['kich_hoat'] == 'true');
             $m['diem_chuan']   = $m['has_benchmark'] ? $benchmarkMap[$code]['diem_chuan'] : '';
             $m['tieuchi_phu']  = $m['has_benchmark'] ? ($benchmarkMap[$code]['tieuchi_phu'] ?? '') : '';
-            $m['kich_hoat']    = in_array($m['kich_hoat'], [true, 't', '1', 1], true);
+            
+            if ($hasSavedConfig) {
+                $m['kich_hoat'] = $m['has_benchmark'];
+            } else {
+                $m['kich_hoat'] = in_array($m['kich_hoat'], [true, 't', '1', 1], true) || $m['kich_hoat'] == 'true';
+            }
         }
         unset($m);
 
