@@ -70,7 +70,7 @@
     $totalQueue = $pendingCount + $processingCount + $sentCount + $failedCount;
 
     // 2. Get SMTP senders stats
-    $sendersList = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+    $sendersList = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders WHERE is_active = TRUE ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
 
     // 3. Get current org limit
     $orgSentCount = (int)$db->query("SELECT value FROM settings WHERE \"key\" = 'org_sent_this_hour'")->fetchColumn();
@@ -142,7 +142,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-24 overflow-y-auto pr-1" id="dash-senders-list">
                     <?php foreach ($sendersList as $s): ?>
                         <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs">
-                            <span class="font-medium text-slate-700 truncate max-w-[120px]" title="<?= htmlspecialchars($s['email']) ?>"><?= htmlspecialchars($s['name'] ?: $s['email']) ?></span>
+                            <span class="font-medium text-slate-700 truncate max-w-[180px]" title="<?= htmlspecialchars($s['email']) ?>"><?= htmlspecialchars($s['email']) ?></span>
                             <div class="flex items-center gap-2">
                                 <span class="text-slate-400 font-bold"><?= $s['sent_today'] ?>/<?= $s['daily_limit'] ?></span>
                                 <span class="w-2 h-2 rounded-full <?= $s['is_active'] ? 'bg-emerald-500' : 'bg-red-500' ?>" title="<?= $s['is_active'] ? 'Active' : 'Deactivated' ?>"></span>
@@ -173,12 +173,11 @@
 
                         if (data.senders && data.senders.length > 0) {
                             const listHtml = data.senders.map(s => {
-                                const name = s.name || s.email;
                                 const activeClass = s.is_active ? 'bg-emerald-500' : 'bg-red-500';
                                 const activeTitle = s.is_active ? 'Active' : 'Deactivated';
                                 return `
                                     <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs">
-                                        <span class="font-medium text-slate-700 truncate max-w-[120px]" title="${s.email}">${name}</span>
+                                        <span class="font-medium text-slate-700 truncate max-w-[180px]" title="${s.email}">${s.email}</span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-slate-400 font-bold">${s.sent_today}/${s.daily_limit}</span>
                                             <span class="w-2 h-2 rounded-full ${activeClass}" title="${activeTitle}"></span>

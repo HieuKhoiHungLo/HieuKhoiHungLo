@@ -340,7 +340,7 @@ class AdmissionLetterController extends Controller {
         $total = $pending + $processing + $sent + $failed;
 
         // 2. Get SMTP senders stats
-        $senders = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+        $senders = $db->query("SELECT name, email, sent_today, daily_limit, is_active FROM email_senders WHERE is_active = TRUE ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
 
         // 3. Get current org limit
         $orgSent = (int)$db->query("SELECT value FROM settings WHERE \"key\" = 'org_sent_this_hour'")->fetchColumn();

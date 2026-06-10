@@ -378,11 +378,22 @@ class ExportService {
                        nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
                        h.ghi_chu AS \"Ghi chú\",
-                       t.anh_dai_dien
+                       t.anh_dai_dien,
+                       tinh_hk.ten_tinh AS \"Hộ khẩu\",
+                       (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) AS \"Học lực L12\",
+                       (SELECT 
+                            CASE 
+                                WHEN COUNT(*) = 0 THEN 'not_entered'
+                                WHEN COUNT(*) FILTER (WHERE lop = 12) = 0 AND COUNT(*) FILTER (WHERE lop IN (10, 11)) > 0 THEN 'missing_12'
+                                WHEN COUNT(DISTINCT lop) >= 3 THEN 'full'
+                                ELSE 'partial'
+                            END
+                        FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd) AS \"Học bạ\"
                 FROM thi_sinh t
                 JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
                 JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND h.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
+                LEFT JOIN dm_tinh tinh_hk ON t.ma_tinh_ho_khau = tinh_hk.ma_tinh
                 WHERE (n.ma_nganh IN ('7140201', '7140206', '7140221', '7140222') OR t.so_cccd IN (SELECT DISTINCT so_cccd FROM diem_nang_khieu))";
 
         $params = [];
@@ -400,6 +411,16 @@ class ExportService {
             $r["Số CCCD"]  = $this->textCell($r["Số CCCD"]);
             $r["Họ và Tên"] = mb_strtoupper($r["Họ và Tên"] ?? '', 'UTF-8');
             $r["Ngày Sinh"] = $this->formatDate($r["Ngày Sinh"]);
+
+            // Normalize học lực
+            $r["Học lực L12"] = $this->normalizeAcademic($r["Học lực L12"] ?? '');
+
+            // Format tình trạng nhập điểm học bạ
+            $tStatus = $r["Học bạ"] ?? 'not_entered';
+            if ($tStatus === 'full') $r["Học bạ"] = 'Đủ 3 năm';
+            elseif ($tStatus === 'missing_12') $r["Học bạ"] = 'Thiếu lớp 12';
+            elseif ($tStatus === 'not_entered') $r["Học bạ"] = 'Chưa nhập';
+            else $r["Học bạ"] = 'Chưa đủ';
         }
         return $rows;
     }

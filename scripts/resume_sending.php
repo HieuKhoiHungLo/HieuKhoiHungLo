@@ -30,9 +30,9 @@ $db = \App\Core\Database::getInstance()->getConnection();
 
 echo "=== KÍCH HOẠT LẠI HỆ THỐNG GỬI EMAIL ===" . PHP_EOL;
 
-// 1. Bật lại tất cả sender
-$db->exec("UPDATE email_senders SET is_active = TRUE, sent_today = 0, locked_until = NULL");
-echo "✅ Đã bật lại tất cả 12 tài khoản SMTP, reset sent_today = 0." . PHP_EOL;
+// 1. Reset giới hạn gửi của sender
+$db->exec("UPDATE email_senders SET sent_today = 0, locked_until = NULL");
+echo "✅ Đã reset sent_today = 0 và mở khóa các tài khoản SMTP." . PHP_EOL;
 
 // 2. Reset failed emails nếu có
 $stmt = $db->prepare("UPDATE email_queue SET status = 'pending', attempts = 0, error = NULL WHERE status = 'failed'");

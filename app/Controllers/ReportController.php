@@ -119,6 +119,10 @@ class ReportController extends Controller {
             'status'     => $_GET['status'] ?? null,
         ];
         $data = $this->exportService->exportAptitudeList($filters);
+        foreach ($data as &$row) {
+            unset($row['anh_dai_dien']);
+        }
+        unset($row);
         $this->exportService->toExcel($data, 'danh_sach_thi_nang_khieu_' . date('Ymd') . '.xls');
     }
 
