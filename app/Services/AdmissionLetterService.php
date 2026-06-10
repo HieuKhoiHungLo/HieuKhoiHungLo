@@ -275,7 +275,7 @@ class AdmissionLetterService {
         $totalPages = ceil($totalItems / $limit);
 
         // Get data
-        $dataSql = "SELECT * " . $sql . " ORDER BY ma_nganh ASC, diem_xt DESC, id ASC LIMIT $limit OFFSET $offset";
+        $dataSql = "SELECT * " . $sql . " ORDER BY ma_nganh DESC, diem_xt ASC, id ASC LIMIT $limit OFFSET $offset";
         $stmt = $this->db->prepare($dataSql);
         $stmt->execute($params);
         $items = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -307,7 +307,7 @@ class AdmissionLetterService {
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $this->db->prepare("SELECT * FROM thu_trung_tuyen WHERE id IN ($placeholders)");
+        $stmt = $this->db->prepare("SELECT * FROM thu_trung_tuyen WHERE id IN ($placeholders) ORDER BY ma_nganh DESC, diem_xt ASC, id ASC");
         $stmt->execute($ids);
         $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -343,7 +343,7 @@ class AdmissionLetterService {
      * Gắn toàn bộ email đợt này vào queue để gửi dần
      */
     public function enqueueBatch($batchId) {
-        $stmt = $this->db->prepare("SELECT * FROM thu_trung_tuyen WHERE batch_id = ? AND status IN ('pending', 'failed')");
+        $stmt = $this->db->prepare("SELECT * FROM thu_trung_tuyen WHERE batch_id = ? AND status IN ('pending', 'failed') ORDER BY ma_nganh DESC, diem_xt ASC, id ASC");
         $stmt->execute([$batchId]);
         $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
@@ -585,7 +585,7 @@ class AdmissionLetterService {
 
         while ($offset < $total) {
             $params = array_merge($baseParams, [$batchSize, $offset]);
-            $fetchStmt = $db->prepare("SELECT * FROM thu_trung_tuyen $baseWhere ORDER BY id ASC LIMIT ? OFFSET ?");
+            $fetchStmt = $db->prepare("SELECT * FROM thu_trung_tuyen $baseWhere ORDER BY ma_nganh DESC, diem_xt ASC, id ASC LIMIT ? OFFSET ?");
             $fetchStmt->execute($params);
             $candidates = $fetchStmt->fetchAll(\PDO::FETCH_ASSOC);
 
