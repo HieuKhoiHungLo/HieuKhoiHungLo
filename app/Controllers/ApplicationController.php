@@ -74,7 +74,10 @@ class ApplicationController extends Controller
         }
 
         // 3. Get Choices status using Repository
-        $choices = $this->nguyenVongRepo->getByCCCD($cccd);
+        $choices = [];
+        if ($currentApp) {
+            $choices = $this->nguyenVongRepo->getByHoSoId($currentApp->id);
+        }
 
         // 4. Determine Step Statuses
         $stepStatus = [

@@ -18,6 +18,10 @@ class NguyenVongRepository {
         return $this->model->getByCCCD($cccd);
     }
 
+    public function getByHoSoId($hoSoId) {
+        return $this->model->getByHoSoId($hoSoId);
+    }
+
     public function save($cccd, $hoSoId, $data) {
         return $this->model->save($cccd, $hoSoId, $data);
     }

@@ -6,7 +6,13 @@
         <?php else: ?>
         <?php endif; ?>
         
-        <?php if ($isDone($totalSteps)): ?>
+        <?php if (!$currentApp && $activeSession): ?>
+            <div class="mt-6">
+                 <a href="<?= url('/application/register?id=' . $activeSession['id']) ?>" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-black text-sm rounded-xl shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-1 transition-all uppercase tracking-widest">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Đăng ký hồ sơ đợt này
+                 </a>
+            </div>
+        <?php elseif ($isDone($totalSteps)): ?>
             <div class="mt-6">
                  <a href="<?= url('/application/results') ?>" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-hvu-red to-red-600 text-white font-black text-sm rounded-xl shadow-lg shadow-red-200 hover:shadow-red-300 hover:-translate-y-1 transition-all uppercase tracking-widest">
                     <i class="fas fa-chart-bar mr-2 text-lg"></i> Tra cứu kết quả
