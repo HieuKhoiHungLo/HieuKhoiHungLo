@@ -159,23 +159,22 @@ class ApplicationController extends Controller
                 }
             }
 
-            // Fallback: If no application found for active session, check if they have ANY existing application overall
+            // If no applicationId but we have a currently active session, create a new one FIRST
+            if (!$applicationId && $currentlyActive) {
+                try {
+                    $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $currentlyActive['id']);
+                    $activeSession = $currentlyActive;
+                } catch (\Exception $e) {
+                    $applicationId = 0;
+                }
+            }
+
+            // Fallback: If still no application (e.g. no currently active session), show their latest existing application
             if (!$applicationId) {
                 $allApps = $this->applicationRepo->getByCCCD($_SESSION['cccd']);
                 if (!empty($allApps)) {
                     $applicationId = $allApps[0]->id;
                     $activeSession = $this->sessionRepo->find($allApps[0]->dot_tuyen_sinh_id);
-                }
-            }
-
-            // If still no applicationId but we have activeSession, create a new one (only if active session is currently running)
-            if (!$applicationId && $activeSession) {
-                if ($currentlyActive) {
-                    try {
-                        $applicationId = $this->applicationRepo->create($_SESSION['cccd'], $currentlyActive['id']);
-                    } catch (\Exception $e) {
-                        $applicationId = 0;
-                    }
                 } else {
                     // Registration deadline has passed, and no existing application exists
                     $enableTHPTSetting = true; // Default enabled
