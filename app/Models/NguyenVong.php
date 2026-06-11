@@ -50,9 +50,9 @@ class NguyenVong extends Model {
                 $hsStatus = $stmtStatus->fetchColumn();
             }
 
-            // 2. Delete old choices ONLY FOR THIS RECRUITMENT BATCH
-            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-            $stmt->execute([$cccd, $dotTuyenSinhId]);
+            // 2. Delete old choices ONLY FOR THIS APPLICATION
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE ho_so_id = ?");
+            $stmt->execute([$batchOrAppId]);
 
             // 3. Determine status
             $newStatus = ($hsStatus && (stripos($hsStatus, 'Đã duyệt') !== false || stripos($hsStatus, 'approved') !== false || $hsStatus === 'DaDuyet')) 
@@ -64,9 +64,10 @@ class NguyenVong extends Model {
                 $insertParams = [];
                 
                 foreach ($data as $index => $item) {
-                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $insertValues[] = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     array_push($insertParams,
                         $cccd,
+                        $batchOrAppId, // ho_so_id
                         $dotTuyenSinhId,
                         $index + 1,
                         null, 
@@ -80,7 +81,7 @@ class NguyenVong extends Model {
                 }
 
                 $sql = "INSERT INTO {$this->table} (
-                    so_cccd, dot_tuyen_sinh_id, thu_tu_nguyen_vong, thu_tu_nv_bo, ma_nganh, ten_nganh, 
+                    so_cccd, ho_so_id, dot_tuyen_sinh_id, thu_tu_nguyen_vong, thu_tu_nv_bo, ma_nganh, ten_nganh, 
                     ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, trang_thai
                 ) VALUES " . implode(', ', $insertValues); 
                 

@@ -268,7 +268,10 @@ class ApplicationController extends Controller
         // ---------------------
 
         // Use Repository
-        $choices = $this->nguyenVongRepo->getByCCCD($_SESSION['cccd']);
+        $choices = [];
+        if ($applicationId > 0) {
+            $choices = $this->nguyenVongRepo->getByHoSoId($applicationId);
+        }
 
         // Use MasterDataRepository for Majors - Chỉ ngành đang kích hoạt theo đợt này
         $sessionId = $activeSession['id'] ?? 0;
