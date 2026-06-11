@@ -50,6 +50,28 @@ include __DIR__ . '/../layouts/header.php';
                 </div>
             <?php endif; ?>
 
+            <?php if (!empty($allApps) && count($allApps) > 1): ?>
+                <div class="mb-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center text-gray-700">
+                        <i class="fas fa-layer-group text-hvu-red mr-3 text-xl"></i>
+                        <div>
+                            <p class="text-sm font-bold">Bạn có nhiều hồ sơ đăng ký</p>
+                            <p class="text-xs text-gray-500">Chuyển đổi để xem hoặc chỉnh sửa nguyện vọng của các đợt khác</p>
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-auto">
+                        <select onchange="window.location.href='<?= url('/profile/step5?id=') ?>' + this.value" class="w-full sm:w-64 border border-gray-300 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 p-2.5 font-medium">
+                            <?php foreach ($allApps as $app): ?>
+                                <option value="<?= $app->id ?>" <?= $app->id == $applicationId ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($app->ten_dot ?? 'Hồ sơ ' . $app->id) ?> 
+                                    (<?= htmlspecialchars($app->nam_tuyen_sinh ?? date('Y')) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <form method="POST" action="<?= url('/profile/step5?id=' . $applicationId) ?>" id="choicesForm">
                 <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                 

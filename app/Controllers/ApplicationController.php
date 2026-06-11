@@ -209,11 +209,12 @@ class ApplicationController extends Controller
         // Ensure applicationId is valid (even if 0, we continue to show UI)
         $applicationId = $applicationId ?: 0;
 
+        $allApps = $this->applicationRepo->getByCCCD($_SESSION['cccd']);
+        
         // --- LOCKING LOGIC ---
         // Check if application is "Đã duyệt"
         $currentApp = null;
         if ($applicationId > 0) {
-            $allApps = $this->applicationRepo->getByCCCD($_SESSION['cccd']);
             foreach ($allApps as $app) {
                 if ($app->id == $applicationId) {
                     $currentApp = $app;
@@ -440,7 +441,8 @@ class ApplicationController extends Controller
                 'editRequestPending' => $editRequestPending,
                 'applicationStatus' => $applicationStatus,
                 'isSessionClosed' => $isSessionClosed,
-                'sessionName' => $sessionName
+                'sessionName' => $sessionName,
+                'allApps' => $allApps
             ]);
         } else {
             // Get THPT setting
@@ -456,7 +458,8 @@ class ApplicationController extends Controller
                 'editRequestPending' => $editRequestPending,
                 'applicationStatus' => $applicationStatus,
                 'isSessionClosed' => $isSessionClosed,
-                'sessionName' => $sessionName
+                'sessionName' => $sessionName,
+                'allApps' => $allApps
             ]);
         }
     }
