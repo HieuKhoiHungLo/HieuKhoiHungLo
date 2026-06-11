@@ -262,7 +262,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/results', 'AdmissionController@results');
     $router->get('/admin/admission/results/api', 'AdmissionController@resultsApi');
     $router->post('/admin/admission/results/bulk-email', 'AdmissionController@bulkEmail');
-    $router->post('/admin/admission/results/sync', 'AdmissionController@syncVirtualResults');
+    $router->post('/admin/admission/results/import', 'AdmissionController@import');
+    $router->post('/admin/admission/results/clear', 'AdmissionController@clearBatch');
+    $router->post('/admin/admission/results/set-template', 'AdmissionController@setSessionTemplate');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 

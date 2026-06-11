@@ -574,18 +574,30 @@ class ApplicationController extends Controller
         $renderedAdmissionLetter = null;
 
         $db = \App\Core\Database::getInstance()->getConnection();
-        $admStmt = $db->prepare("SELECT * FROM thu_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
+        $admStmt = $db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
         $admStmt->execute([$cccd]);
         $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($admissionRecord) {
-            // Lấy mẫu thư trúng tuyển
-            $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
-            $tplStmt->execute();
+            $sessionId = $admissionRecord['session_id'];
+            
+            // Tìm template ID cho session_id này, nếu không có thì mặc định lấy ADMISSION_LETTER
+            $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+            $tplIdStmt->execute([$sessionId]);
+            $templateId = $tplIdStmt->fetchColumn();
+            
+            if ($templateId) {
+                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+                $tplStmt->execute([$templateId]);
+            } else {
+                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
+                $tplStmt->execute();
+            }
+            
             $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($template) {
-                $letterService = new \App\Services\AdmissionLetterService();
+                $letterService = new \App\Services\AdmissionResultService();
                 $renderedAdmissionLetter = $letterService->renderTemplate($template['body'], $admissionRecord);
             }
         }

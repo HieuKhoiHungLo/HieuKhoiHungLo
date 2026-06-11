@@ -25,6 +25,12 @@ $getVal = function ($grade, $field) use ($records) {
     if (array_key_exists($field, ['toan' => 1, 'van' => 1, 'ngoai_ngu' => 1, 'ly' => 1, 'hoa' => 1, 'sinh' => 1, 'su' => 1, 'dia' => 1, 'gdcd' => 1, 'cong_nghe' => 1, 'tin_hoc' => 1])) {
         $col = "diem_{$field}_cn";
         $val = $records[$grade][$col] ?? '';
+        
+        // Fallback for GDCD / KTPL
+        if ($field === 'gdcd' && ($val === '' || $val === null)) {
+            $val = $records[$grade]['diem_ktpl_cn'] ?? '';
+        }
+        
         return ($val === '') ? '' : $val;
     }
 

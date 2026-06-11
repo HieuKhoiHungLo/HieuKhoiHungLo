@@ -175,28 +175,26 @@ class AdmissionController extends Controller {
 
         // 1. Global Stats
         $statsSql = "SELECT 
-                        COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                        COUNT(DISTINCT so_cccd) as total_candidates,
                         COUNT(*) as total_wishes,
-                        COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as total_admitted,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 1) as nv1_admit,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 2) as nv2_admit,
-                        COUNT(*) FILTER (WHERE (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) AND COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) = 3) as nv3_admit
-                     FROM nguyen_vong nv
-                     LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                     WHERE nv.dot_tuyen_sinh_id = ?";
+                        COUNT(*) as total_admitted,
+                        0 as nv1_admit,
+                        0 as nv2_admit,
+                        0 as nv3_admit
+                     FROM ket_qua_trung_tuyen
+                     WHERE session_id = ?";
         $statsStmt = $db->prepare($statsSql);
         $statsStmt->execute([$sessionId]);
         $stats = $statsStmt->fetch(\PDO::FETCH_ASSOC);
 
         // 2. Per-major stats (admitted vs chi_tieu)  
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
-                            COUNT(*) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as so_trung_tuyen,
-                            COUNT(*) as tong_nguyen_vong,
-                            MAX(cs.diem_xet_tuyen) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as diem_cao_nhat,
-                            MIN(cs.diem_xet_tuyen) FILTER (WHERE nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE) as diem_thap_nhat
+                            COUNT(k.id) as so_trung_tuyen,
+                            COUNT(k.id) as tong_nguyen_vong,
+                            MAX(k.diem_xt) as diem_cao_nhat,
+                            MIN(k.diem_xt) as diem_thap_nhat
                           FROM dm_nganh n
-                          LEFT JOIN nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
-                          LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                          LEFT JOIN ket_qua_trung_tuyen k ON n.ma_nganh = k.ma_nganh AND k.session_id = ?
                           GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
                           ORDER BY n.ma_nganh";
         $majorStatsStmt = $db->prepare($majorStatsSql);
@@ -207,12 +205,11 @@ class AdmissionController extends Controller {
         $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
                            COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
                            COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong
-                    FROM nguyen_vong nv
-                    JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
-                    LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                    FROM ket_qua_trung_tuyen k
+                    JOIN thi_sinh t ON k.so_cccd = t.so_cccd
                     LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
                     LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
-                    WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+                    WHERE k.session_id = ?";
         $demoStmt = $db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);
         $demoRows = $demoStmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -260,6 +257,14 @@ class AdmissionController extends Controller {
         $visitStatsStmt = $db->query($visitStatsSql);
         $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
 
+        $allTemplates = $db->query("SELECT id, subject as name, code FROM email_templates")->fetchAll(\PDO::FETCH_ASSOC);
+        $currentTemplateId = null;
+        if ($sessionId) {
+            $stmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+            $stmt->execute([$sessionId]);
+            $currentTemplateId = $stmt->fetchColumn();
+        }
+
         $this->view('admin/admission/results', [
             'stats' => $stats,
             'visitStats' => $visitStats,
@@ -270,7 +275,9 @@ class AdmissionController extends Controller {
             'filterStatus' => $filterStatus,
             'showAll' => $showAll,
             'activeSession' => $activeSession,
-            'allSessions' => $allSessions
+            'allSessions' => $allSessions,
+            'allTemplates' => $allTemplates,
+            'currentTemplateId' => $currentTemplateId
         ]);
     }
 
@@ -293,33 +300,23 @@ class AdmissionController extends Controller {
         if ($length > 200) $length = 200;
 
         // Base query
-        $baseFrom = "FROM nguyen_vong nv
-                     JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
-                     JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
-                     LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                     WHERE nv.dot_tuyen_sinh_id = ?";
+        $baseFrom = "FROM ket_qua_trung_tuyen
+                     WHERE session_id = ?";
         $params = [$sessionId];
 
-        // Status filter
-        if ($filterStatus === 'Trung tuyen') {
-            $baseFrom .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
-        } elseif ($filterStatus) {
-            $baseFrom .= " AND nv.trang_thai = ?";
-            $params[] = $filterStatus;
-        } elseif (!$showAll) {
-            $baseFrom .= " AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
-        }
+        // Status filter (all uploaded rows in ket_qua_trung_tuyen are 'Trúng tuyển')
+        // We can just omit filtering by status unless there's a reason.
 
         // Major filter  
         if ($filterMajor) {
-            $baseFrom .= " AND nv.ma_nganh = ?";
+            $baseFrom .= " AND ma_nganh = ?";
             $params[] = $filterMajor;
         }
 
         // Search filter
         $searchSql = "";
         if (!empty($search)) {
-            $searchSql = " AND (t.ho_va_ten ILIKE ? OR t.so_cccd ILIKE ? OR nv.ma_nganh ILIKE ? OR n.ten_nganh ILIKE ?)";
+            $searchSql = " AND (ho_ten ILIKE ? OR so_cccd ILIKE ? OR ma_nganh ILIKE ? OR ten_nganh ILIKE ?)";
             $searchParam = "%{$search}%";
             $params[] = $searchParam;
             $params[] = $searchParam;
@@ -343,15 +340,9 @@ class AdmissionController extends Controller {
         }
 
         // Data query
-        $dataSql = "SELECT nv.id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, nv.trang_thai,
-                           nv.phuong_thuc_xet_tuyen,
-                           t.ho_va_ten, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien,
-                           n.ten_nganh, n.nhom_nganh,
-                           cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu,
-                           cs.chi_tiet_diem, cs.trang_thai_trung_tuyen,
-                           cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3
+        $dataSql = "SELECT *
                     $baseFrom $searchSql
-                    ORDER BY nv.ma_nganh, cs.diem_xet_tuyen DESC NULLS LAST, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC
+                    ORDER BY ma_nganh, diem_xt DESC NULLS LAST
                     LIMIT $length OFFSET $start";
         
         $stmt = $db->prepare($dataSql);
@@ -360,10 +351,8 @@ class AdmissionController extends Controller {
 
         // Process rows
         foreach ($rows as &$row) {
-            $row['is_pass'] = ($row['trang_thai'] == 'Trung tuyen' || $row['trang_thai'] == 'Trúng tuyển' || ($row['trang_thai_trung_tuyen'] ?? false));
-            if (!empty($row['chi_tiet_diem'])) {
-                $row['chi_tiet_diem'] = json_decode($row['chi_tiet_diem'], true);
-            }
+            $row['is_pass'] = true; // Everyone in this table is admitted
+            $row['chi_tiet_diem'] = null;
         }
 
         header('Content-Type: application/json; charset=utf-8');
@@ -374,6 +363,74 @@ class AdmissionController extends Controller {
             'data' => $rows
         ], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    public function import() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? '';
+        if (empty($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+        }
+
+        if (!isset($_FILES['excel_file']) || $_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Lỗi tải file. Vui lòng thử lại.')));
+        }
+
+        $fileTmpPath = $_FILES['excel_file']['tmp_name'];
+        $fileName = $_FILES['excel_file']['name'];
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        if (!in_array($fileExtension, ['xls', 'xlsx'])) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Chỉ hỗ trợ file Excel (.xls, .xlsx).')));
+        }
+
+        try {
+            $service = new \App\Services\AdmissionResultService();
+            $result = $service->importFromExcel($fileTmpPath, $sessionId);
+
+            if ($result['status']) {
+                $msg = "Đã tải lên thành công {$result['inserted']} thí sinh.";
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg)));
+            } else {
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode($result['message'])));
+            }
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Đã xảy ra lỗi: ' . $e->getMessage())));
+        }
+    }
+
+    public function clearBatch() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        $sessionId = $_POST['session_id'] ?? '';
+        if (empty($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Dữ liệu không hợp lệ.')));
+        }
+        
+        try {
+            $service = new \App\Services\AdmissionResultService();
+            $service->deleteBatch($sessionId);
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode('Đã xóa toàn bộ kết quả của đợt này.')));
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Có lỗi xảy ra: ' . $e->getMessage())));
+        }
+    }
+
+    /**
+     * Set Email template for session
+     */
+    public function setSessionTemplate() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        $sessionId = $_POST['session_id'] ?? '';
+        $templateId = $_POST['template_id'] ?? '';
+        
+        if ($sessionId && $templateId) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("INSERT INTO session_templates (session_id, template_id) VALUES (?, ?) ON CONFLICT (session_id) DO UPDATE SET template_id = EXCLUDED.template_id");
+            $stmt->execute([$sessionId, $templateId]);
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode('Đã lưu thiết lập mẫu email thành công.')));
+        }
+        $this->redirect(url('/admin/admission/results'));
     }
 
     /**
@@ -468,13 +525,9 @@ class AdmissionController extends Controller {
         $db = \App\Core\Database::getInstance()->getConnection();
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         
-        $sql = "SELECT t.so_cccd, t.ho_va_ten, t.email, nv.ma_nganh, n.ten_nganh, nv.trang_thai, cs.diem_xet_tuyen
-                FROM nguyen_vong nv
-                JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
-                JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
-                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                WHERE nv.id IN ($placeholders)
-                AND (nv.trang_thai IN ('Trung tuyen', 'Trúng tuyển') OR cs.trang_thai_trung_tuyen = TRUE)";
+        $sql = "SELECT id, so_cccd, ho_ten, email, ma_nganh, ten_nganh, diem_xt
+                FROM ket_qua_trung_tuyen
+                WHERE id IN ($placeholders)";
         
         $stmt = $db->prepare($sql);
         $stmt->execute($ids);
@@ -483,19 +536,34 @@ class AdmissionController extends Controller {
         $count = 0;
         $errors = 0;
         
+        // Find template code
+        $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+        $tplIdStmt->execute([$sessionId]);
+        $templateId = $tplIdStmt->fetchColumn();
+        
+        $templateCode = 'admission_success';
+        if ($templateId) {
+            $tplStmt = $db->prepare("SELECT code FROM email_templates WHERE id = ?");
+            $tplStmt->execute([$templateId]);
+            $customCode = $tplStmt->fetchColumn();
+            if ($customCode) {
+                $templateCode = $customCode;
+            }
+        }
+        
         foreach ($candidates as $cand) {
             if (empty($cand['email'])) continue;
             
             $data = [
-                'ho_ten' => $cand['ho_va_ten'],
+                'ho_ten' => $cand['ho_ten'],
                 'cccd' => $cand['so_cccd'],
                 'ten_nganh' => $cand['ten_nganh'],
                 'ma_nganh' => $cand['ma_nganh'],
-                'diem_xet_tuyen' => number_format($cand['diem_xet_tuyen'], 2),
+                'diem_xet_tuyen' => number_format((float)$cand['diem_xt'], 2),
                 'login_url' => url('/login')
             ];
             
-            $res = $this->emailService->sendWithTemplate($cand['email'], 'admission_success', $data);
+            $res = $this->emailService->sendWithTemplate($cand['email'], $templateCode, $data);
             if ($res === true) { $count++; } else { $errors++; }
         }
         

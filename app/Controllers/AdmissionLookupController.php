@@ -3,7 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use App\Services\AdmissionLetterService;
+use App\Services\AdmissionResultService;
 use PDO;
 
 class AdmissionLookupController extends Controller
@@ -35,12 +35,12 @@ class AdmissionLookupController extends Controller
         // Rate limit đơn giản: chỉ cho phép tra cứu, không cần session phức tạp
         $db = Database::getInstance()->getConnection();
 
-        // Tìm kiếm theo CCCD, SBD hoặc Email trong bảng thu_trung_tuyen
+        // Tìm kiếm theo CCCD, SBD hoặc Email trong bảng ket_qua_trung_tuyen
         $stmt = $db->prepare("
             SELECT t.*,
                    n.chi_tieu,
                    n.diem_nam_truoc
-            FROM thu_trung_tuyen t
+            FROM ket_qua_trung_tuyen t
             LEFT JOIN dm_nganh n ON n.ma_nganh = t.ma_nganh
             WHERE (
                 t.so_cccd = ?
@@ -58,15 +58,27 @@ class AdmissionLookupController extends Controller
             return;
         }
 
-        // Lấy template email ADMISSION_LETTER để render nội dung
-        $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
-        $tplStmt->execute();
-        $template = $tplStmt->fetch(PDO::FETCH_ASSOC);
-
-        // Render nội dung thư cho mỗi bản ghi
-        $service = new AdmissionLetterService();
+        $service = new AdmissionResultService();
         $renderedItems = [];
+        
         foreach ($records as $record) {
+            $sessionId = $record['session_id'];
+            
+            // Tìm template ID cho session_id này, nếu không có thì mặc định lấy ADMISSION_LETTER
+            $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+            $tplIdStmt->execute([$sessionId]);
+            $templateId = $tplIdStmt->fetchColumn();
+            
+            if ($templateId) {
+                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+                $tplStmt->execute([$templateId]);
+            } else {
+                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
+                $tplStmt->execute();
+            }
+            
+            $template = $tplStmt->fetch(PDO::FETCH_ASSOC);
+            
             $body = $template ? $service->renderTemplate($template['body'], $record) : null;
             $renderedItems[] = [
                 'record'   => $record,

@@ -94,6 +94,19 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 </select>
                 <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[9px] pointer-events-none"></i>
             </div>
+            
+            <form action="<?= url('/admin/admission/results/set-template') ?>" method="POST" class="flex items-center gap-2">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <select name="template_id" class="bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-400" onchange="this.form.submit()">
+                    <option value="">-- Mẫu mặc định --</option>
+                    <?php foreach ($allTemplates as $tpl): ?>
+                        <option value="<?= $tpl['id'] ?>" <?= ($tpl['id'] == $currentTemplateId) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($tpl['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </form>
 
             <div class="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
                 <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . $sessionId) ?>"
@@ -107,14 +120,22 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 </button>
             </div>
 
-            <button id="syncBtn" onclick="syncFromVirtualFilter()" 
-               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
-                <i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo
-            </button>
-            <a href="<?= url('/admin/admission/virtual-filter') ?>"
-               class="bg-slate-800 hover:bg-black text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
-                <i class="fas fa-filter"></i> Lọc Ảo
-            </a>
+            <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" class="flex items-center gap-2" id="importForm">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs cursor-pointer">
+                    <i class="fas fa-file-import"></i> Upload Kết Quả (Excel)
+                    <input type="file" name="excel_file" class="hidden" accept=".xls,.xlsx" onchange="document.getElementById('importForm').submit();">
+                </label>
+            </form>
+            
+            <form action="<?= url('/admin/admission/results/clear') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ kết quả của đợt này?');">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
+                    <i class="fas fa-trash-alt"></i> Xóa đợt này
+                </button>
+            </form>
         </div>
     </div>
 
@@ -266,8 +287,6 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         <th class="border border-slate-300 py-2 px-2 text-center w-10">STT</th>
                         <th class="border border-slate-300 py-2 px-3">Mã ngành</th>
                         <th class="border border-slate-300 py-2 px-3">Tên ngành</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center w-10">NV</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center w-14">NV Bộ</th>
                         <th class="border border-slate-300 py-2 px-3">CCCD</th>
                         <th class="border border-slate-300 py-2 px-3">Họ và Tên</th>
                         <th class="border border-slate-300 py-2 px-2 text-center">KV</th>
@@ -796,39 +815,29 @@ function renderTable(rows, startIndex) {
             <td class="border border-slate-200 py-1.5 px-3 max-w-[180px]">
                 <span class="truncate block" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
             </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.thu_tu_nguyen_vong || '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.thu_tu_nv_bo || '-'}</td>
             <td class="border border-slate-200 py-1.5 px-3 font-mono">
-                <a href="${REVIEW_URL}?cccd=${row.so_cccd}&tab=wishes" target="_blank"
-                   class="text-blue-700 hover:underline">${row.so_cccd}</a>
+                ${row.so_cccd}
             </td>
             <td class="border border-slate-200 py-1.5 px-3 min-w-[140px]">
-                <a href="${REVIEW_URL}?cccd=${row.so_cccd}" target="_blank"
-                   class="hover:text-blue-700 hover:underline">${escHtml(row.ho_va_ten)}</a>
+                ${escHtml(row.ho_ten)}
             </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.khu_vuc_uu_tien || '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.doi_tuong_uu_tien || '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-3">${escHtml(row.to_hop_toi_uu || '-')}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.khu_vuc || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.doi_tuong || '-'}</td>
+            <td class="border border-slate-200 py-1.5 px-3">${escHtml(row.to_hop || '-')}</td>
             <td class="border border-slate-200 py-1.5 px-3 max-w-[120px]">
-                <span class="truncate block text-gray-500" title="${escHtml(row.phuong_thuc_toi_uu || row.phuong_thuc_xet_tuyen || '')}">${escHtml(row.phuong_thuc_toi_uu || row.phuong_thuc_xet_tuyen || '-')}</span>
+                <span class="truncate block text-gray-500" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
             </td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_1)}</td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_2)}</td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_3)}</td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">${utAmt}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center font-semibold ${isPass ? 'text-green-700' : 'text-gray-400'}">
-                ${row.diem_xet_tuyen != null ? parseFloat(row.diem_xet_tuyen).toFixed(2) : '-'}
+            <td class="border border-slate-200 py-1.5 px-2 text-center font-semibold text-green-700">
+                ${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}
             </td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">
-                ${isPass
-                    ? '<span class="text-green-700">Đỗ</span>'
-                    : '<span class="text-red-500">Trượt</span>'}
+                <span class="text-green-700">Đỗ</span>
             </td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">
-                <a href="${REVIEW_URL}?cccd=${row.so_cccd}" target="_blank"
-                   class="text-gray-400 hover:text-blue-600 transition-colors" title="Xem hồ sơ">
-                    <i class="fas fa-external-link-alt text-[10px]"></i>
-                </a>
             </td>
         </tr>`;
     });
