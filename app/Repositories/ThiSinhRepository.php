@@ -535,7 +535,7 @@ class ThiSinhRepository
 
     public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null)
     {
-        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at, id FROM ho_so_xet_tuyen WHERE so_cccd = ?");
+        $stmt = $this->db->prepare("SELECT dot_tuyen_sinh_id, created_at, id FROM ho_so_xet_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
         $stmt->execute([$currentCCCD]);
         $current = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -578,7 +578,7 @@ class ThiSinhRepository
     {
         // Combined query: fetch session ID, prev/next CCCD, current position, and total count in one go
         $sql = "WITH session_info AS (
-            SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ?
+            SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1
         ),
         ordered AS (
             SELECT 
