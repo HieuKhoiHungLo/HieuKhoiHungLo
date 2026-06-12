@@ -733,4 +733,25 @@ class AdmissionController extends Controller {
         
         $this->redirect(url($redirectUrl));
     }
+
+    /**
+     * Toggle Admission Results Publishing
+     */
+    public function togglePublish() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? 0;
+        $status = $_POST['status'] ?? 0; // 1 to publish, 0 to unpublish
+        
+        if ($sessionId) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE dot_tuyen_sinh SET is_published_results = ? WHERE id = ?");
+            $stmt->execute([$status ? 'true' : 'false', $sessionId]);
+            
+            $msg = $status ? 'Đã công bố kết quả xét tuyển cho đợt này.' : 'Đã hủy công bố kết quả xét tuyển.';
+            $this->redirect(url('/admin/admission/results?session_id=' . $sessionId . '&success=' . urlencode($msg)));
+        } else {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+        }
+    }
 }

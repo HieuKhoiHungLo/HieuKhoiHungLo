@@ -21,6 +21,9 @@
 <div class="-mt-4 mb-2">
     <!-- Global Hidden Inputs for JS Save -->
     <input type="hidden" name="cccd" value="<?= $user['so_cccd'] ?>">
+    <?php if (isset($_GET['session_id']) && $_GET['session_id'] !== ''): ?>
+        <input type="hidden" name="session_id" value="<?= htmlspecialchars($_GET['session_id']) ?>">
+    <?php endif; ?>
     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
     <div class="flex items-center justify-between">
@@ -76,11 +79,14 @@
                 <i class="fas <?= $statusIcon ?>"></i> <?= $statusLabel ?>
             </span>
         </div>
-        <?php if (($navTotal ?? 0) > 0): ?>
+        <?php 
+        $sessParam = (isset($_GET['session_id']) && $_GET['session_id'] !== '') ? '&session_id=' . htmlspecialchars($_GET['session_id']) : '';
+        if (($navTotal ?? 0) > 0): 
+        ?>
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-1 mr-4">
                     <?php if (!empty($prevCCCD)): ?>
-                        <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ trước">
+                        <a href="<?= url('/admin/review?cccd=' . $prevCCCD . $sessParam) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ trước">
                             <i class="fas fa-chevron-left text-xs"></i>
                         </a>
                     <?php else: ?>
@@ -90,7 +96,7 @@
                     <?php endif; ?>
 
                     <?php if (!empty($nextCCCD)): ?>
-                        <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ tiếp">
+                        <a href="<?= url('/admin/review?cccd=' . $nextCCCD . $sessParam) ?>" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-[#0066FF] transition-all shadow-sm" title="Hồ sơ tiếp">
                             <i class="fas fa-chevron-right text-xs"></i>
                         </a>
                     <?php else: ?>
@@ -109,6 +115,9 @@
 
 <form id="reviewForm" action="<?= url('/admin/review/submit') ?>" method="POST" class="pb-20">
     <input type="hidden" name="cccd" value="<?= $user['so_cccd'] ?>">
+    <?php if (isset($_GET['session_id']) && $_GET['session_id'] !== ''): ?>
+        <input type="hidden" name="session_id" value="<?= htmlspecialchars($_GET['session_id']) ?>">
+    <?php endif; ?>
     <?= csrf_field() ?>
 
     <?php
@@ -200,7 +209,7 @@
     <!-- Previous -->
     <div>
         <?php if (!empty($prevCCCD)): ?>
-            <a href="<?= url('/admin/review?cccd=' . $prevCCCD) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
+            <a href="<?= url('/admin/review?cccd=' . $prevCCCD . $sessParam) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
                 <i class="fas fa-chevron-left"></i> Hồ sơ trước
             </a>
         <?php else: ?>
@@ -228,7 +237,7 @@
         <!-- Quick Search CCCD (Refined Outline Style) -->
         <input type="text" placeholder="Tìm CCCD..." 
                class="py-3.5 bg-white border-2 border-[#0066FF] text-slate-800 placeholder-black font-medium rounded-xl shadow-sm focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm w-32 text-center"
-               onkeydown="if(event.key === 'Enter') { event.preventDefault(); const cccd = this.value.trim(); if(cccd) window.location.href = '<?= url('/admin/review') ?>?cccd=' + cccd; }">
+               onkeydown="if(event.key === 'Enter') { event.preventDefault(); const cccd = this.value.trim(); if(cccd) window.location.href = '<?= url('/admin/review') ?>?cccd=' + cccd + '<?= $sessParam ?>'; }">
 
         <!-- Zalo Button -->
         <?php
@@ -247,7 +256,7 @@
     <!-- Next -->
     <div>
         <?php if (!empty($nextCCCD)): ?>
-            <a href="<?= url('/admin/review?cccd=' . $nextCCCD) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
+            <a href="<?= url('/admin/review?cccd=' . $nextCCCD . $sessParam) ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0066FF] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md">
                 Hồ sơ tiếp <i class="fas fa-chevron-right"></i>
             </a>
         <?php else: ?>
@@ -541,7 +550,7 @@ updateActionBarOffset();
         if (!container) return false;
 
         try {
-            const url = `<?= url('/admin/review/tab') ?>?cccd=<?= $user['so_cccd'] ?>&tab=${tabName}`;
+            const url = `<?= url('/admin/review/tab') ?>?cccd=<?= $user['so_cccd'] ?>&tab=${tabName}<?= $sessParam ?>`;
             const res = await fetch(url);
             if (!res.ok) throw new Error('Network response was not ok');
             const html = await res.text();
@@ -616,7 +625,7 @@ updateActionBarOffset();
             }
 
             try {
-                const url = `<?= url('/admin/review/batch-tabs') ?>?cccd=<?= $user['so_cccd'] ?>`;
+                const url = `<?= url('/admin/review/batch-tabs') ?>?cccd=<?= $user['so_cccd'] ?><?= $sessParam ?>`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Batch fetch failed');
                 

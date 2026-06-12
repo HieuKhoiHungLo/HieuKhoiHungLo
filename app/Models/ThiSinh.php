@@ -58,7 +58,7 @@ class ThiSinh extends Model {
                     FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
                     $baseJoins
-                    WHERE 1=1";
+                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
             
             if ($sessionId) {
                 $sql .= " AND hs.dot_tuyen_sinh_id = ?";
@@ -98,7 +98,7 @@ class ThiSinh extends Model {
                     $params[] = $year;
                 }
             } elseif ($applicationStatus === 'ghost') {
-                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id)))";
             }
 
             if ($onlyEditRequests) {
@@ -438,7 +438,7 @@ class ThiSinh extends Model {
         if ($applicationStatus === 'submitted') {
             $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
-                    WHERE 1=1";
+                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
             
             if ($excludeTrash) {
                 $sql .= " AND t.deleted_at IS NULL";
@@ -473,7 +473,7 @@ class ThiSinh extends Model {
                     $params[] = $year;
                 }
             } elseif ($applicationStatus === 'ghost') {
-                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd)";
+                $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id)))";
             }
 
             if ($onlyEditRequests) {
@@ -689,7 +689,7 @@ class ThiSinh extends Model {
         ];
 
         // 1. Get Application Related Stats (total, pending, approved, etc.)
-        $hsWhere = " WHERE hs.deleted_at IS NULL AND t.deleted_at IS NULL";
+        $hsWhere = " WHERE hs.deleted_at IS NULL AND t.deleted_at IS NULL AND EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
         $params = [];
         
         // Use JOIN instead of EXISTS for better performance, excluding soft-deleted candidates
@@ -735,7 +735,7 @@ class ThiSinh extends Model {
         }
 
         // 2. Get Ghost Candidates
-        $ghostWhere = " WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd) AND t.deleted_at IS NULL";
+        $ghostWhere = " WHERE NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))) AND t.deleted_at IS NULL";
         $ghostParams = [];
         if ($year) {
             $ghostWhere .= " AND EXTRACT(YEAR FROM t.ngay_tao) = ?";
@@ -1087,14 +1087,15 @@ class ThiSinh extends Model {
         $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
         
         $sql = "SELECT 
-                  COUNT(DISTINCT CASE WHEN created_at >= ? THEN so_cccd END) as count_today,
-                  COUNT(DISTINCT CASE WHEN created_at >= ? THEN so_cccd END) as count_week
-                FROM ho_so_xet_tuyen";
+                  COUNT(DISTINCT CASE WHEN hs.created_at >= ? THEN hs.so_cccd END) as count_today,
+                  COUNT(DISTINCT CASE WHEN hs.created_at >= ? THEN hs.so_cccd END) as count_week
+                FROM ho_so_xet_tuyen hs
+                WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
         
         $params = [$todayStart, $weekStart];
 
         if ($sessionId) {
-            $sql .= " WHERE dot_tuyen_sinh_id = ?";
+            $sql .= " AND hs.dot_tuyen_sinh_id = ?";
             $params[] = $sessionId;
         }
 
@@ -1115,7 +1116,7 @@ class ThiSinh extends Model {
         $sql = "SELECT ts.ho_va_ten AS ho_ten, ts.so_cccd, hs.created_at, hs.trang_thai 
                 FROM {$this->table} ts
                 JOIN ho_so_xet_tuyen hs ON ts.so_cccd = hs.so_cccd
-                WHERE 1=1";
+                WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
         $params = [];
         if ($sessionId) {
             $sql .= " AND hs.dot_tuyen_sinh_id = ?";

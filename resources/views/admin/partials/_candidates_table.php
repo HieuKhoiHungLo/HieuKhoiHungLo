@@ -469,7 +469,8 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                             <?php if ($mode === 'review'): ?>
                             <td class="sticky-col sticky-col-action text-center">
                                 <div class="flex items-center justify-center gap-1">
-                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" 
+                                    <?php $reviewSessParam = !empty($filters['session_id']) ? '&session_id=' . $filters['session_id'] : ''; ?>
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd'] . $reviewSessParam) ?>" 
                                         class="px-2 py-1 bg-[#0066FF] text-white hover:bg-blue-700 rounded-lg text-[10px] font-bold transition-all shadow-sm flex items-center justify-center uppercase tracking-tighter shrink-0" title="Xét duyệt">
                                         Duyệt
                                     </a>
@@ -534,7 +535,8 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
                                 <?php if ($mode === 'all'): ?>
                                     <div class="candidate-info">
                                 <?php else: ?>
-                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd']) ?>" class="candidate-info group/info">
+                                    <?php $reviewSessParam = !empty($filters['session_id']) ? '&session_id=' . $filters['session_id'] : ''; ?>
+                                    <a href="<?= url('/admin/review?cccd=' . $c['so_cccd'] . $reviewSessParam) ?>" class="candidate-info group/info">
                                 <?php endif; ?>
                                     <div class="flex items-center gap-2">
                                         <?php if ($avatar): ?>

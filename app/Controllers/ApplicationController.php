@@ -524,14 +524,47 @@ class ApplicationController extends Controller
     {
         $cccd = $_SESSION['cccd'];
 
-        $enableResults = $this->masterDataRepo->getSetting('enable_admission_results') == '1';
-
         // Ensure user has choices
         $choices = $this->nguyenVongRepo->getByCCCD($cccd);
         if (empty($choices)) {
             $this->redirect(url('/application/index'));
             return;
         }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+
+        // Find all sessions this candidate is associated with
+        $stmtSessions = $db->prepare("
+            SELECT id, ten_dot, is_published_results 
+            FROM dot_tuyen_sinh 
+            WHERE id IN (
+                SELECT dot_tuyen_sinh_id FROM nguyen_vong WHERE so_cccd = ?
+                UNION
+                SELECT session_id FROM ket_qua_trung_tuyen WHERE so_cccd = ?
+            )
+            ORDER BY id DESC
+        ");
+        $stmtSessions->execute([$cccd, $cccd]);
+        $candidateSessions = $stmtSessions->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Determine current session
+        $sessionId = $_GET['session_id'] ?? null;
+
+        $currentSession = null;
+        $enableResults = false;
+        foreach ($candidateSessions as $s) {
+            if ($s['id'] == $sessionId) {
+                $currentSession = $s;
+                $isPublished = $s['is_published_results'];
+                $enableResults = ($isPublished === true || $isPublished === 1 || $isPublished === '1' || $isPublished === 't');
+                break;
+            }
+        }
+
+        // Filter choices by selected session
+        $filteredChoices = array_filter($choices, function($c) use ($sessionId) {
+            return $c['dot_tuyen_sinh_id'] == $sessionId;
+        });
 
         $results = [];
 
@@ -546,7 +579,7 @@ class ApplicationController extends Controller
                 $majorMap[$m['ma_nganh']] = $m;
             }
 
-            foreach ($choices as $choice) {
+            foreach ($filteredChoices as $choice) {
                 $maNganh = $choice['ma_nganh'];
                 $bestScore = $calculator->calculateBestScore($cccd, $maNganh);
 
@@ -581,32 +614,33 @@ class ApplicationController extends Controller
         $admissionRecord = null;
         $renderedAdmissionLetter = null;
 
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $admStmt = $db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1");
-        $admStmt->execute([$cccd]);
-        $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
+        if ($enableResults && $sessionId) {
+            $admStmt = $db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? AND session_id = ? ORDER BY created_at DESC LIMIT 1");
+            $admStmt->execute([$cccd, $sessionId]);
+            $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
 
-        if ($admissionRecord) {
-            $sessionId = $admissionRecord['session_id'];
+            if ($admissionRecord) {
+                $recordSessionId = $admissionRecord['session_id'];
             
-            // Tìm template ID cho session_id này, nếu không có thì mặc định lấy ADMISSION_LETTER
-            $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
-            $tplIdStmt->execute([$sessionId]);
-            $templateId = $tplIdStmt->fetchColumn();
+                // Tìm template ID cho session_id này, nếu không có thì mặc định lấy ADMISSION_LETTER
+                $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+                $tplIdStmt->execute([$recordSessionId]);
+                $templateId = $tplIdStmt->fetchColumn();
             
-            if ($templateId) {
-                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
-                $tplStmt->execute([$templateId]);
-            } else {
-                $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
-                $tplStmt->execute();
-            }
-            
-            $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
+                if ($templateId) {
+                    $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+                    $tplStmt->execute([$templateId]);
+                } else {
+                    $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
+                    $tplStmt->execute();
+                }
+                
+                $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
 
-            if ($template) {
-                $letterService = new \App\Services\AdmissionResultService();
-                $renderedAdmissionLetter = $letterService->renderTemplate($template['body'], $admissionRecord);
+                if ($template) {
+                    $letterService = new \App\Services\AdmissionResultService();
+                    $renderedAdmissionLetter = $letterService->renderTemplate($template['body'], $admissionRecord);
+                }
             }
         }
 
@@ -614,6 +648,9 @@ class ApplicationController extends Controller
             'results' => $results,
             'user' => $user,
             'enableResults' => $enableResults,
+            'sessionId' => $sessionId,
+            'candidateSessions' => $candidateSessions,
+            'currentSession' => $currentSession,
             'talentResults' => $this->getTalentTestResults($cccd),
             'admissionRecord' => $admissionRecord,
             'renderedAdmissionLetter' => $renderedAdmissionLetter

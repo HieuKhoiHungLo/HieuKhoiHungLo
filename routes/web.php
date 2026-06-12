@@ -265,6 +265,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/results/import', 'AdmissionController@import');
     $router->post('/admin/admission/results/clear', 'AdmissionController@clearBatch');
     $router->post('/admin/admission/results/set-template', 'AdmissionController@setSessionTemplate');
+    $router->post('/admin/admission/results/toggle-publish', 'AdmissionController@togglePublish');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 

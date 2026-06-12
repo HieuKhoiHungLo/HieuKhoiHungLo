@@ -323,11 +323,12 @@ class AdminController extends Controller
     {
         $this->checkPermission('review');
         $cccd = $_GET['cccd'] ?? '';
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
         if (empty($cccd)) {
             $this->redirect(url('/admin/dashboard'));
         }
 
-        $data = $this->prepareReviewData($cccd);
+        $data = $this->prepareReviewData($cccd, $sessionId);
         if (!$data) {
             $this->redirect(url('/admin/dashboard'));
         }
@@ -376,12 +377,13 @@ class AdminController extends Controller
         $this->checkPermission('review');
         $cccd = $_GET['cccd'] ?? '';
         $tab = $_GET['tab'] ?? '';
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
 
         if (empty($cccd) || empty($tab)) {
             return $this->json(['success' => false, 'error' => 'Missing params']);
         }
 
-        $data = $this->prepareReviewData($cccd);
+        $data = $this->prepareReviewData($cccd, $sessionId);
         if (!$data) {
             return $this->json(['success' => false, 'error' => 'Candidate not found']);
         }
@@ -402,12 +404,13 @@ class AdminController extends Controller
     {
         $this->checkPermission('review');
         $cccd = $_GET['cccd'] ?? '';
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
 
         if (empty($cccd)) {
             return $this->json(['success' => false, 'error' => 'Missing CCCD']);
         }
 
-        $data = $this->prepareReviewData($cccd);
+        $data = $this->prepareReviewData($cccd, $sessionId);
         if (!$data) {
             return $this->json(['success' => false, 'error' => 'Candidate not found']);
         }
@@ -430,10 +433,10 @@ class AdminController extends Controller
         ]);
     }
 
-    private function prepareReviewData($cccd)
+    private function prepareReviewData($cccd, $sessionId = null)
     {
         // SINGLE query: candidate + academic + nguyen_vong + certificates + diemThi
-        $bundle = $this->thiSinhRepo->getReviewBundle($cccd);
+        $bundle = $this->thiSinhRepo->getReviewBundle($cccd, $sessionId);
         if (!$bundle) {
             return null;
         }
@@ -458,7 +461,7 @@ class AdminController extends Controller
         });
 
         // Adjacent candidates
-        $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd);
+        $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd, $sessionId);
 
         // Subject mapping (match student step 2 exactly)
         $subjects = [

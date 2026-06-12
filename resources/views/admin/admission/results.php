@@ -108,6 +108,19 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 </select>
             </form>
 
+            <!-- Nút Công bố trúng tuyển -->
+            <form action="<?= url('/admin/admission/results/toggle-publish') ?>" method="POST" class="flex items-center">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <input type="hidden" name="status" value="<?= empty($activeSession['is_published_results']) ? '1' : '0' ?>">
+                <button type="submit" class="<?= empty($activeSession['is_published_results']) ? 'bg-emerald-600 hover:bg-emerald-700 border border-emerald-600' : 'bg-rose-50 hover:bg-rose-100 border border-rose-200' ?> px-4 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2 text-xs" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả xét tuyển đợt này lên cổng thông tin cho thí sinh tra cứu không?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này không?' ?>');">
+                    <i class="fas <?= empty($activeSession['is_published_results']) ? 'fa-bullhorn text-white' : 'fa-eye-slash text-rose-600' ?>"></i>
+                    <span class="<?= empty($activeSession['is_published_results']) ? 'text-white' : 'text-rose-600' ?>">
+                        <?= empty($activeSession['is_published_results']) ? 'Công bố' : 'Hủy công bố' ?>
+                    </span>
+                </button>
+            </form>
+
             <div class="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
                 <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . $sessionId) ?>"
                    class="px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all flex items-center gap-1.5">
@@ -296,10 +309,10 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         <th class="border border-slate-300 py-2 px-2 text-center">M1</th>
                         <th class="border border-slate-300 py-2 px-2 text-center">M2</th>
                         <th class="border border-slate-300 py-2 px-2 text-center">M3</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">UT</th>
+                        <th class="border border-slate-300 py-2 px-2 text-center">UTQ</th>
                         <th class="border border-slate-300 py-2 px-2 text-center">Điểm XT</th>
                         <th class="border border-slate-300 py-2 px-2 text-center w-20">Kết quả</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center w-8"></th>
+                        <th class="border border-slate-300 py-2 px-3">Ghi chú</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody" class="text-xs text-gray-900">
@@ -827,10 +840,10 @@ function renderTable(rows, startIndex) {
             <td class="border border-slate-200 py-1.5 px-3 max-w-[120px]">
                 <span class="truncate block text-gray-500" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
             </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_1)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_2)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt(row.diem_mon_3)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${utAmt}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_1)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_2)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_3)}</td>
+            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
             <td class="border border-slate-200 py-1.5 px-2 text-center font-semibold text-green-700">
                 ${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}
             </td>
@@ -838,6 +851,7 @@ function renderTable(rows, startIndex) {
                 <span class="text-green-700">Đỗ</span>
             </td>
             <td class="border border-slate-200 py-1.5 px-2 text-center">
+                ${escHtml(row.ghi_chu || '')}
             </td>
         </tr>`;
     });
@@ -933,6 +947,7 @@ function bulkEmailSelected() {
 // Helpers
 function escHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function fmt(v) { return v != null ? parseFloat(v).toFixed(2) : '-'; }
+function fmt3(v) { return v != null ? parseFloat(v).toFixed(3) : '-'; }
 
 function syncFromVirtualFilter() {
     if (!confirm('Đồng bộ kết quả lọc ảo vào trạng thái nguyện vọng?\n\nThao tác này sẽ cập nhật trạng thái "Trúng tuyển" / "Không đạt" dựa trên kết quả lọc ảo mới nhất.')) return;

@@ -92,7 +92,7 @@ class ThiSinhRepository
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getReviewBundle($cccd)
+    public function getReviewBundle($cccd, $sessionId = null)
     {
         $sql = "SELECT 
             t.*, 
@@ -104,7 +104,7 @@ class ThiSinhRepository
             kv.ten_kv as ten_khu_vuc_ut,
             hs.trang_thai, hs.ghi_chu, hs.yeu_cau_chinh_sua, hs.id as application_id,
             COALESCE((SELECT json_agg(row_to_json(hb.*) ORDER BY hb.id) FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd), '[]'::json) as _academic_json,
-            COALESCE((SELECT json_agg(row_to_json(nv.*) ORDER BY nv.thu_tu_nguyen_vong) FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd), '[]'::json) as _choices_json,
+            COALESCE((SELECT json_agg(row_to_json(nv.*) ORDER BY nv.thu_tu_nguyen_vong) FROM nguyen_vong nv WHERE nv.so_cccd = t.so_cccd AND (nv.ho_so_id = hs.id OR (nv.ho_so_id IS NULL AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))), '[]'::json) as _choices_json,
             COALESCE((SELECT json_agg(row_to_json(cc.*)) FROM chung_chi_thi_sinh cc WHERE cc.so_cccd = t.so_cccd), '[]'::json) as _certs_json,
             (SELECT row_to_json(dth.*) FROM diem_thi_thpt dth WHERE dth.so_cccd = t.so_cccd LIMIT 1) as _diemthi_json
             FROM {$this->table} t
@@ -114,7 +114,7 @@ class ThiSinhRepository
             LEFT JOIN dm_truong_thpt s ON t.ma_truong_lop_12 = s.ma_truong AND s.is_active = TRUE
             LEFT JOIN dm_doi_tuong dt ON t.doi_tuong_uu_tien = dt.ma_dt
             LEFT JOIN dm_khu_vuc kv ON t.khu_vuc_uu_tien = kv.ma_kv
-            LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
+            LEFT JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd " . ($sessionId ? " AND hs.dot_tuyen_sinh_id = " . (int)$sessionId : "") . "
             WHERE t.so_cccd = ?
             ORDER BY hs.created_at DESC LIMIT 1";
 
@@ -574,13 +574,14 @@ class ThiSinhRepository
         return $stmt->fetchColumn();
     }
 
-    public function getAdjacentCandidates($currentCCCD)
+    public function getAdjacentCandidates($currentCCCD, $sessionId = null)
     {
         // Combined query: fetch session ID, prev/next CCCD, current position, and total count in one go
-        $sql = "WITH session_info AS (
-            SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1
-        ),
-        ordered AS (
+        $sessionCondition = $sessionId 
+            ? "dot_tuyen_sinh_id = " . (int)$sessionId 
+            : "dot_tuyen_sinh_id = (SELECT dot_tuyen_sinh_id FROM ho_so_xet_tuyen WHERE so_cccd = ? ORDER BY created_at DESC LIMIT 1)";
+            
+        $sql = "WITH ordered AS (
             SELECT 
                 so_cccd,
                 LAG(so_cccd) OVER (ORDER BY created_at ASC) as prev_cccd,
@@ -588,17 +589,25 @@ class ThiSinhRepository
                 ROW_NUMBER() OVER (ORDER BY created_at ASC) as pos,
                 COUNT(*) OVER () as total_count
             FROM ho_so_xet_tuyen
-            WHERE dot_tuyen_sinh_id = (SELECT dot_tuyen_sinh_id FROM session_info)
+            WHERE $sessionCondition
         )
         SELECT prev_cccd, next_cccd, pos, total_count FROM ordered WHERE so_cccd = ?";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$currentCCCD, $currentCCCD]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($sessionId) {
+            $stmt->execute([$currentCCCD]);
+        } else {
+            $stmt->execute([$currentCCCD, $currentCCCD]);
+        }
+        
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$row) {
+        if (empty($rows)) {
             return ['prev' => null, 'next' => null, 'position' => 0, 'total' => 0];
         }
+
+        // In case there are somehow multiple rows for the same CCCD in the same session, take the first one
+        $row = $rows[0];
 
         return [
             'prev' => $row['prev_cccd'],
