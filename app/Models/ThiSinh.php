@@ -235,11 +235,20 @@ class ThiSinh extends Model {
                 } elseif ($field === 'note') {
                     $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     if ($trimVal === 'trống' || $trimVal === 'empty') {
-                        $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        if ($sessionId) {
+                            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$sessionId . " AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        } else {
+                            $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        }
                     } else {
-                        $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
-                        $params[] = "%$val%";
-                        $params[] = "%$val%";
+                        if ($sessionId) {
+                            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$sessionId . " AND hs.ghi_chu ILIKE ?)";
+                            $params[] = "%$val%";
+                        } else {
+                            $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
+                            $params[] = "%$val%";
+                            $params[] = "%$val%";
+                        }
                     }
                 } elseif ($field === 'transcript') {
                     $sql .= " AND (SELECT 
@@ -420,7 +429,9 @@ class ThiSinh extends Model {
             if (!empty($hosoNotes)) {
                 $candidate['ghi_chu'] = $hosoNotes;
             } else {
-                $candidate['ghi_chu'] = $baseNote;
+                // Only fallback to base note (thi_sinh.ghi_chu) if we aren't filtering by a specific session.
+                // This prevents old session notes that leaked into thi_sinh from appearing in new sessions.
+                $candidate['ghi_chu'] = $sessionId ? '' : $baseNote;
             }
             $candidate['has_edit_request'] = !empty($editMap[$cccd]);
         }
@@ -609,11 +620,20 @@ class ThiSinh extends Model {
                 } elseif ($field === 'note') {
                     $trimVal = trim(mb_strtolower($val, 'UTF-8'));
                     if ($trimVal === 'trống' || $trimVal === 'empty') {
-                        $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        if ($sessionId) {
+                            $sql .= " AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$sessionId . " AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        } else {
+                            $sql .= " AND (t.ghi_chu IS NULL OR t.ghi_chu = '') AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu IS NOT NULL AND hs.ghi_chu != '')";
+                        }
                     } else {
-                        $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
-                        $params[] = "%$val%";
-                        $params[] = "%$val%";
+                        if ($sessionId) {
+                            $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.dot_tuyen_sinh_id = " . (int)$sessionId . " AND hs.ghi_chu ILIKE ?)";
+                            $params[] = "%$val%";
+                        } else {
+                            $sql .= " AND (t.ghi_chu ILIKE ? OR EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs WHERE hs.so_cccd = t.so_cccd AND hs.ghi_chu ILIKE ?))";
+                            $params[] = "%$val%";
+                            $params[] = "%$val%";
+                        }
                     }
                 } elseif ($field === 'transcript') {
                     $sql .= " AND (SELECT 
