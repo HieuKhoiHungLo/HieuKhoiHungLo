@@ -85,7 +85,7 @@ class AdmissionResultService {
 
         // ── 3. PRE-LOAD CCCD đã tồn tại vào bộ nhớ (1 query duy nhất) ──────────
         $existStmt = $this->db->prepare(
-            "SELECT so_cccd FROM ket_qua_trung_tuyen WHERE batch_id = ?"
+            "SELECT so_cccd FROM ket_qua_trung_tuyen WHERE session_id = ?"
         );
         $existStmt->execute([$batchId]);
         $existingCCCDs = array_flip($existStmt->fetchAll(\PDO::FETCH_COLUMN));
@@ -150,7 +150,7 @@ class AdmissionResultService {
         $colCount   = 25;
 
         $baseSql = "INSERT INTO ket_qua_trung_tuyen (
-            batch_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
+            session_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
             diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
             diem_xt, ma_nganh, ten_nganh, phuong_thuc,
             so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
@@ -184,14 +184,14 @@ class AdmissionResultService {
     public function getBatches() {
         $stmt = $this->db->query("
             SELECT 
-                batch_id,
+                session_id,
                 MIN(created_at) as created_at,
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
             FROM ket_qua_trung_tuyen
-            GROUP BY batch_id
+            GROUP BY session_id
             ORDER BY created_at DESC
         ");
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -201,7 +201,7 @@ class AdmissionResultService {
      * Lấy chi tiết thí sinh của 1 đợt
      */
     public function getBatchDetails($batchId, $statusFilter = '') {
-        return $this->getCandidates(['batch_id' => $batchId, 'status' => $statusFilter]);
+        return $this->getCandidates(['session_id' => $batchId, 'status' => $statusFilter]);
     }
 
     /**
@@ -223,9 +223,9 @@ class AdmissionResultService {
         $sql = "FROM ket_qua_trung_tuyen WHERE 1=1";
         $params = [];
 
-        if (!empty($filters['batch_id'])) {
-            $sql .= " AND batch_id = ?";
-            $params[] = $filters['batch_id'];
+        if (!empty($filters['session_id'])) {
+            $sql .= " AND session_id = ?";
+            $params[] = $filters['session_id'];
         }
 
         if (!empty($filters['status'])) {
@@ -343,7 +343,7 @@ class AdmissionResultService {
      * Gắn toàn bộ email đợt này vào queue để gửi dần
      */
     public function enqueueBatch($batchId) {
-        $stmt = $this->db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE batch_id = ? AND status IN ('pending', 'failed') ORDER BY ma_nganh DESC, diem_xt ASC, id ASC");
+        $stmt = $this->db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE session_id = ? AND status IN ('pending', 'failed') ORDER BY ma_nganh DESC, diem_xt ASC, id ASC");
         $stmt->execute([$batchId]);
         $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
@@ -462,7 +462,7 @@ class AdmissionResultService {
      * Xóa đợt gửi
      */
     public function deleteBatch($batchId) {
-        $stmt = $this->db->prepare("DELETE FROM ket_qua_trung_tuyen WHERE batch_id = ?");
+        $stmt = $this->db->prepare("DELETE FROM ket_qua_trung_tuyen WHERE session_id = ?");
         return $stmt->execute([$batchId]);
     }
 
@@ -555,7 +555,7 @@ class AdmissionResultService {
 
         // Xây dựng điều kiện lọc theo scope
         if (!empty($batchId)) {
-            $baseWhere  = "WHERE batch_id = ? AND status IN ('pending', 'failed')";
+            $baseWhere  = "WHERE session_id = ? AND status IN ('pending', 'failed')";
             $baseParams = [$batchId];
         } else {
             $baseWhere  = "WHERE status IN ('pending', 'failed')";
