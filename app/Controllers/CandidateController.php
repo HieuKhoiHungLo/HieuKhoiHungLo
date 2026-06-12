@@ -101,13 +101,7 @@ class CandidateController extends Controller
             session_write_close();
         }
 
-        // Self-healing: Correct mismatched dot_tuyen_sinh_id in nguyen_vong table (e.g. after transferring candidates)
-        try {
-            $this->db->exec("UPDATE nguyen_vong nv SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id FROM ho_so_xet_tuyen hs WHERE nv.so_cccd = hs.so_cccd AND (nv.dot_tuyen_sinh_id IS NULL OR nv.dot_tuyen_sinh_id <> hs.dot_tuyen_sinh_id)");
-        } catch (\Exception $e) {
-            error_log("Self-healing query failed: " . $e->getMessage());
-        }
-
+        // Self-healing removed as it was corrupting data with multiple sessions
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
         $hocBaStatus = $_GET['hoc_ba_status'] ?? '';
@@ -447,7 +441,8 @@ class CandidateController extends Controller
             case 'update_note':
                 $this->checkPermission('review');
                 $note = $_POST['note'] ?? '';
-                $this->bulkUpdateNote($ids, $note);
+                $sessionId = isset($_POST['session_id']) && $_POST['session_id'] !== '' ? (int)$_POST['session_id'] : null;
+                $this->bulkUpdateNote($ids, $note, $sessionId);
                 break;
 
             default:
@@ -482,7 +477,7 @@ class CandidateController extends Controller
     /**
      * Bulk update notes
      */
-    protected function bulkUpdateNote($ids, $note)
+    protected function bulkUpdateNote($ids, $note, $sessionId = null)
     {
         if (empty($ids)) return;
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -491,14 +486,16 @@ class CandidateController extends Controller
             $this->db->beginTransaction();
 
             // 1. Update ho_so_xet_tuyen (Admission profile note)
-            $stmt = $this->db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd IN ($placeholders)");
+            $sql = "UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd IN ($placeholders)";
             $params = array_merge([$note], $ids);
-            $stmt->execute($params);
+            
+            if ($sessionId !== null) {
+                $sql .= " AND dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            }
 
-            // 2. Update thi_sinh (Candidate note)
-            $stmt2 = $this->db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd IN ($placeholders)");
-            $params2 = array_merge([$note], $ids);
-            $stmt2->execute($params2);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
 
             $this->db->commit();
 
@@ -1470,10 +1467,7 @@ class CandidateController extends Controller
                         return;
                     }
 
-                    if (empty($items)) {
-                        $this->json(['success' => false, 'error' => 'Vui lÃ²ng thÃªm Ã­t nháº¥t 1 nguyá»‡n vá» ng.']);
-                        return;
-                    }
+                    // Allowed to save empty $items to clear all wishes
 
                     $masterRepo = new \App\Repositories\MasterDataRepository();
                     $majors = $masterRepo->getMajors();
@@ -1491,7 +1485,7 @@ class CandidateController extends Controller
                     unset($item);
 
                     $nguyenVongRepo = new \App\Repositories\NguyenVongRepository();
-                    if (!$nguyenVongRepo->save($cccd, $dotTuyenSinhId, $items)) {
+                    if (!$nguyenVongRepo->save($cccd, $applicationId, $items)) {
                         $this->json(['success' => false, 'error' => 'Lá»—i lÆ°u nguyá»‡n vá»ng vÃ o CSDL.']);
                         return;
                     }

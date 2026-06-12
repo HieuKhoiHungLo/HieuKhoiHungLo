@@ -736,6 +736,9 @@ updateActionBarOffset();
         formData.append('cccd', cccd);
         formData.append('note', note);
         formData.append('csrf_token', csrfToken);
+        <?php if (isset($_GET['session_id']) && $_GET['session_id'] !== ''): ?>
+        formData.append('session_id', '<?= htmlspecialchars($_GET['session_id']) ?>');
+        <?php endif; ?>
 
         fetch('<?= url('/admin/review/update-note') ?>', {
             method: 'POST',

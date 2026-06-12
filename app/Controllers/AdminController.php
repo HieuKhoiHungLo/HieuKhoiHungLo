@@ -351,13 +351,17 @@ class AdminController extends Controller
             $db = \App\Core\Database::getInstance()->getConnection();
             $db->beginTransaction();
 
-            // 1. Update ho_so_xet_tuyen
-            $stmt = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?");
-            $stmt->execute([$note, $cccd]);
+            $sessionId = $_POST['session_id'] ?? null;
 
-            // 2. Update thi_sinh
-            $stmt2 = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-            $stmt2->execute([$note, $cccd]);
+            // 1. Update ho_so_xet_tuyen only
+            $sql = "UPDATE ho_so_xet_tuyen SET ghi_chu = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE so_cccd = ?";
+            $params = [$note, $cccd];
+            if ($sessionId) {
+                $sql .= " AND dot_tuyen_sinh_id = ?";
+                $params[] = $sessionId;
+            }
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
 
             $db->commit();
             $this->json(['success' => true]);
@@ -544,11 +548,12 @@ class AdminController extends Controller
             $so_cccd = $_POST['cccd'] ?? '';
             $status = $_POST['status'] ?? '';
             $note = $_POST['note'] ?? '';
+            $sessionId = isset($_POST['session_id']) && $_POST['session_id'] !== '' ? (int)$_POST['session_id'] : null;
             $sendEmail = isset($_POST['send_email']) && $_POST['send_email'] == '1';
 
             // Sync status to ho_so_xet_tuyen (and nguyen_vong) using Repository
             $reviewerId = $this->currentUser['id'] ?? null;
-            $this->thiSinhRepo->updateApplicationStatus($so_cccd, $status, $note, $reviewerId);
+            $this->thiSinhRepo->updateApplicationStatus($so_cccd, $status, $note, $reviewerId, $sessionId);
 
             // Send email notification if requested
             if ($sendEmail) {

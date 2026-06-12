@@ -501,7 +501,7 @@ class ThiSinhRepository
         return $stmt->execute([$applicationId]);
     }
 
-    public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null)
+    public function updateApplicationStatus($cccd, $status, $note = null, $reviewerId = null, $sessionId = null)
     {
         // Safety check: Prevent URL or long invalid strings from being saved as status
         if (strpos($status, 'http') !== false || strpos($status, '/TS/') !== false || strlen($status) > 50) {
@@ -526,11 +526,22 @@ class ThiSinhRepository
         $sql .= ", updated_at = NOW() WHERE so_cccd = ?";
         $params[] = $cccd;
 
+        if ($sessionId !== null) {
+            $sql .= " AND dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        }
+
         $stmt2 = $this->db->prepare($sql);
         $stmt2->execute($params);
 
-        $stmt = $this->db->prepare("UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd = ?");
-        return $stmt->execute([$status, $cccd]);
+        $sqlNV = "UPDATE nguyen_vong SET trang_thai = ? WHERE so_cccd = ?";
+        $paramsNV = [$status, $cccd];
+        if ($sessionId !== null) {
+            $sqlNV .= " AND dot_tuyen_sinh_id = ?";
+            $paramsNV[] = $sessionId;
+        }
+        $stmt = $this->db->prepare($sqlNV);
+        return $stmt->execute($paramsNV);
     }
 
     public function getNextPendingCandidate($currentCCCD, $sessionId = null, $year = null)

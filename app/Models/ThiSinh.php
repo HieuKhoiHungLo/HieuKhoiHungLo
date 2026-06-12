@@ -58,7 +58,7 @@ class ThiSinh extends Model {
                     FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
                     $baseJoins
-                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
+                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_check.ho_so_id IS NULL))";
             
             if ($sessionId) {
                 $sql .= " AND hs.dot_tuyen_sinh_id = ?";
@@ -438,7 +438,7 @@ class ThiSinh extends Model {
         if ($applicationStatus === 'submitted') {
             $sql = "SELECT COUNT(DISTINCT t.so_cccd) FROM {$this->table} t 
                     INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd 
-                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))";
+                    WHERE EXISTS (SELECT 1 FROM nguyen_vong nv_check WHERE nv_check.ho_so_id = hs.id OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_check.ho_so_id IS NULL))";
             
             if ($excludeTrash) {
                 $sql .= " AND t.deleted_at IS NULL";

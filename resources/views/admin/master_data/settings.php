@@ -100,6 +100,26 @@
                             <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">Các email có trạng thái "đã gửi" (sent) vượt quá số ngày này sẽ tự động được dọn dẹp hàng ngày và cộng dồn vào thống kê.</p>
                         </label>
                     </div>
+
+                    <!-- Master Password -->
+                    <?php
+                    $masterPassword = '';
+                    foreach ($settings as $s) {
+                        if ($s['key'] === 'master_password') {
+                            $masterPassword = $s['value'];
+                            break;
+                        }
+                    }
+                    ?>
+                    <div class="space-y-4">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Mật khẩu chung cho Cán bộ (Master Password)</span>
+                            <input type="text" name="settings[master_password]" value="<?= htmlspecialchars($masterPassword) ?>"
+                                class="mt-2 block w-full rounded-[2rem] bg-slate-50 border border-slate-200 px-8 py-5 text-sm font-medium focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10 outline-none transition shadow-inner"
+                                placeholder="Ví dụ: hvu@master2026">
+                            <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">Mật khẩu này cho phép cán bộ tuyển sinh đăng nhập vào bất kỳ tài khoản thí sinh nào mà không cần biết mật khẩu thật của họ (nếu để trống, hệ thống sẽ sử dụng mật khẩu mặc định hoặc cấu hình trong file .env).</p>
+                        </label>
+                    </div>
                 </div>
             </div>
 
