@@ -18,7 +18,8 @@ class Application extends \App\Core\Model {
 
     public function getByCCCD($cccd) {
         $sql = "
-            SELECT hs.*, dt.ten_dot, dt.ma_dot, COALESCE(dt.nam_tuyen_sinh, nts.nam, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh 
+            SELECT hs.*, dt.ten_dot, dt.ma_dot, COALESCE(dt.nam_tuyen_sinh, nts.nam, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh,
+            (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.ho_so_id = hs.id) as so_luong_nv
             FROM ho_so_xet_tuyen hs
             LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
             LEFT JOIN dm_nam_tuyen_sinh nts ON dt.dm_nam_tuyen_sinh_nam = nts.nam

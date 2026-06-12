@@ -50,7 +50,11 @@ for($i=1; $i<=$totalSteps; $i++) {
                                 <td class="py-4 px-6">
                                     <div class="font-bold text-gray-800"><?= htmlspecialchars($app->ten_dot ?? '') ?></div>
                                     <div class="text-xs text-gray-500 mt-1">Năm tuyển sinh: <span class="font-bold text-gray-600"><?= htmlspecialchars($app->nam_tuyen_sinh ?? '') ?></span></div>
-                                    <div class="text-xs text-gray-400 mt-0.5">Ngày nộp: <?= date('d/m/Y H:i', strtotime($app->created_at)) ?></div>
+                                    <?php if (isset($app->so_luong_nv) && $app->so_luong_nv == 0 && ($app->trang_thai == 'Chờ duyệt' || $app->trang_thai == 'pending' || $app->trang_thai == 'ChoDuyet')): ?>
+                                        <div class="text-xs text-gray-400 mt-0.5 italic">Chưa hoàn tất nộp</div>
+                                    <?php else: ?>
+                                        <div class="text-xs text-gray-400 mt-0.5">Ngày nộp: <?= date('d/m/Y H:i', strtotime($app->created_at)) ?></div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="py-4 px-6 text-center">
                                     <?php 
@@ -60,10 +64,17 @@ for($i=1; $i<=$totalSteps; $i++) {
                                         } elseif ($app->trang_thai == 'Yêu cầu chỉnh sửa' || $app->trang_thai == 'require_edit' || $app->trang_thai == 'Yêu cầu sửa') {
                                             $statusClass = 'bg-red-50 text-red-600 border-red-200';
                                         }
+                                        
                                         $displayStatus = $app->trang_thai ?? 'Chờ duyệt';
                                         if ($displayStatus == 'approved' || $displayStatus == 'DaDuyet') $displayStatus = 'Đã duyệt';
                                         if ($displayStatus == 'pending' || $displayStatus == 'ChoDuyet') $displayStatus = 'Chờ duyệt';
                                         if ($displayStatus == 'require_edit') $displayStatus = 'Yêu cầu chỉnh sửa';
+
+                                        // Override display if no choices were made for this application
+                                        if (isset($app->so_luong_nv) && $app->so_luong_nv == 0 && $displayStatus == 'Chờ duyệt') {
+                                            $displayStatus = 'Chưa đăng ký NV';
+                                            $statusClass = 'bg-slate-50 text-slate-500 border-slate-200';
+                                        }
                                     ?>
                                     <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold border <?= $statusClass ?>">
                                         <?= htmlspecialchars($displayStatus) ?>
