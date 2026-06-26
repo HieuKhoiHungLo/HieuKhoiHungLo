@@ -110,11 +110,14 @@ class TalentTestController extends Controller
         $stmt->execute([$id]);
         $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $stats = $this->service->getSessionStats($id);
+
         $this->view('admin/talent_tests/detail', [
             'title' => 'Chi tiết đợt thi: ' . $session['session_name'],
             'session' => $session,
             'subjects' => $subjects,
-            'rooms' => $rooms
+            'rooms' => $rooms,
+            'stats' => $stats
         ]);
     }
 
@@ -390,12 +393,10 @@ class TalentTestController extends Controller
         if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
-        // 1. Thông tin chung đợt thi
         $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
         $stmt->execute([$sessionId]);
         $session = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // 2. Thống kê tổng số thí sinh & Đã nhập điểm
         $stmt = $db->prepare("
             SELECT COUNT(*) as total, 
                    COUNT(sc.id) as graded
@@ -407,7 +408,6 @@ class TalentTestController extends Controller
         $stmt->execute([$sessionId]);
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // 3. Thống kê theo từng ngành (Subject)
         $stmt = $db->prepare("
             SELECT s.subject_name, COUNT(a.id) as count
             FROM talent_test_subjects s
@@ -418,7 +418,6 @@ class TalentTestController extends Controller
         $stmt->execute([$sessionId]);
         $subjectStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 4. Phổ điểm (Range)
         $stmt = $db->prepare("
             SELECT 
                 CASE 
@@ -446,4 +445,352 @@ class TalentTestController extends Controller
             'scoreDistribution' => $scoreDistribution
         ]);
     }
+
+    // =====================================================================
+    // Phase 2: Danh sách xét tuyển
+    // =====================================================================
+
+    public function candidates()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$session) $this->redirect(url('/admin/talent-tests'));
+
+        $stmt = $db->prepare("SELECT * FROM talent_test_subjects WHERE session_id = ?");
+        $stmt->execute([$sessionId]);
+        $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $eligible = $this->service->getEligibleCandidates($sessionId);
+        $ineligible = $this->service->getIneligibleCandidates($sessionId);
+
+        $this->view('admin/talent_tests/candidates', [
+            'title' => 'Danh sách xét tuyển - ' . $session['session_name'],
+            'session' => $session,
+            'subjects' => $subjects,
+            'eligible' => $eligible,
+            'ineligible' => $ineligible
+        ]);
+    }
+
+    public function toggleEligibility()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $ids = $_POST['ids'] ?? [];
+        $action = $_POST['action'] ?? '';
+        $reason = trim($_POST['reason'] ?? '');
+
+        if (!is_array($ids)) $ids = [$ids];
+        $ids = array_map('intval', $ids);
+
+        if ($action === 'mark_ineligible' && !empty($ids)) {
+            $count = $this->service->markIneligible($ids, $reason ?: 'Không đủ điều kiện dự thi');
+        } elseif ($action === 'mark_eligible' && !empty($ids)) {
+            $count = $this->service->markEligible($ids);
+        } else {
+            $count = 0;
+        }
+
+        if (isset($_POST['ajax'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'count' => $count]);
+            exit;
+        }
+
+        $this->redirect(url('/admin/talent-tests/candidates?session_id=' . $sessionId . '&updated=' . $count));
+    }
+
+    public function removeCandidate()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $assignmentId = (int)$_POST['assignment_id'];
+
+        $this->service->removeAssignment($assignmentId);
+        $this->redirect(url('/admin/talent-tests/candidates?session_id=' . $sessionId . '&removed=1'));
+    }
+
+    // =====================================================================
+    // Phase 3: Lập số báo danh
+    // =====================================================================
+
+    public function examNumbers()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$session) $this->redirect(url('/admin/talent-tests'));
+
+        $eligible = $this->service->getEligibleCandidates($sessionId);
+        $maxSbd = $this->service->getMaxExamNumber($sessionId);
+
+        $prefix = $this->service->getConfig($sessionId, 'sbd_prefix', 'THV.M.');
+        $length = (int)$this->service->getConfig($sessionId, 'sbd_length', '3');
+        $startFrom = (int)$this->service->getConfig($sessionId, 'sbd_start', '1');
+
+        $this->view('admin/talent_tests/exam_numbers', [
+            'title' => 'Lập số báo danh - ' . $session['session_name'],
+            'session' => $session,
+            'candidates' => $eligible,
+            'maxSbd' => $maxSbd,
+            'prefix' => $prefix,
+            'length' => $length ?: 3,
+            'startFrom' => $startFrom ?: 1
+        ]);
+    }
+
+    public function generateExamNumbers()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $prefix = trim($_POST['prefix'] ?? 'THV.M.');
+        $length = (int)($_POST['length'] ?? 3);
+        $startFrom = (int)($_POST['start_from'] ?? 1);
+
+        $count = $this->service->generateExamNumbers($sessionId, $prefix, $length, $startFrom);
+        $this->redirect(url('/admin/talent-tests/exam-numbers?session_id=' . $sessionId . '&generated=' . $count));
+    }
+
+    public function clearExamNumbers()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $count = $this->service->clearExamNumbers($sessionId);
+        $this->redirect(url('/admin/talent-tests/exam-numbers?session_id=' . $sessionId . '&cleared=' . $count));
+    }
+
+    // =====================================================================
+    // Phase 4: Phân phòng thi
+    // =====================================================================
+
+    public function roomAssignment()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$session) $this->redirect(url('/admin/talent-tests'));
+
+        $rooms = $this->service->getRoomsWithCount($sessionId);
+        $unassigned = $this->service->getUnassignedCandidates($sessionId);
+
+        // Get all eligible candidates for the right panel
+        $allCandidates = $this->service->getEligibleCandidates($sessionId);
+
+        $this->view('admin/talent_tests/room_assignment', [
+            'title' => 'Phân phòng thi - ' . $session['session_name'],
+            'session' => $session,
+            'rooms' => $rooms,
+            'unassigned' => $unassigned,
+            'allCandidates' => $allCandidates
+        ]);
+    }
+
+    public function autoCreateRooms()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $perRoom = (int)($_POST['per_room'] ?? 29);
+        $startNum = (int)($_POST['start_num'] ?? 1);
+
+        $count = $this->service->autoCreateRooms($sessionId, $perRoom, $startNum);
+        $this->redirect(url('/admin/talent-tests/room-assignment?session_id=' . $sessionId . '&created_rooms=' . $count));
+    }
+
+    public function deleteAllRooms()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $count = $this->service->deleteAllRooms($sessionId);
+        $this->redirect(url('/admin/talent-tests/room-assignment?session_id=' . $sessionId . '&deleted_rooms=' . $count));
+    }
+
+    public function deleteRoomAction()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $roomId = (int)$_POST['room_id'];
+        $this->service->deleteRoom($roomId);
+        $this->redirect(url('/admin/talent-tests/room-assignment?session_id=' . $sessionId . '&room_deleted=1'));
+    }
+
+    public function resetRoomAssignments()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $count = $this->service->resetRoomAssignments($sessionId);
+        $this->redirect(url('/admin/talent-tests/room-assignment?session_id=' . $sessionId . '&reset=' . $count));
+    }
+
+    public function getRoomCandidatesApi()
+    {
+        $this->requireAdmin();
+        $roomId = isset($_GET['room_id']) ? (int)$_GET['room_id'] : 0;
+        header('Content-Type: application/json');
+        if ($roomId <= 0) {
+            echo json_encode(['candidates' => []]);
+            exit;
+        }
+        $candidates = $this->service->getCandidatesByRoom($roomId);
+        echo json_encode(['candidates' => $candidates]);
+        exit;
+    }
+
+    public function moveCandidateRoom()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $assignmentId = (int)$_POST['assignment_id'];
+        $roomId = !empty($_POST['room_id']) ? (int)$_POST['room_id'] : null;
+        $this->service->moveCandidate($assignmentId, $roomId);
+
+        if (isset($_POST['ajax'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true]);
+            exit;
+        }
+        $this->redirect($_SERVER['HTTP_REFERER'] ?? url('/admin/talent-tests'));
+    }
+
+    // =====================================================================
+    // Phase 5: Tổ chức thi - Môn thi & In ấn
+    // =====================================================================
+
+    public function examConfig()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        $subjectId = isset($_GET['subject_id']) ? (int)$_GET['subject_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("SELECT * FROM talent_test_subjects WHERE session_id = ?");
+        $stmt->execute([$sessionId]);
+        $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $currentSubject = null;
+        $subjectCandidates = [];
+        $subjectRooms = [];
+
+        if ($subjectId > 0) {
+            $currentSubject = $this->service->getSubjectWithDetails($subjectId);
+            $subjectCandidates = $this->service->getCandidatesBySubject($subjectId);
+            $subjectRooms = $this->service->getRoomsBySubject($sessionId, $subjectId);
+        } elseif (!empty($subjects)) {
+            $subjectId = $subjects[0]['id'];
+            $currentSubject = $this->service->getSubjectWithDetails($subjectId);
+            $subjectCandidates = $this->service->getCandidatesBySubject($subjectId);
+            $subjectRooms = $this->service->getRoomsBySubject($sessionId, $subjectId);
+        }
+
+        $this->view('admin/talent_tests/exam_config', [
+            'title' => 'Tổ chức thi - Môn thi',
+            'session' => $session,
+            'subjects' => $subjects,
+            'currentSubject' => $currentSubject,
+            'subjectCandidates' => $subjectCandidates,
+            'subjectRooms' => $subjectRooms
+        ]);
+    }
+
+    public function saveExamConfig()
+    {
+        $this->requireAdmin();
+        $this->validateCsrf();
+        $sessionId = (int)$_POST['session_id'];
+        $subjectId = (int)$_POST['subject_id'];
+
+        $this->service->updateSubjectExamConfig($subjectId, [
+            'exam_type' => $_POST['exam_type'] ?? 'written',
+            'duration_minutes' => (int)($_POST['duration_minutes'] ?? 120),
+            'exam_date' => $_POST['exam_date'] ?? null,
+            'exam_time' => $_POST['exam_time'] ?? null,
+            'preparation_minutes' => (int)($_POST['preparation_minutes'] ?? 15),
+        ]);
+
+        $this->redirect(url('/admin/talent-tests/exam-config?session_id=' . $sessionId . '&subject_id=' . $subjectId . '&saved=1'));
+    }
+
+    public function printRoomList()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $rooms = $this->service->getRoomsWithCount($sessionId);
+
+        $this->view('admin/talent_tests/print_room_list', [
+            'session' => $session,
+            'rooms' => $rooms
+        ], false);
+    }
+
+    public function printExamNotice()
+    {
+        $this->requireAdmin();
+        $sessionId = isset($_GET['session_id']) ? (int)$_GET['session_id'] : 0;
+        if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("SELECT * FROM talent_test_subjects WHERE session_id = ?");
+        $stmt->execute([$sessionId]);
+        $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $db->prepare("
+            SELECT a.*, c.ho_va_ten AS name, c.so_cccd AS cccd, c.ngay_sinh AS birth_date,
+                   s.subject_name, s.exam_date, s.exam_time, s.duration_minutes, s.exam_type,
+                   r.room_name
+            FROM talent_test_assignments a
+            JOIN thi_sinh c ON c.id = a.candidate_id
+            JOIN talent_test_subjects s ON s.id = a.subject_id
+            LEFT JOIN talent_test_rooms r ON r.id = a.room_id
+            WHERE s.session_id = ? AND a.is_eligible = TRUE
+            ORDER BY a.exam_number
+        ");
+        $stmt->execute([$sessionId]);
+        $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('admin/talent_tests/print_exam_notice', [
+            'session' => $session,
+            'subjects' => $subjects,
+            'assignments' => $assignments
+        ], false);
+    }
 }
+

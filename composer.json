@@ -1,6 +1,7 @@
 {
     "name": "hvu/admissions",
     "description": "Hung Vuong University Admissions Portal",
+    "version": "1.2.1",
     "type": "project",
     "require": {
         "php": "^7.4 || ^8.0",

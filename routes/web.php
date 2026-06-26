@@ -377,6 +377,32 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/talent-tests/export-excel', 'TalentTestController@exportExcel');
     $router->get('/admin/talent-tests/dashboard', 'TalentTestController@dashboard');
 
+    // Talent Test V2 - Phase 2: Candidates
+    $router->get('/admin/talent-tests/candidates', 'TalentTestController@candidates');
+    $router->post('/admin/talent-tests/toggle-eligibility', 'TalentTestController@toggleEligibility');
+    $router->post('/admin/talent-tests/remove-candidate', 'TalentTestController@removeCandidate');
+
+    // Talent Test V2 - Phase 3: Exam Numbers
+    $router->get('/admin/talent-tests/exam-numbers', 'TalentTestController@examNumbers');
+    $router->post('/admin/talent-tests/generate-exam-numbers', 'TalentTestController@generateExamNumbers');
+    $router->post('/admin/talent-tests/clear-exam-numbers', 'TalentTestController@clearExamNumbers');
+
+    // Talent Test V2 - Phase 4: Room Assignment
+    $router->get('/admin/talent-tests/room-assignment', 'TalentTestController@roomAssignment');
+    $router->post('/admin/talent-tests/auto-create-rooms', 'TalentTestController@autoCreateRooms');
+    $router->post('/admin/talent-tests/delete-all-rooms', 'TalentTestController@deleteAllRooms');
+    $router->post('/admin/talent-tests/delete-room', 'TalentTestController@deleteRoomAction');
+    $router->post('/admin/talent-tests/reset-rooms', 'TalentTestController@resetRoomAssignments');
+    $router->get('/admin/talent-tests/api/room-candidates', 'TalentTestController@getRoomCandidatesApi');
+    $router->post('/admin/talent-tests/move-candidate', 'TalentTestController@moveCandidateRoom');
+
+    // Talent Test V2 - Phase 5: Exam Config & Printing
+    $router->get('/admin/talent-tests/exam-config', 'TalentTestController@examConfig');
+    $router->post('/admin/talent-tests/save-exam-config', 'TalentTestController@saveExamConfig');
+    $router->get('/admin/talent-tests/print-room-list', 'TalentTestController@printRoomList');
+    $router->get('/admin/talent-tests/print-exam-notice', 'TalentTestController@printExamNotice');
+
+
     // Scoring & Audit
     $router->get('/admin/settings/scoring', 'ScoringSettingsController@index');
     $router->post('/admin/settings/scoring/save', 'ScoringSettingsController@save');

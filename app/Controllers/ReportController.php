@@ -120,7 +120,10 @@ class ReportController extends Controller {
         ];
         $data = $this->exportService->exportAptitudeList($filters);
         foreach ($data as &$row) {
-            unset($row['anh_dai_dien']);
+            $avatar = $row['Ảnh đại diện'] ?? '';
+            if (!empty($avatar) && strpos($avatar, 'http') !== 0) {
+                $row['Ảnh đại diện'] = url($avatar);
+            }
         }
         unset($row);
         $this->exportService->toExcel($data, 'danh_sach_thi_nang_khieu_' . date('Ymd') . '.xls');

@@ -148,12 +148,9 @@ class TalentTestService
 
         $this->db->beginTransaction();
         try {
-            $insSql = "INSERT INTO talent_test_assignments (candidate_id, subject_id, room_id, exam_number, status, created_at, updated_at)
-                       VALUES (:cid, :sid, NULL, :ex, 'not_taken', NOW(), NOW())";
-            $insStmt = $this->db->prepare($insSql);
-
             $syncedCount = 0;
             $year = date('Y');
+            $insertData = [];
 
             foreach ($candidates as $cand) {
                 $majorCode = $cand['major_code'];
@@ -168,14 +165,36 @@ class TalentTestService
                 $seq = $seqMap[$subjectId];
                 $examNumber = sprintf('TNH-%s-%s-%04d', $year, $majorCode, $seq);
 
-                $insStmt->execute([
-                    ':cid' => $cand['id'],
-                    ':sid' => $subjectId,
-                    ':ex' => $examNumber,
-                ]);
-                
-                $syncedCount++;
+                $insertData[] = [
+                    $cand['id'],
+                    $subjectId,
+                    $examNumber
+                ];
             }
+
+            if (!empty($insertData)) {
+                $chunkSize = 500;
+                $chunks = array_chunk($insertData, $chunkSize);
+
+                foreach ($chunks as $chunk) {
+                    $placeholders = [];
+                    $values = [];
+
+                    foreach ($chunk as $row) {
+                        $placeholders[] = '(?, ?, NULL, ?, \'not_taken\', NOW(), NOW())';
+                        $values[] = $row[0]; // cid
+                        $values[] = $row[1]; // sid
+                        $values[] = $row[2]; // ex
+                    }
+
+                    $insSql = "INSERT INTO talent_test_assignments (candidate_id, subject_id, room_id, exam_number, status, created_at, updated_at) VALUES " . implode(', ', $placeholders);
+                    $insStmt = $this->db->prepare($insSql);
+                    $insStmt->execute($values);
+                    
+                    $syncedCount += count($chunk);
+                }
+            }
+
             $this->db->commit();
             return $syncedCount;
         } catch (\Exception $e) {
@@ -297,5 +316,355 @@ class TalentTestService
         $stmt->execute([$sessionId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // =====================================================================
+    // Phase 2: Danh sách xét tuyển (Eligible / Ineligible)
+    // =====================================================================
+
+    public function getEligibleCandidates(int $sessionId)
+    {
+        $sql = "SELECT a.id, a.exam_number, a.is_eligible, a.is_manual_add,
+                       c.id AS candidate_id, c.ho_va_ten AS name, c.ngay_sinh AS birth_date, 
+                       c.gioi_tinh AS gender, c.so_cccd AS cccd, c.email,
+                       s.subject_name, s.major_code,
+                       hs.ma_ho_so AS application_code
+                FROM talent_test_assignments a
+                JOIN thi_sinh c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN ho_so_xet_tuyen hs ON hs.so_cccd = c.so_cccd AND hs.deleted_at IS NULL
+                WHERE s.session_id = ? AND a.is_eligible = TRUE
+                ORDER BY c.ho_va_ten ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getIneligibleCandidates(int $sessionId)
+    {
+        $sql = "SELECT a.id, a.exam_number, a.ineligible_reason, a.is_manual_add,
+                       c.id AS candidate_id, c.ho_va_ten AS name, c.ngay_sinh AS birth_date,
+                       c.gioi_tinh AS gender, c.so_cccd AS cccd, c.email,
+                       s.subject_name, s.major_code,
+                       hs.ma_ho_so AS application_code
+                FROM talent_test_assignments a
+                JOIN thi_sinh c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN ho_so_xet_tuyen hs ON hs.so_cccd = c.so_cccd AND hs.deleted_at IS NULL
+                WHERE s.session_id = ? AND a.is_eligible = FALSE
+                ORDER BY c.ho_va_ten ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function markIneligible(array $assignmentIds, string $reason)
+    {
+        if (empty($assignmentIds)) return 0;
+        $placeholders = implode(',', array_fill(0, count($assignmentIds), '?'));
+        $sql = "UPDATE talent_test_assignments 
+                SET is_eligible = FALSE, ineligible_reason = ?, updated_at = NOW() 
+                WHERE id IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $params = array_merge([$reason], $assignmentIds);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
+
+    public function markEligible(array $assignmentIds)
+    {
+        if (empty($assignmentIds)) return 0;
+        $placeholders = implode(',', array_fill(0, count($assignmentIds), '?'));
+        $sql = "UPDATE talent_test_assignments 
+                SET is_eligible = TRUE, ineligible_reason = NULL, updated_at = NOW() 
+                WHERE id IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($assignmentIds);
+        return $stmt->rowCount();
+    }
+
+    public function removeAssignment(int $assignmentId)
+    {
+        $stmt = $this->db->prepare("DELETE FROM talent_test_assignments WHERE id = ?");
+        $stmt->execute([$assignmentId]);
+        return $stmt->rowCount();
+    }
+
+    // =====================================================================
+    // Phase 3: Lập số báo danh nâng cao
+    // =====================================================================
+
+    public function getMaxExamNumber(int $sessionId)
+    {
+        $sql = "SELECT MAX(a.exam_number) 
+                FROM talent_test_assignments a
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                WHERE s.session_id = ? AND a.exam_number IS NOT NULL AND a.exam_number != ''";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchColumn() ?: '(chưa có)';
+    }
+
+    public function generateExamNumbers(int $sessionId, string $prefix, int $length, int $startFrom)
+    {
+        $sql = "SELECT a.id
+                FROM talent_test_assignments a
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                WHERE s.session_id = ? AND a.is_eligible = TRUE
+                ORDER BY a.id ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        $assignments = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (empty($assignments)) return 0;
+
+        $this->db->beginTransaction();
+        try {
+            $updStmt = $this->db->prepare("UPDATE talent_test_assignments SET exam_number = ?, updated_at = NOW() WHERE id = ?");
+            $seq = $startFrom;
+            foreach ($assignments as $aId) {
+                $examNumber = $prefix . str_pad($seq, $length, '0', STR_PAD_LEFT);
+                $updStmt->execute([$examNumber, $aId]);
+                $seq++;
+            }
+            // Save config
+            $this->saveConfig($sessionId, 'sbd_prefix', $prefix);
+            $this->saveConfig($sessionId, 'sbd_length', (string)$length);
+            $this->saveConfig($sessionId, 'sbd_start', (string)$startFrom);
+
+            $this->db->commit();
+            return count($assignments);
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function clearExamNumbers(int $sessionId)
+    {
+        $sql = "UPDATE talent_test_assignments SET exam_number = '', updated_at = NOW()
+                WHERE subject_id IN (SELECT id FROM talent_test_subjects WHERE session_id = ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->rowCount();
+    }
+
+    public function saveConfig(int $sessionId, string $key, string $value)
+    {
+        $sql = "INSERT INTO talent_test_exam_configs (session_id, config_key, config_value, created_at)
+                VALUES (?, ?, ?, NOW())
+                ON CONFLICT (session_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId, $key, $value]);
+    }
+
+    public function getConfig(int $sessionId, string $key, string $default = '')
+    {
+        $stmt = $this->db->prepare("SELECT config_value FROM talent_test_exam_configs WHERE session_id = ? AND config_key = ?");
+        $stmt->execute([$sessionId, $key]);
+        return $stmt->fetchColumn() ?: $default;
+    }
+
+    // =====================================================================
+    // Phase 4: Phân phòng thi tương tác
+    // =====================================================================
+
+    public function autoCreateRooms(int $sessionId, int $perRoom, int $startNum = 1)
+    {
+        $sql = "SELECT COUNT(*) FROM talent_test_assignments a
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                WHERE s.session_id = ? AND a.is_eligible = TRUE";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        $totalCandidates = (int)$stmt->fetchColumn();
+
+        if ($totalCandidates === 0 || $perRoom <= 0) return 0;
+
+        $roomCount = (int)ceil($totalCandidates / $perRoom);
+
+        $this->db->beginTransaction();
+        try {
+            $insStmt = $this->db->prepare(
+                "INSERT INTO talent_test_rooms (session_id, room_name, capacity, created_at, updated_at)
+                 VALUES (?, ?, ?, NOW(), NOW())"
+            );
+            for ($i = 0; $i < $roomCount; $i++) {
+                $num = $startNum + $i;
+                $roomName = sprintf('%02d', $num);
+                $insStmt->execute([$sessionId, $roomName, $perRoom]);
+            }
+            $this->db->commit();
+            return $roomCount;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function deleteAllRooms(int $sessionId)
+    {
+        // First unassign all candidates from rooms
+        $sql = "UPDATE talent_test_assignments SET room_id = NULL, updated_at = NOW()
+                WHERE subject_id IN (SELECT id FROM talent_test_subjects WHERE session_id = ?)";
+        $this->db->prepare($sql)->execute([$sessionId]);
+
+        // Then delete rooms
+        $stmt = $this->db->prepare("DELETE FROM talent_test_rooms WHERE session_id = ?");
+        $stmt->execute([$sessionId]);
+        return $stmt->rowCount();
+    }
+
+    public function deleteRoom(int $roomId)
+    {
+        $this->db->prepare("UPDATE talent_test_assignments SET room_id = NULL, updated_at = NOW() WHERE room_id = ?")->execute([$roomId]);
+        $stmt = $this->db->prepare("DELETE FROM talent_test_rooms WHERE id = ?");
+        $stmt->execute([$roomId]);
+        return $stmt->rowCount();
+    }
+
+    public function resetRoomAssignments(int $sessionId)
+    {
+        $sql = "UPDATE talent_test_assignments SET room_id = NULL, updated_at = NOW()
+                WHERE subject_id IN (SELECT id FROM talent_test_subjects WHERE session_id = ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->rowCount();
+    }
+
+    public function getCandidatesByRoom(int $roomId)
+    {
+        $sql = "SELECT a.id, a.exam_number, c.ho_va_ten AS name, c.ngay_sinh AS birth_date,
+                       c.so_cccd AS cccd, s.subject_name, s.major_code,
+                       hs.ma_ho_so AS application_code
+                FROM talent_test_assignments a
+                JOIN thi_sinh c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN ho_so_xet_tuyen hs ON hs.so_cccd = c.so_cccd AND hs.deleted_at IS NULL
+                WHERE a.room_id = ? AND a.is_eligible = TRUE
+                ORDER BY a.exam_number ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$roomId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getUnassignedCandidates(int $sessionId)
+    {
+        $sql = "SELECT a.id, a.exam_number, c.ho_va_ten AS name, c.ngay_sinh AS birth_date,
+                       c.so_cccd AS cccd, s.subject_name, s.major_code,
+                       hs.ma_ho_so AS application_code
+                FROM talent_test_assignments a
+                JOIN thi_sinh c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN ho_so_xet_tuyen hs ON hs.so_cccd = c.so_cccd AND hs.deleted_at IS NULL
+                WHERE s.session_id = ? AND a.room_id IS NULL AND a.is_eligible = TRUE
+                ORDER BY a.exam_number ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function moveCandidate(int $assignmentId, ?int $newRoomId)
+    {
+        $stmt = $this->db->prepare("UPDATE talent_test_assignments SET room_id = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$newRoomId, $assignmentId]);
+        return $stmt->rowCount();
+    }
+
+    public function getRoomsWithCount(int $sessionId)
+    {
+        $sql = "SELECT r.id, r.room_name, r.capacity,
+                       (SELECT COUNT(*) FROM talent_test_assignments a WHERE a.room_id = r.id AND a.is_eligible = TRUE) AS current_count
+                FROM talent_test_rooms r
+                WHERE r.session_id = ?
+                ORDER BY r.room_name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // =====================================================================
+    // Phase 5: Tổ chức thi - Môn thi
+    // =====================================================================
+
+    public function updateSubjectExamConfig(int $subjectId, array $data)
+    {
+        $sql = "UPDATE talent_test_subjects 
+                SET exam_type = :type, duration_minutes = :dur, exam_date = :edate, 
+                    exam_time = :etime, preparation_minutes = :prep, updated_at = NOW()
+                WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':type' => $data['exam_type'] ?? 'written',
+            ':dur' => $data['duration_minutes'] ?? 120,
+            ':edate' => $data['exam_date'] ?: null,
+            ':etime' => $data['exam_time'] ?: null,
+            ':prep' => $data['preparation_minutes'] ?? 15,
+            ':id' => $subjectId,
+        ]);
+        return $stmt->rowCount();
+    }
+
+    public function getSubjectWithDetails(int $subjectId)
+    {
+        $stmt = $this->db->prepare("SELECT s.*, sess.session_name, sess.year 
+                                    FROM talent_test_subjects s 
+                                    JOIN talent_test_sessions sess ON sess.id = s.session_id 
+                                    WHERE s.id = ?");
+        $stmt->execute([$subjectId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getCandidatesBySubject(int $subjectId)
+    {
+        $sql = "SELECT a.id, a.exam_number, a.room_id, a.bag_number,
+                       c.ho_va_ten AS name, c.ngay_sinh AS birth_date, c.so_cccd AS cccd,
+                       s.subject_name, s.major_code,
+                       r.room_name,
+                       hs.ma_ho_so AS application_code
+                FROM talent_test_assignments a
+                JOIN thi_sinh c ON c.id = a.candidate_id
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                LEFT JOIN talent_test_rooms r ON r.id = a.room_id
+                LEFT JOIN ho_so_xet_tuyen hs ON hs.so_cccd = c.so_cccd AND hs.deleted_at IS NULL
+                WHERE a.subject_id = ? AND a.is_eligible = TRUE
+                ORDER BY r.room_name, a.exam_number ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$subjectId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getRoomsBySubject(int $sessionId, int $subjectId)
+    {
+        $sql = "SELECT DISTINCT r.id, r.room_name, r.capacity,
+                       (SELECT COUNT(*) FROM talent_test_assignments a2 
+                        WHERE a2.room_id = r.id AND a2.subject_id = ? AND a2.is_eligible = TRUE) AS current_count
+                FROM talent_test_rooms r
+                JOIN talent_test_assignments a ON a.room_id = r.id AND a.subject_id = ?
+                WHERE r.session_id = ?
+                ORDER BY r.room_name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$subjectId, $subjectId, $sessionId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // =====================================================================
+    // Utility: Thống kê nhanh cho hub
+    // =====================================================================
+
+    public function getSessionStats(int $sessionId)
+    {
+        $sql = "SELECT 
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN a.is_eligible = TRUE THEN 1 ELSE 0 END) AS eligible,
+                    SUM(CASE WHEN a.is_eligible = FALSE THEN 1 ELSE 0 END) AS ineligible,
+                    SUM(CASE WHEN a.room_id IS NOT NULL AND a.is_eligible = TRUE THEN 1 ELSE 0 END) AS assigned_room,
+                    SUM(CASE WHEN a.exam_number IS NOT NULL AND a.exam_number != '' AND a.is_eligible = TRUE THEN 1 ELSE 0 END) AS has_sbd
+                FROM talent_test_assignments a
+                JOIN talent_test_subjects s ON s.id = a.subject_id
+                WHERE s.session_id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
 ?>
+

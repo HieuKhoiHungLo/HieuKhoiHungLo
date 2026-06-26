@@ -378,7 +378,7 @@ class ExportService {
                        nv.thu_tu_nguyen_vong AS \"Thứ tự NV\",
                        h.trang_thai AS \"Trạng thái hồ sơ\",
                        h.ghi_chu AS \"Ghi chú\",
-                       t.anh_dai_dien,
+                       t.anh_dai_dien AS \"Ảnh đại diện\",
                        tinh_hk.ten_tinh AS \"Hộ khẩu\",
                        (SELECT hb.hoc_luc_ca_nam FROM ket_qua_hoc_tap hb WHERE hb.so_cccd = t.so_cccd AND hb.lop = 12 LIMIT 1) AS \"Học lực L12\",
                        (SELECT 
