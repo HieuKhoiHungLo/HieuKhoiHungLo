@@ -278,21 +278,28 @@ class TalentTestController extends Controller
         if ($sessionId <= 0) $this->redirect(url('/admin/talent-tests'));
         $db = Database::getInstance()->getConnection();
 
+        $stmt = $db->prepare("SELECT * FROM talent_test_sessions WHERE id = ?");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$session) $this->redirect(url('/admin/talent-tests'));
+
         $stmt = $db->prepare("
-            SELECT a.id, c.ho_va_ten AS name, c.so_cccd AS cccd, s.subject_name, r.room_name, a.exam_number, sc.score, sc.note
+            SELECT a.id, c.ho_va_ten AS name, c.so_cccd AS cccd, s.subject_name, s.max_score,
+                   r.room_name, a.exam_number, sc.score, sc.note
             FROM talent_test_assignments a
             JOIN thi_sinh c ON c.id = a.candidate_id
             JOIN talent_test_subjects s ON s.id = a.subject_id
             LEFT JOIN talent_test_rooms r ON r.id = a.room_id
             LEFT JOIN talent_test_scores sc ON sc.assignment_id = a.id
-            WHERE s.session_id = ?
+            WHERE s.session_id = ? AND a.is_eligible = TRUE
             ORDER BY s.id, a.exam_number
         ");
         $stmt->execute([$sessionId]);
         $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('admin/talent_tests/scores', [
-            'title' => 'Quản lý điểm thi năng khiếu',
+            'title' => 'Quản lý điểm thi năng khiếu - ' . $session['session_name'],
+            'session' => $session,
             'sessionId' => $sessionId,
             'assignments' => $assignments
         ]);

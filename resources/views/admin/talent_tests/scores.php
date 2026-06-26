@@ -3,21 +3,21 @@
 <div class="p-6">
     <div class="mb-8 flex justify-between items-center">
         <div class="flex items-center gap-4">
-            <a href="<?= url('/admin/talent-tests/edit?id=' . $sessionId) ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition">
+            <a href="<?= url('/admin/talent-tests/edit?id=' . $session['id']) ?>" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Quản lý điểm & Kết quả thi</h1>
-                <p class="text-slate-500 text-sm">Nhập điểm cho từng thí sinh và xuất file báo cáo tổng hợp.</p>
+                <p class="text-slate-500 text-sm"><?= htmlspecialchars($session['session_name']) ?></p>
             </div>
         </div>
         <div class="flex gap-2">
             <a href="<?= url('/admin/talent-tests/export-excel?session_id=' . $sessionId) ?>" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition flex items-center">
                 <i class="fas fa-file-excel mr-2 text-emerald-600"></i> Xuất Excel
             </a>
-            <button class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition flex items-center">
+            <button class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition flex items-center" onclick="window.print()">
                 <i class="fas fa-file-pdf mr-2 text-rose-600"></i> Xuất PDF
-            </a>
+            </button>
         </div>
     </div>
 
