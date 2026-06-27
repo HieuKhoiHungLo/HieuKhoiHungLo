@@ -121,10 +121,10 @@ ob_start();
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Mã môn năng khiếu <span class="text-red-500">*</span></label>
                                 <select x-model="formData.ma_mon" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
-                                    <option value="NK1">NK1</option>
-                                    <option value="NK2">NK2</option>
-                                    <option value="NK3">NK3</option>
-                                    <option value="NK4">NK4</option>
+                                    <option value="NK1">NK1: Năng khiếu Giáo dục Mầm non</option>
+                                    <option value="NK2">NK2: Năng khiếu Giáo dục Thể chất</option>
+                                    <option value="NK3">NK3: Năng khiếu Âm nhạc</option>
+                                    <option value="NK4">NK4: Năng khiếu Mỹ thuật</option>
                                 </select>
                             </div>
                             <div>
@@ -298,7 +298,10 @@ ob_start();
                 { data: 'so_cccd', className: 'font-medium font-mono text-indigo-600' },
                 { data: 'sbd' },
                 { data: 'ho_va_ten', defaultContent: '<span class="text-slate-400 italic">Chưa đăng ký HS</span>' },
-                { data: 'ma_mon' },
+                { 
+                    data: 'ma_mon',
+                    render: (data, type, row) => row.ten_mon ? `${data}: ${row.ten_mon}` : data
+                },
                 { 
                     data: 'diem',
                     render: (data) => `<span class="px-2 py-1 bg-sky-100 text-sky-700 rounded-md font-bold">${data}</span>`
