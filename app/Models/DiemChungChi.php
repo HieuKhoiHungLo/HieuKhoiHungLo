@@ -9,11 +9,17 @@ class DiemChungChi extends Model {
     protected $primaryKey = 'id';
 
     public function getByCCCD($cccd, $sessionId = null) {
+        if ($sessionId === null) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
+
         if ($sessionId) {
             $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
             $stmt->execute([$cccd, $sessionId]);
         } else {
-            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd = ?");
+            $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE so_cccd = ? AND dot_tuyen_sinh_id IS NULL");
             $stmt->execute([$cccd]);
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

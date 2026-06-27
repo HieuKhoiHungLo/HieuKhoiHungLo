@@ -9,11 +9,19 @@ class DiemNangKhieu extends Model {
     protected $primaryKey = 'id';
 
     public function getByCCCD($cccd, $sessionId = null) {
+        if ($sessionId === null) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
+
         $sql = "SELECT * FROM {$this->table} WHERE so_cccd = ?";
         $params = [$cccd];
         if ($sessionId) {
             $sql .= " AND dot_tuyen_sinh_id = ?";
             $params[] = $sessionId;
+        } else {
+            $sql .= " AND dot_tuyen_sinh_id IS NULL";
         }
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

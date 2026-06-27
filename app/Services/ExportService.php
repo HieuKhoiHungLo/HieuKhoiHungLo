@@ -208,7 +208,7 @@ class ExportService {
                        n.co_xet_chung_chi,
                        n.co_diem_nangkhieu_thpt,
                        n.co_diem_nangkhieu_hochba,
-                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = t.so_cccd) AS co_chung_chi_chuan
+                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = t.so_cccd AND d.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id) AS co_chung_chi_chuan
                 FROM nguyen_vong nv
                 JOIN thi_sinh t ON nv.so_cccd = t.so_cccd
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
@@ -394,7 +394,7 @@ class ExportService {
                 JOIN nguyen_vong nv ON t.so_cccd = nv.so_cccd AND h.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 LEFT JOIN dm_tinh tinh_hk ON t.ma_tinh_ho_khau = tinh_hk.ma_tinh
-                WHERE (n.ma_nganh IN ('7140201', '7140206', '7140221', '7140222') OR t.so_cccd IN (SELECT DISTINCT so_cccd FROM diem_nang_khieu))";
+                WHERE (n.ma_nganh IN ('7140201', '7140206', '7140221', '7140222') OR t.so_cccd IN (SELECT DISTINCT so_cccd FROM diem_nang_khieu d WHERE d.dot_tuyen_sinh_id = h.dot_tuyen_sinh_id))";
 
         $params = [];
         if (!empty($filters['session_id'])) {
@@ -588,7 +588,7 @@ class ExportService {
 
     public function exportMoetWishesCsv($filters = []) {
         $sql = "SELECT nv.*, n.ten_nganh, n.co_xet_chung_chi, n.co_diem_nangkhieu_thpt, n.co_diem_nangkhieu_hochba, hs.trang_thai, hs.ghi_chu,
-                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = nv.so_cccd) AS co_chung_chi_chuan
+                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = nv.so_cccd AND d.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id) AS co_chung_chi_chuan
                 FROM nguyen_vong nv
                 JOIN dm_nganh n ON nv.ma_nganh = n.ma_nganh
                 JOIN ho_so_xet_tuyen hs ON nv.so_cccd = hs.so_cccd AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id

@@ -455,9 +455,9 @@ class ScoreCalculationService {
             SELECT d.so_cccd, m.id as mon_id, d.diem 
             FROM diem_chung_chi d
             JOIN dm_mon m ON d.ma_mon = m.ma_mon
-            WHERE d.so_cccd IN ($placeholders)
+            WHERE d.so_cccd IN ($placeholders) AND d.dot_tuyen_sinh_id = ?
         ");
-        $stmt->execute($cccds);
+        $stmt->execute(array_merge($cccds, [$sessionId]));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['certs'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
@@ -468,9 +468,9 @@ class ScoreCalculationService {
             SELECT d.so_cccd, m.id as mon_id, d.diem 
             FROM diem_nang_khieu d
             JOIN dm_mon m ON d.ma_mon = m.ma_mon
-            WHERE d.so_cccd IN ($placeholders)
+            WHERE d.so_cccd IN ($placeholders) AND d.dot_tuyen_sinh_id = ?
         ");
-        $stmt->execute($cccds);
+        $stmt->execute(array_merge($cccds, [$sessionId]));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['aptitude'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
@@ -921,12 +921,25 @@ class ScoreCalculationService {
             return $this->bulkData['certs'][$cccd] ?? [];
         }
 
-        $sql = "SELECT m.id as mon_id, d.diem 
-                FROM diem_chung_chi d
-                JOIN dm_mon m ON d.ma_mon = m.ma_mon
-                WHERE d.so_cccd = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$cccd]);
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : null;
+
+        if ($sessionId) {
+            $sql = "SELECT m.id as mon_id, d.diem 
+                    FROM diem_chung_chi d
+                    JOIN dm_mon m ON d.ma_mon = m.ma_mon
+                    WHERE d.so_cccd = ? AND d.dot_tuyen_sinh_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$cccd, $sessionId]);
+        } else {
+            $sql = "SELECT m.id as mon_id, d.diem 
+                    FROM diem_chung_chi d
+                    JOIN dm_mon m ON d.ma_mon = m.ma_mon
+                    WHERE d.so_cccd = ? AND d.dot_tuyen_sinh_id IS NULL";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$cccd]);
+        }
         return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
 
@@ -935,12 +948,25 @@ class ScoreCalculationService {
             return $this->bulkData['aptitude'][$cccd] ?? [];
         }
 
-        $sql = "SELECT m.id as mon_id, d.diem 
-                FROM diem_nang_khieu d
-                JOIN dm_mon m ON d.ma_mon = m.ma_mon
-                WHERE d.so_cccd = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$cccd]);
+        $sessionModel = new \App\Models\AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $activeSession ? $activeSession['id'] : null;
+
+        if ($sessionId) {
+            $sql = "SELECT m.id as mon_id, d.diem 
+                    FROM diem_nang_khieu d
+                    JOIN dm_mon m ON d.ma_mon = m.ma_mon
+                    WHERE d.so_cccd = ? AND d.dot_tuyen_sinh_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$cccd, $sessionId]);
+        } else {
+            $sql = "SELECT m.id as mon_id, d.diem 
+                    FROM diem_nang_khieu d
+                    JOIN dm_mon m ON d.ma_mon = m.ma_mon
+                    WHERE d.so_cccd = ? AND d.dot_tuyen_sinh_id IS NULL";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$cccd]);
+        }
         return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
 

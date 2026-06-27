@@ -137,17 +137,23 @@ class CertificateScoreController extends Controller {
                 $stmt = $db->prepare("UPDATE diem_chung_chi SET so_cccd = ?, ma_mon = ?, diem = ?, ghi_chu = ? WHERE id = ?");
                 $stmt->execute([$cccd, $maMon, $diem, $ghiChu, $id]);
             } else {
-                // Check if already exists for this cccd and maMon
-                $stmtCheck = $db->prepare("SELECT id FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ?");
-                $stmtCheck->execute([$cccd, $maMon]);
-                if ($stmtCheck->fetch()) {
-                    $this->json(['success' => false, 'message' => 'Thí sinh đã có điểm quy đổi cho môn này. Vui lòng cập nhật bản ghi cũ.']);
-                    return;
-                }
-
                 $sessionModel = new \App\Models\AdmissionSession();
                 $activeSession = $sessionModel->getActiveSession();
                 $sessionId = $activeSession ? $activeSession['id'] : null;
+
+                // Check if already exists for this cccd, maMon and current session
+                if ($sessionId) {
+                    $stmtCheck = $db->prepare("SELECT id FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
+                    $stmtCheck->execute([$cccd, $maMon, $sessionId]);
+                } else {
+                    $stmtCheck = $db->prepare("SELECT id FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id IS NULL");
+                    $stmtCheck->execute([$cccd, $maMon]);
+                }
+
+                if ($stmtCheck->fetch()) {
+                    $this->json(['success' => false, 'message' => 'Thí sinh đã có điểm quy đổi cho môn này trong đợt tuyển sinh hiện tại. Vui lòng cập nhật bản ghi cũ.']);
+                    return;
+                }
 
                 $stmt = $db->prepare("INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$cccd, $maMon, $diem, $ghiChu, $sessionId]);
