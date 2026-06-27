@@ -122,9 +122,9 @@ ob_start();
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Mã môn năng khiếu <span class="text-red-500">*</span></label>
                                 <select x-model="formData.ma_mon" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
                                     <option value="NK1">NK1: Năng khiếu Giáo dục Mầm non</option>
-                                    <option value="NK2">NK2: Năng khiếu Giáo dục Thể chất</option>
-                                    <option value="NK3">NK3: Năng khiếu Âm nhạc</option>
-                                    <option value="NK4">NK4: Năng khiếu Mỹ thuật</option>
+                                    <option value="NK2">NK2: Năng khiếu Âm nhạc</option>
+                                    <option value="NK3">NK3: Năng khiếu Mỹ thuật</option>
+                                    <option value="NK4">NK4: Năng khiếu Giáo dục Thể chất</option>
                                 </select>
                             </div>
                             <div>
