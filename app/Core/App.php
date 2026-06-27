@@ -45,6 +45,35 @@ class App {
             return $path;
         }
 
+        // Intercept register and login paths for external redirection
+        static $redirectCache = null;
+        $trimmedPath = '/' . ltrim($path, '/');
+        if ($trimmedPath === '/register' || $trimmedPath === '/login') {
+            if ($redirectCache === null) {
+                $redirectCache = ['enabled' => false, 'url' => ''];
+                try {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("SELECT value FROM settings WHERE \"key\" = 'redirect_external_enable'");
+                    $stmt->execute();
+                    $enabled = $stmt->fetchColumn();
+                    if ($enabled == '1') {
+                        $stmt = $db->prepare("SELECT value FROM settings WHERE \"key\" = 'redirect_external_url'");
+                        $stmt->execute();
+                        $url = $stmt->fetchColumn();
+                        if (!empty($url)) {
+                            $redirectCache = ['enabled' => true, 'url' => $url];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fail silently during initial setup
+                }
+            }
+
+            if ($redirectCache['enabled']) {
+                return $redirectCache['url'];
+            }
+        }
+
         if ($absolute) {
             return self::fullUrl($path);
         }

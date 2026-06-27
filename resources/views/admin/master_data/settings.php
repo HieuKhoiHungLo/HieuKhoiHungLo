@@ -61,6 +61,47 @@
                         </div>
                     </div>
 
+                    <!-- External Redirection Toggle & URL -->
+                    <?php
+                    $redirectExternalEnable = '0';
+                    $redirectExternalUrl = '';
+                    foreach ($settings as $s) {
+                        if ($s['key'] === 'redirect_external_enable') {
+                            $redirectExternalEnable = $s['value'];
+                        }
+                        if ($s['key'] === 'redirect_external_url') {
+                            $redirectExternalUrl = $s['value'];
+                        }
+                    }
+                    ?>
+                    <div class="flex flex-col p-7 rounded-[2rem] bg-slate-50 border border-slate-100 hover:border-[#0066FF]/20 transition group">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-start">
+                                <div class="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-orange-500 mr-6 flex-shrink-0 group-hover:scale-110 transition">
+                                    <i class="fas fa-external-link-alt text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-black text-slate-800 mb-1">Chuyển hướng Đăng ký / Đăng nhập ngoài</h4>
+                                    <p class="text-xs text-slate-500 max-w-md leading-relaxed">Bật tính năng này để chuyển hướng thí sinh đăng ký hoặc đăng nhập sang cổng thông tin bên ngoài (ví dụ: Cổng thông tin thi tốt nghiệp THPT của Bộ GD&ĐT).</p>
+                                </div>
+                            </div>
+                            <div class="relative inline-block w-14 h-8 transition duration-200 ease-in flex-shrink-0">
+                                <input type="hidden" name="settings[redirect_external_enable]" value="0">
+                                <input type="checkbox" name="settings[redirect_external_enable]" id="redirect_external_enable" value="1" <?= $redirectExternalEnable == '1' ? 'checked' : '' ?>
+                                    class="absolute block w-8 h-8 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all right-6 checked:right-0 checked:border-orange-500 outline-none shadow-sm shadow-black/10">
+                                <label for="redirect_external_enable" class="block overflow-hidden h-8 rounded-full bg-slate-200 cursor-pointer transition-colors"></label>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-100">
+                            <label class="block">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Liên kết chuyển hướng ngoài (URL)</span>
+                                <input type="url" name="settings[redirect_external_url]" value="<?= htmlspecialchars($redirectExternalUrl) ?>"
+                                    class="mt-2 block w-full rounded-[1.5rem] bg-white border border-slate-200 px-6 py-4 text-sm font-medium focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition shadow-inner"
+                                    placeholder="Ví dụ: https://thisinh.thitotnghiepthpt.edu.vn/">
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Home Announcement -->
                     <?php
                     $announcement = '';
@@ -139,6 +180,9 @@
         background-color: #0066FF;
     }
     #countdown_toggle:checked+label {
+        background-color: #f97316;
+    }
+    #redirect_external_enable:checked+label {
         background-color: #f97316;
     }
 </style>

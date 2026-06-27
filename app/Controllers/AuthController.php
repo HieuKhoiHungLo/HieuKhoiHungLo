@@ -24,6 +24,15 @@ class AuthController extends Controller
 
     public function login(): void
     {
+        $masterDataModel = new \App\Models\MasterData();
+        if ($masterDataModel->getSetting('redirect_external_enable') == '1') {
+            $externalUrl = $masterDataModel->getSetting('redirect_external_url');
+            if (!empty($externalUrl)) {
+                $this->redirect($externalUrl);
+                return;
+            }
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();
 
@@ -185,6 +194,15 @@ class AuthController extends Controller
 
     public function register()
     {
+        $masterDataModel = new \App\Models\MasterData();
+        if ($masterDataModel->getSetting('redirect_external_enable') == '1') {
+            $externalUrl = $masterDataModel->getSetting('redirect_external_url');
+            if (!empty($externalUrl)) {
+                $this->redirect($externalUrl);
+                return;
+            }
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrf();
 
