@@ -1013,45 +1013,7 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         }
     }
 
-    // Auto-populate Subject and Content when Template is selected
-    document.addEventListener('DOMContentLoaded', function() {
-        const templateSelect = document.getElementById('email-template-select');
-        if (templateSelect) {
-            templateSelect.addEventListener('change', function() {
-                const templateId = this.value;
-                const subjectInput = document.getElementById('email-modal-subject');
-                const contentInput = document.getElementById('email-editor');
 
-                if (!templateId) {
-                    subjectInput.value = '';
-                    contentInput.innerHTML = '';
-                    return;
-                }
-
-                // Show loading state (optional)
-                subjectInput.placeholder = 'Đang tải mẫu...';
-                
-                fetch('<?= url('/admin/candidates/get-template') ?>?id=' + templateId, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data && !data.error) {
-                        subjectInput.value = data.subject || '';
-                        contentInput.innerHTML = data.body || data.content || ''; // Support both body and content tags
-                    } else {
-                        console.error('Template fetch error:', data.error);
-                    }
-                })
-                .catch(err => {
-                    console.error('Fetch error:', err);
-                })
-                .finally(() => {
-                    subjectInput.placeholder = 'Nhập tiêu đề email...';
-                });
-            });
-        }
-    });
 
     function sendSingleEmail(cccd) {
         const cbs = document.querySelectorAll('.item-checkbox');

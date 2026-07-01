@@ -245,6 +245,49 @@
         const url = prompt("Nhập địa chỉ URL (ví dụ: https://hvu.edu.vn):", "https://");
         if (url) emailExecCmd('createLink', url);
     }
+
+    function applyEmailTemplate(val) {
+        const sel = document.getElementById('email-template-select');
+        if (!sel) return;
+        const opt = sel.options[sel.selectedIndex];
+        const subjectInput = document.getElementById('email-modal-subject');
+        const contentInput = document.getElementById('email-editor');
+        
+        if (!subjectInput || !contentInput) return;
+        
+        if (!opt || !val) {
+            subjectInput.value = '';
+            contentInput.innerHTML = '';
+            return;
+        }
+        
+        // Try local data attributes first (fast & offline)
+        const subject = opt.getAttribute('data-subject') || '';
+        const body = opt.getAttribute('data-body') || '';
+        
+        if (subject || body) {
+            subjectInput.value = subject;
+            contentInput.innerHTML = body;
+            return;
+        }
+        
+        // Fallback to fetch API if local attributes are empty
+        subjectInput.placeholder = 'Đang tải mẫu...';
+        fetch('<?= url('/admin/candidates/get-template') ?>?id=' + val, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && !data.error) {
+                subjectInput.value = data.subject || '';
+                contentInput.innerHTML = data.body || data.content || '';
+            }
+        })
+        .catch(err => console.error('Fetch error:', err))
+        .finally(() => {
+            subjectInput.placeholder = 'Tiêu đề';
+        });
+    }
 </script>
     </div>
 </div>
