@@ -629,12 +629,15 @@ class CandidateController extends Controller
             $candidates = $this->thiSinhRepo->getEmailsByIds($ids);
         }
 
-        $mailer = new \App\Services\MailerService();
         $sentNum = 0;
-
         $db = \App\Core\Database::getInstance()->getConnection();
         $db->beginTransaction();
         try {
+            $batchSize = 1000;
+            $batchValues = [];
+            $batchParams = [];
+            $processedCccds = [];
+
             foreach ($candidates as $c) {
                 if (empty($c['email'])) continue;
 
@@ -646,22 +649,61 @@ class CandidateController extends Controller
                     $body
                 );
 
-                // Enqueue to email_queue table so it shows in logs/queue
-                if ($mailer->enqueue($c['email'], $personalSubject, $personalBody, true, 'bulk')) {
-                    $sentNum++;
-                    
-                    // If internal note provided, update the candidate's record
-                    if (!empty($internalNote)) {
-                        // Update thi_sinh (Main profile note) - Overwrite existing note
-                        $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-                        $upd->execute([$internalNote, $c['so_cccd']]);
-
-                        // Also update ho_so_xet_tuyen if exists for consistency in filters
-                        $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
-                        $updHoso->execute([$internalNote, $c['so_cccd']]);
+                // Clean email domain
+                $email = trim(strtolower($c['email']));
+                $domainFixes = [
+                    '@gmai.com' => '@gmail.com',
+                    '@gamil.com' => '@gmail.com',
+                    '@gmail.con' => '@gmail.com',
+                    '@gmal.com'  => '@gmail.com',
+                    '@yaho.com'  => '@yahoo.com',
+                ];
+                foreach ($domainFixes as $wrong => $right) {
+                    if (str_ends_with($email, $wrong)) {
+                        $email = substr($email, 0, -strlen($wrong)) . $right;
+                        break;
                     }
                 }
+
+                $batchValues[] = "(?, ?, ?, 'pending', 'bulk', NOW())";
+                $batchParams[] = $email;
+                $batchParams[] = $personalSubject;
+                $batchParams[] = $personalBody;
+                
+                $processedCccds[] = $c['so_cccd'];
+                $sentNum++;
+
+                if (count($batchValues) >= $batchSize) {
+                    $sql = "INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES " . implode(', ', $batchValues);
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute($batchParams);
+                    
+                    $batchValues = [];
+                    $batchParams = [];
+                }
             }
+
+            // Insert remaining batch
+            if (count($batchValues) > 0) {
+                $sql = "INSERT INTO email_queue (recipient, subject, body, status, category, created_at) VALUES " . implode(', ', $batchValues);
+                $stmt = $db->prepare($sql);
+                $stmt->execute($batchParams);
+            }
+
+            // Batch update internal note if provided
+            if (!empty($internalNote) && count($processedCccds) > 0) {
+                $chunks = array_chunk($processedCccds, 1000);
+                foreach ($chunks as $chunk) {
+                    $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                    
+                    $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd IN ($placeholders)");
+                    $upd->execute(array_merge([$internalNote], $chunk));
+
+                    $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd IN ($placeholders)");
+                    $updHoso->execute(array_merge([$internalNote], $chunk));
+                }
+            }
+
             $db->commit();
         } catch (\Exception $e) {
             if ($db->inTransaction()) {
