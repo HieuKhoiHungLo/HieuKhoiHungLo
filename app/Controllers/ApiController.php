@@ -64,7 +64,7 @@ class ApiController extends Controller
      */
     public function processEmailQueue()
     {
-        set_time_limit(120);
+        set_time_limit(240);
         // Security: verify cron key from .env (timing-safe comparison)
         $key = $_GET['key'] ?? '';
         $expectedKey = $_ENV['CRON_SECRET_KEY'] ?? '';
@@ -97,8 +97,8 @@ class ApiController extends Controller
             $stmt->execute();
             $lockTime = $stmt->fetchColumn();
             
-            // If lock exists and is not stale (less than 2 minutes ago), another process is running
-            if ($lockTime && ($now - (int)$lockTime < 120)) {
+            // If lock exists and is not stale (less than 4 minutes ago), another process is running
+            if ($lockTime && ($now - (int)$lockTime < 240)) {
                 $db->rollBack();
                 $remaining = (int)$db->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
                 $this->json(['success' => true, 'message' => 'Một tiến trình gửi thư khác đang chạy.', 'remaining' => $remaining]);
@@ -176,7 +176,7 @@ class ApiController extends Controller
                      SELECT id FROM email_queue 
                      WHERE status = 'pending' 
                      ORDER BY created_at ASC 
-                     LIMIT 50 
+                     LIMIT 120 
                      FOR UPDATE SKIP LOCKED
                 )
                 RETURNING *
