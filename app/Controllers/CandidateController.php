@@ -355,6 +355,21 @@ class CandidateController extends Controller
         // Prioritize forced_action (from JS fix)
         $action = $_POST['forced_action'] ?? $_POST['action'] ?? '';
         $ids = $_POST['ids'] ?? [];
+        $sendToAll = $_POST['send_to_all'] ?? 'false';
+        $currentSessionId = $_POST['current_session_id'] ?? null;
+
+        if ($action === 'send_email' && $sendToAll === 'true' && $currentSessionId) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("
+                SELECT DISTINCT t.so_cccd, t.ho_va_ten, t.email
+                FROM thi_sinh t
+                INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
+                WHERE t.deleted_at IS NULL AND hs.dot_tuyen_sinh_id = ? AND t.email IS NOT NULL AND t.email != ''
+            ");
+            $stmt->execute([$currentSessionId]);
+            $candidatesForSend = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $ids = $candidatesForSend;
+        }
 
         if (empty($ids)) {
             $this->redirect(url('/admin/dashboard?error=no_selection'));
@@ -364,7 +379,7 @@ class CandidateController extends Controller
         switch ($action) {
             case 'update_status':
                 $this->checkPermission('candidate.edit');
-                $status = $_POST['status'] ?? 'Chá» duyá»‡t';
+                $status = $_POST['status'] ?? 'Chưa duyệt';
                 $this->bulkUpdateStatus($ids, $status);
                 break;
 
@@ -398,27 +413,6 @@ class CandidateController extends Controller
                 $subject = $_POST['email_subject'] ?? null;
                 $content = $_POST['email_content'] ?? null;
                 $internalNote = $_POST['internal_note'] ?? null;
-                $sendToAll = $_POST['send_to_all'] ?? 'false';
-                $currentSessionId = $_POST['current_session_id'] ?? null;
-
-                if ($sendToAll === 'true' && $currentSessionId) {
-                    $db = \App\Core\Database::getInstance()->getConnection();
-                    $stmt = $db->prepare("
-                        SELECT DISTINCT t.so_cccd, t.ho_va_ten, t.email
-                        FROM thi_sinh t
-                        INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
-                        WHERE t.deleted_at IS NULL AND hs.dot_tuyen_sinh_id = ? AND t.email IS NOT NULL AND t.email != ''
-                    ");
-                    $stmt->execute([$currentSessionId]);
-                    $candidatesForSend = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                    $ids = $candidatesForSend;
-                }
-
-                if (empty($ids)) {
-                    $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
-                    $this->redirect($baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "error=no_selection");
-                    return;
-                }
 
                 if ($templateId || ($subject && $content)) {
                     $this->bulkSendEmail($ids, $templateId, $subject, $content, $internalNote);
