@@ -394,6 +394,15 @@ class ThiSinhRepository
                 // Ignore if table does not exist
             }
 
+            // Update diem_chung_chi table if exists
+            try {
+                $sqlUpdateCC = "UPDATE diem_chung_chi SET dot_tuyen_sinh_id = ? WHERE so_cccd IN ($placeholders)";
+                $stmtUpdateCC = $this->db->prepare($sqlUpdateCC);
+                $stmtUpdateCC->execute(array_merge([$sessionId], $cccds));
+            } catch (\Exception $e) {
+                // Ignore if table does not exist
+            }
+
             $this->db->commit();
             return true;
         } catch (\Exception $e) {

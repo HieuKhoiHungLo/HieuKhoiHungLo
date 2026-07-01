@@ -19,15 +19,40 @@ class CertificateScoreController extends Controller {
 
     public function index() {
         $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
+        $sessions = $sessionModel->getAll();
+        
+        $db = $this->model->getDb();
+        $years = $db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(\PDO::FETCH_COLUMN);
+
+        $sessionId = $_GET['session_id'] ?? $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        
+        $selectedSession = null;
+        if ($sessionId) {
+            $selectedSession = $sessionModel->find($sessionId);
+        }
+        
+        if (!$selectedSession) {
+            $selectedSession = $sessionModel->getActiveSession();
+            if (!$selectedSession) {
+                $selectedSession = $sessionModel->getLatestSession();
+            }
+        }
+        
+        $sessionId = $selectedSession ? $selectedSession['id'] : null;
+        if ($sessionId) {
+            $_SESSION['admin_selected_session_id'] = $sessionId;
+        }
         
         $stats = [
-            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_chung_chi" . ($activeSession ? " WHERE dot_tuyen_sinh_id = " . $activeSession['id'] : ""))->fetchColumn(),
+            'total' => $db->query("SELECT COUNT(*) FROM diem_chung_chi" . ($sessionId ? " WHERE dot_tuyen_sinh_id = " . intval($sessionId) : " WHERE dot_tuyen_sinh_id IS NULL"))->fetchColumn(),
         ];
+        
         $this->view('admin/certificate_scores/index', [
             'title' => 'Quản lý Điểm Chứng chỉ', 
             'stats' => $stats,
-            'activeSession' => $activeSession,
+            'activeSession' => $selectedSession,
+            'sessions' => $sessions,
+            'years' => $years,
             'needsDataTables' => true
         ]);
     }
@@ -43,19 +68,23 @@ class CertificateScoreController extends Controller {
         $fMaMon = $_POST['f_ma_mon'] ?? '';
         $fGhiChu = $_POST['f_ghi_chu'] ?? '';
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         $query = "SELECT c.id, c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
                   FROM diem_chung_chi c
                   LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd";
         $params = [];
 
-        if ($activeSession) {
+        if ($sessionId) {
             $query .= " WHERE c.dot_tuyen_sinh_id = ?";
-            $params[] = $activeSession['id'];
+            $params[] = $sessionId;
         } else {
-            $query .= " WHERE 1=1";
+            $query .= " WHERE c.dot_tuyen_sinh_id IS NULL";
         }
 
         if (!empty($searchValue)) {
@@ -85,11 +114,11 @@ class CertificateScoreController extends Controller {
         }
 
         // Total count
-        if ($activeSession) {
+        if ($sessionId) {
             $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
-            $stmtTotal->execute([$activeSession['id']]);
+            $stmtTotal->execute([$sessionId]);
         } else {
-            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi");
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_chung_chi WHERE dot_tuyen_sinh_id IS NULL");
             $stmtTotal->execute([]);
         }
         $recordsTotal = $stmtTotal->fetchColumn();
@@ -137,9 +166,12 @@ class CertificateScoreController extends Controller {
                 $stmt = $db->prepare("UPDATE diem_chung_chi SET so_cccd = ?, ma_mon = ?, diem = ?, ghi_chu = ? WHERE id = ?");
                 $stmt->execute([$cccd, $maMon, $diem, $ghiChu, $id]);
             } else {
-                $sessionModel = new \App\Models\AdmissionSession();
-                $activeSession = $sessionModel->getActiveSession();
-                $sessionId = $activeSession ? $activeSession['id'] : null;
+                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+                if (!$sessionId) {
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+                    $sessionId = $activeSession ? $activeSession['id'] : null;
+                }
 
                 // Check if already exists for this cccd, maMon and current session
                 if ($sessionId) {
@@ -199,9 +231,12 @@ class CertificateScoreController extends Controller {
             $this->redirect(url('/admin/certificate-scores'));
         }
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : null;
+        $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         $file = $_FILES['csv_file']['tmp_name'];
         $extension = pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION);
@@ -213,7 +248,7 @@ class CertificateScoreController extends Controller {
                 exit;
             }
             $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .xlsx, .xls hoặc .csv.";
-            $this->redirect(url('/admin/certificate-scores'));
+            $this->redirect(url('/admin/certificate-scores' . ($sessionId ? '?session_id=' . $sessionId : '')));
         }
 
         $updateProgress(5, 100, 'Đang đọc dữ liệu từ file Excel...');
@@ -348,7 +383,7 @@ class CertificateScoreController extends Controller {
             $_SESSION['flash_error'] = "Lỗi xử lý file: " . $e->getMessage();
         }
 
-        $this->redirect(url('/admin/certificate-scores'));
+        $this->redirect(url('/admin/certificate-scores' . ($sessionId ? '?session_id=' . $sessionId : '')));
     }
 
     private function normalizeCCCD($cccd) {
@@ -420,17 +455,21 @@ class CertificateScoreController extends Controller {
                 }
             }
             
-            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang kích hoạt
+            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang được chọn
             $deleteAll = $_POST['delete_all'] ?? false;
             if ($deleteAll) {
-                $sessionModel = new \App\Models\AdmissionSession();
-                $activeSession = $sessionModel->getActiveSession();
+                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+                if (!$sessionId) {
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+                    $sessionId = $activeSession ? $activeSession['id'] : null;
+                }
                 
-                if ($activeSession) {
+                if ($sessionId) {
                     $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
-                    $success = $stmt->execute([$activeSession['id']]);
+                    $success = $stmt->execute([$sessionId]);
                 } else {
-                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi");
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id IS NULL");
                     $success = $stmt->execute([]);
                 }
                 
@@ -451,12 +490,26 @@ class CertificateScoreController extends Controller {
         $fGhiChu = $_GET['f_ghi_chu'] ?? '';
         $db = $this->model->getDb();
 
+        $sessionId = $_GET['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
+
         $query = "SELECT c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
                   FROM diem_chung_chi c
                   LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd
-                  WHERE 1=1";
+                  WHERE ";
         $params = [];
 
+        if ($sessionId) {
+            $query .= "c.dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        } else {
+            $query .= "c.dot_tuyen_sinh_id IS NULL";
+        }
+        
         if (!empty($searchValue)) {
             $query .= " AND (c.so_cccd LIKE ? OR ts.ho_va_ten LIKE ?)";
             $params[] = "%$searchValue%";

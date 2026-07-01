@@ -49,19 +49,33 @@ ob_start();
 <div class="p-4 h-full flex flex-col" x-data="certificateData()">
     <!-- Header Page Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
-        <div>
-            <div class="flex items-center gap-2.5">
-                <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
+        <div class="flex items-center gap-4">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
+                </div>
+                <div class="flex items-center gap-2 mt-1 ml-4">
+                    <p class="text-slate-500 text-sm font-medium">Tổng cộng: <span class="text-indigo-600 font-bold"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
+                </div>
             </div>
-            <div class="flex items-center gap-2 mt-1 ml-4">
-                <p class="text-slate-500 text-sm font-medium">Tổng cộng: <span class="text-indigo-600 font-bold"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
-                <?php if ($activeSession): ?>
-                    <span class="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-extrabold uppercase border border-emerald-100 tracking-wider shadow-sm">
-                        Đợt: <?= htmlspecialchars($activeSession['ten_dot']) ?>
-                    </span>
-                <?php endif; ?>
+            
+            <div class="flex items-center gap-2 ml-4">
+                <!-- Filter by Year -->
+                <select id="yearFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
+                    <option value="">-- Năm --</option>
+                    <?php foreach ($years as $year): ?>
+                        <option value="<?= $year ?>"><?= $year ?></option>
+                    <?php endforeach; ?>
+                </select>
+
+                <!-- Filter by Session -->
+                <select id="sessionFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[180px]" x-model="selectedSession" @change="sessionChanged()">
+                    <option value="">-- Chọn đợt xét tuyển --</option>
+                    <template x-for="session in filteredSessions" :key="session.id">
+                        <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
+                    </template>
+                </select>
             </div>
         </div>
         <div class="flex flex-wrap gap-4 w-full md:w-auto">
@@ -245,6 +259,7 @@ ob_start();
                 
                 <form @submit.prevent="uploadExcel($event)" action="<?= url('/admin/certificate-scores/import') ?>" class="p-6">
                     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="session_id" :value="selectedSession">
                     
                     <div class="space-y-4" x-show="!isLoading">
                         <div class="text-sm text-slate-500 space-y-1.5 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -318,12 +333,27 @@ ob_start();
             openImportModal: false,
             showEditModal: false,
             editMode: false,
+            selectedYear: '<?= $activeSession ? $activeSession['nam_tuyen_sinh'] : "" ?>',
+            selectedSession: '<?= $activeSession ? $activeSession['id'] : "" ?>',
+            allSessions: <?= json_encode($sessions) ?>,
             formData: {
                 id: null,
                 so_cccd: '',
                 ma_mon: 'N1',
                 diem: 0,
-                ghi_chu: ''
+                ghi_chu: '',
+                session_id: '<?= $activeSession ? $activeSession['id'] : "" ?>'
+            },
+            get filteredSessions() {
+                if (!this.selectedYear) return this.allSessions;
+                return this.allSessions.filter(s => s.nam_tuyen_sinh == this.selectedYear);
+            },
+            sessionChanged() {
+                if (this.selectedSession) {
+                    window.location.href = '<?= url("/admin/certificate-scores") ?>?session_id=' + this.selectedSession;
+                } else {
+                    window.location.href = '<?= url("/admin/certificate-scores") ?>';
+                }
             },
             
             // Drag and Drop State
@@ -357,7 +387,7 @@ ob_start();
 
             openAddModal() {
                 this.editMode = false;
-                this.formData = { id: null, so_cccd: '', ma_mon: 'N1', diem: 0, ghi_chu: '' };
+                this.formData = { id: null, so_cccd: '', ma_mon: 'N1', diem: 0, ghi_chu: '', session_id: this.selectedSession };
                 this.showEditModal = true;
             },
 
@@ -366,7 +396,7 @@ ob_start();
                 const cccd = $('#search_cccd').val() || '';
                 const maMon = $('#search_ma_mon').val() || '';
                 const ghiChu = $('#search_ghi_chu').val() || '';
-                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?f_name=' + encodeURIComponent(name) + '&f_cccd=' + encodeURIComponent(cccd) + '&f_ma_mon=' + encodeURIComponent(maMon) + '&f_ghi_chu=' + encodeURIComponent(ghiChu);
+                window.location.href = '<?= url("/admin/certificate-scores/export") ?>?f_name=' + encodeURIComponent(name) + '&f_cccd=' + encodeURIComponent(cccd) + '&f_ma_mon=' + encodeURIComponent(maMon) + '&f_ghi_chu=' + encodeURIComponent(ghiChu) + '&session_id=' + this.selectedSession;
             },
 
             editScore(row) {
@@ -376,7 +406,7 @@ ob_start();
             },
 
             saveScore() {
-                $.post('<?= url('/admin/certificate-scores/api-save') ?>', { ...this.formData, _csrf_token: '<?= csrf_token() ?>' }, (res) => {
+                $.post('<?= url('/admin/certificate-scores/api-save') ?>', { ...this.formData, session_id: this.selectedSession, _csrf_token: '<?= csrf_token() ?>' }, (res) => {
                     if (res.success) {
                         this.showEditModal = false;
                         $('#certTable').DataTable().ajax.reload(null, false);
@@ -496,6 +526,7 @@ ob_start();
                 if (confirm(`Bạn có chắc chắn muốn xóa ${ids.length} bản ghi điểm quy đổi đã chọn?`)) {
                     $.post('<?= url('/admin/certificate-scores/delete') ?>', { 
                         ids: ids, 
+                        session_id: this.selectedSession,
                         _csrf_token: '<?= csrf_token() ?>' 
                     }, (res) => {
                         if (res.success) {
@@ -511,6 +542,7 @@ ob_start();
                 if (confirm('CẢNH BÁO: Hành động này sẽ xóa TOÀN BỘ dữ liệu điểm chứng chỉ quy đổi của đợt này. Bạn có chắc chắn muốn thực hiện?')) {
                     $.post('<?= url('/admin/certificate-scores/delete') ?>', { 
                         delete_all: true, 
+                        session_id: this.selectedSession,
                         _csrf_token: '<?= csrf_token() ?>' 
                     }, (res) => {
                         if (res.success) {
@@ -534,6 +566,7 @@ ob_start();
                 type: 'POST',
                 data: function(d) {
                     d._csrf_token = '<?= csrf_token() ?>';
+                    d.session_id = '<?= $activeSession ? $activeSession['id'] : "" ?>';
                     d.f_name = $('#search_name').val();
                     d.f_cccd = $('#search_cccd').val();
                     d.f_ma_mon = $('#search_ma_mon').val();

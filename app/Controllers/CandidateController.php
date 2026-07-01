@@ -398,9 +398,32 @@ class CandidateController extends Controller
                 $subject = $_POST['email_subject'] ?? null;
                 $content = $_POST['email_content'] ?? null;
                 $internalNote = $_POST['internal_note'] ?? null;
+                $sendToAll = $_POST['send_to_all'] ?? 'false';
+                $currentSessionId = $_POST['current_session_id'] ?? null;
+
+                if ($sendToAll === 'true' && $currentSessionId) {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("
+                        SELECT DISTINCT t.so_cccd, t.ho_va_ten, t.email
+                        FROM thi_sinh t
+                        INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
+                        WHERE t.deleted_at IS NULL AND hs.dot_tuyen_sinh_id = ? AND t.email IS NOT NULL AND t.email != ''
+                    ");
+                    $stmt->execute([$currentSessionId]);
+                    $candidatesForSend = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    $ids = $candidatesForSend;
+                }
+
+                if (empty($ids)) {
+                    $baseRedirect = !empty($_POST['redirect_to']) ? $_POST['redirect_to'] : (!empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : url('/admin/review-management'));
+                    $this->redirect($baseRedirect . (strpos($baseRedirect, '?') !== false ? '&' : '?') . "error=no_selection");
+                    return;
+                }
 
                 if ($templateId || ($subject && $content)) {
                     $this->bulkSendEmail($ids, $templateId, $subject, $content, $internalNote);
+                    
+                    // If we passed candidate arrays, count is count($ids) which works because count() on array of arrays is the number of candidates.
                     $_POST['redirect_to'] .= (strpos($_POST['redirect_to'], '?') !== false ? '&' : '?') . "msg=bulk_success&count=" . count($ids);
                 }
                 break;
@@ -589,39 +612,54 @@ class CandidateController extends Controller
 
         if (empty($subject) || empty($body)) return;
 
-        // Get candidates using Repository
-        $candidates = $this->thiSinhRepo->getEmailsByIds($ids);
+        // Get candidates using Repository or use pre-fetched arrays
+        if (isset($ids[0]) && is_array($ids[0]) && isset($ids[0]['so_cccd'])) {
+            $candidates = $ids;
+            $ids = array_column($candidates, 'so_cccd');
+        } else {
+            $candidates = $this->thiSinhRepo->getEmailsByIds($ids);
+        }
+
         $mailer = new \App\Services\MailerService();
         $sentNum = 0;
 
-        foreach ($candidates as $c) {
-            if (empty($c['email'])) continue;
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $db->beginTransaction();
+        try {
+            foreach ($candidates as $c) {
+                if (empty($c['email'])) continue;
 
-            // Support both old and new placeholder styles
-            $personalSubject = str_replace(['{ho_ten}', '{{name}}'], [$c['ho_va_ten'], $c['ho_va_ten']], $subject);
-            $personalBody = str_replace(
-                ['{ho_ten}', '{so_cccd}', '{{name}}', '{{cccd}}'], 
-                [$c['ho_va_ten'], $c['so_cccd'], $c['ho_va_ten'], $c['so_cccd']], 
-                $body
-            );
+                // Support both old and new placeholder styles
+                $personalSubject = str_replace(['{ho_ten}', '{{name}}'], [$c['ho_va_ten'], $c['ho_va_ten']], $subject);
+                $personalBody = str_replace(
+                    ['{ho_ten}', '{so_cccd}', '{{name}}', '{{cccd}}'], 
+                    [$c['ho_va_ten'], $c['so_cccd'], $c['ho_va_ten'], $c['so_cccd']], 
+                    $body
+                );
 
-            // Enqueue to email_queue table so it shows in logs/queue
-            if ($mailer->enqueue($c['email'], $personalSubject, $personalBody, true, 'bulk')) {
-                $sentNum++;
-                
-                // If internal note provided, update the candidate's record
-                if (!empty($internalNote)) {
-                    $db = \App\Core\Database::getInstance()->getConnection();
+                // Enqueue to email_queue table so it shows in logs/queue
+                if ($mailer->enqueue($c['email'], $personalSubject, $personalBody, true, 'bulk')) {
+                    $sentNum++;
                     
-                    // Update thi_sinh (Main profile note) - Overwrite existing note
-                    $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
-                    $upd->execute([$internalNote, $c['so_cccd']]);
+                    // If internal note provided, update the candidate's record
+                    if (!empty($internalNote)) {
+                        // Update thi_sinh (Main profile note) - Overwrite existing note
+                        $upd = $db->prepare("UPDATE thi_sinh SET ghi_chu = ? WHERE so_cccd = ?");
+                        $upd->execute([$internalNote, $c['so_cccd']]);
 
-                    // Also update ho_so_xet_tuyen if exists for consistency in filters
-                    $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
-                    $updHoso->execute([$internalNote, $c['so_cccd']]);
+                        // Also update ho_so_xet_tuyen if exists for consistency in filters
+                        $updHoso = $db->prepare("UPDATE ho_so_xet_tuyen SET ghi_chu = ? WHERE so_cccd = ?");
+                        $updHoso->execute([$internalNote, $c['so_cccd']]);
+                    }
                 }
             }
+            $db->commit();
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("bulkSendEmail transaction failed: " . $e->getMessage());
+            throw $e;
         }
 
         // Log to Audit
@@ -635,7 +673,7 @@ class CandidateController extends Controller
         $notificationModel = new \App\Models\Notification();
         $notificationModel->create([
             'title' => "[Email] " . mb_substr($subject, 0, 50),
-            'content' => "Há»‡ thá»‘ng Ä‘Ã£ gá»­i email Ä‘áº¿n " . count($ids) . " thÃ­ sinh. Ná»™i dung: " . mb_substr(strip_tags($body), 0, 200) . "...",
+            'content' => "Hệ thống đã gửi email đến " . count($ids) . " thí sinh. Nội dung: " . mb_substr(strip_tags($body), 0, 200) . "...",
             'type' => 'info',
             'target_type' => 'all',
             'created_by' => $_SESSION['admin_id'] ?? null

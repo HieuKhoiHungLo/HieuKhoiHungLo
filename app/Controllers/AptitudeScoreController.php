@@ -16,17 +16,41 @@ class AptitudeScoreController extends Controller {
     }
 
     public function index() {
-        // We'll use DataTables logic to render server-side
         $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
+        $sessions = $sessionModel->getAll();
+        
+        $db = $this->model->getDb();
+        $years = $db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(\PDO::FETCH_COLUMN);
+
+        $sessionId = $_GET['session_id'] ?? $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        
+        $selectedSession = null;
+        if ($sessionId) {
+            $selectedSession = $sessionModel->find($sessionId);
+        }
+        
+        if (!$selectedSession) {
+            $selectedSession = $sessionModel->getActiveSession();
+            if (!$selectedSession) {
+                $selectedSession = $sessionModel->getLatestSession();
+            }
+        }
+        
+        $sessionId = $selectedSession ? $selectedSession['id'] : null;
+        if ($sessionId) {
+            $_SESSION['admin_selected_session_id'] = $sessionId;
+        }
         
         $stats = [
-            'total' => $this->model->getDb()->query("SELECT COUNT(*) FROM diem_nang_khieu" . ($activeSession ? " WHERE dot_tuyen_sinh_id = " . $activeSession['id'] : ""))->fetchColumn(),
+            'total' => $db->query("SELECT COUNT(*) FROM diem_nang_khieu" . ($sessionId ? " WHERE dot_tuyen_sinh_id = " . intval($sessionId) : " WHERE dot_tuyen_sinh_id IS NULL"))->fetchColumn(),
         ];
+        
         $this->view('admin/aptitude_scores/index', [
             'title' => 'Điểm Năng Khiếu', 
             'stats' => $stats,
-            'activeSession' => $activeSession,
+            'activeSession' => $selectedSession,
+            'sessions' => $sessions,
+            'years' => $years,
             'needsDataTables' => true
         ]);
     }
@@ -38,8 +62,12 @@ class AptitudeScoreController extends Controller {
         $length = $_POST['length'] ?? 10;
         $searchValue = $_POST['search']['value'] ?? '';
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
+        $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         $query = "SELECT d.id, d.so_cccd, d.sbd, d.diem, d.ghi_chu, d.ma_mon, ts.ho_va_ten, m.ten_mon 
                   FROM diem_nang_khieu d
@@ -47,11 +75,11 @@ class AptitudeScoreController extends Controller {
                   LEFT JOIN dm_mon m ON UPPER(d.ma_mon) = UPPER(m.ma_mon)";
         $params = [];
 
-        if ($activeSession) {
+        if ($sessionId) {
             $query .= " WHERE d.dot_tuyen_sinh_id = ?";
-            $params[] = $activeSession['id'];
+            $params[] = $sessionId;
         } else {
-            $query .= " WHERE 1=1";
+            $query .= " WHERE d.dot_tuyen_sinh_id IS NULL";
         }
 
         if (!empty($searchValue)) {
@@ -62,11 +90,11 @@ class AptitudeScoreController extends Controller {
         }
 
         // Total count
-        if ($activeSession) {
+        if ($sessionId) {
             $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu WHERE dot_tuyen_sinh_id = ?");
-            $stmtTotal->execute([$activeSession['id']]);
+            $stmtTotal->execute([$sessionId]);
         } else {
-            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu");
+            $stmtTotal = $db->prepare("SELECT COUNT(*) FROM diem_nang_khieu WHERE dot_tuyen_sinh_id IS NULL");
             $stmtTotal->execute([]);
         }
         $recordsTotal = $stmtTotal->fetchColumn();
@@ -115,9 +143,12 @@ class AptitudeScoreController extends Controller {
                 $stmt = $db->prepare("UPDATE diem_nang_khieu SET so_cccd = ?, sbd = ?, ma_mon = ?, diem = ?, ghi_chu = ? WHERE id = ?");
                 $stmt->execute([$cccd, $sbd, $maMon, $diem, $ghiChu, $id]);
             } else {
-                $sessionModel = new \App\Models\AdmissionSession();
-                $activeSession = $sessionModel->getActiveSession();
-                $sessionId = $activeSession ? $activeSession['id'] : null;
+                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+                if (!$sessionId) {
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+                    $sessionId = $activeSession ? $activeSession['id'] : null;
+                }
 
                 // Check if already exists for this cccd, maMon and current session
                 if ($sessionId) {
@@ -152,15 +183,18 @@ class AptitudeScoreController extends Controller {
             $this->redirect('/admin/aptitude-scores');
         }
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : null;
+        $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         $file = $_FILES['excel_file']['tmp_name'];
         $extension = pathinfo($_FILES['excel_file']['name'], PATHINFO_EXTENSION);
         if (!in_array(strtolower($extension), ['csv'])) {
             $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .csv (UTF-8).";
-            $this->redirect('/admin/aptitude-scores');
+            $this->redirect('/admin/aptitude-scores' . ($sessionId ? '?session_id=' . $sessionId : ''));
         }
 
         try {
@@ -210,7 +244,7 @@ class AptitudeScoreController extends Controller {
             $_SESSION['flash_error'] = "Lỗi xử lý file: " . $e->getMessage();
         }
 
-        $this->redirect('/admin/aptitude-scores');
+        $this->redirect('/admin/aptitude-scores' . ($sessionId ? '?session_id=' . $sessionId : ''));
     }
 
     public function delete() {
@@ -236,17 +270,21 @@ class AptitudeScoreController extends Controller {
                 }
             }
             
-            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang kích hoạt
+            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang được chọn
             $deleteAll = $_POST['delete_all'] ?? false;
             if ($deleteAll) {
-                $sessionModel = new \App\Models\AdmissionSession();
-                $activeSession = $sessionModel->getActiveSession();
+                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+                if (!$sessionId) {
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+                    $sessionId = $activeSession ? $activeSession['id'] : null;
+                }
                 
-                if ($activeSession) {
+                if ($sessionId) {
                     $stmt = $this->model->getDb()->prepare("DELETE FROM diem_nang_khieu WHERE dot_tuyen_sinh_id = ?");
-                    $success = $stmt->execute([$activeSession['id']]);
+                    $success = $stmt->execute([$sessionId]);
                 } else {
-                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_nang_khieu");
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_nang_khieu WHERE dot_tuyen_sinh_id IS NULL");
                     $success = $stmt->execute([]);
                 }
                 
@@ -263,11 +301,25 @@ class AptitudeScoreController extends Controller {
         $searchValue = $_GET['search'] ?? '';
         $db = $this->model->getDb();
 
+        $sessionId = $_GET['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
+
         $query = "SELECT d.so_cccd, d.sbd, d.ma_mon, d.diem, d.ghi_chu, ts.ho_va_ten 
                   FROM diem_nang_khieu d
                   LEFT JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
-                  WHERE 1=1";
+                  WHERE ";
         $params = [];
+
+        if ($sessionId) {
+            $query .= "d.dot_tuyen_sinh_id = ?";
+            $params[] = $sessionId;
+        } else {
+            $query .= "d.dot_tuyen_sinh_id IS NULL";
+        }
 
         if (!empty($searchValue)) {
             $query .= " AND (d.so_cccd LIKE ? OR d.sbd LIKE ? OR ts.ho_va_ten LIKE ?)";

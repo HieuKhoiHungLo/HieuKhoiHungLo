@@ -4,16 +4,30 @@ ob_start();
 ?>
 <div class="p-6 h-full flex flex-col" x-data="aptitudeData()">
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-800">Cập nhật Điểm năng khiếu</h1>
-            <div class="flex items-center gap-2 mt-1">
-                <p class="text-slate-500 text-sm">Tổng cộng: <?= number_format($stats['total']) ?> bản ghi</p>
-                <?php if ($activeSession): ?>
-                    <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold uppercase border border-indigo-100">
-                        Đợt: <?= htmlspecialchars($activeSession['ten_dot']) ?>
-                    </span>
-                <?php endif; ?>
+        <div class="flex items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Cập nhật Điểm năng khiếu</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <p class="text-slate-500 text-sm">Tổng cộng: <?= number_format($stats['total']) ?> bản ghi</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 ml-4">
+                <!-- Filter by Year -->
+                <select id="yearFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
+                    <option value="">-- Năm --</option>
+                    <?php foreach ($years as $year): ?>
+                        <option value="<?= $year ?>"><?= $year ?></option>
+                    <?php endforeach; ?>
+                </select>
+
+                <!-- Filter by Session -->
+                <select id="sessionFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[180px]" x-model="selectedSession" @change="sessionChanged()">
+                    <option value="">-- Chọn đợt xét tuyển --</option>
+                    <template x-for="session in filteredSessions" :key="session.id">
+                        <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
+                    </template>
+                </select>
             </div>
         </div>
         <div class="flex gap-2">
@@ -160,6 +174,7 @@ ob_start();
             <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
                 <form action="<?= url('/admin/aptitude-scores/import') ?>" method="POST" enctype="multipart/form-data">
                     <?= csrf_field() ?>
+                    <input type="hidden" name="session_id" :value="selectedSession">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
@@ -209,22 +224,37 @@ ob_start();
             openImportModal: false,
             showEditModal: false,
             editMode: false,
+            selectedYear: '<?= $activeSession ? $activeSession['nam_tuyen_sinh'] : "" ?>',
+            selectedSession: '<?= $activeSession ? $activeSession['id'] : "" ?>',
+            allSessions: <?= json_encode($sessions) ?>,
             formData: {
                 id: null,
                 so_cccd: '',
                 sbd: '',
                 ma_mon: 'NK1',
                 diem: 0,
-                ghi_chu: ''
+                ghi_chu: '',
+                session_id: '<?= $activeSession ? $activeSession['id'] : "" ?>'
+            },
+            get filteredSessions() {
+                if (!this.selectedYear) return this.allSessions;
+                return this.allSessions.filter(s => s.nam_tuyen_sinh == this.selectedYear);
+            },
+            sessionChanged() {
+                if (this.selectedSession) {
+                    window.location.href = '<?= url("/admin/aptitude-scores") ?>?session_id=' + this.selectedSession;
+                } else {
+                    window.location.href = '<?= url("/admin/aptitude-scores") ?>';
+                }
             },
             openAddModal() {
                 this.editMode = false;
-                this.formData = { id: null, so_cccd: '', sbd: '', ma_mon: 'NK1', diem: 0, ghi_chu: '' };
+                this.formData = { id: null, so_cccd: '', sbd: '', ma_mon: 'NK1', diem: 0, ghi_chu: '', session_id: this.selectedSession };
                 this.showEditModal = true;
             },
             exportData() {
                 const search = $('#aptitudeTable').DataTable().search();
-                window.location.href = '<?= url("/admin/aptitude-scores/export") ?>?search=' + encodeURIComponent(search);
+                window.location.href = '<?= url("/admin/aptitude-scores/export") ?>?search=' + encodeURIComponent(search) + '&session_id=' + this.selectedSession;
             },
             editScore(row) {
                 this.editMode = true;
@@ -232,7 +262,7 @@ ob_start();
                 this.showEditModal = true;
             },
             saveScore() {
-                $.post('<?= url('/admin/aptitude-scores/api-save') ?>', { ...this.formData, _csrf_token: '<?= csrf_token() ?>' }, (res) => {
+                $.post('<?= url('/admin/aptitude-scores/api-save') ?>', { ...this.formData, session_id: this.selectedSession, _csrf_token: '<?= csrf_token() ?>' }, (res) => {
                     if (res.success) {
                         this.showEditModal = false;
                         $('#aptitudeTable').DataTable().ajax.reload(null, false);
@@ -248,6 +278,7 @@ ob_start();
                 if (confirm(`Bạn có chắc chắn muốn xóa ${ids.length} bản ghi điểm năng khiếu đã chọn?`)) {
                     $.post('<?= url('/admin/aptitude-scores/delete') ?>', { 
                         ids: ids, 
+                        session_id: this.selectedSession,
                         _csrf_token: '<?= csrf_token() ?>' 
                     }, (res) => {
                         if (res.success) {
@@ -262,6 +293,7 @@ ob_start();
                 if (confirm('CẢNH BÁO: Hành động này sẽ xóa TOÀN BỘ dữ liệu điểm năng khiếu của đợt này. Bạn có chắc chắn muốn thực hiện?')) {
                     $.post('<?= url('/admin/aptitude-scores/delete') ?>', { 
                         delete_all: true, 
+                        session_id: this.selectedSession,
                         _csrf_token: '<?= csrf_token() ?>' 
                     }, (res) => {
                         if (res.success) {
@@ -284,6 +316,7 @@ ob_start();
                 type: 'POST',
                 data: function(d) {
                     d._csrf_token = '<?= csrf_token() ?>';
+                    d.session_id = '<?= $activeSession ? $activeSession['id'] : "" ?>';
                 }
             },
             columns: [

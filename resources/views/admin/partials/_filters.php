@@ -134,6 +134,9 @@
             <button onclick="document.getElementById('modal-bulk-unapprove-all').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm font-semibold text-red-700 hover:bg-red-100 hover:border-red-300 transition shadow-sm">
                 <i class="fas fa-undo"></i> Hủy duyệt tất cả
             </button>
+            <button type="button" onclick="openSendEmailToAllModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
+                <i class="fas fa-envelope-open-text"></i> Gửi thư tất cả
+            </button>
             <?php endif; ?>
             <button onclick="document.getElementById('modal-bulk-transcript').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition shadow-sm">
                 <i class="fas fa-file-excel"></i> Cập nhật học bạ

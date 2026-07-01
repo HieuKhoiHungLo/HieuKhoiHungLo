@@ -926,11 +926,133 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         const countEl = document.getElementById('email-target-count');
         if (countEl) countEl.innerText = count;
 
-        // Auto-fill internal note with current date (format: dd/mm/yyyy)
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('vi-VN');
+        // Reset the sendToAll and currentSession inputs if they exist
+        const sendToAllInput = document.getElementById('email-modal-send-to-all');
+        if (sendToAllInput) sendToAllInput.value = 'false';
+
+        const form = document.getElementById('email-modal-form');
+        if (form) {
+            form.action = '';
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                confirmSendEmail();
+            };
+        }
+
+        // Clear internal note by default to preserve candidates' existing notes
         const noteEl = document.getElementById('email-modal-internal-note');
-        if (noteEl) noteEl.value = 'Gửi mail ngày: ' + dateStr;
+        if (noteEl) noteEl.value = '';
+
+        document.getElementById('email-modal').classList.remove('hidden');
+    }
+
+    function openSendEmailToAllModal() {
+        // Uncheck all selected items to avoid mixing checkbox selections
+        document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+        if (typeof updateBulkUI === 'function') updateBulkUI();
+
+        const countEl = document.getElementById('email-target-count');
+        if (countEl) countEl.innerHTML = '<span class="text-rose-600 font-bold">TẤT CẢ THÍ SINH ĐỢT NÀY</span>';
+
+        // Add or update a hidden input to mark send_to_all = true
+        let sendToAllInput = document.getElementById('email-modal-send-to-all');
+        if (!sendToAllInput) {
+            sendToAllInput = document.createElement('input');
+            sendToAllInput.type = 'hidden';
+            sendToAllInput.name = 'send_to_all';
+            sendToAllInput.id = 'email-modal-send-to-all';
+            document.getElementById('email-modal-form').appendChild(sendToAllInput);
+        }
+        sendToAllInput.value = 'true';
+
+        // Add or update hidden input for current session ID
+        let sessionIdInput = document.getElementById('email-modal-current-session-id');
+        if (!sessionIdInput) {
+            sessionIdInput = document.createElement('input');
+            sessionIdInput.type = 'hidden';
+            sessionIdInput.name = 'current_session_id';
+            sessionIdInput.id = 'email-modal-current-session-id';
+            document.getElementById('email-modal-form').appendChild(sessionIdInput);
+        }
+        sessionIdInput.value = '<?= $filters['session_id'] ?? '' ?>';
+
+        // Clear internal note by default to preserve candidates' existing notes
+        const noteEl = document.getElementById('email-modal-internal-note');
+        if (noteEl) noteEl.value = '';
+
+        // Set form action and submit behavior
+        const form = document.getElementById('email-modal-form');
+        form.action = '<?= url('/admin/candidates/bulk-action') ?>';
+        
+        // Add redirect_to
+        let redirectInput = document.getElementById('email-modal-redirect-to');
+        if (!redirectInput) {
+            redirectInput = document.createElement('input');
+            redirectInput.type = 'hidden';
+            redirectInput.name = 'redirect_to';
+            redirectInput.id = 'email-modal-redirect-to';
+            form.appendChild(redirectInput);
+        }
+        redirectInput.value = window.location.href;
+
+        // Override submit to use dynamic submission
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const templateId = document.getElementById('email-template-select').value;
+            const subject = document.getElementById('email-modal-subject').value;
+            const content = document.getElementById('email-editor').innerHTML;
+            
+            if (!templateId && (!subject || !content || content.trim() === '')) {
+                alert('Vui lòng chọn mẫu thư hoặc nhập tiêu đề/nội dung.');
+                return;
+            }
+
+            // Create hidden fields for subject and editor content
+            let subInput = document.getElementById('email-modal-hidden-subject');
+            if (!subInput) {
+                subInput = document.createElement('input');
+                subInput.type = 'hidden';
+                subInput.name = 'email_subject';
+                subInput.id = 'email-modal-hidden-subject';
+                form.appendChild(subInput);
+            }
+            subInput.value = subject;
+
+            let contInput = document.getElementById('email-modal-hidden-content');
+            if (!contInput) {
+                contInput = document.createElement('input');
+                contInput.type = 'hidden';
+                contInput.name = 'email_content';
+                contInput.id = 'email-modal-hidden-content';
+                form.appendChild(contInput);
+            }
+            contInput.value = content;
+
+            let actInput = document.getElementById('email-modal-hidden-action');
+            if (!actInput) {
+                actInput = document.createElement('input');
+                actInput.type = 'hidden';
+                actInput.name = 'action';
+                actInput.id = 'email-modal-hidden-action';
+                form.appendChild(actInput);
+            }
+            actInput.value = 'send_email';
+
+            // Also mock at least one checkbox input to satisfy controller's empty(ids) check
+            let dummyInput = document.getElementById('email-modal-dummy-id');
+            if (!dummyInput) {
+                dummyInput = document.createElement('input');
+                dummyInput.type = 'hidden';
+                dummyInput.name = 'ids[]';
+                dummyInput.id = 'email-modal-dummy-id';
+                form.appendChild(dummyInput);
+            }
+            dummyInput.value = 'ALL';
+
+            closeModal('email-modal');
+            Loading.show();
+            form.submit();
+        };
 
         document.getElementById('email-modal').classList.remove('hidden');
     }
