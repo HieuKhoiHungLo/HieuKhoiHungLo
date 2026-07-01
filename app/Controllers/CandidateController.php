@@ -641,13 +641,15 @@ class CandidateController extends Controller
             foreach ($candidates as $c) {
                 if (empty($c['email'])) continue;
 
-                // Support both old and new placeholder styles
-                $personalSubject = str_replace(['{ho_ten}', '{{name}}'], [$c['ho_va_ten'], $c['ho_va_ten']], $subject);
-                $personalBody = str_replace(
-                    ['{ho_ten}', '{so_cccd}', '{{name}}', '{{cccd}}'], 
-                    [$c['ho_va_ten'], $c['so_cccd'], $c['ho_va_ten'], $c['so_cccd']], 
-                    $body
-                );
+                // Support comprehensive list of case-insensitive placeholder variations
+                $fullnamePlaceholders = ['{{HoTen}}', '{{ho_ten}}', '{{hoten}}', '{{name}}', '{{ho_va_ten}}', '{ho_ten}', '{HoTen}', '{hoten}', '{name}', '{ho_va_ten}'];
+                $cccdPlaceholders = ['{{SoCCCD}}', '{{so_cccd}}', '{{cccd}}', '{{so_ident}}', '{so_cccd}', '{SoCCCD}', '{cccd}'];
+
+                $personalSubject = str_replace($fullnamePlaceholders, $c['ho_va_ten'], $subject);
+                $personalSubject = str_replace($cccdPlaceholders, $c['so_cccd'], $personalSubject);
+
+                $personalBody = str_replace($fullnamePlaceholders, $c['ho_va_ten'], $body);
+                $personalBody = str_replace($cccdPlaceholders, $c['so_cccd'], $personalBody);
 
                 // Clean email domain
                 $email = trim(strtolower($c['email']));
