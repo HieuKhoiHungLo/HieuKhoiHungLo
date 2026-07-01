@@ -176,7 +176,7 @@ class ApiController extends Controller
                      SELECT id FROM email_queue 
                      WHERE status = 'pending' 
                      ORDER BY created_at ASC 
-                     LIMIT 20 
+                     LIMIT 50 
                      FOR UPDATE SKIP LOCKED
                 )
                 RETURNING *

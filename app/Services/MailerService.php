@@ -440,13 +440,13 @@ class MailerService {
         $senderCountStmt = $db->query("SELECT COUNT(*) FROM email_senders WHERE is_active = TRUE AND is_default = FALSE");
         $activeSendersCount = $senderCountStmt ? (int)$senderCountStmt->fetchColumn() : 0;
         
-        // Calculate delay between emails in microseconds
+        // Calculate delay between emails in microseconds - optimized for higher throughput with safe rotation
         if ($activeSendersCount >= 7) {
-            $delayMicroseconds = 1500000; // 1.5s
+            $delayMicroseconds = 300000; // 0.3s
         } elseif ($activeSendersCount >= 4) {
-            $delayMicroseconds = 2000000; // 2s
+            $delayMicroseconds = 500000; // 0.5s
         } else {
-            $delayMicroseconds = 3000000; // 3s
+            $delayMicroseconds = 1000000; // 1.0s
         }
 
         foreach ($emails as $index => $email) {
