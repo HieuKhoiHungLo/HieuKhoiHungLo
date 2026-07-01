@@ -158,17 +158,23 @@ class EmailQueueController extends Controller {
     }
 
     /**
-     * Xóa toàn bộ email đã gửi (POST + CSRF) - Giữ lại thống kê
-     */
-    /**
-     * Làm sạch hàng đợi (Xóa các thư chưa gửi hoặc bị lỗi)
+     * Làm sạch hàng đợi (Xóa các thư chưa gửi hoặc bị lỗi) - Batch delete to avoid timeout
      */
     public function clearQueue() {
         $this->validateCsrf();
         
         $db = Database::getInstance()->getConnection();
         
-        $db->query("DELETE FROM email_queue WHERE status IN ('pending', 'failed')");
+        // Batch delete 1000 rows at a time to avoid timeout on remote DB
+        $batchSize = 1000;
+        do {
+            $stmt = $db->prepare("DELETE FROM email_queue WHERE id IN (SELECT id FROM email_queue WHERE status IN ('pending', 'failed') LIMIT ?)");
+            $stmt->execute([$batchSize]);
+            $deleted = $stmt->rowCount();
+        } while ($deleted >= $batchSize);
+        
+        // Clear cache so stats reflect immediately
+        \App\Core\Cache::forget('email_queue_summary_stats');
         
         $this->redirect(url('/admin/email-queue?msg=cleared'));
     }
