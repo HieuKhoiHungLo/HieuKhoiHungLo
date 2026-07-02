@@ -65,6 +65,7 @@ class ApiController extends Controller
     public function processEmailQueue()
     {
         set_time_limit(240);
+        ignore_user_abort(true); // Allow background sending even if web server times out
         // Security: verify cron key from .env (timing-safe comparison)
         $key = $_GET['key'] ?? '';
         $expectedKey = $_ENV['CRON_SECRET_KEY'] ?? '';
