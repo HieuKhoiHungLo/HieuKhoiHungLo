@@ -22,8 +22,8 @@ try {
         throw new \Exception("Menu group 'XÉT TUYỂN LỌC ẢO' not found in database.");
     }
 
-    // 2. Find and update parent_id of /admin/aptitude-scores
-    $stmtUpdate = $db->prepare("UPDATE menus SET parent_id = ? WHERE url = '/admin/aptitude-scores' AND position = 'admin_sidebar'");
+    // 2. Find and update parent_id of /admin/aptitude-scores and title to 'Điểm năng khiếu'
+    $stmtUpdate = $db->prepare("UPDATE menus SET parent_id = ?, title = 'Điểm năng khiếu' WHERE url = '/admin/aptitude-scores' AND position = 'admin_sidebar'");
     $stmtUpdate->execute([$groupId]);
     $affected = $stmtUpdate->rowCount();
 
@@ -32,9 +32,13 @@ try {
     $menuModel->clearCache();
 
     if ($affected > 0) {
-        echo "<p style='color: green; font-weight: bold;'>Success: Moved 'Cập nhật Điểm năng khiếu' to 'XÉT TUYỂN LỌC ẢO' group successfully!</p>";
+        echo "<p style='color: green; font-weight: bold;'>Success: Updated menu item 'Điểm năng khiếu' successfully!</p>";
     } else {
-        echo "<p style='color: orange;'>Notice: Menu item '/admin/aptitude-scores' was already updated or not found.</p>";
+        // Run a fallback update in case parent_id is already set but title is not
+        $stmtUpdateTitle = $db->prepare("UPDATE menus SET title = 'Điểm năng khiếu' WHERE url = '/admin/aptitude-scores' AND position = 'admin_sidebar'");
+        $stmtUpdateTitle->execute();
+        $menuModel->clearCache();
+        echo "<p style='color: green; font-weight: bold;'>Success: Updated title of menu item to 'Điểm năng khiếu' successfully!</p>";
     }
 
     echo "<p><a href='/admin/dashboard'>Go back to Dashboard</a></p>";
