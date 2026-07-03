@@ -60,3 +60,6 @@ storage/imports/*
 /public/uploads/imports/*
 storage/backups/*
 /storage/*.lock
+_trash/
+mota/
+
