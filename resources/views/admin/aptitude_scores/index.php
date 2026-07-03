@@ -3,60 +3,66 @@ $title = 'Quản lý Điểm năng khiếu';
 ob_start();
 ?>
 <div class="p-6 h-full flex flex-col" x-data="aptitudeData()">
-    <div class="flex justify-between items-center mb-6">
-        <div class="flex items-center gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Cập nhật Điểm năng khiếu</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <p class="text-slate-500 text-sm">Tổng cộng: <?= number_format($stats['total']) ?> bản ghi</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-2 ml-4">
-                <!-- Filter by Year -->
-                <select id="yearFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
-                    <option value="">-- Năm --</option>
-                    <?php foreach ($years as $year): ?>
-                        <option value="<?= $year ?>"><?= $year ?></option>
-                    <?php endforeach; ?>
-                </select>
-
-                <!-- Filter by Session -->
-                <select id="sessionFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[180px]" x-model="selectedSession" @change="sessionChanged()">
-                    <option value="">-- Chọn đợt xét tuyển --</option>
-                    <template x-for="session in filteredSessions" :key="session.id">
-                        <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
-                    </template>
-                </select>
-            </div>
+    <!-- Row 1: Header & Filters -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Điểm năng khiếu</h1>
+            <p class="text-slate-500 text-sm mt-1">Tổng cộng: <span class="font-semibold text-slate-700"><?= number_format($stats['total']) ?></span> bản ghi</p>
         </div>
-        <div class="flex gap-2">
-            <!-- Nút xóa hàng loạt -->
-            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 hidden">
-                <i class="fas fa-minus-circle"></i>
-                <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
-            </button>
-            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition-colors border border-red-200 flex items-center gap-2">
-                <i class="fas fa-trash-alt"></i>
-                <span>Xóa tất cả</span>
-            </button>
+        
+        <div class="flex flex-wrap items-center gap-3">
+            <label class="text-sm font-medium text-slate-600">Đợt tuyển sinh:</label>
+            <!-- Filter by Year -->
+            <select id="yearFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
+                <option value="">-- Năm --</option>
+                <?php foreach ($years as $year): ?>
+                    <option value="<?= $year ?>"><?= $year ?></option>
+                <?php endforeach; ?>
+            </select>
 
-            <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+            <!-- Filter by Session -->
+            <select id="sessionFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[250px]" x-model="selectedSession" @change="sessionChanged()">
+                <option value="">-- Chọn đợt xét tuyển --</option>
+                <template x-for="session in filteredSessions" :key="session.id">
+                    <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
+                </template>
+            </select>
+        </div>
+    </div>
+
+    <!-- Row 2: Action Buttons (Constructive left, Destructive right) -->
+    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <!-- Left side: Constructive actions -->
+        <div class="flex flex-wrap items-center gap-2">
+            <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-plus"></i>
                 <span>Thêm mới</span>
             </button>
-            <button @click="openImportModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+            <button @click="openImportModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-file-excel"></i>
                 <span>Import Excel</span>
             </button>
-            <button @click="exportData()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-medium transition-colors border border-indigo-200 flex items-center gap-2">
-                <i class="fas fa-download"></i>
+            <button @click="exportData()" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-download text-slate-500"></i>
                 <span>Xuất dữ liệu</span>
             </button>
-            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center gap-2">
-                <i class="fas fa-file-csv"></i>
+            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-file-csv text-slate-500"></i>
                 <span>Mẫu Import</span>
             </a>
+        </div>
+
+        <!-- Right side: Destructive actions -->
+        <div class="flex flex-wrap items-center gap-2 justify-end">
+            <!-- Nút xóa hàng loạt -->
+            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-all shadow-sm flex items-center gap-2 text-sm hidden">
+                <i class="fas fa-minus-circle"></i>
+                <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
+            </button>
+            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-red-200 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-trash-alt"></i>
+                <span>Xóa tất cả</span>
+            </button>
         </div>
     </div>
 
