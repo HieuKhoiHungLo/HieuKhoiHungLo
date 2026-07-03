@@ -1,6 +1,6 @@
 <?php
 /**
- * Script Chuẩn hoá dữ liệu hồ sơ năng khiếu sang đợt Ghi danh sớm
+ * Script Chuẩn hoá dữ liệu hồ sơ năng khiếu sang đợt Ghi danh sớm (Bản tối ưu hiệu năng cao)
  * 
  * Cách chạy:
  *   - Chạy thử nghiệm (không lưu vào DB): php scripts/standardize_talent_records.php --dry-run
@@ -21,7 +21,7 @@ define('CLR_CYAN', "\033[36m");
 define('CLR_BOLD', "\033[1m");
 
 echo CLR_BOLD . CLR_CYAN . "============================================================\n";
-echo "   TIẾN TRÌNH CHUẨN HOÁ DỮ LIỆU HỒ SƠ NĂNG KHIẾU (LOCALHOST/SUPABASE)\n";
+echo "   TIẾN TRÌNH CHUẨN HOÁ DỮ LIỆU HỒ SƠ NĂNG KHIẾU (TỐI ƯU PL/PGSQL)\n";
 echo "============================================================\n" . CLR_RESET;
 
 // ── 1. Khởi tạo cấu hình và kết nối ──────────────────────────────────────────
@@ -56,199 +56,206 @@ try {
     exit(1);
 }
 
-// ── 2. Xác định ID các đợt tuyển sinh ───────────────────────────────────────
-$sessionA_Name = 'Bổ sung hồ sơ năng khiếu';
-$sessionB_Name = 'Ghi danh sớm';
-
-$stmtSession = $db->prepare("SELECT id, ten_dot FROM dot_tuyen_sinh WHERE ten_dot = ?");
-$stmtSession->execute([$sessionA_Name]);
-$sessionA = $stmtSession->fetch(PDO::FETCH_ASSOC);
-
-$stmtSession->execute([$sessionB_Name]);
-$sessionB = $stmtSession->fetch(PDO::FETCH_ASSOC);
-
-if (!$sessionA) {
-    echo CLR_RED . "❌ Lỗi: Không tìm thấy đợt tuyển sinh nguồn '$sessionA_Name' trong DB!\n" . CLR_RESET;
-    exit(1);
-}
-if (!$sessionB) {
-    echo CLR_RED . "❌ Lỗi: Không tìm thấy đợt tuyển sinh đích '$sessionB_Name' trong DB!\n" . CLR_RESET;
-    exit(1);
-}
-
-$sessionAId = (int)$sessionA['id'];
-$sessionBId = (int)$sessionB['id'];
-
-echo CLR_BOLD . "🎯 Đợt nguồn (A): ID $sessionAId - {$sessionA['ten_dot']}\n";
-echo "🎯 Đợt đích (B): ID $sessionBId - {$sessionB['ten_dot']}\n\n" . CLR_RESET;
-
-// Các mã ngành năng khiếu
-$talentMajors = ['7140201', '7140206', '7140221', '7140222'];
-
-// ── 3. Quét toàn bộ hồ sơ đợt nguồn A ───────────────────────────────────────
-$stmtAppsA = $db->prepare("
-    SELECT hs.id, hs.so_cccd, ts.ho_va_ten, hs.trang_thai 
-    FROM ho_so_xet_tuyen hs
-    JOIN thi_sinh ts ON hs.so_cccd = ts.so_cccd
-    WHERE hs.dot_tuyen_sinh_id = ?
-");
-$stmtAppsA->execute([$sessionAId]);
-$appsA = $stmtAppsA->fetchAll(PDO::FETCH_ASSOC);
-
-$totalApps = count($appsA);
-echo CLR_BOLD . "Tìm thấy $totalApps hồ sơ cần đối chiếu.\n" . CLR_RESET;
-echo str_repeat('=', 80) . "\n";
-
-$stats = [
-    'case1' => 0, // Chuyển đợt
-    'case2' => 0, // Chuyển NV xuống cuối
-    'case3' => 0, // Xoá hồ sơ nguồn (đã có đủ NV năng khiếu ở đích)
-    'skipped' => 0
-];
-
+// ── 2. Đếm thống kê trước khi chạy (Dùng SQL gộp cực nhanh) ─────────────────
 try {
+    $sessionAId = 5;
+    $sessionBId = 3;
+
+    // Đếm tổng hồ sơ nguồn A
+    $totalA = $db->query("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = $sessionAId AND deleted_at IS NULL")->fetchColumn();
+    
+    // Đếm Case 1
+    $case1Count = $db->query("
+        SELECT COUNT(*) FROM ho_so_xet_tuyen hs 
+        WHERE hs.dot_tuyen_sinh_id = $sessionAId AND hs.deleted_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = hs.so_cccd AND hs2.dot_tuyen_sinh_id = $sessionBId AND hs2.deleted_at IS NULL)
+    ")->fetchColumn();
+
+    // Đếm Case 2
+    $case2Count = $db->query("
+        SELECT COUNT(*) FROM ho_so_xet_tuyen hs 
+        WHERE hs.dot_tuyen_sinh_id = $sessionAId AND hs.deleted_at IS NULL
+          AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = hs.so_cccd AND hs2.dot_tuyen_sinh_id = $sessionBId AND hs2.deleted_at IS NULL)
+          AND NOT EXISTS (
+              SELECT 1 FROM nguyen_vong nv 
+              WHERE nv.ho_so_id = (SELECT id FROM ho_so_xet_tuyen WHERE so_cccd = hs.so_cccd AND dot_tuyen_sinh_id = $sessionBId AND deleted_at IS NULL LIMIT 1)
+                AND nv.ma_nganh IN ('7140201', '7140206', '7140221', '7140222')
+          )
+    ")->fetchColumn();
+
+    // Đếm Case 3
+    $case3Count = $db->query("
+        SELECT COUNT(*) FROM ho_so_xet_tuyen hs 
+        WHERE hs.dot_tuyen_sinh_id = $sessionAId AND hs.deleted_at IS NULL
+          AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs2 WHERE hs2.so_cccd = hs.so_cccd AND hs2.dot_tuyen_sinh_id = $sessionBId AND hs2.deleted_at IS NULL)
+          AND EXISTS (
+              SELECT 1 FROM nguyen_vong nv 
+              WHERE nv.ho_so_id = (SELECT id FROM ho_so_xet_tuyen WHERE so_cccd = hs.so_cccd AND dot_tuyen_sinh_id = $sessionBId AND deleted_at IS NULL LIMIT 1)
+                AND nv.ma_nganh IN ('7140201', '7140206', '7140221', '7140222')
+          )
+    ")->fetchColumn();
+
+    echo "Thống kê hồ sơ cần xử lý:\n";
+    echo "  - Tổng hồ sơ đợt Năng khiếu: " . CLR_BOLD . $totalA . CLR_RESET . "\n";
+    echo "  - Số hồ sơ chuyển đợt (Trường hợp 1) : " . CLR_GREEN . $case1Count . CLR_RESET . "\n";
+    echo "  - Số hồ sơ gộp NV (Trường hợp 2)     : " . CLR_YELLOW . $case2Count . CLR_RESET . "\n";
+    echo "  - Số hồ sơ xoá trùng (Trường hợp 3)  : " . CLR_RED . $case3Count . CLR_RESET . "\n";
+    echo str_repeat('=', 80) . "\n";
+
+    if ($totalA == 0) {
+        echo CLR_GREEN . "Không có hồ sơ nào cần chuyển đổi. Hệ thống đã sạch!\n" . CLR_RESET;
+        exit(0);
+    }
+
+    echo "Đang bắt đầu thực thi giao dịch SQL trên Supabase...\n";
+    $startTime = microtime(true);
+
     $db->beginTransaction();
 
-    // Chuẩn bị các câu lệnh SQL tối ưu
-    $stmtCheckB = $db->prepare("SELECT id, trang_thai FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-    $stmtCheckTalentWishesB = $db->prepare("
-        SELECT COUNT(*) FROM nguyen_vong 
-        WHERE ho_so_id = ? 
-          AND ma_nganh IN ('7140201', '7140206', '7140221', '7140222')
-    ");
-    $stmtMaxOrderB = $db->prepare("SELECT COALESCE(MAX(thu_tu_nguyen_vong), 0) FROM nguyen_vong WHERE ho_so_id = ?");
-    $stmtWishesA = $db->prepare("SELECT * FROM nguyen_vong WHERE ho_so_id = ? ORDER BY thu_tu_nguyen_vong ASC");
-    
-    // SQL cập nhật
-    $stmtUpdateAppSession = $db->prepare("UPDATE ho_so_xet_tuyen SET dot_tuyen_sinh_id = ?, updated_at = NOW() WHERE id = ?");
-    $stmtUpdateWishSession = $db->prepare("UPDATE nguyen_vong SET dot_tuyen_sinh_id = ? WHERE ho_so_id = ?");
-    
-    $stmtCheckDupWishB = $db->prepare("
-        SELECT id FROM nguyen_vong 
-        WHERE ho_so_id = ? 
-          AND ma_nganh = ? 
-          AND ma_phuong_thuc = ? 
-          AND to_hop_mon = ?
-    ");
-    $stmtMoveWishToB = $db->prepare("
-        UPDATE nguyen_vong 
-        SET ho_so_id = ?, 
-            dot_tuyen_sinh_id = ?, 
-            thu_tu_nguyen_vong = ? 
-        WHERE id = ?
-    ");
-    $stmtDeleteWish = $db->prepare("DELETE FROM nguyen_vong WHERE id = ?");
-    $stmtDeleteApp = $db->prepare("DELETE FROM ho_so_xet_tuyen WHERE id = ?");
-
-    foreach ($appsA as $idx => $appA) {
-        $cccd = $appA['so_cccd'];
-        $hoTen = $appA['ho_va_ten'];
-        $hosoAId = (int)$appA['id'];
-        $stt = $idx + 1;
-
-        // Kiểm tra xem thí sinh đã có hồ sơ trong đợt B chưa
-        $stmtCheckB->execute([$cccd, $sessionBId]);
-        $rowB = $stmtCheckB->fetch(PDO::FETCH_ASSOC);
-
-        if (!$rowB) {
-            // ─────────────────────────────────────────────────────────────────
-            // TRƯỜNG HỢP 1: Chưa có hồ sơ trong đợt Ghi danh sớm -> CHUYỂN ĐỢT
-            // ─────────────────────────────────────────────────────────────────
-            echo CLR_GREEN . "[$stt/$totalApps] Thí sinh: $hoTen ($cccd) -> [TRƯỜNG HỢP 1] Chuyển đợt sang 'Ghi danh sớm'\n" . CLR_RESET;
+    // PL/pgSQL Code Block chạy trực tiếp trong DB
+    $plpgsql = "
+    DO $$
+    DECLARE
+        rec RECORD;
+        hosoB_id INT;
+        maxOrderB INT;
+        wish RECORD;
+        dupWishId INT;
+        score RECORD;
+        existingScoreB RECORD;
+        cert RECORD;
+        existingCertB RECORD;
+        hasTalentB BOOLEAN;
+    BEGIN
+        -- Loop through all active applications in session A (5)
+        FOR rec IN 
+            SELECT hs.id AS hosoA_id, hs.so_cccd 
+            FROM ho_so_xet_tuyen hs
+            WHERE hs.dot_tuyen_sinh_id = 5
+              AND hs.deleted_at IS NULL
+        LOOP
+            -- Check if candidate has an active application in session B (3)
+            SELECT id INTO hosoB_id FROM ho_so_xet_tuyen WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 3 AND deleted_at IS NULL LIMIT 1;
             
-            if (!$dryRun) {
-                // 1. Cập nhật hồ sơ xét tuyển
-                $stmtUpdateAppSession->execute([$sessionBId, $hosoAId]);
-                // 2. Cập nhật các nguyện vọng
-                $stmtUpdateWishSession->execute([$sessionBId, $hosoAId]);
-                // 3. Chuyển điểm năng khiếu & chứng chỉ (nếu có)
-                $db->prepare("UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?")
-                   ->execute([$sessionBId, $cccd, $sessionAId]);
-                $db->prepare("UPDATE diem_chung_chi SET dot_tuyen_sinh_id = ? WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?")
-                   ->execute([$sessionBId, $cccd, $sessionAId]);
-            }
-            $stats['case1']++;
-
-        } else {
-            $hosoBId = (int)$rowB['id'];
-
-            // Kiểm tra xem đợt B đã có nguyện vọng năng khiếu nào chưa
-            $stmtCheckTalentWishesB->execute([$hosoBId]);
-            $hasTalentB = $stmtCheckTalentWishesB->fetchColumn() > 0;
-
-            if (!$hasTalentB) {
-                // ─────────────────────────────────────────────────────────────────
-                // TRƯỜNG HỢP 2: Đã có hồ sơ đợt B nhưng CHƯA CÓ NV năng khiếu -> CHUYỂN NV
-                // ─────────────────────────────────────────────────────────────────
-                echo CLR_YELLOW . "[$stt/$totalApps] Thí sinh: $hoTen ($cccd) -> [TRƯỜNG HỢP 2] Gộp nguyện vọng năng khiếu vào cuối đợt 'Ghi danh sớm'\n" . CLR_RESET;
+            IF hosoB_id IS NULL THEN
+                -- CASE 1: No application in session B -> Move session
+                UPDATE ho_so_xet_tuyen SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE id = rec.hosoA_id;
+                UPDATE nguyen_vong SET dot_tuyen_sinh_id = 3 WHERE ho_so_id = rec.hosoA_id;
+                UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5;
+                UPDATE diem_chung_chi SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5;
                 
-                // Lấy thứ tự nguyện vọng lớn nhất ở đợt B
-                $stmtMaxOrderB->execute([$hosoBId]);
-                $maxOrderB = (int)$stmtMaxOrderB->fetchColumn();
-
-                // Lấy các nguyện vọng ở đợt nguồn A
-                $stmtWishesA->execute([$hosoAId]);
-                $wishesA = $stmtWishesA->fetchAll(PDO::FETCH_ASSOC);
-
-                foreach ($wishesA as $wishA) {
-                    $wishId = $wishA['id'];
-                    $maNganh = $wishA['ma_nganh'];
-                    $maPT = $wishA['ma_phuong_thuc'];
-                    $toHop = $wishA['to_hop_mon'];
-
-                    // Kiểm tra xem đã có nguyện vọng trùng khít ở đợt B chưa
-                    $stmtCheckDupWishB->execute([$hosoBId, $maNganh, $maPT, $toHop]);
-                    $dupWishId = $stmtCheckDupWishB->fetchColumn();
-
-                    if ($dupWishId) {
-                        // Nếu trùng khít, chỉ việc xoá nguyện vọng ở đợt A
-                        echo "    - Trùng NV ngành $maNganh ở đợt đích. Xoá NV trùng ở đợt nguồn.\n";
-                        if (!$dryRun) {
-                            $stmtDeleteWish->execute([$wishId]);
-                        }
-                    } else {
-                        // Nếu chưa trùng, chuyển và xếp xuống cuối
-                        $maxOrderB++;
-                        echo "    + Chuyển NV ngành $maNganh thành NV thứ $maxOrderB của đợt đích.\n";
-                        if (!$dryRun) {
-                            $stmtMoveWishToB->execute([$hosoBId, $sessionBId, $maxOrderB, $wishId]);
-                        }
-                    }
-                }
-
-                // Gộp điểm năng khiếu & chứng chỉ từ đợt A sang đợt B
-                mergeScores($db, $cccd, $sessionAId, $sessionBId, $dryRun);
-
-                // Xoá hồ sơ xét tuyển ở đợt nguồn A
-                if (!$dryRun) {
-                    $stmtDeleteApp->execute([$hosoAId]);
-                }
-                $stats['case2']++;
-
-            } else {
-                // ─────────────────────────────────────────────────────────────────
-                // TRƯỜNG HỢP 3: Đã có hồ sơ đợt B VÀ ĐÃ CÓ NV năng khiếu ở đợt B -> XOÁ HS NGUỒN
-                // ─────────────────────────────────────────────────────────────────
-                echo CLR_RED . "[$stt/$totalApps] Thí sinh: $hoTen ($cccd) -> [TRƯỜNG HỢP 3] Đã có NV năng khiếu ở đợt đích. Xoá hồ sơ đợt nguồn A\n" . CLR_RESET;
+            ELSE
+                -- Candidate has application in B. Check if B has any talent wishes
+                SELECT EXISTS (
+                    SELECT 1 FROM nguyen_vong 
+                    WHERE ho_so_id = hosoB_id 
+                      AND ma_nganh IN ('7140201', '7140206', '7140221', '7140222')
+                ) INTO hasTalentB;
                 
-                // Gộp điểm năng khiếu & chứng chỉ (nếu có) từ đợt A sang đợt B
-                mergeScores($db, $cccd, $sessionAId, $sessionBId, $dryRun);
+                IF NOT hasTalentB THEN
+                    -- CASE 2: Has B application but no talent wishes -> Move wishes and merge scores
+                    SELECT COALESCE(MAX(thu_tu_nguyen_vong), 0) INTO maxOrderB FROM nguyen_vong WHERE ho_so_id = hosoB_id;
+                    
+                    FOR wish IN SELECT * FROM nguyen_vong WHERE ho_so_id = rec.hosoA_id ORDER BY thu_tu_nguyen_vong ASC LOOP
+                        -- Check if duplicate wish exists in B
+                        SELECT id INTO dupWishId FROM nguyen_vong 
+                        WHERE ho_so_id = hosoB_id 
+                          AND ma_nganh = wish.ma_nganh 
+                          AND ma_phuong_thuc = wish.ma_phuong_thuc 
+                          AND to_hop_mon = wish.to_hop_mon
+                        LIMIT 1;
+                          
+                        IF dupWishId IS NOT NULL THEN
+                            -- Delete duplicate wish from A
+                            DELETE FROM nguyen_vong WHERE id = wish.id;
+                        ELSE
+                            maxOrderB := maxOrderB + 1;
+                            UPDATE nguyen_vong 
+                            SET ho_so_id = hosoB_id, 
+                                dot_tuyen_sinh_id = 3, 
+                                thu_tu_nguyen_vong = maxOrderB 
+                            WHERE id = wish.id;
+                        END IF;
+                    END LOOP;
+                    
+                    -- Merge scores
+                    -- 1. Năng khiếu
+                    FOR score IN SELECT * FROM diem_nang_khieu WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5 LOOP
+                        SELECT id, diem INTO existingScoreB FROM diem_nang_khieu WHERE so_cccd = rec.so_cccd AND ma_mon = score.ma_mon AND dot_tuyen_sinh_id = 3 LIMIT 1;
+                        IF FOUND THEN
+                            IF score.diem > existingScoreB.diem THEN
+                                UPDATE diem_nang_khieu SET diem = score.diem, updated_at = NOW() WHERE id = existingScoreB.id;
+                            END IF;
+                            DELETE FROM diem_nang_khieu WHERE id = score.id;
+                        ELSE
+                            UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE id = score.id;
+                        END IF;
+                    END LOOP;
+                    
+                    -- 2. Chứng chỉ
+                    FOR cert IN SELECT * FROM diem_chung_chi WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5 LOOP
+                        SELECT id, diem INTO existingCertB FROM diem_chung_chi WHERE so_cccd = rec.so_cccd AND ma_mon = cert.ma_mon AND dot_tuyen_sinh_id = 3 LIMIT 1;
+                        IF FOUND THEN
+                            IF cert.diem > existingCertB.diem THEN
+                                UPDATE diem_chung_chi SET diem = cert.diem, updated_at = NOW() WHERE id = existingCertB.id;
+                            END IF;
+                            DELETE FROM diem_chung_chi WHERE id = cert.id;
+                        ELSE
+                            UPDATE diem_chung_chi SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE id = cert.id;
+                        END IF;
+                    END LOOP;
+                    
+                    -- Delete application A
+                    DELETE FROM ho_so_xet_tuyen WHERE id = rec.hosoA_id;
+                    
+                ELSE
+                    -- CASE 3: Has B application and already has talent wishes -> Merge scores and delete A application
+                    -- Merge scores
+                    -- 1. Năng khiếu
+                    FOR score IN SELECT * FROM diem_nang_khieu WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5 LOOP
+                        SELECT id, diem INTO existingScoreB FROM diem_nang_khieu WHERE so_cccd = rec.so_cccd AND ma_mon = score.ma_mon AND dot_tuyen_sinh_id = 3 LIMIT 1;
+                        IF FOUND THEN
+                            IF score.diem > existingScoreB.diem THEN
+                                UPDATE diem_nang_khieu SET diem = score.diem, updated_at = NOW() WHERE id = existingScoreB.id;
+                            END IF;
+                            DELETE FROM diem_nang_khieu WHERE id = score.id;
+                        ELSE
+                            UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE id = score.id;
+                        END IF;
+                    END LOOP;
+                    
+                    -- 2. Chứng chỉ
+                    FOR cert IN SELECT * FROM diem_chung_chi WHERE so_cccd = rec.so_cccd AND dot_tuyen_sinh_id = 5 LOOP
+                        SELECT id, diem INTO existingCertB FROM diem_chung_chi WHERE so_cccd = rec.so_cccd AND ma_mon = cert.ma_mon AND dot_tuyen_sinh_id = 3 LIMIT 1;
+                        IF FOUND THEN
+                            IF cert.diem > existingCertB.diem THEN
+                                UPDATE diem_chung_chi SET diem = cert.diem, updated_at = NOW() WHERE id = existingCertB.id;
+                            END IF;
+                            DELETE FROM diem_chung_chi WHERE id = cert.id;
+                        ELSE
+                            UPDATE diem_chung_chi SET dot_tuyen_sinh_id = 3, updated_at = NOW() WHERE id = cert.id;
+                        END IF;
+                    END LOOP;
+                    
+                    -- Delete application A (wishes deleted by foreign key cascade)
+                    DELETE FROM ho_so_xet_tuyen WHERE id = rec.hosoA_id;
+                    
+                END IF;
+            END IF;
+        END LOOP;
+    END $$;
+    ";
 
-                // Xoá hồ sơ xét tuyển ở đợt nguồn A (các nguyện vọng con tự động bị xoá theo CASCADE)
-                if (!$dryRun) {
-                    $stmtDeleteApp->execute([$hosoAId]);
-                }
-                $stats['case3']++;
-            }
-        }
-    }
+    $db->exec($plpgsql);
 
     if ($dryRun) {
         $db->rollBack();
-        echo "\n" . CLR_YELLOW . CLR_BOLD . "⚠️ Chạy ở chế độ DRY-RUN: Đã rollback toàn bộ thay đổi. CSDL an toàn.\n" . CLR_RESET;
+        $elapsed = round(microtime(true) - $startTime, 4);
+        echo "\n" . CLR_YELLOW . CLR_BOLD . "⚠️ Chạy ở chế độ DRY-RUN: Đã thực thi giả lập trong $elapsed giây và rollback toàn bộ thay đổi thành công. CSDL an toàn!\n" . CLR_RESET;
     } else {
         $db->commit();
-        echo "\n" . CLR_GREEN . CLR_BOLD . "✅ ĐÃ LƯU THAY ĐỔI VÀO CƠ SỞ DỮ LIỆU THÀNH CÔNG!\n" . CLR_RESET;
+        $elapsed = round(microtime(true) - $startTime, 4);
+        echo "\n" . CLR_GREEN . CLR_BOLD . "✅ ĐÃ LƯU THAY ĐỔI VÀO CƠ SỞ DỮ LIỆU THÀNH CÔNG! Thời gian chạy: $elapsed giây.\n" . CLR_RESET;
     }
 
 } catch (Exception $e) {
@@ -256,75 +263,3 @@ try {
     echo "\n" . CLR_RED . CLR_BOLD . "❌ ĐÃ XẢY RA LỖI. ĐÃ ROLLBACK TOÀN BỘ GIAO DỊCH: " . $e->getMessage() . "\n" . CLR_RESET;
     exit(1);
 }
-
-// ── 4. Hàm bổ trợ gộp điểm ──────────────────────────────────────────────────
-function mergeScores(PDO $db, string $cccd, int $sessionAId, int $sessionBId, bool $dryRun): void {
-    // 1. Điểm năng khiếu
-    $stmtScoresA = $db->prepare("SELECT * FROM diem_nang_khieu WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-    $stmtScoresA->execute([$cccd, $sessionAId]);
-    $scoresA = $stmtScoresA->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmtCheckScoreB = $db->prepare("SELECT id, diem FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-    $stmtUpdateScoreB = $db->prepare("UPDATE diem_nang_khieu SET diem = ?, updated_at = NOW() WHERE id = ?");
-    $stmtDeleteScoreA = $db->prepare("DELETE FROM diem_nang_khieu WHERE id = ?");
-    $stmtMoveScoreToB = $db->prepare("UPDATE diem_nang_khieu SET dot_tuyen_sinh_id = ?, updated_at = NOW() WHERE id = ?");
-
-    foreach ($scoresA as $scoreA) {
-        $maMon = $scoreA['ma_mon'];
-        $diemA = (float)$scoreA['diem'];
-
-        $stmtCheckScoreB->execute([$cccd, $maMon, $sessionBId]);
-        $existingB = $stmtCheckScoreB->fetch(PDO::FETCH_ASSOC);
-
-        if ($existingB) {
-            $diemB = (float)$existingB['diem'];
-            if ($diemA > $diemB) {
-                echo "    + Cập nhật điểm môn $maMon cao hơn ở đợt đích ($diemA > $diemB)\n";
-                if (!$dryRun) $stmtUpdateScoreB->execute([$diemA, $existingB['id']]);
-            }
-            if (!$dryRun) $stmtDeleteScoreA->execute([$scoreA['id']]);
-        } else {
-            echo "    + Di chuyển điểm môn $maMon sang đợt đích\n";
-            if (!$dryRun) $stmtMoveScoreToB->execute([$sessionBId, $scoreA['id']]);
-        }
-    }
-
-    // 2. Điểm chứng chỉ ngoại ngữ
-    $stmtCertsA = $db->prepare("SELECT * FROM diem_chung_chi WHERE so_cccd = ? AND dot_tuyen_sinh_id = ?");
-    $stmtCertsA->execute([$cccd, $sessionAId]);
-    $certsA = $stmtCertsA->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmtCheckCertB = $db->prepare("SELECT id, diem FROM diem_chung_chi WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-    $stmtUpdateCertB = $db->prepare("UPDATE diem_chung_chi SET diem = ?, updated_at = NOW() WHERE id = ?");
-    $stmtDeleteCertA = $db->prepare("DELETE FROM diem_chung_chi WHERE id = ?");
-    $stmtMoveCertToB = $db->prepare("UPDATE diem_chung_chi SET dot_tuyen_sinh_id = ?, updated_at = NOW() WHERE id = ?");
-
-    foreach ($certsA as $certA) {
-        $maMon = $certA['ma_mon'];
-        $diemA = (float)$certA['diem'];
-
-        $stmtCheckCertB->execute([$cccd, $maMon, $sessionBId]);
-        $existingB = $stmtCheckCertB->fetch(PDO::FETCH_ASSOC);
-
-        if ($existingB) {
-            $diemB = (float)$existingB['diem'];
-            if ($diemA > $diemB) {
-                echo "    + Cập nhật điểm chứng chỉ $maMon cao hơn ở đợt đích ($diemA > $diemB)\n";
-                if (!$dryRun) $stmtUpdateCertB->execute([$diemA, $existingB['id']]);
-            }
-            if (!$dryRun) $stmtDeleteCertA->execute([$certA['id']]);
-        } else {
-            echo "    + Di chuyển điểm chứng chỉ $maMon sang đợt đích\n";
-            if (!$dryRun) $stmtMoveCertToB->execute([$sessionBId, $certA['id']]);
-        }
-    }
-}
-
-// ── 5. Thống kê kết quả ─────────────────────────────────────────────────────
-echo str_repeat('=', 80) . "\n";
-echo CLR_BOLD . CLR_CYAN . "KẾT QUẢ TIẾN TRÌNH CHUẨN HOÁ:\n" . CLR_RESET;
-echo "  - Tổng hồ sơ đã quét                : $totalApps\n";
-echo "  - Số hồ sơ chuyển đợt (Trường hợp 1) : " . CLR_GREEN . CLR_BOLD . $stats['case1'] . CLR_RESET . "\n";
-echo "  - Số hồ sơ gộp NV (Trường hợp 2)     : " . CLR_YELLOW . CLR_BOLD . $stats['case2'] . CLR_RESET . "\n";
-echo "  - Số hồ sơ xoá trùng (Trường hợp 3)  : " . CLR_RED . CLR_BOLD . $stats['case3'] . CLR_RESET . "\n";
-echo "============================================================\n";

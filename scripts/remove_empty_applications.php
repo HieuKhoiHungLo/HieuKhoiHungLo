@@ -1,7 +1,6 @@
 <?php
 /**
- * Script dọn dẹp các hồ sơ trống (không có nguyện vọng) ở đợt Ghi danh sớm
- * để chuyển thí sinh về trạng thái "Thí sinh chưa nhập hồ sơ"
+ * Script dọn dẹp các hồ sơ trống (không có nguyện vọng) ở đợt Ghi danh sớm (Bản tối ưu hiệu năng cao)
  * 
  * Cách chạy:
  *   - Thử nghiệm: php scripts/remove_empty_applications.php --dry-run
@@ -20,7 +19,7 @@ define('CLR_CYAN', "\033[36m");
 define('CLR_BOLD', "\033[1m");
 
 echo CLR_BOLD . CLR_CYAN . "============================================================\n";
-echo "   TIẾN TRÌNH DỌN DẸP HỒ SƠ TRỐNG (CHUYỂN VỀ CHƯA NHẬP HỒ SƠ)\n";
+echo "   TIẾN TRÌNH DỌN DẸP HỒ SƠ TRỐNG (TỐI ƯU HÓA TRUY VẤN)\n";
 echo "============================================================\n" . CLR_RESET;
 
 $envFile = __DIR__ . '/../.env';
@@ -58,9 +57,9 @@ $sessionId = 3; // Ghi danh sớm
 try {
     $db->beginTransaction();
 
-    // 1. Tìm các ID hồ sơ trống
-    $stmtFind = $db->prepare("
-        SELECT hs.id, hs.so_cccd, t.ho_va_ten
+    // 1. Đếm số lượng hồ sơ trống trước khi xoá
+    $sqlCount = "
+        SELECT COUNT(*)
         FROM ho_so_xet_tuyen hs
         INNER JOIN thi_sinh t ON hs.so_cccd = t.so_cccd
         WHERE hs.dot_tuyen_sinh_id = ?
@@ -71,23 +70,36 @@ try {
               WHERE nv_check.ho_so_id = hs.id 
                  OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id)
           )
-    ");
-    $stmtFind->execute([$sessionId]);
-    $emptyApps = $stmtFind->fetchAll(PDO::FETCH_ASSOC);
-    $count = count($emptyApps);
+    ";
+    $stmtCount = $db->prepare($sqlCount);
+    $stmtCount->execute([$sessionId]);
+    $count = (int)$stmtCount->fetchColumn();
 
     echo CLR_BOLD . "Tìm thấy $count hồ sơ trống cần dọn dẹp ở đợt 'Ghi danh sớm'.\n" . CLR_RESET;
 
     if ($count > 0) {
-        $stmtDelete = $db->prepare("DELETE FROM ho_so_xet_tuyen WHERE id = ?");
+        $startTime = microtime(true);
         
-        foreach ($emptyApps as $idx => $app) {
-            $stt = $idx + 1;
-            echo "[$stt/$count] Đang dọn hồ sơ của: {$app['ho_va_ten']} ({$app['so_cccd']}) -> Xoá dòng ho_so_xet_tuyen trống.\n";
-            if (!$dryRun) {
-                $stmtDelete->execute([$app['id']]);
-            }
+        // Thực thi xoá toàn bộ bằng một câu lệnh đơn
+        $sqlDelete = "
+            DELETE FROM ho_so_xet_tuyen hs
+            WHERE hs.dot_tuyen_sinh_id = ?
+              AND hs.deleted_at IS NULL
+              AND EXISTS (SELECT 1 FROM thi_sinh t WHERE t.so_cccd = hs.so_cccd AND t.deleted_at IS NULL)
+              AND NOT EXISTS (
+                  SELECT 1 FROM nguyen_vong nv_check 
+                  WHERE nv_check.ho_so_id = hs.id 
+                     OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id)
+              )
+        ";
+        
+        if (!$dryRun) {
+            $stmtDelete = $db->prepare($sqlDelete);
+            $stmtDelete->execute([$sessionId]);
         }
+        
+        $elapsed = round(microtime(true) - $startTime, 4);
+        echo "Thời gian thực thi truy cập DB: $elapsed giây.\n";
     }
 
     if ($dryRun) {
@@ -95,7 +107,7 @@ try {
         echo "\n" . CLR_YELLOW . CLR_BOLD . "⚠️ Chạy ở chế độ DRY-RUN: Đã rollback toàn bộ thay đổi. CSDL an toàn.\n" . CLR_RESET;
     } else {
         $db->commit();
-        echo "\n" . CLR_GREEN . CLR_BOLD . "✅ ĐÃ XOÁ $count HỒ SƠ TRỐNG VÀ LƯU VÀO CSDL THÀNH CÔNG!\n" . CLR_RESET;
+        echo "\n" . CLR_GREEN . CLR_BOLD . "✅ ĐÃ XOÁ THÀNH CÔNG $count HỒ SƠ TRỐNG KHỎI CƠ SỞ DỮ LIỆU!\n" . CLR_RESET;
     }
 
 } catch (Exception $e) {
