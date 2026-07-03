@@ -360,29 +360,53 @@ class CandidateController extends Controller
 
         // Defensive fallback: If action is send_email and ids is empty or sendToAll is true
         if ($action === 'send_email' && (empty($ids) || $ids === ['ALL'] || $sendToAll === 'true')) {
-            // Attempt to extract session_id from redirect_to query parameters
-            if (empty($currentSessionId)) {
-                $urlToParse = $_POST['redirect_to'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-                if ($urlToParse) {
-                    $queryString = parse_url($urlToParse, PHP_URL_QUERY);
-                    if ($queryString) {
-                        parse_str($queryString, $queryParams);
-                        $currentSessionId = $queryParams['session_id'] ?? null;
-                    }
-                }
-            }
+            $urlToParse = $_POST['redirect_to'] ?? $_SERVER['HTTP_REFERER'] ?? '';
+            $isGhost = (strpos($urlToParse, 'candidate-management') !== false);
 
-            if ($currentSessionId) {
+            if ($isGhost) {
                 $db = \App\Core\Database::getInstance()->getConnection();
                 $stmt = $db->prepare("
                     SELECT DISTINCT t.so_cccd, t.ho_va_ten, t.email
                     FROM thi_sinh t
-                    INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
-                    WHERE t.deleted_at IS NULL AND hs.dot_tuyen_sinh_id = ? AND t.email IS NOT NULL AND t.email != ''
+                    WHERE t.deleted_at IS NULL
+                      AND NOT EXISTS (
+                          SELECT 1 FROM ho_so_xet_tuyen hs 
+                          WHERE hs.so_cccd = t.so_cccd 
+                            AND EXISTS (
+                                SELECT 1 FROM nguyen_vong nv_check 
+                                WHERE nv_check.ho_so_id = hs.id 
+                                   OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id)
+                            )
+                      )
+                      AND t.email IS NOT NULL AND t.email != ''
                 ");
-                $stmt->execute([$currentSessionId]);
+                $stmt->execute();
                 $candidatesForSend = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 $ids = $candidatesForSend;
+            } else {
+                // Attempt to extract session_id from redirect_to query parameters
+                if (empty($currentSessionId)) {
+                    if ($urlToParse) {
+                        $queryString = parse_url($urlToParse, PHP_URL_QUERY);
+                        if ($queryString) {
+                            parse_str($queryString, $queryParams);
+                            $currentSessionId = $queryParams['session_id'] ?? null;
+                        }
+                    }
+                }
+
+                if ($currentSessionId) {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("
+                        SELECT DISTINCT t.so_cccd, t.ho_va_ten, t.email
+                        FROM thi_sinh t
+                        INNER JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
+                        WHERE t.deleted_at IS NULL AND hs.dot_tuyen_sinh_id = ? AND t.email IS NOT NULL AND t.email != ''
+                    ");
+                    $stmt->execute([$currentSessionId]);
+                    $candidatesForSend = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    $ids = $candidatesForSend;
+                }
             }
         }
 

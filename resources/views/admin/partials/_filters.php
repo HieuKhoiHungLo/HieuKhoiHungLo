@@ -150,6 +150,9 @@
             <a href="<?= url('/admin/candidate-management/export') ?>?<?= http_build_query($_GET) ?>" class="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition shadow-sm">
                 <i class="fas fa-file-excel"></i> Xuất dữ liệu
             </a>
+            <button type="button" onclick="openSendEmailToAllModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
+                <i class="fas fa-envelope-open-text"></i> Gửi thư tất cả
+            </button>
             <?php endif; ?>
 
             <a href="<?= url('/admin/candidates/trash') ?>" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-red-600 hover:border-red-200 transition shadow-sm" title="Xem hồ sơ đã xóa">

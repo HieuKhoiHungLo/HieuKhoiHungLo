@@ -943,7 +943,13 @@ function sort_url($field, $currentSort, $currentDir, $baseUrl, $filters) {
         if (typeof updateBulkUI === 'function') updateBulkUI();
 
         const countEl = document.getElementById('email-target-count');
-        if (countEl) countEl.innerHTML = '<span class="text-rose-600 font-bold">TẤT CẢ THÍ SINH ĐỢT NÀY</span>';
+        if (countEl) {
+            <?php if (isset($mode) && $mode === 'all'): ?>
+            countEl.innerHTML = '<span class="text-rose-600 font-bold">TẤT CẢ THÍ SINH CHƯA NHẬP HỒ SƠ</span>';
+            <?php else: ?>
+            countEl.innerHTML = '<span class="text-rose-600 font-bold">TẤT CẢ THÍ SINH ĐỢT NÀY</span>';
+            <?php endif; ?>
+        }
 
         // Add or update a hidden input to mark send_to_all = true
         let sendToAllInput = document.getElementById('email-modal-send-to-all');
