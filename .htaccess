@@ -10,6 +10,15 @@
     RewriteBase /TS/
     # (Change to RewriteBase / on production host)
     
+    # Block direct access to sensitive files and folders
+    RewriteRule ^\.env$ - [R=404,L]
+    RewriteRule ^client_secret\.json$ - [R=404,L]
+    RewriteRule ^credentials\.json$ - [R=404,L]
+    RewriteRule ^token\.json$ - [R=404,L]
+    RewriteRule ^migrations/ - [R=404,L]
+    RewriteRule ^_trash/ - [R=404,L]
+    RewriteRule ^mota/ - [R=404,L]
+
     # Serve static assets directly from public/
     RewriteCond %{REQUEST_URI} \.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|webp|json)$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
