@@ -8,8 +8,11 @@ try {
 use App\Core\Cache;
 
 try {
+    if (function_exists('opcache_reset')) {
+        opcache_reset();
+    }
     Cache::flush();
-    echo "<h1 style='color: green;'>Success: Cleared all cache files in storage/cache!</h1>";
+    echo "<h1 style='color: green;'>Success: Cleared all cache files in storage/cache and reset OPcache!</h1>";
     echo "<p><a href='/admin/dashboard'>Go back to Dashboard</a></p>";
 } catch (\Exception $e) {
     echo "<h1 style='color: red;'>Error: " . $e->getMessage() . "</h1>";
