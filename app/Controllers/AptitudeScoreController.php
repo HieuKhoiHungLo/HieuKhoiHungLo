@@ -192,8 +192,8 @@ class AptitudeScoreController extends Controller {
 
         $file = $_FILES['excel_file']['tmp_name'];
         $extension = pathinfo($_FILES['excel_file']['name'], PATHINFO_EXTENSION);
-        if (!in_array(strtolower($extension), ['csv'])) {
-            $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .csv (UTF-8).";
+        if (!in_array(strtolower($extension), ['csv', 'xls', 'xlsx'])) {
+            $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .csv, .xls hoặc .xlsx.";
             $this->redirect('/admin/aptitude-scores' . ($sessionId ? '?session_id=' . $sessionId : ''));
         }
 
@@ -203,37 +203,46 @@ class AptitudeScoreController extends Controller {
             $db = $this->model->getDb();
             $db->beginTransaction();
             
-            if (($handle = fopen($file, "r")) !== FALSE) {
-                // Skip header
-                fgetcsv($handle, 1000, ",");
-                
-                while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                    if (count($row) < 4) {
-                        $errorCount++;
-                        continue;
-                    }
-                    if (empty($row[0]) || empty($row[3])) continue; // Missing CCCD or Score
-
-                    $cccd = trim($row[0] ?? '');
-                    $sbd = trim($row[1] ?? '');
-                    $maMon = trim($row[2] ?? 'NK1');
-                    $score = trim($row[3] ?? 0);
-                    $note = trim($row[4] ?? '');
-
-                    if ($cccd && is_numeric($score)) {
-                        $stmtDel = $db->prepare("DELETE FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-                        $stmtDel->execute([$cccd, $maMon, $sessionId]);
-                        
-                        $stmtIns = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)");
-                        $stmtIns->execute([$cccd, $sbd, $maMon, $score, $note, $sessionId]);
-                        
-                        $successCount++;
-                    } else {
-                        $errorCount++;
-                    }
-                }
-                fclose($handle);
+            // Load file using PhpSpreadsheet (supports csv, xls, xlsx out of the box)
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+            $rows = array_values($spreadsheet->getActiveSheet()->toArray(null, true, true, true));
+            
+            if (count($rows) <= 1) {
+                throw new \Exception("File không chứa dữ liệu hoặc chỉ có dòng tiêu đề.");
             }
+
+            // Skip header (row 1)
+            for ($i = 1; $i < count($rows); $i++) {
+                $row = $rows[$i];
+                
+                $cccd = isset($row['A']) ? trim((string)$row['A']) : '';
+                $sbd = isset($row['B']) ? trim((string)$row['B']) : '';
+                $maMon = isset($row['C']) ? trim((string)$row['C']) : 'NK1';
+                $score = isset($row['D']) ? trim((string)$row['D']) : '';
+                $note = isset($row['E']) ? trim((string)$row['E']) : '';
+
+                if (empty($cccd) || $score === '') {
+                    continue;
+                }
+
+                // Normalize score (replace comma with dot if user typed e.g. 8,5)
+                $score = str_replace(',', '.', $score);
+
+                if ($cccd && is_numeric($score)) {
+                    $stmtDel = $db->prepare("DELETE FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
+                    $stmtDel->execute([$cccd, $maMon, $sessionId]);
+                    
+                    $stmtIns = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmtIns->execute([$cccd, $sbd, $maMon, $score, $note, $sessionId]);
+                    
+                    $successCount++;
+                } else {
+                    $errorCount++;
+                }
+            }
+
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
 
             $db->commit();
             $_SESSION['flash_success'] = "Import thành công $successCount bản ghi. Lỗi: $errorCount bản ghi.";
