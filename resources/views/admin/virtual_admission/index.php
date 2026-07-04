@@ -73,19 +73,13 @@ if (!empty($combinations)) {
                 <span>Đồng bộ dữ liệu</span>
             </button>
             
-            <!-- 2. Score Calculation Button with Mode toggle inside a clean container -->
-            <div class="flex items-center gap-2.5 bg-amber-50 rounded-lg border border-amber-200 p-1 pr-3">
-                <button @click="recalculate()" 
-                        class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
-                        :disabled="isLoading || !selectedSession">
-                    <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
-                    <span x-text="forceRecalculate ? 'Tính lại toàn bộ' : 'Tính điểm (Smart)'"></span>
-                </button>
-                <label class="flex items-center gap-1.5 cursor-pointer ml-1 select-none">
-                    <input type="checkbox" x-model="forceRecalculate" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-amber-300">
-                    <span class="text-[10px] font-bold text-amber-700 uppercase">Toàn bộ</span>
-                </label>
-            </div>
+            <!-- 2. Score Calculation Button -->
+            <button @click="recalculate()" 
+                    class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
+                    :disabled="isLoading || !selectedSession">
+                <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
+                <span>Tính lại toàn bộ</span>
+            </button>
             
             <!-- 3. Run Virtual Filter Button -->
             <button @click="runVirtualFilter()" 
@@ -689,25 +683,20 @@ if (!empty($combinations)) {
                 });
             },
 
-            forceRecalculate: false,
-            
             recalculate() {
-                const isFull = this.forceRecalculate;
-                const confirmMsg = isFull 
-                    ? 'Bạn có chắc chắn muốn TÍNH LẠI TOÀN BỘ điểm cho tất cả thí sinh? Quá trình này sẽ tốn nhiều thời gian hơn.' 
-                    : 'Hệ thống sẽ chỉ tính điểm cho những hồ sơ mới hoặc có thay đổi dữ liệu. Bạn có muốn tiếp tục?';
+                const confirmMsg = 'Bạn có chắc chắn muốn TÍNH LẠI TOÀN BỘ điểm cho tất cả thí sinh?';
 
                 if (!confirm(confirmMsg)) return;
                 
                 this.isCalculating = true;
-                this.startLoading(isFull ? 'Đăng khởi tạo hàng chờ tính điểm toàn bộ...' : 'Đang kiểm tra hồ sơ cần cập nhật...', true);
+                this.startLoading('Đang khởi tạo hàng chờ tính điểm toàn bộ...', true);
                 
                 // 1. Get the list of CCCDs first
                 $.ajax({
                     url: '<?= url("/admin/api/vf/get-cccds") ?>',
                     data: { 
                         session_id: this.selectedSession,
-                        force: isFull ? 1 : 0
+                        force: 1
                     },
                     success: (res) => {
                         if (!res.success || !res.cccds.length) {
