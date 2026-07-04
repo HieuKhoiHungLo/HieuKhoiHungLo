@@ -234,8 +234,8 @@ class ScoreCalculationService {
         // 1. Fetch ALL Data (Uses bulkData if pre-loaded)
         $transcriptavgs = $this->calculateTranscriptAverages($cccd);
         $thptScores = $this->getThptScores($cccd);
-        $certificates = $this->getCertificates($cccd);
-        $aptitudeScores = $this->getAptitudeScores($cccd);
+        $certificates = $this->getCertificates($cccd, $sessionId);
+        $aptitudeScores = $this->getAptitudeScores($cccd, $sessionId);
         
         // 1b. Calculate Priority Points (Area + Object)
         $priorityPoints = $this->calculatePriorityPoints($cccd, $sessionId);
@@ -916,14 +916,16 @@ class ScoreCalculationService {
         return $scores;
     }
 
-    protected function getCertificates($cccd) {
+    protected function getCertificates($cccd, $sessionId = null) {
         if ($this->bulkData) {
             return $this->bulkData['certs'][$cccd] ?? [];
         }
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         if ($sessionId) {
             $sql = "SELECT m.id as mon_id, d.diem 
@@ -943,14 +945,16 @@ class ScoreCalculationService {
         return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
 
-    protected function getAptitudeScores($cccd) {
+    protected function getAptitudeScores($cccd, $sessionId = null) {
         if ($this->bulkData) {
             return $this->bulkData['aptitude'][$cccd] ?? [];
         }
 
-        $sessionModel = new \App\Models\AdmissionSession();
-        $activeSession = $sessionModel->getActiveSession();
-        $sessionId = $activeSession ? $activeSession['id'] : null;
+        if (!$sessionId) {
+            $sessionModel = new \App\Models\AdmissionSession();
+            $activeSession = $sessionModel->getActiveSession();
+            $sessionId = $activeSession ? $activeSession['id'] : null;
+        }
 
         if ($sessionId) {
             $sql = "SELECT m.id as mon_id, d.diem 
