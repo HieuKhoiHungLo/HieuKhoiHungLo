@@ -89,6 +89,17 @@ ob_start();
         <?php unset($_SESSION['flash_error']); ?>
     <?php endif; ?>
 
+    <?php if (isset($_SESSION['flash_warning'])): ?>
+        <div class="mb-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-start shadow-sm">
+            <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5 mr-3"></i>
+            <div>
+                <h3 class="text-amber-800 font-bold text-sm">Cảnh báo!</h3>
+                <p class="text-amber-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_warning']) ?></p>
+            </div>
+        </div>
+        <?php unset($_SESSION['flash_warning']); ?>
+    <?php endif; ?>
+
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
         <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <h2 class="font-bold text-slate-700 flex items-center gap-2">

@@ -251,8 +251,8 @@ class AptitudeScoreController extends Controller {
 
             $successCount = 0;
             $errorCount = 0;
-            $hasErrors = false;
             $importData = [];
+            $validRows = [];
 
             for ($i = 1; $i < count($rows); $i++) {
                 $row = $rows[$i];
@@ -319,7 +319,6 @@ class AptitudeScoreController extends Controller {
                 }
 
                 if (!empty($errorMsg)) {
-                    $hasErrors = true;
                     $status = "Thất bại";
                     $reason = $errorMsg;
                     $errorCount++;
@@ -327,6 +326,11 @@ class AptitudeScoreController extends Controller {
                     $status = "Thành công";
                     $reason = "";
                     $successCount++;
+                    $validRows[] = [
+                        'CMND' => $cccd,
+                        'Mã môn NK' => $maMon,
+                        'Điểm' => $scoreRaw
+                    ];
                 }
 
                 $importData[] = [
@@ -338,65 +342,72 @@ class AptitudeScoreController extends Controller {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
-            if ($hasErrors) {
-                $db->rollBack();
+            // Import valid rows if any
+            if (!empty($validRows)) {
+                $validCccds = array_unique(array_column($validRows, 'CMND'));
+                $sbdMap = [];
+                if (!empty($validCccds)) {
+                    $placeholders = implode(',', array_fill(0, count($validCccds), '?'));
+                    $stmtSbd = $db->prepare("SELECT so_cccd, sbd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
+                    $stmtSbd->execute(array_merge($validCccds, [$sessionId]));
+                    $sbdRows = $stmtSbd->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($sbdRows as $sbdRow) {
+                        $sbdMap[$sbdRow['so_cccd']] = $sbdRow['sbd'];
+                    }
+                }
+
+                // Bulk delete old scores for validRows tuples
+                $deleteOrs = [];
+                $deleteParams = [];
+                foreach ($validRows as $vRow) {
+                    $deleteOrs[] = "(so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?)";
+                    $deleteParams[] = $vRow['CMND'];
+                    $deleteParams[] = $vRow['Mã môn NK'];
+                    $deleteParams[] = $sessionId;
+                }
+                if (!empty($deleteOrs)) {
+                    $deleteChunks = array_chunk($deleteOrs, 100);
+                    $paramChunks = array_chunk($deleteParams, 300);
+                    for ($k = 0; $k < count($deleteChunks); $k++) {
+                        $sqlDel = "DELETE FROM diem_nang_khieu WHERE " . implode(" OR ", $deleteChunks[$k]);
+                        $stmtDel = $db->prepare($sqlDel);
+                        $stmtDel->execute($paramChunks[$k]);
+                    }
+                }
+
+                // Bulk insert new scores in validRows
+                $insertValues = [];
+                $insertParams = [];
+                foreach ($validRows as $vRow) {
+                    $cccd = $vRow['CMND'];
+                    $maMon = $vRow['Mã môn NK'];
+                    $score = floatval(str_replace(',', '.', $vRow['Điểm']));
+                    $sbd = $sbdMap[$cccd] ?? '';
+                    $insertValues[] = "(?, ?, ?, ?, ?, ?)";
+                    $insertParams[] = $cccd; $insertParams[] = $sbd; $insertParams[] = $maMon;
+                    $insertParams[] = $score; $insertParams[] = 'Import Excel'; $insertParams[] = $sessionId;
+                }
+                if (!empty($insertValues)) {
+                    $valueChunks = array_chunk($insertValues, 100);
+                    $paramChunks = array_chunk($insertParams, 600);
+                    for ($k = 0; $k < count($valueChunks); $k++) {
+                        $sqlIns = "INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES " . implode(", ", $valueChunks[$k]);
+                        $stmtIns = $db->prepare($sqlIns);
+                        $stmtIns->execute($paramChunks[$k]);
+                    }
+                }
+            }
+
+            $db->commit();
+
+            if ($errorCount > 0) {
+                $_SESSION['flash_warning'] = "Đã import thành công $successCount bản ghi hợp lệ. Có $errorCount bản ghi bị lỗi thông tin đã được bỏ qua và tải về báo cáo lỗi.";
                 $exportService = new \App\Services\ExportService();
                 $exportService->toExcel($importData, 'ket_qua_import_diem_nang_khieu_loi.xls');
                 exit;
             }
 
-            $sbdMap = [];
-            if (!empty($cccds)) {
-                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
-                $stmtSbd = $db->prepare("SELECT so_cccd, sbd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
-                $stmtSbd->execute(array_merge($cccds, [$sessionId]));
-                $sbdRows = $stmtSbd->fetchAll(\PDO::FETCH_ASSOC);
-                foreach ($sbdRows as $sbdRow) {
-                    $sbdMap[$sbdRow['so_cccd']] = $sbdRow['sbd'];
-                }
-            }
-
-            $deleteOrs = [];
-            $deleteParams = [];
-            foreach ($importData as $row) {
-                $deleteOrs[] = "(so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?)";
-                $deleteParams[] = $row['CMND'];
-                $deleteParams[] = $row['Mã môn NK'];
-                $deleteParams[] = $sessionId;
-            }
-            if (!empty($deleteOrs)) {
-                $deleteChunks = array_chunk($deleteOrs, 100);
-                $paramChunks = array_chunk($deleteParams, 300);
-                for ($k = 0; $k < count($deleteChunks); $k++) {
-                    $sqlDel = "DELETE FROM diem_nang_khieu WHERE " . implode(" OR ", $deleteChunks[$k]);
-                    $stmtDel = $db->prepare($sqlDel);
-                    $stmtDel->execute($paramChunks[$k]);
-                }
-            }
-
-            $insertValues = [];
-            $insertParams = [];
-            foreach ($importData as $row) {
-                $cccd = $row['CMND'];
-                $maMon = $row['Mã môn NK'];
-                $score = floatval(str_replace(',', '.', $row['Điểm']));
-                $sbd = $sbdMap[$cccd] ?? '';
-                $insertValues[] = "(?, ?, ?, ?, ?, ?)";
-                $insertParams[] = $cccd; $insertParams[] = $sbd; $insertParams[] = $maMon;
-                $insertParams[] = $score; $insertParams[] = 'Import Excel'; $insertParams[] = $sessionId;
-            }
-            if (!empty($insertValues)) {
-                $valueChunks = array_chunk($insertValues, 100);
-                $paramChunks = array_chunk($insertParams, 600);
-                for ($k = 0; $k < count($valueChunks); $k++) {
-                    $sqlIns = "INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES " . implode(", ", $valueChunks[$k]);
-                    $stmtIns = $db->prepare($sqlIns);
-                    $stmtIns->execute($paramChunks[$k]);
-                }
-            }
-
-            $db->commit();
-            $_SESSION['flash_success'] = "Import thành công $successCount bản ghi điểm năng khiếu!";
+            $_SESSION['flash_success'] = "Import thành công toàn bộ $successCount bản ghi điểm năng khiếu!";
         } catch (\Exception $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();

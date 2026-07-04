@@ -996,7 +996,7 @@ class ExportService {
                         'Mã Trường', 'Mã trường', 'Mã Tỉnh', 'Mã tỉnh', 
                         'Mã Huyện', 'Mã huyện', 'Mã Xã', 'Mã xã',
                         'Mã Huyện/Quận', 'Mã Xã/Phường', 'Mã Tỉnh/Thành', 'Mã Tỉnh/Thành phố',
-                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực'
+                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực', 'CMND'
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';
