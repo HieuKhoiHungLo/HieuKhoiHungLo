@@ -348,7 +348,7 @@ ob_start();
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => {
+                .then(async response => {
                     clearInterval(progressInterval);
                     this.progress = 100;
                     this.currentLoadingMessage = 'Hoàn tất nạp dữ liệu!';
@@ -356,30 +356,51 @@ ob_start();
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/vnd.ms-excel')) {
                         // Trả về file báo cáo lỗi (validation failure)
-                        return response.blob().then(blob => {
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'ket_qua_import_diem_nang_khieu_loi.xls';
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            window.URL.revokeObjectURL(url);
-                            
-                            this.isLoading = false;
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'ket_qua_import_diem_nang_khieu_loi.xls';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        
+                        this.isLoading = false;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Phát hiện dữ liệu không khớp!',
+                            text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã nhập các dòng hợp lệ và tự động tải về file Excel báo cáo lỗi chi tiết.',
+                            confirmButtonColor: '#3B82F6',
+                            confirmButtonText: 'Đóng'
+                        }).then(() => {
+                            window.location.href = '<?= url("/admin/aptitude-scores") ?>?session_id=' + this.selectedSession;
+                        });
+                    } else if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        this.isLoading = false;
+                        if (data.success) {
                             Swal.fire({
-                                icon: 'warning',
-                                title: 'Phát hiện dữ liệu không khớp!',
-                                text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã nhập các dòng hợp lệ và tự động tải về file Excel báo cáo lỗi chi tiết.',
-                                confirmButtonColor: '#3B82F6',
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: data.message,
+                                confirmButtonColor: '#10B981',
                                 confirmButtonText: 'Đóng'
                             }).then(() => {
-                                location.reload();
+                                window.location.href = '<?= url("/admin/aptitude-scores") ?>?session_id=' + this.selectedSession;
                             });
-                        });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi import!',
+                                text: data.message,
+                                confirmButtonColor: '#EF4444',
+                                confirmButtonText: 'Đóng'
+                            });
+                        }
                     } else {
-                        // Thành công, reload lại để hiển thị flash message
-                        location.reload();
+                        this.isLoading = false;
+                        window.location.href = '<?= url("/admin/aptitude-scores") ?>?session_id=' + this.selectedSession;
                     }
                 })
                 .catch(error => {

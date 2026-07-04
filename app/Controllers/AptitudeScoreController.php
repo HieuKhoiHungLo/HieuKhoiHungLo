@@ -174,12 +174,23 @@ class AptitudeScoreController extends Controller {
     }
 
     public function import() {
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => 'Yêu cầu không hợp lệ.']);
+                return;
+            }
             $this->redirect('/admin/aptitude-scores');
         }
 
         if (!isset($_FILES['excel_file']) || $_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['flash_error'] = "Vui lòng chọn file hợp lệ.";
+            $msg = "Vui lòng chọn file hợp lệ.";
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $msg]);
+                return;
+            }
+            $_SESSION['flash_error'] = $msg;
             $this->redirect('/admin/aptitude-scores');
         }
 
@@ -193,7 +204,12 @@ class AptitudeScoreController extends Controller {
         $file = $_FILES['excel_file']['tmp_name'];
         $extension = pathinfo($_FILES['excel_file']['name'], PATHINFO_EXTENSION);
         if (!in_array(strtolower($extension), ['csv', 'xls', 'xlsx'])) {
-            $_SESSION['flash_error'] = "Vui lòng sử dụng định dạng file .csv, .xls hoặc .xlsx.";
+            $msg = "Vui lòng sử dụng định dạng file .csv, .xls hoặc .xlsx.";
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => $msg]);
+                return;
+            }
+            $_SESSION['flash_error'] = $msg;
             $this->redirect('/admin/aptitude-scores' . ($sessionId ? '?session_id=' . $sessionId : ''));
         }
 
@@ -407,10 +423,19 @@ class AptitudeScoreController extends Controller {
                 exit;
             }
 
+            if ($isAjax) {
+                $this->json(['success' => true, 'message' => "Import thành công toàn bộ $successCount bản ghi điểm năng khiếu!"]);
+                return;
+            }
+
             $_SESSION['flash_success'] = "Import thành công toàn bộ $successCount bản ghi điểm năng khiếu!";
         } catch (\Exception $e) {
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
+            }
+            if ($isAjax) {
+                $this->json(['success' => false, 'message' => "Lỗi xử lý file: " . $e->getMessage()]);
+                return;
             }
             $_SESSION['flash_error'] = "Lỗi xử lý file: " . $e->getMessage();
         }
