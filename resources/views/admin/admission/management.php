@@ -145,84 +145,85 @@ ob_start();
 
         <!-- Scrollable Table Body -->
         <div class="flex-1 overflow-auto custom-scrollbar">
-            <table class="w-full text-left border-collapse min-w-[950px]">
+            <table class="w-full text-left border-collapse border border-slate-300 min-w-[950px]">
                 <thead>
-                    <tr class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-24 cursor-pointer select-none" @click="toggleSort('has_benchmark')">
-                            Xét <i class="fas ml-1" :class="sortBy === 'has_benchmark' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
+                    <tr class="bg-slate-100 sticky top-0 z-10 border-b border-slate-300 text-black">
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-24 cursor-pointer select-none" @click="toggleSort('has_benchmark')">
+                            Xét <i class="fas ml-1 text-xs" :class="sortBy === 'has_benchmark' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
                         </th>
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none" @click="toggleSort('ma_nganh')">
-                            Ngành & Nhóm <i class="fas ml-1" :class="sortBy === 'ma_nganh' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-28 cursor-pointer select-none" @click="toggleSort('ma_nganh')">
+                            Mã ngành <i class="fas ml-1 text-xs" :class="sortBy === 'ma_nganh' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
                         </th>
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-44">Ngưỡng sàn (Ref)</th>
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-32 cursor-pointer select-none" @click="toggleSort('chi_tieu')">
-                            Chỉ tiêu <i class="fas ml-1" :class="sortBy === 'chi_tieu' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 cursor-pointer select-none" @click="toggleSort('ten_nganh')">
+                            Tên ngành <i class="fas ml-1 text-xs" :class="sortBy === 'ten_nganh' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
                         </th>
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-40 cursor-pointer select-none" @click="toggleSort('diem_chuan')">
-                            Điểm chuẩn <i class="fas ml-1" :class="sortBy === 'diem_chuan' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 cursor-pointer select-none" @click="toggleSort('nhom_nganh')">
+                            Nhóm ngành <i class="fas ml-1 text-xs" :class="sortBy === 'nhom_nganh' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
                         </th>
-                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-56">
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-40">Ngưỡng sàn (Ref)</th>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-24 cursor-pointer select-none" @click="toggleSort('chi_tieu')">
+                            Chỉ tiêu <i class="fas ml-1 text-xs" :class="sortBy === 'chi_tieu' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
+                        </th>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-36 cursor-pointer select-none" @click="toggleSort('diem_chuan')">
+                            Điểm chuẩn <i class="fas ml-1 text-xs" :class="sortBy === 'diem_chuan' ? (sortAsc ? 'fa-sort-up text-slate-700' : 'fa-sort-down text-slate-700') : 'fa-sort text-slate-400'"></i>
+                        </th>
+                        <th class="px-3 py-2 text-sm font-normal text-black border border-slate-300 text-center w-48">
                             Tiêu chí phụ
-                            <i class="fas fa-question-circle text-[10px] text-slate-400 cursor-help" title="Dùng để xét ưu tiên khi các thí sinh bằng điểm nhau (VD: Toán >= 8.0)"></i>
                         </th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-200">
                     <template x-for="(item, index) in filteredData" :key="item.ma_nganh">
-                        <tr class="hover-row-highlight border-b border-slate-100 transition-colors"
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-200"
                             :class="{
-                                'bg-emerald-50/15 border-l-4 border-l-emerald-500': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
+                                'bg-emerald-50/10': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
                                 'opacity-60 bg-slate-50/30': !item.has_benchmark
                             }">
                             <!-- Cột công tắc Xét (Kiểu Checkbox đơn giản, dễ nhìn) -->
-                            <td class="px-6 py-4.5 text-center">
-                                <div class="flex flex-col items-center justify-center">
+                            <td class="px-3 py-2 border border-slate-300 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
                                     <input type="checkbox" 
                                            x-model="item.has_benchmark" 
                                            @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.diem_chuan_display = '0.000'; item.tieuchi_phu = ''; }" 
-                                           class="w-5 h-5 rounded border-slate-350 text-emerald-600 focus:ring-emerald-500 cursor-pointer transition-all">
-                                    <div x-show="!item.has_benchmark" class="text-[9px] font-bold text-slate-400 mt-1.5 uppercase tracking-wide">Ngưng</div>
-                                    <div x-show="item.has_benchmark" class="text-[9px] font-bold text-emerald-600 mt-1.5 uppercase tracking-wide">Xét</div>
+                                           class="w-4 h-4 rounded border-slate-350 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                                    <span x-show="item.has_benchmark" class="text-xs text-emerald-600 font-normal">Xét</span>
+                                    <span x-show="!item.has_benchmark" class="text-xs text-slate-400 font-normal">Ngưng</span>
                                 </div>
                             </td>
                             
-                            <!-- Cột Ngành & Nhóm -->
-                            <td class="px-6 py-4.5">
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-slate-700 text-sm hover:text-indigo-600 transition-colors" x-text="item.ten_nganh"></span>
-                                    <div class="flex items-center gap-2 mt-1.5">
-                                        <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border bg-indigo-50/50 text-indigo-700 border-indigo-100" x-text="item.ma_nganh"></span>
-                                        <span class="text-[10px] text-slate-400 italic" x-text="item.nhom_nganh"></span>
-                                    </div>
-                                </div>
-                            </td>
+                            <!-- Cột Mã ngành -->
+                            <td class="px-3 py-2 border border-slate-300 text-center text-sm font-mono text-black font-normal" x-text="item.ma_nganh"></td>
+                            
+                            <!-- Cột Tên ngành -->
+                            <td class="px-3 py-2 border border-slate-300 text-sm text-black font-normal" x-text="item.ten_nganh"></td>
+
+                            <!-- Cột Nhóm ngành -->
+                            <td class="px-3 py-2 border border-slate-300 text-sm text-slate-700 font-normal" x-text="item.nhom_nganh"></td>
                             
                             <!-- Cột Ngưỡng Sàn (Ref) -->
-                            <td class="px-6 py-4.5">
-                                <div class="flex flex-col gap-1 items-center justify-center">
+                            <td class="px-3 py-2 border border-slate-300 text-center">
+                                <div class="flex items-center justify-center gap-1.5 text-xs font-normal">
                                     <template x-if="item.nguong_hoc_luc">
-                                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
+                                        <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/50">
                                             HL: <span x-text="item.nguong_hoc_luc"></span>
                                         </span>
                                     </template>
                                     <template x-if="item.nguong_diem_thpt">
-                                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-teal-50 text-teal-700 border border-teal-200/60">
+                                        <span class="px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200/50">
                                             Sàn: <span x-text="item.nguong_diem_thpt"></span>
                                         </span>
                                     </template>
                                     <template x-if="!item.nguong_hoc_luc && !item.nguong_diem_thpt">
-                                        <span class="text-xs text-slate-300">—</span>
+                                        <span class="text-slate-400">—</span>
                                     </template>
                                 </div>
                             </td>
                             
                             <!-- Cột Chỉ tiêu -->
-                            <td class="px-6 py-4.5 text-center">
-                                <div class="inline-block px-3 py-1 rounded-lg text-sm font-bold bg-slate-50 border border-slate-100 text-slate-500 min-w-[65px]" x-text="item.chi_tieu || '—'"></div>
-                            </td>
+                            <td class="px-3 py-2 border border-slate-300 text-center text-sm text-black font-normal" x-text="item.chi_tieu || '—'"></td>
                             
                             <!-- Cột Điểm chuẩn (Hỗ trợ gõ tắt nhanh + hiển thị chuẩn 3 số thập phân) -->
-                            <td class="px-6 py-4.5">
+                            <td class="px-3 py-2 border border-slate-300">
                                 <input type="text" 
                                        placeholder="0.000"
                                        x-model="item.diem_chuan_display" 
@@ -233,16 +234,16 @@ ob_start();
                                            item.diem_chuan_display = item.diem_chuan.toFixed(3);
                                        "
                                        @keydown.enter="$event.target.blur()"
-                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100 font-bold text-indigo-600 shadow-sm premium-input">
+                                       class="w-full text-center py-1 bg-white border border-slate-300 rounded text-sm outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 text-black font-normal">
                             </td>
                             
                             <!-- Cột Tiêu chí phụ -->
-                            <td class="px-6 py-4.5 text-center">
+                            <td class="px-3 py-2 border border-slate-300">
                                 <input type="text" 
                                        placeholder="VD: Toán >= 8.0"
                                        x-model="item.tieuchi_phu" 
                                        :disabled="!item.has_benchmark" 
-                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100 text-slate-600 shadow-sm premium-input">
+                                       class="w-full text-center py-1 bg-white border border-slate-300 rounded text-sm outline-none disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 text-black font-normal">
                             </td>
                         </tr>
                     </template>
