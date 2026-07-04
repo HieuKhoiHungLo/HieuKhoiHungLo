@@ -364,7 +364,7 @@ class AptitudeScoreController extends Controller {
                 $sbdMap = [];
                 if (!empty($validCccds)) {
                     $placeholders = implode(',', array_fill(0, count($validCccds), '?'));
-                    $stmtSbd = $db->prepare("SELECT so_cccd, sbd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
+                    $stmtSbd = $db->prepare("SELECT so_cccd, sbd FROM diem_nang_khieu WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ?");
                     $stmtSbd->execute(array_merge($validCccds, [$sessionId]));
                     $sbdRows = $stmtSbd->fetchAll(\PDO::FETCH_ASSOC);
                     foreach ($sbdRows as $sbdRow) {
