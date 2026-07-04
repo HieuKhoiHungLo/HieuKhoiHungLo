@@ -178,7 +178,7 @@ ob_start();
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <form action="<?= url('/admin/aptitude-scores/import') ?>" method="POST" enctype="multipart/form-data">
+                <form @submit.prevent="submitImport($event)" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="session_id" :value="selectedSession">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -189,14 +189,14 @@ ob_start();
                             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                                 <h3 class="text-lg leading-6 font-bold text-slate-900">Import Điểm Năng khiếu</h3>
                                 <div class="mt-2 text-sm text-slate-500 space-y-2">
-                                    <p>Tải lên file Excel (.xlsx, .csv) có định dạng cột:</p>
-                                    <ol class="list-decimal ml-4 text-xs font-mono bg-slate-50 p-3 rounded-md border border-slate-200">
-                                        <li>CCCD/CMND</li>
-                                        <li>Số báo danh</li>
-                                        <li>Mã môn (Vd: NK1, NK2)</li>
-                                        <li>Điểm thi</li>
-                                        <li>Ghi chú</li>
-                                    </ol>
+                                     <ol class="list-decimal ml-4 text-xs font-mono bg-slate-50 p-3 rounded-md border border-slate-200">
+                                         <li>STT</li>
+                                         <li>CMND</li>
+                                         <li>Họ tên</li>
+                                         <li>Ngày sinh</li>
+                                         <li>Mã môn NK</li>
+                                         <li>Điểm</li>
+                                     </ol>
                                     <div class="mt-2">
                                         <a href="<?= url('/admin/aptitude-scores/template') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-xs font-medium">
                                             <i class="fas fa-download mr-1"></i> Tải file mẫu (.csv)
@@ -230,6 +230,8 @@ ob_start();
             openImportModal: false,
             showEditModal: false,
             editMode: false,
+            isLoading: false,
+            currentLoadingMessage: '',
             selectedYear: '<?= $activeSession ? $activeSession['nam_tuyen_sinh'] : "" ?>',
             selectedSession: '<?= $activeSession ? $activeSession['id'] : "" ?>',
             allSessions: <?= json_encode($sessions) ?>,
@@ -252,6 +254,60 @@ ob_start();
                 } else {
                     window.location.href = '<?= url("/admin/aptitude-scores") ?>';
                 }
+            },
+            submitImport(event) {
+                const form = event.target;
+                const formData = new FormData(form);
+                
+                this.openImportModal = false;
+                this.isLoading = true;
+                this.currentLoadingMessage = 'Đang tải tệp tin và đối chiếu thông tin thí sinh...';
+                
+                fetch('<?= url('/admin/aptitude-scores/import') ?>', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/vnd.ms-excel')) {
+                        // Trả về file báo cáo lỗi (validation failure)
+                        return response.blob().then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'ket_qua_import_diem_nang_khieu_loi.xls';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            window.URL.revokeObjectURL(url);
+                            
+                            this.isLoading = false;
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Phát hiện dữ liệu không khớp!',
+                                text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã hủy import và tự động tải về file Excel báo cáo lỗi chi tiết.',
+                                confirmButtonColor: '#3B82F6',
+                                confirmButtonText: 'Đóng'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        });
+                    } else {
+                        // Thành công, reload lại để hiển thị flash message
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    this.isLoading = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ',
+                        text: error.message || 'Không thể gửi dữ liệu lên máy chủ.'
+                    });
+                });
             },
             openAddModal() {
                 this.editMode = false;
@@ -425,6 +481,53 @@ ob_start();
         }
     }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+.shimmer-glare {
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: loading-shimmer 2s infinite linear;
+}
+
+@keyframes loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes pulsing-slow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulsing-slow {
+    animation: pulsing-slow 3s infinite ease-in-out;
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 6s infinite linear;
+}
+
+@keyframes indeterminate {
+    0% { left: -50%; }
+    100% { left: 100%; }
+}
+.animate-indeterminate {
+    animation: indeterminate 1.5s infinite linear;
+}
+
+[x-cloak] { display: none !important; }
+</style>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../../layouts/admin.php';
