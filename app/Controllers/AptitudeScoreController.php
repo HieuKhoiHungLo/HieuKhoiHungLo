@@ -201,7 +201,6 @@ class AptitudeScoreController extends Controller {
             $db = $this->model->getDb();
             $db->beginTransaction();
 
-            // Load file using PhpSpreadsheet (supports csv, xls, xlsx out of the box)
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
             $rows = array_values($spreadsheet->getActiveSheet()->toArray(null, true, true, true));
             
@@ -209,16 +208,52 @@ class AptitudeScoreController extends Controller {
                 throw new \Exception("File không chứa dữ liệu hoặc chỉ có dòng tiêu đề.");
             }
 
+            // Extract all non-empty CCCDs from the Excel rows first
+            $cccds = [];
+            for ($i = 1; $i < count($rows); $i++) {
+                $row = $rows[$i];
+                $cccd = isset($row['B']) ? trim((string)$row['B']) : '';
+                
+                $hoTen = isset($row['C']) ? trim((string)$row['C']) : '';
+                $rawDob = isset($row['D']) ? trim((string)$row['D']) : '';
+                $scoreRaw = isset($row['F']) ? trim((string)$row['F']) : '';
+                if (empty($cccd) && empty($hoTen) && empty($rawDob) && empty($scoreRaw)) {
+                    continue;
+                }
+                
+                if (!empty($cccd)) {
+                    $cccds[] = $cccd;
+                }
+            }
+            $cccds = array_unique($cccds);
+
+            $candidatesMap = [];
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtTs = $db->prepare("SELECT so_cccd, ho_va_ten, ngay_sinh FROM thi_sinh WHERE so_cccd IN ($placeholders) AND deleted_at IS NULL");
+                $stmtTs->execute($cccds);
+                $tsRows = $stmtTs->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($tsRows as $tsRow) {
+                    $candidatesMap[$tsRow['so_cccd']] = $tsRow;
+                }
+            }
+
+            $applicationsMap = [];
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtHs = $db->prepare("SELECT so_cccd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
+                $stmtHs->execute(array_merge($cccds, [$sessionId]));
+                $hsRows = $stmtHs->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($hsRows as $hsRow) {
+                    $applicationsMap[$hsRow['so_cccd']] = true;
+                }
+            }
+
             $successCount = 0;
             $errorCount = 0;
             $hasErrors = false;
             $importData = [];
 
-            // Prepared statements to check candidate info
-            $stmtTs = $db->prepare("SELECT ho_va_ten, ngay_sinh FROM thi_sinh WHERE so_cccd = ? AND deleted_at IS NULL LIMIT 1");
-            $stmtHs = $db->prepare("SELECT id FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL LIMIT 1");
-
-            // Loop starting from row 2 (index 1)
             for ($i = 1; $i < count($rows); $i++) {
                 $row = $rows[$i];
                 
@@ -229,31 +264,22 @@ class AptitudeScoreController extends Controller {
                 $maMon = isset($row['E']) ? trim((string)$row['E']) : '';
                 $scoreRaw = isset($row['F']) ? trim((string)$row['F']) : '';
 
-                // Skip completely empty rows
                 if (empty($cccd) && empty($hoTen) && empty($rawDob) && empty($scoreRaw)) {
                     continue;
                 }
 
                 $errorMsg = '';
-
-                // 1. Check CCCD is not empty
                 if (empty($cccd)) {
                     $errorMsg = "Số CCCD không được để trống";
                 }
 
-                // 2. Check Candidate Info (CCCD, Name, DOB) matches system
                 if (empty($errorMsg)) {
-                    $stmtTs->execute([$cccd]);
-                    $candidate = $stmtTs->fetch(\PDO::FETCH_ASSOC);
-
+                    $candidate = $candidatesMap[$cccd] ?? null;
                     if (!$candidate) {
                         $errorMsg = "Số ĐDCN, Họ tên, Ngày sinh không khớp trên hệ thống";
                     } else {
-                        // Check full name matches (case insensitive, space normalized)
                         $dbName = mb_strtoupper(preg_replace('/\s+/', ' ', trim($candidate['ho_va_ten'])), 'UTF-8');
                         $excelName = mb_strtoupper(preg_replace('/\s+/', ' ', trim($hoTen)), 'UTF-8');
-
-                        // Check date of birth matches (normalize YYYY-MM-DD vs DD/MM/YYYY)
                         $dbDob = $candidate['ngay_sinh'];
                         $excelDob = '';
                         if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $rawDob, $matches)) {
@@ -265,22 +291,13 @@ class AptitudeScoreController extends Controller {
                             } catch (\Exception $e) {}
                         } else {
                             $ts = strtotime(str_replace('/', '-', $rawDob));
-                            if ($ts) {
-                                $excelDob = date('Y-m-d', $ts);
-                            }
+                            if ($ts) $excelDob = date('Y-m-d', $ts);
                         }
-
-                        $dobMatch = false;
-                        if ($dbDob && $excelDob && date('Y-m-d', strtotime($dbDob)) === $excelDob) {
-                            $dobMatch = true;
-                        }
-
+                        $dobMatch = ($dbDob && $excelDob && date('Y-m-d', strtotime($dbDob)) === $excelDob);
                         if ($dbName !== $excelName || !$dobMatch) {
                             $errorMsg = "Số ĐDCN, Họ tên, Ngày sinh không khớp trên hệ thống";
                         } else {
-                            // Check application in current session
-                            $stmtHs->execute([$cccd, $sessionId]);
-                            $hasApp = $stmtHs->fetchColumn();
+                            $hasApp = $applicationsMap[$cccd] ?? false;
                             if (!$hasApp) {
                                 $errorMsg = "Thí sinh chưa đăng ký hồ sơ trong đợt tuyển sinh này";
                             }
@@ -288,20 +305,16 @@ class AptitudeScoreController extends Controller {
                     }
                 }
 
-                // 3. Check subject code NK1-NK4
                 if (empty($errorMsg)) {
                     if (!in_array($maMon, ['NK1', 'NK2', 'NK3', 'NK4'])) {
                         $errorMsg = "Mã môn năng khiếu không hợp lệ (phải là NK1, NK2, NK3, NK4)";
                     }
                 }
 
-                // 4. Check score numeric and in bounds [0, 10]
                 if (empty($errorMsg)) {
                     $scoreNormalized = str_replace(',', '.', $scoreRaw);
                     if ($scoreNormalized === '' || !is_numeric($scoreNormalized) || floatval($scoreNormalized) < 0 || floatval($scoreNormalized) > 10) {
                         $errorMsg = "Điểm thi không hợp lệ (phải từ 0 đến 10)";
-                    } else {
-                        $score = floatval($scoreNormalized);
                     }
                 }
 
@@ -317,14 +330,8 @@ class AptitudeScoreController extends Controller {
                 }
 
                 $importData[] = [
-                    'STT' => $stt,
-                    'CMND' => $cccd,
-                    'Họ tên' => $hoTen,
-                    'Ngày sinh' => $rawDob,
-                    'Mã môn NK' => $maMon,
-                    'Điểm' => $scoreRaw,
-                    'Kết quả' => $status,
-                    'GHI CHÚ' => $reason
+                    'STT' => $stt, 'CMND' => $cccd, 'Họ tên' => $hoTen, 'Ngày sinh' => $rawDob,
+                    'Mã môn NK' => $maMon, 'Điểm' => $scoreRaw, 'Kết quả' => $status, 'GHI CHÚ' => $reason
                 ];
             }
 
@@ -332,31 +339,60 @@ class AptitudeScoreController extends Controller {
             unset($spreadsheet);
 
             if ($hasErrors) {
-                // Rollback database transaction so nothing is imported
                 $db->rollBack();
-                
-                // Return Excel file with error column G & H highlighted
                 $exportService = new \App\Services\ExportService();
                 $exportService->toExcel($importData, 'ket_qua_import_diem_nang_khieu_loi.xls');
                 exit;
             }
 
-            // Save to database since all rows are valid
+            $sbdMap = [];
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtSbd = $db->prepare("SELECT so_cccd, sbd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
+                $stmtSbd->execute(array_merge($cccds, [$sessionId]));
+                $sbdRows = $stmtSbd->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($sbdRows as $sbdRow) {
+                    $sbdMap[$sbdRow['so_cccd']] = $sbdRow['sbd'];
+                }
+            }
+
+            $deleteOrs = [];
+            $deleteParams = [];
+            foreach ($importData as $row) {
+                $deleteOrs[] = "(so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?)";
+                $deleteParams[] = $row['CMND'];
+                $deleteParams[] = $row['Mã môn NK'];
+                $deleteParams[] = $sessionId;
+            }
+            if (!empty($deleteOrs)) {
+                $deleteChunks = array_chunk($deleteOrs, 100);
+                $paramChunks = array_chunk($deleteParams, 300);
+                for ($k = 0; $k < count($deleteChunks); $k++) {
+                    $sqlDel = "DELETE FROM diem_nang_khieu WHERE " . implode(" OR ", $deleteChunks[$k]);
+                    $stmtDel = $db->prepare($sqlDel);
+                    $stmtDel->execute($paramChunks[$k]);
+                }
+            }
+
+            $insertValues = [];
+            $insertParams = [];
             foreach ($importData as $row) {
                 $cccd = $row['CMND'];
                 $maMon = $row['Mã môn NK'];
                 $score = floatval(str_replace(',', '.', $row['Điểm']));
-
-                // Fetch SBD from application if exists
-                $stmtSbd = $db->prepare("SELECT sbd FROM ho_so_xet_tuyen WHERE so_cccd = ? AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL LIMIT 1");
-                $stmtSbd->execute([$cccd, $sessionId]);
-                $sbd = $stmtSbd->fetchColumn() ?: '';
-
-                $stmtDel = $db->prepare("DELETE FROM diem_nang_khieu WHERE so_cccd = ? AND ma_mon = ? AND dot_tuyen_sinh_id = ?");
-                $stmtDel->execute([$cccd, $maMon, $sessionId]);
-                
-                $stmtIns = $db->prepare("INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmtIns->execute([$cccd, $sbd, $maMon, $score, 'Import Excel', $sessionId]);
+                $sbd = $sbdMap[$cccd] ?? '';
+                $insertValues[] = "(?, ?, ?, ?, ?, ?)";
+                $insertParams[] = $cccd; $insertParams[] = $sbd; $insertParams[] = $maMon;
+                $insertParams[] = $score; $insertParams[] = 'Import Excel'; $insertParams[] = $sessionId;
+            }
+            if (!empty($insertValues)) {
+                $valueChunks = array_chunk($insertValues, 100);
+                $paramChunks = array_chunk($insertParams, 600);
+                for ($k = 0; $k < count($valueChunks); $k++) {
+                    $sqlIns = "INSERT INTO diem_nang_khieu (so_cccd, sbd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES " . implode(", ", $valueChunks[$k]);
+                    $stmtIns = $db->prepare($sqlIns);
+                    $stmtIns->execute($paramChunks[$k]);
+                }
             }
 
             $db->commit();
