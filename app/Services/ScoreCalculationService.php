@@ -729,9 +729,9 @@ class ScoreCalculationService {
     protected function normalizePriorityCode($code) {
         if (!$code) return '';
         $s = strtoupper(trim((string)$code));
-        // Loại bỏ tiền tố KV, DT và các ký tự đặc biệt như dấu gạch ngang
+        // Loại bỏ tiền tố KV, DT và các ký tự đặc biệt như dấu gạch ngang và gạch dưới
         $s = preg_replace('/^(KV|DT)/', '', $s);
-        $s = str_replace('-', '', $s);
+        $s = str_replace(['-', '_'], '', $s);
         // Nếu là số đơn lẻ (1, 2, 3), chuẩn hóa về dạng 1 chữ số (ví dụ 01 -> 1)
         if (is_numeric($s)) {
             $s = (string)(int)$s;
