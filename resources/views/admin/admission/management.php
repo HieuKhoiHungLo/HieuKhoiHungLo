@@ -174,14 +174,16 @@ ob_start();
                                 'bg-emerald-50/15 border-l-4 border-l-emerald-500': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
                                 'opacity-60 bg-slate-50/30': !item.has_benchmark
                             }">
-                            <!-- Cột công tắc Xét -->
+                            <!-- Cột công tắc Xét (Kiểu Checkbox đơn giản, dễ nhìn) -->
                             <td class="px-6 py-4.5 text-center">
-                                <label class="relative inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" x-model="item.has_benchmark" @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.diem_chuan_display = '0.000'; item.tieuchi_phu = ''; }" class="sr-only peer">
-                                    <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
-                                </label>
-                                <div x-show="!item.has_benchmark" class="text-[9px] font-bold text-rose-500 mt-1 uppercase tracking-wide">Ngưng</div>
-                                <div x-show="item.has_benchmark" class="text-[9px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Xét</div>
+                                <div class="flex flex-col items-center justify-center">
+                                    <input type="checkbox" 
+                                           x-model="item.has_benchmark" 
+                                           @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.diem_chuan_display = '0.000'; item.tieuchi_phu = ''; }" 
+                                           class="w-5 h-5 rounded border-slate-350 text-emerald-600 focus:ring-emerald-500 cursor-pointer transition-all">
+                                    <div x-show="!item.has_benchmark" class="text-[9px] font-bold text-slate-400 mt-1.5 uppercase tracking-wide">Ngưng</div>
+                                    <div x-show="item.has_benchmark" class="text-[9px] font-bold text-emerald-600 mt-1.5 uppercase tracking-wide">Xét</div>
+                                </div>
                             </td>
                             
                             <!-- Cột Ngành & Nhóm -->
