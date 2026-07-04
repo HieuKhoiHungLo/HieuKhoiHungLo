@@ -241,7 +241,7 @@ class AptitudeScoreController extends Controller {
                     $cccds[] = $cccd;
                 }
             }
-            $cccds = array_unique($cccds);
+            $cccds = array_values(array_unique($cccds));
 
             $candidatesMap = [];
             if (!empty($cccds)) {
@@ -360,7 +360,7 @@ class AptitudeScoreController extends Controller {
 
             // Import valid rows if any
             if (!empty($validRows)) {
-                $validCccds = array_unique(array_column($validRows, 'CMND'));
+                $validCccds = array_values(array_unique(array_column($validRows, 'CMND')));
                 $sbdMap = [];
                 if (!empty($validCccds)) {
                     $placeholders = implode(',', array_fill(0, count($validCccds), '?'));
