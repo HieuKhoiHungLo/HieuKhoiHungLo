@@ -3,6 +3,56 @@ $title = 'Quản lý Điểm năng khiếu';
 ob_start();
 ?>
 <div class="p-6 h-full flex flex-col" x-data="aptitudeData()">
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <!-- Decorative background shapes -->
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+            <!-- Animated Logo Container -->
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <!-- Outer Pulse ring -->
+                <div class="absolute inset-0 bg-blue-500/20 rounded-full animate-pulsing-slow"></div>
+                <!-- Dotted rotating ring -->
+                <div class="absolute inset-1 border-2 border-blue-200 border-dashed rounded-full animate-spin-slow"></div>
+                <!-- Glassmorphism Circle with Logo -->
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <!-- Internal Shimmer -->
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Hệ thống đang xử lý</h3>
+            <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
+            
+            <!-- Progress container -->
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="loadingProgress">
+                </div>
+                <!-- Shimmering overlay -->
+                <div class="shimmer-glare absolute inset-0"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- Row 1: Header & Filters -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
@@ -242,6 +292,7 @@ ob_start();
             showEditModal: false,
             editMode: false,
             isLoading: false,
+            progress: 0,
             currentLoadingMessage: '',
             selectedYear: '<?= $activeSession ? $activeSession['nam_tuyen_sinh'] : "" ?>',
             selectedSession: '<?= $activeSession ? $activeSession['id'] : "" ?>',
@@ -272,8 +323,24 @@ ob_start();
                 
                 this.openImportModal = false;
                 this.isLoading = true;
-                this.currentLoadingMessage = 'Đang tải tệp tin và đối chiếu thông tin thí sinh...';
+                this.progress = 5;
+                this.currentLoadingMessage = 'Đang tải tệp tin và chuẩn bị đối chiếu...';
                 
+                const progressInterval = setInterval(() => {
+                    if (this.progress < 95) {
+                        this.progress += Math.floor(Math.random() * 8) + 2;
+                        if (this.progress >= 95) this.progress = 95;
+                        
+                        if (this.progress < 30) {
+                            this.currentLoadingMessage = 'Đang tải file Excel lên máy chủ... (' + this.progress + '%)';
+                        } else if (this.progress < 75) {
+                            this.currentLoadingMessage = 'Đang phân tích cấu trúc file & đối chiếu dữ liệu... (' + this.progress + '%)';
+                        } else {
+                            this.currentLoadingMessage = 'Đang kiểm tra thông tin & nạp điểm... (' + this.progress + '%)';
+                        }
+                    }
+                }, 200);
+
                 fetch('<?= url('/admin/aptitude-scores/import') ?>', {
                     method: 'POST',
                     body: formData,
@@ -282,6 +349,10 @@ ob_start();
                     }
                 })
                 .then(response => {
+                    clearInterval(progressInterval);
+                    this.progress = 100;
+                    this.currentLoadingMessage = 'Hoàn tất nạp dữ liệu!';
+                    
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/vnd.ms-excel')) {
                         // Trả về file báo cáo lỗi (validation failure)
@@ -299,7 +370,7 @@ ob_start();
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Phát hiện dữ liệu không khớp!',
-                                text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã hủy import và tự động tải về file Excel báo cáo lỗi chi tiết.',
+                                text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã nhập các dòng hợp lệ và tự động tải về file Excel báo cáo lỗi chi tiết.',
                                 confirmButtonColor: '#3B82F6',
                                 confirmButtonText: 'Đóng'
                             }).then(() => {
@@ -312,6 +383,7 @@ ob_start();
                     }
                 })
                 .catch(error => {
+                    clearInterval(progressInterval);
                     this.isLoading = false;
                     Swal.fire({
                         icon: 'error',
