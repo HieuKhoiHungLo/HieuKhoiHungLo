@@ -147,21 +147,21 @@ ob_start();
         <div class="flex-1 overflow-auto custom-scrollbar">
             <table class="w-full text-left border-collapse min-w-[950px]">
                 <thead>
-                    <tr class="bg-slate-50/80 sticky top-0 z-10 border-b border-slate-200/80">
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center w-20 cursor-pointer select-none" @click="toggleSort('has_benchmark')">
+                    <tr class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-24 cursor-pointer select-none" @click="toggleSort('has_benchmark')">
                             Xét <i class="fas ml-1" :class="sortBy === 'has_benchmark' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
                         </th>
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider cursor-pointer select-none" @click="toggleSort('ma_nganh')">
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none" @click="toggleSort('ma_nganh')">
                             Ngành & Nhóm <i class="fas ml-1" :class="sortBy === 'ma_nganh' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
                         </th>
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center w-40">Ngưỡng sàn (Ref)</th>
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center w-28 cursor-pointer select-none" @click="toggleSort('chi_tieu')">
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-44">Ngưỡng sàn (Ref)</th>
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-32 cursor-pointer select-none" @click="toggleSort('chi_tieu')">
                             Chỉ tiêu <i class="fas ml-1" :class="sortBy === 'chi_tieu' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
                         </th>
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center w-36 cursor-pointer select-none" @click="toggleSort('diem_chuan')">
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-40 cursor-pointer select-none" @click="toggleSort('diem_chuan')">
                             Điểm chuẩn <i class="fas ml-1" :class="sortBy === 'diem_chuan' ? (sortAsc ? 'fa-sort-up text-indigo-600' : 'fa-sort-down text-indigo-600') : 'fa-sort text-slate-300'"></i>
                         </th>
-                        <th class="px-6 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider text-center w-48">
+                        <th class="px-6 py-4.5 text-xs font-bold text-slate-500 uppercase tracking-wider text-center w-56">
                             Tiêu chí phụ
                             <i class="fas fa-question-circle text-[10px] text-slate-400 cursor-help" title="Dùng để xét ưu tiên khi các thí sinh bằng điểm nhau (VD: Toán >= 8.0)"></i>
                         </th>
@@ -169,15 +169,15 @@ ob_start();
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     <template x-for="(item, index) in filteredData" :key="item.ma_nganh">
-                        <tr class="hover-row-highlight border-b border-slate-100"
+                        <tr class="hover-row-highlight border-b border-slate-100 transition-colors"
                             :class="{
-                                'bg-emerald-50/30 border-l-4 border-l-emerald-500': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
-                                'opacity-55 bg-slate-100/40': !item.has_benchmark
+                                'bg-emerald-50/15 border-l-4 border-l-emerald-500': item.has_benchmark && (item.diem_chuan && item.diem_chuan > 0),
+                                'opacity-60 bg-slate-50/30': !item.has_benchmark
                             }">
                             <!-- Cột công tắc Xét -->
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4.5 text-center">
                                 <label class="relative inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" x-model="item.has_benchmark" @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.tieuchi_phu = ''; }" class="sr-only peer">
+                                    <input type="checkbox" x-model="item.has_benchmark" @change="item.kich_hoat = item.has_benchmark; if (!item.has_benchmark) { item.diem_chuan = 0; item.diem_chuan_display = '0.000'; item.tieuchi_phu = ''; }" class="sr-only peer">
                                     <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
                                 </label>
                                 <div x-show="!item.has_benchmark" class="text-[9px] font-bold text-rose-500 mt-1 uppercase tracking-wide">Ngưng</div>
@@ -185,7 +185,7 @@ ob_start();
                             </td>
                             
                             <!-- Cột Ngành & Nhóm -->
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4.5">
                                 <div class="flex flex-col">
                                     <span class="font-bold text-slate-700 text-sm hover:text-indigo-600 transition-colors" x-text="item.ten_nganh"></span>
                                     <div class="flex items-center gap-2 mt-1.5">
@@ -196,7 +196,7 @@ ob_start();
                             </td>
                             
                             <!-- Cột Ngưỡng Sàn (Ref) -->
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4.5">
                                 <div class="flex flex-col gap-1 items-center justify-center">
                                     <template x-if="item.nguong_hoc_luc">
                                         <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
@@ -215,32 +215,32 @@ ob_start();
                             </td>
                             
                             <!-- Cột Chỉ tiêu -->
-                            <td class="px-6 py-4 text-center">
-                                <div class="inline-block px-3 py-1 rounded-lg text-sm font-bold bg-slate-50 border border-slate-100 text-slate-500 min-w-[55px]" x-text="item.chi_tieu || '—'"></div>
+                            <td class="px-6 py-4.5 text-center">
+                                <div class="inline-block px-3 py-1 rounded-lg text-sm font-bold bg-slate-50 border border-slate-100 text-slate-500 min-w-[65px]" x-text="item.chi_tieu || '—'"></div>
                             </td>
                             
-                            <!-- Cột Điểm chuẩn (Chặn phím mũi tên & cuộn chuột để chống đổi nhầm) -->
-                            <td class="px-6 py-4">
-                                <input type="number" 
-                                       step="0.001" 
-                                       min="0"
-                                       max="30"
+                            <!-- Cột Điểm chuẩn (Hỗ trợ gõ tắt nhanh + hiển thị chuẩn 3 số thập phân) -->
+                            <td class="px-6 py-4.5">
+                                <input type="text" 
                                        placeholder="0.000"
-                                       x-model.number="item.diem_chuan" 
+                                       x-model="item.diem_chuan_display" 
                                        :disabled="!item.has_benchmark" 
-                                       @wheel.prevent
-                                       @keydown.up.prevent
-                                       @keydown.down.prevent
-                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-100/50 disabled:text-slate-400 disabled:border-slate-100 font-bold text-indigo-600 no-spinner shadow-sm premium-input">
+                                       @focus="$event.target.select()"
+                                       @blur="
+                                           item.diem_chuan = parseAndFormatScore($event.target.value);
+                                           item.diem_chuan_display = item.diem_chuan.toFixed(3);
+                                       "
+                                       @keydown.enter="$event.target.blur()"
+                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100 font-bold text-indigo-600 shadow-sm premium-input">
                             </td>
                             
                             <!-- Cột Tiêu chí phụ -->
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4.5 text-center">
                                 <input type="text" 
                                        placeholder="VD: Toán >= 8.0"
                                        x-model="item.tieuchi_phu" 
                                        :disabled="!item.has_benchmark" 
-                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-100/50 disabled:text-slate-400 disabled:border-slate-100 text-slate-600 shadow-sm premium-input">
+                                       class="w-full text-center py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100 text-slate-600 shadow-sm premium-input">
                             </td>
                         </tr>
                     </template>
@@ -291,6 +291,61 @@ function admissionManager() {
             if (!this.data) return [];
             const groups = this.data.map(item => item.nhom_nganh).filter(Boolean);
             return [...new Set(groups)].sort((a, b) => a.localeCompare(b));
+        },
+
+        // Định dạng điểm nhanh (3 chữ số thập phân, gõ tắt ví dụ: 25631 -> 25.631, 2589 -> 25.890)
+        parseAndFormatScore(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            
+            let s = String(val).trim();
+            if (!s) return 0;
+
+            // Nếu có chứa dấu chấm hoặc phẩy
+            if (s.includes('.') || s.includes(',')) {
+                s = s.replace(',', '.');
+                const parts = s.split('.');
+                const integerPart = parts[0].replace(/\D/g, '') || '0';
+                let decimalPart = parts[1] ? parts[1].replace(/\D/g, '') : '';
+                
+                if (decimalPart.length < 3) {
+                    decimalPart = decimalPart.padEnd(3, '0');
+                } else {
+                    decimalPart = decimalPart.substring(0, 3);
+                }
+                
+                const res = parseFloat(integerPart + '.' + decimalPart);
+                return isNaN(res) ? 0 : res;
+            }
+
+            // Gõ tắt nhanh không dấu chấm
+            const digits = s.replace(/\D/g, '');
+            if (!digits) return 0;
+
+            let integerPart = '';
+            let decimalPart = '';
+
+            if (digits.length >= 2) {
+                const firstTwo = parseInt(digits.substring(0, 2), 10);
+                if (firstTwo <= 30) {
+                    integerPart = digits.substring(0, 2);
+                    decimalPart = digits.substring(2);
+                } else {
+                    integerPart = digits.substring(0, 1);
+                    decimalPart = digits.substring(1);
+                }
+            } else {
+                integerPart = digits;
+                decimalPart = '';
+            }
+
+            if (decimalPart.length < 3) {
+                decimalPart = decimalPart.padEnd(3, '0');
+            } else {
+                decimalPart = decimalPart.substring(0, 3);
+            }
+
+            const res = parseFloat(integerPart + '.' + decimalPart);
+            return isNaN(res) ? 0 : res;
         },
 
         // Bộ lọc & sắp xếp dữ liệu động
@@ -392,7 +447,12 @@ function admissionManager() {
                 const res = await fetch(`<?= url('/admin/admission/management/api-data') ?>?session_id=${this.selectedSession}`);
                 const json = await res.json();
                 if (json.status) {
-                    this.data = json.data;
+                    this.data = json.data.map(item => {
+                        return {
+                            ...item,
+                            diem_chuan_display: item.diem_chuan ? parseFloat(item.diem_chuan).toFixed(3) : '0.000'
+                        };
+                    });
                 }
             } catch (e) {
                 console.error(e);
