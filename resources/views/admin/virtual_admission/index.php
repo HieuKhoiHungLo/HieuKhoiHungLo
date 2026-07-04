@@ -32,15 +32,19 @@ if (!empty($combinations)) {
 </script>
 
 <div class="h-full flex flex-col p-6 bg-slate-50 relative" x-data="virtualAdmission()">
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+    <!-- Header Row (Title & Filters) -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Xét Tuyển Lọc Ảo</h1>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-magic text-indigo-600"></i> Xét Tuyển Lọc Ảo
+            </h1>
             <p class="text-sm text-slate-500 mt-1">Bảng tổng hợp điểm đa tổ hợp và xét tuyển tự động</p>
         </div>
         
-        <div class="flex flex-wrap items-center gap-3">
+        <!-- Year & Session Dropdowns -->
+        <div class="flex flex-wrap items-center gap-2.5">
             <!-- Filter by Year -->
-            <select id="yearFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[120px]" x-model="selectedYear" @change="selectedSession = ''; loadData()">
+            <select id="yearFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[120px] text-slate-700 outline-none" x-model="selectedYear" @change="selectedSession = ''; loadData()">
                 <option value="">-- Năm --</option>
                 <?php foreach ($years as $year): ?>
                     <option value="<?= $year ?>"><?= $year ?></option>
@@ -48,21 +52,31 @@ if (!empty($combinations)) {
             </select>
 
             <!-- Filter by Session (Filtered by selectedYear in Alpine) -->
-            <select id="sessionFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[200px]" x-model="selectedSession" @change="loadData()">
+            <select id="sessionFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[220px] text-slate-700 outline-none" x-model="selectedSession" @change="loadData()">
                 <option value="">-- Chọn đợt xét tuyển --</option>
                 <template x-for="session in filteredSessions" :key="session.id">
                     <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen"></option>
                 </template>
             </select>
-            
-            <button @click="syncData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
+        </div>
+    </div>
+
+    <!-- Action Toolbar (Down on a new line, clean layout) -->
+    <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
+        <!-- Left: Computational actions -->
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- 1. Sync Data Button -->
+            <button @click="syncData()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
+                    :disabled="isLoading || !selectedSession">
                 <i class="fas fa-sync-alt" :class="{'fa-spin': isSyncing}"></i> 
                 <span>Đồng bộ dữ liệu</span>
             </button>
             
-            <div class="flex items-center gap-2 bg-amber-500/10 p-1 pr-3 rounded-lg border border-amber-500/20">
+            <!-- 2. Score Calculation Button with Mode toggle inside a clean container -->
+            <div class="flex items-center gap-2.5 bg-amber-50 rounded-lg border border-amber-200 p-1 pr-3">
                 <button @click="recalculate()" 
-                        class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" 
+                        class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
                         :disabled="isLoading || !selectedSession">
                     <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
                     <span x-text="forceRecalculate ? 'Tính lại toàn bộ' : 'Tính điểm (Smart)'"></span>
@@ -73,67 +87,71 @@ if (!empty($combinations)) {
                 </label>
             </div>
             
-            <button @click="runVirtualFilter()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2" :disabled="isLoading || !selectedSession">
+            <!-- 3. Run Virtual Filter Button -->
+            <button @click="runVirtualFilter()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
+                    :disabled="isLoading || !selectedSession">
                 <i class="fas fa-magic" :class="{'fa-spin': isFiltering}"></i>
                 <span>Chạy Lọc Ảo</span>
             </button>
-            
-            <div class="relative" x-data="{ exportOpen: false }">
-                <button @click="exportOpen = !exportOpen"
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
-                    :disabled="isLoading || !selectedSession">
-                    <i class="fas fa-file-excel"></i>
-                    <span>Xuất Excel</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform" :class="{'rotate-180': exportOpen}"></i>
-                </button>
+        </div>
 
-                <div x-show="exportOpen" x-cloak @click.outside="exportOpen = false"
-                     x-transition:enter="transition ease-out duration-150"
-                     x-transition:enter-start="opacity-0 scale-95"
-                     x-transition:enter-end="opacity-100 scale-100"
-                     x-transition:leave="transition ease-in duration-100"
-                     x-transition:leave-start="opacity-100 scale-100"
-                     x-transition:leave-end="opacity-0 scale-95"
-                     class="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 py-1.5 overflow-hidden">
+        <!-- Right: Export Dropdown -->
+        <div class="relative" x-data="{ exportOpen: false }">
+            <button @click="exportOpen = !exportOpen"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                :disabled="isLoading || !selectedSession">
+                <i class="fas fa-file-excel"></i>
+                <span>Xuất Excel Báo Cáo</span>
+                <i class="fas fa-chevron-down text-xs transition-transform duration-250" :class="{'rotate-180': exportOpen}"></i>
+            </button>
 
-                    <a @click="exportOpen = false; exportAll()"
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
-                        <i class="fas fa-table text-slate-400 w-4"></i>
-                        <div>
-                            <div class="font-medium">Xuất toàn bộ dữ liệu</div>
-                            <div class="text-xs text-slate-400">Tất cả nguyện vọng</div>
-                        </div>
-                    </a>
+            <div x-show="exportOpen" x-cloak @click.outside="exportOpen = false"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 z-50 py-1.5 overflow-hidden">
 
-                    <hr class="border-slate-100 my-1">
+                <a @click="exportOpen = false; exportAll()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                    <i class="fas fa-table text-slate-400 w-4"></i>
+                    <div>
+                        <div class="font-medium">Xuất toàn bộ dữ liệu</div>
+                        <div class="text-xs text-slate-400">Tất cả nguyện vọng</div>
+                    </div>
+                </a>
 
-                    <a @click="exportOpen = false; exportAdmitted()"
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 cursor-pointer">
-                        <i class="fas fa-check-circle text-emerald-500 w-4"></i>
-                        <div>
-                            <div class="font-medium">Danh sách trúng tuyển</div>
-                            <div class="text-xs text-emerald-400">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
-                        </div>
-                    </a>
+                <hr class="border-slate-100 my-1">
 
-                    <a @click="exportOpen = false; exportFailed()"
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50 cursor-pointer">
-                        <i class="fas fa-times-circle text-rose-500 w-4"></i>
-                        <div>
-                            <div class="font-medium">Danh sách không đỗ NV nào</div>
-                            <div class="text-xs text-rose-400">Kèm cột Lý do không đỗ</div>
-                        </div>
-                    </a>
+                <a @click="exportOpen = false; exportAdmitted()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 cursor-pointer">
+                    <i class="fas fa-check-circle text-emerald-500 w-4"></i>
+                    <div>
+                        <div class="font-medium text-emerald-700">Danh sách trúng tuyển</div>
+                        <div class="text-xs text-emerald-500/70">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
+                    </div>
+                </a>
 
-                    <a @click="exportOpen = false; exportAcademicFail()"
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 cursor-pointer">
-                        <i class="fas fa-exclamation-triangle text-amber-500 w-4"></i>
-                        <div>
-                            <div class="font-medium">Không đạt ĐK học lực</div>
-                            <div class="text-xs text-amber-400">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
-                        </div>
-                    </a>
-                </div>
+                <a @click="exportOpen = false; exportFailed()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50 cursor-pointer">
+                    <i class="fas fa-times-circle text-rose-500 w-4"></i>
+                    <div>
+                        <div class="font-medium text-rose-700">Danh sách không đỗ NV nào</div>
+                        <div class="text-xs text-rose-500/70">Kèm cột Lý do không đỗ</div>
+                    </div>
+                </a>
+
+                <a @click="exportOpen = false; exportAcademicFail()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 hover:bg-amber-50 cursor-pointer">
+                    <i class="fas fa-exclamation-triangle text-amber-500 w-4"></i>
+                    <div>
+                        <div class="font-medium text-amber-700">Không đạt ĐK học lực</div>
+                        <div class="text-xs text-amber-500/70">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
