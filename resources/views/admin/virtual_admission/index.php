@@ -129,6 +129,15 @@ if (!empty($combinations)) {
                     </div>
                 </a>
 
+                <a @click="exportOpen = false; exportVirtualFilter()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-indigo-700 hover:bg-indigo-50 cursor-pointer">
+                    <i class="fas fa-filter text-indigo-500 w-4"></i>
+                    <div>
+                        <div class="font-medium text-indigo-700">Xuất kết quả lọc ảo</div>
+                        <div class="text-xs text-indigo-500/70">4 cột: STT, ĐDCN, Nguyện vọng, Mã XT</div>
+                    </div>
+                </a>
+
                 <a @click="exportOpen = false; exportFailed()"
                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50 cursor-pointer">
                     <i class="fas fa-times-circle text-rose-500 w-4"></i>
@@ -740,7 +749,7 @@ if (!empty($combinations)) {
                     data: { 
                         session_id: this.selectedSession,
                         cccds: JSON.stringify(chunk),
-                        force: this.forceRecalculate ? '1' : '0',
+                        force: '1',
                         _csrf_token: '<?= csrf_token() ?>'
                     },
                     success: (res) => {
@@ -828,6 +837,11 @@ if (!empty($combinations)) {
             exportAdmitted() {
                 if (!this.selectedSession) return;
                 window.location.href = '<?= url("/admin/api/vf/export-admitted") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportVirtualFilter() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-virtual-filter") ?>?session_id=' + this.selectedSession;
             },
 
             exportFailed() {

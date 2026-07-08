@@ -430,6 +430,39 @@ class VirtualAdmissionController extends Controller {
             $sbdMap[$sbdRow['so_cccd']] = $sbdRow['sbd'] ?? '';
         }
 
+        // Pre-load raw certificates from chung_chi_thi_sinh
+        $certRows = $this->db->prepare("
+            SELECT so_cccd, loai_chung_chi, diem_chung_chi FROM chung_chi_thi_sinh 
+            WHERE so_cccd IN (
+                SELECT DISTINCT so_cccd FROM nguyen_vong 
+                WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR trang_thai LIKE '%Đã duyệt%')
+            )
+        ");
+        $certRows->execute([$sessionId]);
+        $certMap = [];
+        while ($cr = $certRows->fetch(PDO::FETCH_ASSOC)) {
+            $cccd = $cr['so_cccd'];
+            $val = trim(($cr['loai_chung_chi'] ?? '') . ' ' . ($cr['diem_chung_chi'] ?? ''));
+            if ($val !== '') {
+                $certMap[$cccd][] = $val;
+            }
+        }
+
+        // Pre-load converted/admin-imported certificates from diem_chung_chi
+        $diemCertRows = $this->db->prepare("
+            SELECT so_cccd, ghi_chu, diem FROM diem_chung_chi 
+            WHERE dot_tuyen_sinh_id = ?
+        ");
+        $diemCertRows->execute([$sessionId]);
+        $diemCertMap = [];
+        while ($dcr = $diemCertRows->fetch(PDO::FETCH_ASSOC)) {
+            $cccd = $dcr['so_cccd'];
+            $val = $dcr['ghi_chu'] ? str_replace('_', ' ', $dcr['ghi_chu']) : $dcr['diem'];
+            if ($val !== '') {
+                $diemCertMap[$cccd][] = $val;
+            }
+        }
+
         // Xây dựng WHERE / ORDER BY / filename theo loại xuất
         $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
         $extraWhere = '';
@@ -576,6 +609,30 @@ class VirtualAdmissionController extends Controller {
                 }
             }
 
+            $isTS01orTS04 = in_array($ptMax, ['TS01', 'TS04']) || in_array($row['phuong_thuc_toi_uu'], ['TS01', 'TS04', '100']);
+            if ($isTS01orTS04) {
+                $m1_l10 = $m1_l11 = $m1_l12 = '';
+                $m2_l10 = $m2_l11 = $m2_l12 = '';
+                $m3_l10 = $m3_l11 = $m3_l12 = '';
+            }
+
+            $diemChungChiVal = '';
+            if (($ptMax === 'TS03') || ($row['phuong_thuc_toi_uu'] === 'TS03')) {
+                if (!empty($certMap[$cccd])) {
+                    $diemChungChiVal = implode(', ', array_unique($certMap[$cccd]));
+                } elseif (!empty($diemCertMap[$cccd])) {
+                    $diemChungChiVal = implode(', ', array_unique($diemCertMap[$cccd]));
+                } else {
+                    if (isset($chiTietRaw['diem_mon_1']) && isset($chiTietRaw['mon_1']['source']) && $chiTietRaw['mon_1']['source'] === 'CERT') {
+                        $diemChungChiVal = $chiTietRaw['diem_mon_1'];
+                    } elseif (isset($chiTietRaw['diem_mon_2']) && isset($chiTietRaw['mon_2']['source']) && $chiTietRaw['mon_2']['source'] === 'CERT') {
+                        $diemChungChiVal = $chiTietRaw['diem_mon_2'];
+                    } elseif (isset($chiTietRaw['diem_mon_3']) && isset($chiTietRaw['mon_3']['source']) && $chiTietRaw['mon_3']['source'] === 'CERT') {
+                        $diemChungChiVal = $chiTietRaw['diem_mon_3'];
+                    }
+                }
+            }
+
             if ($type === 'admitted') {
                 $formattedNgaySinh = '';
                 if (!empty($row['ngay_sinh'])) {
@@ -623,7 +680,9 @@ class VirtualAdmissionController extends Controller {
                     'M2 L12'     => $m2_l12,
                     'M3 L10'     => $m3_l10,
                     'M3 L11'     => $m3_l11,
-                    'M3 L12'     => $m3_l12
+                    'M3 L12'     => $m3_l12,
+                    'Điểm chứng chỉ' => $diemChungChiVal,
+                    'Thứ tự nguyện vọng' => $row['thu_tu_nguyen_vong']
                 ];
                 continue;
             }
@@ -696,10 +755,40 @@ class VirtualAdmissionController extends Controller {
             $dataRow['M3 L10'] = $m3_l10;
             $dataRow['M3 L11'] = $m3_l11;
             $dataRow['M3 L12'] = $m3_l12;
+            $dataRow['Điểm chứng chỉ'] = $diemChungChiVal;
+            $dataRow['Thứ tự nguyện vọng'] = $row['thu_tu_nguyen_vong'];
 
             $data[] = $dataRow;
         }
 
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, $filename);
+    }
+
+    public function exportVirtualFilterAdmitted() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+
+        $sql = "SELECT nv.so_cccd, nv.thu_tu_nguyen_vong, nv.ma_nganh
+                FROM nguyen_vong nv
+                JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE
+                ORDER BY nv.so_cccd ASC, nv.thu_tu_nguyen_vong ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+
+        $data = [];
+        $stt = 1;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $data[] = [
+                'STT' => $stt++,
+                'ĐDCN' => $row['so_cccd'],
+                'Thứ tự nguyện vọng' => $row['thu_tu_nguyen_vong'],
+                'Mã xét tuyển' => $row['ma_nganh']
+            ];
+        }
+
+        $filename = 'xuat_ket_qua_loc_ao_' . $sessionId . '.xls';
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, $filename);
     }
