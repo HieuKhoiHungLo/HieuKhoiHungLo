@@ -45,6 +45,7 @@ class ScoreCalculationService {
     private $cachedTranscriptColToMonId = null;
     private $cachedAptitudeSubjectIds = [];
     private $cachedSubjectCodeToId = null;
+    private $cachedSubjectIdToCode = null;
 
     // Bulk loading buffer
     private $bulkData = null;
@@ -109,12 +110,15 @@ class ScoreCalculationService {
             }
         }
         
+        // Map code -> ID
         $this->cachedSubjectCodeToId = [];
+        $this->cachedSubjectIdToCode = [];
         $this->cachedAptitudeSubjectIds = [];
         foreach($this->cachedSubjects as $s) {
             $id = $s['id'];
             $code = strtoupper($s['ma_mon']);
             $this->cachedSubjectCodeToId[$code] = $id;
+            $this->cachedSubjectIdToCode[$id] = $code;
             
             if (in_array($code, ['NK1', 'NK2', 'NK3', 'NK4'])) {
                 $this->cachedAptitudeSubjectIds[$id] = true;
@@ -173,6 +177,8 @@ class ScoreCalculationService {
         $thptData = "";
         $applicationData = "";
         $candidateData = "";
+        $certsData = "";
+        $aptitudeData = "";
         $configData = "";
 
         if ($this->cachedPriorityAreas === null) {
@@ -188,6 +194,8 @@ class ScoreCalculationService {
             $applicationData = json_encode($this->bulkData['applications'][$cccd] ?? []);
             $cProfile = $this->bulkData['candidates_profile'][$cccd] ?? [];
             $candidateData = json_encode($cProfile);
+            $certsData = json_encode($this->bulkData['certs'][$cccd] ?? []);
+            $aptitudeData = json_encode($this->bulkData['aptitude'][$cccd] ?? []);
 
             $rawKV = $cProfile['khu_vuc_uu_tien'] ?? '';
             $rawDT = $cProfile['doi_tuong_uu_tien'] ?? '';
@@ -211,6 +219,8 @@ class ScoreCalculationService {
             $stmt->execute([$cccd]);
             $cProfile = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
             $candidateData = json_encode($cProfile);
+            $certsData = json_encode($this->getCertificates($cccd));
+            $aptitudeData = json_encode($this->getAptitudeScores($cccd));
 
             $rawKV = $cProfile['khu_vuc_uu_tien'] ?? '';
             $rawDT = $cProfile['doi_tuong_uu_tien'] ?? '';
@@ -227,7 +237,7 @@ class ScoreCalculationService {
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . $candidateData . $configData . "v6");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v7");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -281,7 +291,7 @@ class ScoreCalculationService {
                 $hbResult = $this->calculateMethodScore('HOC_BA', $comboSubjects, $transcriptavgs, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                 if ($hbResult) {
                     $allCombinationsParams["HB_{$comboCode}"] = $hbResult['total_raw'];
-                    $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200');
+                    $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200', $hbResult['total_raw']);
                     
                     $isBetter = false;
                     if ($hbThreshold['passed']) {
@@ -308,7 +318,7 @@ class ScoreCalculationService {
                     $thptResult = $this->calculateMethodScore('DIEM_THI', $comboSubjects, $thptScores, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                     if ($thptResult) {
                         $allCombinationsParams["THPT_{$comboCode}"] = $thptResult['total_raw'];
-                        $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100');
+                        $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100', $thptResult['total_raw']);
                         
                         $isBetter = false;
                         if ($thptThreshold['passed']) {
@@ -1087,15 +1097,43 @@ class ScoreCalculationService {
     }
     
     /**
-     * @param float $bestScore Calculated best score for threshold comparison
+     * Kiểm tra ngưỡng đảm bảo chất lượng đầu vào theo quy chế Bộ GD&ĐT
+     * 
+     * @param string $cccd Số CCCD thí sinh
+     * @param string $ma_nganh Mã ngành xét tuyển
+     * @param array $majorDetails Thông tin ngành (nhom_nganh, nguong_hoc_luc, nguong_diem_thpt, nguong_diem_xtn, nguong_diem_hocba)
+     * @param float $bestScore Điểm xét tuyển tổng (đã cộng ưu tiên)
+     * @param string|null $bestMethod Phương thức xét tuyển ('100' = THPT, '200' = Học bạ)
+     * @param float $totalRaw Tổng điểm thô 3 môn (CHƯA cộng ưu tiên) - dùng để so sánh ngưỡng
      * @return array ['passed' => bool, 'errors' => string[]]
      */
-    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore, $bestMethod = null) {
+    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore, $bestMethod = null, $totalRaw = 0) {
         $result = ['passed' => true, 'errors' => []];
+
+        // 0. Kiểm tra quy chế nguồn tuyển đối với thí sinh tốt nghiệp từ năm 2026
+        $namTN = null;
+        if ($this->bulkData && isset($this->bulkData['candidates_profile'][$cccd])) {
+            $namTN = $this->bulkData['candidates_profile'][$cccd]['nam_tot_nghiep'] ?? null;
+        } else {
+            try {
+                $stmt = $this->db->prepare("SELECT nam_tot_nghiep FROM thi_sinh WHERE so_cccd = ?");
+                $stmt->execute([$cccd]);
+                $namTN = $stmt->fetchColumn();
+            } catch (\Exception $e) {}
+        }
+
+        if ($namTN !== null && $namTN !== '' && (int)$namTN >= 2026) {
+            if (!$this->checkThptExamSourceThreshold($cccd)) {
+                $result['passed'] = false;
+                $result['errors'][] = "Vi phạm nguồn tuyển: Tổng điểm 3 môn thi tốt nghiệp THPT năm " . $namTN . " dưới 15.00";
+            }
+        }
         
         $nhomNganh = $majorDetails['nhom_nganh'] ?? 'Khac';
         $nguongHocLuc = $majorDetails['nguong_hoc_luc'] ?? null;
         $nguongDiemTHPT = $majorDetails['nguong_diem_thpt'] ?? null;
+        $nguongDiemXTN = $majorDetails['nguong_diem_xtn'] ?? null;
+        $nguongDiemHocBa = $majorDetails['nguong_diem_hocba'] ?? null;
 
         // Quy chế Bộ GD&ĐT: TS01 (100) và TS04 (THPT + Năng khiếu) KHÔNG xét học bạ Giỏi/Khá
         // Chỉ áp dụng điều kiện học lực cho TS02 (200) và TS05 (Học bạ + Năng khiếu)
@@ -1159,16 +1197,168 @@ class ScoreCalculationService {
             }
         }
         
-        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp
+        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (dùng điểm THÔ, chưa cộng ưu tiên)
+        // Quy chế Bộ GD&ĐT: "tổng điểm 03 môn thi tốt nghiệp THPT" = điểm gốc, không bao gồm ưu tiên
         if ($nguongDiemTHPT) {
-            // Note: bestScore is already calculated in caller
-            if ($bestScore > 0 && $bestScore < $nguongDiemTHPT) {
+            $diemSoSanh = $totalRaw > 0 ? $totalRaw : $bestScore; // Fallback cho backward compatibility
+            
+            if ($diemSoSanh > 0 && $diemSoSanh < $nguongDiemTHPT) {
+                // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng
+                // Quy chế: "HOẶC điểm xét TN THPT >= X.XX" (SP: 8.50, ĐD: 6.50, SP đặc thù: 6.50)
+                $passedByXTN = false;
+                if ($nguongDiemXTN) {
+                    $diemXTN = $this->getDiemXetTotNghiep($cccd);
+                    if ($diemXTN !== null && $diemXTN >= $nguongDiemXTN) {
+                        $passedByXTN = true;
+                    }
+                }
+                
+                if (!$passedByXTN) {
+                    $result['passed'] = false;
+                    $errorMsg = "Tổng điểm 3 môn (" . number_format($diemSoSanh, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemTHPT, 2);
+                    if ($nguongDiemXTN) {
+                        $diemXTN = $this->getDiemXetTotNghiep($cccd);
+                        $errorMsg .= " và ĐXét TN (" . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ") < " . number_format($nguongDiemXTN, 2);
+                    }
+                    $result['errors'][] = $errorMsg;
+                }
+            }
+        }
+        
+        // 3. Check ĐTB Học bạ cho ngành ngoài Sư phạm (Phương thức xét học bạ)
+        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: "ĐTB 3 năm của 3 môn tổ hợp (đã tính ưu tiên) >= 18.0"
+        if ($bestMethod === '200' && $nguongDiemHocBa && $nhomNganh === 'Khac') {
+            // Với phương thức học bạ: bestScore = totalRaw + priority, đây chính là "đã tính ưu tiên"
+            if ($bestScore > 0 && $bestScore < $nguongDiemHocBa) {
                 $result['passed'] = false;
-                $result['errors'][] = "Tổng điểm thấp hơn ngưỡng " . number_format($nguongDiemTHPT, 2);
+                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp (" . number_format($bestScore, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
             }
         }
         
         return $result;
+    }
+
+    /**
+     * Kiểm tra quy chế nguồn tuyển đối với thí sinh tốt nghiệp từ năm 2026:
+     * Tổng điểm 3 môn thi tốt nghiệp THPT đạt tối thiểu 15.00 điểm.
+     * 3 môn này có thể là theo tổ hợp đăng ký xét tuyển HOẶC sử dụng Toán, Ngữ văn và một môn thi khác.
+     */
+    protected function checkThptExamSourceThreshold($cccd) {
+        $record = null;
+        if ($this->bulkData) {
+            $record = $this->bulkData['thpt'][$cccd] ?? null;
+        } else {
+            $record = $this->diemThiModel->getByCCCD($cccd);
+        }
+
+        if (!$record) {
+            return false; // Không có thông tin điểm thi THPT
+        }
+
+        $scores = [];
+        $subjectFields = [
+            'toan', 'van', 'tieng_anh', 'tieng_trung', 'ly', 'hoa', 'sinh', 
+            'su', 'dia', 'gdcd', 'ktpl', 'tin_hoc', 'cnnn', 'gdtc', 'gdqp', 
+            'nghe_thuat', 'tieng_dan_toc', 'ngoai_ngu_2', 'cong_nghe'
+        ];
+
+        foreach ($subjectFields as $field) {
+            if (isset($record[$field]) && $record[$field] !== null && $record[$field] !== '') {
+                $scores[$field] = (float)$record[$field];
+            }
+        }
+
+        if (count($scores) < 3) {
+            return false;
+        }
+
+        // 1. Kiểm tra THPT theo Toán + Văn + 1 môn bất kỳ
+        if (isset($scores['toan']) && isset($scores['van'])) {
+            $toanVal = $scores['toan'];
+            $vanVal = $scores['van'];
+            
+            $maxOther = -1;
+            foreach ($scores as $k => $v) {
+                if ($k !== 'toan' && $k !== 'van') {
+                    if ($v > $maxOther) {
+                        $maxOther = $v;
+                    }
+                }
+            }
+            if ($maxOther >= 0 && ($toanVal + $vanVal + $maxOther) >= 15.00) {
+                return true;
+            }
+        }
+
+        // 2. Kiểm tra THPT theo bất kỳ tổ hợp nào của trường
+        $cKey = 'master_combos';
+        $combos = \App\Services\CacheService::get($cKey);
+        if ($combos === null) {
+            try {
+                $stmt = $this->db->query("SELECT id, ma_to_hop, mon_1_id, mon_2_id, mon_3_id FROM dm_to_hop");
+                $combos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                \App\Services\CacheService::set($cKey, $combos, 1800);
+            } catch (\Exception $e) {
+                $combos = [];
+            }
+        }
+
+        // Map logical subject code -> student score
+        $aliases = $this->getSubjectAliases();
+        $scoresByCode = [];
+        foreach ($aliases as $logicalCol => $possibleCodes) {
+            $dbField = $logicalCol;
+            if ($logicalCol === 'ngoai_ngu') $dbField = 'tieng_anh';
+            
+            if (isset($scores[$dbField])) {
+                foreach ($possibleCodes as $code) {
+                    $scoresByCode[$code] = $scores[$dbField];
+                }
+            }
+        }
+
+        // Map directly by uppercase field names just in case
+        foreach ($scores as $f => $s) {
+            $code = strtoupper($f);
+            if (!isset($scoresByCode[$code])) {
+                $scoresByCode[$code] = $s;
+            }
+        }
+
+        foreach ($combos as $combo) {
+            $m1_code = $this->cachedSubjectIdToCode[$combo['mon_1_id']] ?? null;
+            $m2_code = $this->cachedSubjectIdToCode[$combo['mon_2_id']] ?? null;
+            $m3_code = $this->cachedSubjectIdToCode[$combo['mon_3_id']] ?? null;
+
+            if ($m1_code && $m2_code && $m3_code) {
+                if (isset($scoresByCode[$m1_code]) && isset($scoresByCode[$m2_code]) && isset($scoresByCode[$m3_code])) {
+                    $sum = $scoresByCode[$m1_code] + $scoresByCode[$m2_code] + $scoresByCode[$m3_code];
+                    if ($sum >= 15.00) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Lấy điểm xét tốt nghiệp THPT của thí sinh (hỗ trợ điều kiện OR)
+     * @return float|null
+     */
+    protected function getDiemXetTotNghiep($cccd) {
+        // Ưu tiên lấy từ bulkData nếu đã pre-load
+        if ($this->bulkData && isset($this->bulkData['thpt'][$cccd])) {
+            $val = $this->bulkData['thpt'][$cccd]['diem_xet_tot_nghiep'] ?? null;
+            return ($val !== null && $val !== '') ? (float)$val : null;
+        }
+        
+        // Fallback: Query trực tiếp
+        $stmt = $this->db->prepare("SELECT diem_xet_tot_nghiep FROM diem_thi_thpt WHERE so_cccd = ? LIMIT 1");
+        $stmt->execute([$cccd]);
+        $val = $stmt->fetchColumn();
+        return ($val !== null && $val !== false && $val !== '') ? (float)$val : null;
     }
 
     protected function updateApplicationScore($nvId, $score, $combo, $method, $details, $dataHash, $admitted = true) {
