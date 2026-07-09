@@ -792,4 +792,97 @@ class VirtualAdmissionController extends Controller {
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, $filename);
     }
+
+    public function getStats() {
+        $sessionId = $_GET['session_id'] ?? $_POST['session_id'] ?? null;
+        if (!$sessionId) {
+            $this->json(['success' => false, 'message' => 'Chưa chọn đợt tuyển sinh.']);
+            return;
+        }
+
+        // 1. Global Stats
+        $statsSql = "SELECT 
+                        COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                        COUNT(nv.id) as total_wishes,
+                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as total_admitted,
+                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 2 THEN 1 END) as nv2_admit,
+                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3_admit
+                     FROM public.nguyen_vong nv
+                     LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                     WHERE nv.dot_tuyen_sinh_id = ?";
+        $statsStmt = $this->db->prepare($statsSql);
+        $statsStmt->execute([$sessionId]);
+        $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+        // 2. Per-major stats (admitted vs chi_tieu)  
+        $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                            MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                            MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                          FROM public.dm_nganh n
+                          LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                          LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
+                          ORDER BY n.ma_nganh";
+        $majorStatsStmt = $this->db->prepare($majorStatsSql);
+        $majorStatsStmt->execute([$sessionId]);
+        $majorStats = $majorStatsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Demographics for Charts
+        $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                           COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
+                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong
+                    FROM public.nguyen_vong nv
+                    JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                    JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
+                    LEFT JOIN public.dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
+                    LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE";
+        $demoStmt = $this->db->prepare($demoSql);
+        $demoStmt->execute([$sessionId]);
+        $demoRows = $demoStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $chartDist = [
+            'gender' => [],
+            'area' => [],
+            'object' => [],
+            'province' => [],
+            'school' => []
+        ];
+
+        foreach ($demoRows as $row) {
+            // Gender
+            $g = $row['gioi_tinh'] ?: 'Chưa xác định';
+            $chartDist['gender'][$g] = ($chartDist['gender'][$g] ?? 0) + 1;
+
+            // Area
+            $a = $row['khu_vuc_uu_tien'] ?: 'Không';
+            $chartDist['area'][$a] = ($chartDist['area'][$a] ?? 0) + 1;
+
+            // Object
+            $o = $row['doi_tuong_uu_tien'] ?: 'Không';
+            $chartDist['object'][$o] = ($chartDist['object'][$o] ?? 0) + 1;
+
+            // Province
+            $p = $row['ten_tinh'] ?: 'Khác';
+            $chartDist['province'][$p] = ($chartDist['province'][$p] ?? 0) + 1;
+
+            // School
+            $s = $row['ten_truong'] ?: 'Khác';
+            $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+        }
+
+        // Sort sub-arrays desc
+        arsort($chartDist['province']);
+        arsort($chartDist['school']);
+
+        $this->json([
+            'success' => true,
+            'stats' => $stats,
+            'majorStats' => $majorStats,
+            'chartDist' => $chartDist
+        ]);
+    }
 }

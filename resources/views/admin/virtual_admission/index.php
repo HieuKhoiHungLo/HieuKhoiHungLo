@@ -20,6 +20,7 @@ if (!empty($combinations)) {
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     // Alias for Toast functionality used in this file
@@ -159,7 +160,26 @@ if (!empty($combinations)) {
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden relative">
+    <!-- Tab Selector -->
+    <div class="flex bg-slate-100 p-1 rounded-xl mb-4 max-w-md shadow-sm border border-slate-200">
+        <button @click="activeTab = 'list'"
+            :class="activeTab === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
+            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            <i class="fas fa-list-ul mr-2"></i>Danh sách nguyện vọng
+        </button>
+        <button @click="activeTab = 'stats'; fetchStats()"
+            :class="activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
+            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            <i class="fas fa-chart-bar mr-2"></i>Thống kê lọc ảo
+        </button>
+        <button @click="activeTab = 'charts'; fetchStats().then(() => initCharts())"
+            :class="activeTab === 'charts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
+            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            <i class="fas fa-chart-pie mr-2"></i>Biểu đồ phân tích
+        </button>
+    </div>
+
+    <div x-show="activeTab === 'list'" class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden relative">
         <!-- Premium Loading Modal -->
         <div x-cloak x-show="isLoading" 
              x-transition:enter="transition ease-out duration-300"
@@ -278,6 +298,209 @@ if (!empty($combinations)) {
             </table>
         </div>
     </div>
+
+    <!-- TAB: STATS (Thống kê trúng tuyển) -->
+    <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar">
+        <!-- Stats Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <!-- Card 1: Total Candidates -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                <div class="absolute -right-3 -top-3 w-16 h-16 bg-blue-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Thí sinh</p>
+                <h3 class="text-2xl font-black text-slate-800" x-text="statsData.stats ? parseFloat(statsData.stats.total_candidates).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-blue-500 font-bold" x-text="statsData.stats ? parseFloat(statsData.stats.total_wishes).toLocaleString() + ' nguyện vọng' : '0 nguyện vọng'"></span>
+            </div>
+
+            <!-- Card 2: Admitted -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 relative overflow-hidden group">
+                <div class="absolute -right-3 -top-3 w-16 h-16 bg-emerald-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">Trúng tuyển dự kiến</p>
+                <h3 class="text-2xl font-black text-emerald-700" x-text="statsData.stats ? parseFloat(statsData.stats.total_admitted).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-emerald-500 font-bold" x-text="statsData.stats && statsData.stats.total_candidates > 0 ? (Math.round((statsData.stats.total_admitted / statsData.stats.total_candidates) * 1000) / 10) + '% tỉ lệ đạt' : '0% tỉ lệ đạt'"></span>
+            </div>
+
+            <!-- Card 3: NV1 Admitted -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 relative overflow-hidden group">
+                <div class="absolute -right-3 -top-3 w-16 h-16 bg-indigo-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+                <p class="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">Trúng tuyển ở NV1</p>
+                <h3 class="text-2xl font-black text-indigo-700" x-text="statsData.stats ? parseFloat(statsData.stats.nv1_admit).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-indigo-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round((statsData.stats.nv1_admit / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
+            </div>
+            
+            <!-- Card 4: NV2 Admitted -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 relative overflow-hidden group">
+                <div class="absolute -right-3 -top-3 w-16 h-16 bg-amber-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+                <p class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">Trúng tuyển ở NV2</p>
+                <h3 class="text-2xl font-black text-amber-700" x-text="statsData.stats ? parseFloat(statsData.stats.nv2_admit).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-amber-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round((statsData.stats.nv2_admit / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
+            </div>
+            
+            <!-- Card 5: NV3 Admitted -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-100 relative overflow-hidden group">
+                <div class="absolute -right-3 -top-3 w-16 h-16 bg-rose-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+                <p class="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-2">Trúng tuyển ở NV3</p>
+                <h3 class="text-2xl font-black text-rose-700" x-text="statsData.stats ? parseFloat(statsData.stats.nv3_admit).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-rose-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round((statsData.stats.nv3_admit / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
+            </div>
+        </div>
+
+        <!-- Table of Major stats -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-6">
+                <span class="w-1.5 h-4 bg-emerald-500 rounded-full mr-2"></span>
+                Thống kê kết quả trúng tuyển dự kiến theo ngành
+            </h3>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="premium-table min-w-[800px] lg:min-w-full">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px" class="text-center" rowspan="2">Mã ngành</th>
+                            <th rowspan="2">Tên ngành</th>
+                            <th style="width: 80px" class="text-center" rowspan="2">Chỉ tiêu</th>
+                            <th class="text-center" colspan="3">Trúng tuyển dự kiến</th>
+                            <th style="width: 150px" class="text-center" rowspan="2">Mức điểm (Thấp-Cao)</th>
+                        </tr>
+                        <tr>
+                            <th style="width: 80px" class="text-center">Tổng</th>
+                            <th style="width: 80px" class="text-center">NV1</th>
+                            <th style="width: 100px" class="text-center">Tiến độ (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="ms in statsData.majorStats" :key="ms.ma_nganh">
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="text-center font-mono text-slate-500 font-bold" x-text="ms.ma_nganh"></td>
+                                <td class="font-bold text-slate-800" x-text="ms.ten_nganh"></td>
+                                <td class="text-center font-bold text-slate-600 bg-slate-50/50" x-text="ms.chi_tieu || '-'"></td>
+                                <td class="text-center font-black text-indigo-600" x-text="ms.so_trung_tuyen || '-'"></td>
+                                <td class="text-center font-bold text-slate-500" x-text="ms.nv1_admit || '-'"></td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div class="h-full rounded-full" 
+                                                 :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 100 ? 'bg-emerald-500' : ((ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 80 ? 'bg-indigo-500' : 'bg-amber-500')"
+                                                 :style="'width: ' + Math.min(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0, 100) + '%'"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black w-8 text-right" 
+                                              :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
+                                              x-text="ms.chi_tieu > 0 ? Math.round((ms.so_trung_tuyen / ms.chi_tieu) * 1000) / 10 + '%' : '0%'"></span>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <template x-if="ms.diem_thap_nhat && parseFloat(ms.diem_thap_nhat) > 0">
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600">
+                                            <span class="text-rose-500" x-text="parseFloat(ms.diem_thap_nhat).toFixed(2)"></span>
+                                            <span class="text-slate-300">-</span>
+                                            <span class="text-emerald-600" x-text="parseFloat(ms.diem_cao_nhat).toFixed(2)"></span>
+                                        </span>
+                                    </template>
+                                    <template x-if="!ms.diem_thap_nhat || parseFloat(ms.diem_thap_nhat) <= 0">
+                                        <span class="text-slate-300">-</span>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-200">
+                        <tr>
+                            <td colspan="2" class="text-right uppercase">Tổng cộng:</td>
+                            <td class="text-center bg-slate-100/50 text-slate-700" x-text="totalStatsSum().chi_tieu"></td>
+                            <td class="text-center text-indigo-700" x-text="totalStatsSum().so_trung_tuyen"></td>
+                            <td class="text-center text-slate-700" x-text="totalStatsSum().nv1_admit"></td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500 rounded-full" :style="'width: ' + Math.min(totalStatsSum().pct, 100) + '%'"></div>
+                                    </div>
+                                    <span class="text-[10px] font-black w-8 text-right text-indigo-600" x-text="totalStatsSum().pct + '%'"></span>
+                                </div>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div> <!-- END TAB STATS -->
+
+    <!-- TAB: CHARTS (Biểu đồ phân tích) -->
+    <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chart: Tỷ lệ theo nguyện vọng -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-1 border-t-4 border-t-indigo-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Phân bố trúng tuyển theo NV
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="nvChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart: Top Ngành Trúng Tuyển -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2 border-t-4 border-t-emerald-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Biểu đồ tỷ lệ lấp đầy chuyên ngành (Top 15)
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="majorFillChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <!-- Chart: Giới tính -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Phân bố Giới tính
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="genderChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart: Khu vực ưu tiên -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Khu vực ưu tiên
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="areaChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart: Đối tượng ưu tiên -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Đối tượng ưu tiên
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="objectChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <!-- Chart: Theo tỉnh (Top 10) -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Tỉnh / Thành phố (Top 10)
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="provinceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart: Trường THPT (Top 10) -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-rose-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                    Trường THPT (Top 10)
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="schoolChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div> <!-- END TAB CHARTS -->
 </div>
 
 <script>
@@ -285,6 +508,14 @@ if (!empty($combinations)) {
         return {
             selectedYear: '',
             selectedSession: '',
+            activeTab: 'list',
+            statsData: {
+                stats: null,
+                majorStats: [],
+                chartDist: {}
+            },
+            chartsRendered: false,
+            chartInstances: {},
             allSessions: <?= json_encode($sessions) ?>,
             isLoading: false,
             isCalculating: false,
@@ -646,6 +877,18 @@ if (!empty($combinations)) {
             },
 
             loadData() {
+                // Clear active stats and force re-render
+                this.statsData = { stats: null, majorStats: [], chartDist: {} };
+                this.chartsRendered = false;
+                
+                if (this.selectedSession) {
+                    if (this.activeTab === 'stats') {
+                        this.fetchStats();
+                    } else if (this.activeTab === 'charts') {
+                        this.fetchStats().then(() => this.initCharts());
+                    }
+                }
+
                 if (!this.selectedSession) {
                     this.dt.clear().draw();
                     document.getElementById('candidateCount').textContent = '0';
@@ -655,6 +898,227 @@ if (!empty($combinations)) {
                 
                 // Server-Side Processing gánh toàn bộ tải trọng, chỉ cần bắt Ajax gửi lại lệnh Reload mà ko tốn RAM của User
                 this.dt.ajax.reload(null, true);
+            },
+
+            fetchStats() {
+                if (!this.selectedSession) return Promise.resolve();
+                if (this.statsData.stats) return Promise.resolve();
+                
+                this.isLoading = true;
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '<?= url("/admin/api/vf/stats") ?>',
+                        data: { session_id: this.selectedSession },
+                        success: (res) => {
+                            if (res.success) {
+                                this.statsData = res;
+                                resolve();
+                            } else {
+                                toast.error(res.message);
+                                reject();
+                            }
+                        },
+                        error: (err) => {
+                            toast.error("Lỗi khi tải thống kê");
+                            reject();
+                        },
+                        complete: () => {
+                            this.isLoading = false;
+                        }
+                    });
+                });
+            },
+
+            totalStatsSum() {
+                let ct = 0, tt = 0, nv1 = 0;
+                if (this.statsData && this.statsData.majorStats) {
+                    this.statsData.majorStats.forEach(ms => {
+                        ct += parseInt(ms.chi_tieu || 0);
+                        tt += parseInt(ms.so_trung_tuyen || 0);
+                        nv1 += parseInt(ms.nv1_admit || 0);
+                    });
+                }
+                let pct = ct > 0 ? Math.round((tt / ct) * 1000) / 10 : 0;
+                return { chi_tieu: ct, so_trung_tuyen: tt, nv1_admit: nv1, pct: pct };
+            },
+
+            initCharts() {
+                this.$nextTick(() => {
+                    if (this.chartsRendered || typeof Chart === 'undefined') return;
+                    
+                    // Destroy any previous chart instances to avoid canvas reuse warning
+                    Object.values(this.chartInstances).forEach(inst => { if(inst) inst.destroy(); });
+                    this.chartInstances = {};
+
+                    // 1. NGUYEN VONG CHART
+                    const ctxNv = document.getElementById('nvChart');
+                    if (ctxNv && this.statsData.stats) {
+                        let other = Math.max(0, parseInt(this.statsData.stats.total_admitted || 0) - (parseInt(this.statsData.stats.nv1_admit || 0) + parseInt(this.statsData.stats.nv2_admit || 0) + parseInt(this.statsData.stats.nv3_admit || 0)));
+                        this.chartInstances.nv = new Chart(ctxNv.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['NV1', 'NV2', 'NV3', 'Khác'],
+                                datasets: [{
+                                    data: [parseInt(this.statsData.stats.nv1_admit || 0), parseInt(this.statsData.stats.nv2_admit || 0), parseInt(this.statsData.stats.nv3_admit || 0), other],
+                                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#94a3b8'],
+                                    borderWidth: 0,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '65%',
+                                plugins: {
+                                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 2. MAJOR FILL CHART
+                    const ctxMajor = document.getElementById('majorFillChart');
+                    if (ctxMajor && this.statsData.majorStats && this.statsData.majorStats.length) {
+                        const sortedMajors = [...this.statsData.majorStats].sort((a,b) => {
+                            const aPct = (a.chi_tieu > 0) ? (a.so_trung_tuyen / a.chi_tieu) : 0;
+                            const bPct = (b.chi_tieu > 0) ? (b.so_trung_tuyen / b.chi_tieu) : 0;
+                            return bPct - aPct;
+                        }).slice(0, 15);
+                        
+                        this.chartInstances.major = new Chart(ctxMajor.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: sortedMajors.map(m => m.ma_nganh),
+                                datasets: [
+                                    {
+                                        label: 'Số Trúng tuyển',
+                                        data: sortedMajors.map(m => m.so_trung_tuyen),
+                                        backgroundColor: '#4f46e5',
+                                        borderRadius: 4,
+                                    },
+                                    {
+                                        label: 'Chỉ tiêu',
+                                        data: sortedMajors.map(m => m.chi_tieu),
+                                        backgroundColor: '#cbd5e1',
+                                        borderRadius: 4,
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            title: (ctx) => {
+                                                const index = ctx[0].dataIndex;
+                                                return sortedMajors[index].ten_nganh;
+                                            }
+                                        }
+                                    },
+                                    legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+                                },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } },
+                                    y: { beginAtZero: true }
+                                }
+                            }
+                        });
+                    }
+
+                    // 3. GENDER CHART
+                    const ctxGender = document.getElementById('genderChart');
+                    if (ctxGender && this.statsData.chartDist && this.statsData.chartDist.gender) {
+                        this.chartInstances.gender = new Chart(ctxGender.getContext('2d'), {
+                            type: 'pie',
+                            data: {
+                                labels: Object.keys(this.statsData.chartDist.gender),
+                                datasets: [{
+                                    data: Object.values(this.statsData.chartDist.gender),
+                                    backgroundColor: ['#ec4899', '#3b82f6', '#94a3b8'],
+                                    borderWidth: 0,
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                        });
+                    }
+
+                    // 4. AREA CHART
+                    const ctxArea = document.getElementById('areaChart');
+                    if (ctxArea && this.statsData.chartDist && this.statsData.chartDist.area) {
+                        this.chartInstances.area = new Chart(ctxArea.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: Object.keys(this.statsData.chartDist.area),
+                                datasets: [{
+                                    data: Object.values(this.statsData.chartDist.area),
+                                    backgroundColor: ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'],
+                                    borderWidth: 0,
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                        });
+                    }
+
+                    // 5. OBJECT CHART
+                    const ctxObject = document.getElementById('objectChart');
+                    if (ctxObject && this.statsData.chartDist && this.statsData.chartDist.object) {
+                        this.chartInstances.object = new Chart(ctxObject.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(this.statsData.chartDist.object),
+                                datasets: [{
+                                    label: 'Số lượng',
+                                    data: Object.values(this.statsData.chartDist.object),
+                                    backgroundColor: '#f59e0b',
+                                    borderRadius: 4,
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                        });
+                    }
+
+                    // 6. PROVINCE CHART
+                    const ctxProv = document.getElementById('provinceChart');
+                    if (ctxProv && this.statsData.chartDist && this.statsData.chartDist.province) {
+                        const topProvKeys = Object.keys(this.statsData.chartDist.province).slice(0, 10);
+                        const topProvVals = Object.values(this.statsData.chartDist.province).slice(0, 10);
+                        this.chartInstances.province = new Chart(ctxProv.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: topProvKeys,
+                                datasets: [{
+                                    label: 'Số lượng',
+                                    data: topProvVals,
+                                    backgroundColor: '#a855f7',
+                                    borderRadius: 4,
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } } }, y: { beginAtZero: true } } }
+                        });
+                    }
+
+                    // 7. SCHOOL CHART
+                    const ctxSchool = document.getElementById('schoolChart');
+                    if (ctxSchool && this.statsData.chartDist && this.statsData.chartDist.school) {
+                        const topSchKeys = Object.keys(this.statsData.chartDist.school).slice(0, 10);
+                        const topSchVals = Object.values(this.statsData.chartDist.school).slice(0, 10);
+                        this.chartInstances.school = new Chart(ctxSchool.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: topSchKeys,
+                                datasets: [{
+                                    label: 'Số lượng',
+                                    data: topSchVals,
+                                    backgroundColor: '#f43f5e',
+                                    borderRadius: 4,
+                                }]
+                            },
+                            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 9 } } }, x: { beginAtZero: true } } }
+                        });
+                    }
+
+                    this.chartsRendered = true;
+                });
             },
 
             syncData() {
@@ -894,6 +1358,31 @@ table.dataTable thead tr th.dtfc-fixed-left {
     animation: spin 6s infinite linear;
 }
 
+.premium-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.premium-table th {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 10px;
+    vertical-align: middle;
+}
+.premium-table td {
+    border: 1px solid #e2e8f0;
+    padding: 10px;
+    font-size: 12px;
+    vertical-align: middle;
+}
+.premium-table tfoot td {
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
 [x-cloak] { display: none !important; }
 </style>
 <?php
