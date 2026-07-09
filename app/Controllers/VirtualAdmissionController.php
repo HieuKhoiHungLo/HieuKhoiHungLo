@@ -834,13 +834,16 @@ class VirtualAdmissionController extends Controller {
 
         // 3. Demographics for Charts
         $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
-                           COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
-                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong
+                           COALESCE(dt.ten_tinh, NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2), 'Khác') as ten_tinh, 
+                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12, 'Khác') as ten_truong,
+                           COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) as candidate_province
                     FROM public.nguyen_vong nv
                     JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                     JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
-                    LEFT JOIN public.dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
-                    LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    LEFT JOIN public.dm_tinh dt ON COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dt.ma_tinh
+                    LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong 
+                         AND COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dthpt.ma_tinh 
+                         AND dthpt.is_active = TRUE
                     WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE";
         $demoStmt = $this->db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);
@@ -874,9 +877,11 @@ class VirtualAdmissionController extends Controller {
             $p = $row['ten_tinh'] ?: 'Khác';
             $chartDist['province'][$p] = ($chartDist['province'][$p] ?? 0) + 1;
 
-            // School
-            $s = $row['ten_truong'] ?: 'Khác';
-            $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+            // School - strictly for Phu Tho candidates (ma_tinh = '25')
+            if ($row['candidate_province'] === '25') {
+                $s = $row['ten_truong'] ?: 'Khác';
+                $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+            }
         }
 
         // Sort sub-arrays desc

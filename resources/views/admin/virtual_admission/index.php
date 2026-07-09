@@ -482,21 +482,27 @@ if (!empty($combinations)) {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <!-- Chart: Theo tỉnh (Top 10) -->
+            <!-- Chart: Theo tỉnh -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Tỉnh / Thành phố (Top 10)
+                    Tỉnh / Thành phố
                 </h3>
                 <div class="relative h-64">
                     <canvas id="provinceChart"></canvas>
                 </div>
             </div>
 
-            <!-- Chart: Trường THPT (Top 10) -->
+            <!-- Chart: Trường THPT tại Phú Thọ -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-rose-500">
-                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Trường THPT (Top 10)
-                </h3>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs">
+                        Trường THPT tại Phú Thọ
+                    </h3>
+                    <button @click="showAllSchools = !showAllSchools; chartsRendered = false; initCharts()" 
+                            class="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded text-[10px] font-bold transition cursor-pointer">
+                        <span x-text="showAllSchools ? 'Thu gọn' : 'Xem thêm'"></span>
+                    </button>
+                </div>
                 <div class="relative h-64">
                     <canvas id="schoolChart"></canvas>
                 </div>
@@ -518,6 +524,7 @@ if (!empty($combinations)) {
             },
             chartsRendered: false,
             chartInstances: {},
+            showAllSchools: false,
             allSessions: <?= json_encode($sessions) ?>,
             isLoading: false,
             isCalculating: false,
@@ -1128,8 +1135,16 @@ if (!empty($combinations)) {
                     // 7. SCHOOL CHART
                     const ctxSchool = document.getElementById('schoolChart');
                     if (ctxSchool && this.statsData.chartDist && this.statsData.chartDist.school) {
-                        const topSchKeys = Object.keys(this.statsData.chartDist.school).slice(0, 10);
-                        const topSchVals = Object.values(this.statsData.chartDist.school).slice(0, 10);
+                        const allSchools = Object.keys(this.statsData.chartDist.school);
+                        const topSchKeys = this.showAllSchools ? allSchools : allSchools.slice(0, 20);
+                        const topSchVals = this.showAllSchools 
+                            ? Object.values(this.statsData.chartDist.school) 
+                            : Object.values(this.statsData.chartDist.school).slice(0, 20);
+
+                        // Dynamically adjust height of parent container to avoid squishing
+                        const container = ctxSchool.parentElement;
+                        container.style.height = Math.max(256, (topSchKeys.length * 22 + 50)) + 'px';
+
                         this.chartInstances.school = new Chart(ctxSchool.getContext('2d'), {
                             type: 'bar',
                             data: {
