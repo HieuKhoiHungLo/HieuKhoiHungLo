@@ -856,11 +856,14 @@ class VirtualAdmissionController extends Controller {
 
         foreach ($demoRows as $row) {
             // Gender
-            $g = $row['gioi_tinh'] ?: 'Chưa xác định';
-            $chartDist['gender'][$g] = ($chartDist['gender'][$g] ?? 0) + 1;
+            $gt = trim($row['gioi_tinh'] ?? '');
+            if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+            elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+            else $gt = 'Khác';
+            $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
 
             // Area
-            $a = $row['khu_vuc_uu_tien'] ?: 'Không';
+            $a = $row['khu_vuc_uu_tien'] ?: 'Khác';
             $chartDist['area'][$a] = ($chartDist['area'][$a] ?? 0) + 1;
 
             // Object

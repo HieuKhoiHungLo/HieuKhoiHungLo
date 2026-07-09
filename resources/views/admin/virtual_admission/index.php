@@ -428,9 +428,20 @@ if (!empty($combinations)) {
 
     <!-- TAB: CHARTS (Biểu đồ phân tích) -->
     <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Row 1: Full-width Major fill chart -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                Biểu đồ tỷ lệ lấp đầy chuyên ngành (Đầy đủ các ngành xét tuyển)
+            </h3>
+            <div class="relative h-96">
+                <canvas id="majorFillChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Row 2: Four statistics charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             <!-- Chart: Tỷ lệ theo nguyện vọng -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-1 border-t-4 border-t-indigo-500">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-indigo-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
                     Phân bố trúng tuyển theo NV
                 </h3>
@@ -439,18 +450,6 @@ if (!empty($combinations)) {
                 </div>
             </div>
 
-            <!-- Chart: Top Ngành Trúng Tuyển -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2 border-t-4 border-t-emerald-500">
-                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Biểu đồ tỷ lệ lấp đầy chuyên ngành (Top 15)
-                </h3>
-                <div class="relative h-64">
-                    <canvas id="majorFillChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             <!-- Chart: Giới tính -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
@@ -982,10 +981,8 @@ if (!empty($combinations)) {
                     const ctxMajor = document.getElementById('majorFillChart');
                     if (ctxMajor && this.statsData.majorStats && this.statsData.majorStats.length) {
                         const sortedMajors = [...this.statsData.majorStats].sort((a,b) => {
-                            const aPct = (a.chi_tieu > 0) ? (a.so_trung_tuyen / a.chi_tieu) : 0;
-                            const bPct = (b.chi_tieu > 0) ? (b.so_trung_tuyen / b.chi_tieu) : 0;
-                            return bPct - aPct;
-                        }).slice(0, 15);
+                            return a.ma_nganh.localeCompare(b.ma_nganh);
+                        });
                         
                         this.chartInstances.major = new Chart(ctxMajor.getContext('2d'), {
                             type: 'bar',
@@ -1096,7 +1093,35 @@ if (!empty($combinations)) {
                                     borderRadius: 4,
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } } }, y: { beginAtZero: true } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                plugins: { 
+                                    legend: { display: false },
+                                    tooltip: {
+                                        callbacks: {
+                                            title: function(context) {
+                                                return topProvKeys[context[0].dataIndex];
+                                            }
+                                        }
+                                    }
+                                }, 
+                                scales: { 
+                                    x: { 
+                                        ticks: { 
+                                            maxRotation: 45, 
+                                            minRotation: 45, 
+                                            font: { size: 9 },
+                                            callback: function(value, index) {
+                                                const label = topProvKeys[index];
+                                                if (!label) return '';
+                                                return label.length > 15 ? label.substring(0, 15) + '...' : label;
+                                            }
+                                        } 
+                                    }, 
+                                    y: { beginAtZero: true } 
+                                } 
+                            }
                         });
                     }
 
@@ -1116,7 +1141,34 @@ if (!empty($combinations)) {
                                     borderRadius: 4,
                                 }]
                             },
-                            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { font: { size: 9 } } }, x: { beginAtZero: true } } }
+                            options: { 
+                                indexAxis: 'y', 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                plugins: { 
+                                    legend: { display: false },
+                                    tooltip: {
+                                        callbacks: {
+                                            title: function(context) {
+                                                return topSchKeys[context[0].dataIndex];
+                                            }
+                                        }
+                                    }
+                                }, 
+                                scales: { 
+                                    y: { 
+                                        ticks: { 
+                                            font: { size: 9 },
+                                            callback: function(value, index) {
+                                                const label = topSchKeys[index];
+                                                if (!label) return '';
+                                                return label.length > 25 ? label.substring(0, 25) + '...' : label;
+                                            }
+                                        } 
+                                    }, 
+                                    x: { beginAtZero: true } 
+                                } 
+                            }
                         });
                     }
 
