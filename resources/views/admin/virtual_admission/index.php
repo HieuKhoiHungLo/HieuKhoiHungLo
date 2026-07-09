@@ -161,20 +161,20 @@ if (!empty($combinations)) {
     </div>
 
     <!-- Tab Selector -->
-    <div class="flex bg-slate-100 p-1 rounded-xl mb-4 max-w-md shadow-sm border border-slate-200">
+    <div class="flex bg-slate-100 p-1 rounded-xl mb-4 w-max shadow-sm border border-slate-200">
         <button @click="activeTab = 'list'"
             :class="activeTab === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
-            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-list-ul mr-2"></i>Danh sách nguyện vọng
         </button>
         <button @click="activeTab = 'stats'; fetchStats()"
             :class="activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
-            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-chart-bar mr-2"></i>Thống kê lọc ảo
         </button>
         <button @click="activeTab = 'charts'; fetchStats().then(() => initCharts())"
             :class="activeTab === 'charts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
-            class="flex-1 px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer">
+            class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-chart-pie mr-2"></i>Biểu đồ phân tích
         </button>
     </div>
@@ -357,6 +357,7 @@ if (!empty($combinations)) {
                             <th style="width: 80px" class="text-center" rowspan="2">Mã ngành</th>
                             <th rowspan="2">Tên ngành</th>
                             <th style="width: 80px" class="text-center" rowspan="2">Chỉ tiêu</th>
+                            <th style="width: 90px" class="text-center" rowspan="2">Điểm chuẩn</th>
                             <th class="text-center" colspan="3">Trúng tuyển dự kiến</th>
                             <th style="width: 150px" class="text-center" rowspan="2">Mức điểm (Thấp-Cao)</th>
                         </tr>
@@ -372,6 +373,7 @@ if (!empty($combinations)) {
                                 <td class="text-center font-mono text-slate-500 font-bold" x-text="ms.ma_nganh"></td>
                                 <td class="font-bold text-slate-800" x-text="ms.ten_nganh"></td>
                                 <td class="text-center font-bold text-slate-600 bg-slate-50/50" x-text="ms.chi_tieu || '-'"></td>
+                                <td class="text-center font-bold text-amber-700 bg-amber-50/20" x-text="ms.diem_chuan && parseFloat(ms.diem_chuan) > 0 ? parseFloat(ms.diem_chuan).toFixed(2) : '-'"></td>
                                 <td class="text-center font-black text-indigo-600" x-text="ms.so_trung_tuyen || '-'"></td>
                                 <td class="text-center font-bold text-slate-500" x-text="ms.nv1_admit || '-'"></td>
                                 <td>
@@ -405,6 +407,7 @@ if (!empty($combinations)) {
                         <tr>
                             <td colspan="2" class="text-right uppercase">Tổng cộng:</td>
                             <td class="text-center bg-slate-100/50 text-slate-700" x-text="totalStatsSum().chi_tieu"></td>
+                            <td class="bg-slate-50"></td>
                             <td class="text-center text-indigo-700" x-text="totalStatsSum().so_trung_tuyen"></td>
                             <td class="text-center text-slate-700" x-text="totalStatsSum().nv1_admit"></td>
                             <td>

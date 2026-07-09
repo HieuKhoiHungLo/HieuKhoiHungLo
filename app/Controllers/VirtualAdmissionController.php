@@ -817,17 +817,19 @@ class VirtualAdmissionController extends Controller {
 
         // 2. Per-major stats (admitted vs chi_tieu)  
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
+                            COALESCE(ab.diem_chuan, 0) as diem_chuan,
                             COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
                             COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
                             MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
                             MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
                           FROM public.dm_nganh n
+                          LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = ?
                           LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
                           LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
+                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh, ab.diem_chuan
                           ORDER BY n.ma_nganh";
         $majorStatsStmt = $this->db->prepare($majorStatsSql);
-        $majorStatsStmt->execute([$sessionId]);
+        $majorStatsStmt->execute([$sessionId, $sessionId]);
         $majorStats = $majorStatsStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 3. Demographics for Charts
