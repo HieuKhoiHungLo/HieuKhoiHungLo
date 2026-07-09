@@ -213,8 +213,8 @@ class ImportService {
                     'ma_xa_ho_khau' => $maXa,
                 ];
 
-                $maTinhLop12 = $this->nullIfEmpty(trim($row[20] ?? ''));
-                $maTruongLop12 = $this->nullIfEmpty(trim($row[22] ?? ''));
+                $maTinhLop12 = $this->nullIfEmpty(trim($row[18] ?? ''));
+                $maTruongLop12 = $this->nullIfEmpty(trim($row[19] ?? ''));
                 $fullSchoolCode = $maTinhLop12 . $maTruongLop12;
                 
                 if (isset($schoolCodes[$fullSchoolCode])) {
@@ -233,26 +233,42 @@ class ImportService {
 
                 $scores = [
                     'nam_thi' => $year,
-                    'toan' => $this->parseFloat($row[23] ?? ''),
-                    'van' => $this->parseFloat($row[24] ?? ''),
-                    'ly' => $this->parseFloat($row[25] ?? ''),
-                    'hoa' => $this->parseFloat($row[26] ?? ''),
-                    'sinh' => $this->parseFloat($row[27] ?? ''),
-                    'su' => $this->parseFloat($row[28] ?? ''),
-                    'dia' => $this->parseFloat($row[29] ?? ''),
-                    'gdcd' => $this->parseFloat($row[30] ?? ''),
-                    'cnnn' => $this->parseFloat($row[36] ?? ''), 
-                    'ktpl' => $this->parseFloat($row[33] ?? ''), 
-                    'tin_hoc' => $this->parseFloat($row[34] ?? ''),
-                    'diem_xet_tot_nghiep' => $this->parseFloat($row[48] ?? '')
+                    'toan' => $this->parseFloat($row[21] ?? ''),
+                    'van' => $this->parseFloat($row[22] ?? ''),
+                    'ly' => $this->parseFloat($row[23] ?? ''),
+                    'hoa' => $this->parseFloat($row[24] ?? ''),
+                    'sinh' => $this->parseFloat($row[25] ?? ''),
+                    'su' => $this->parseFloat($row[26] ?? ''),
+                    'dia' => $this->parseFloat($row[27] ?? ''),
+                    'gdcd' => $this->parseFloat($row[28] ?? ''),
+                    'ktpl' => $this->parseFloat($row[31] ?? ''), 
+                    'tin_hoc' => $this->parseFloat($row[32] ?? ''),
+                    'cong_nghe' => $this->parseFloat($row[33] ?? ''),
+                    'cnnn' => $this->parseFloat($row[34] ?? ''), 
+                    'diem_xet_tot_nghiep' => $this->parseFloat($row[45] ?? '')
                 ];
 
-                $nnScore = $this->parseFloat($row[31] ?? '');
-                $maMonNN = trim($row[32] ?? '');
-                if ($maMonNN == 'N1') $scores['tieng_anh'] = $nnScore;
-                if ($maMonNN == 'N4') $scores['tieng_trung'] = $nnScore;
-                if ($maMonNN == 'N3') $scores['tieng_phap'] = $nnScore;
-                if ($maMonNN == 'N6') $scores['tieng_nhat'] = $nnScore;
+                $val29 = trim($row[29] ?? '');
+                $val30 = trim($row[30] ?? '');
+
+                if (in_array(strtoupper($val30), ['N1', 'N2', 'N3', 'N4', 'N5', 'N6'])) {
+                    // Style A: Column 29 is score, Column 30 is language code
+                    $nnScore = $this->parseFloat($val29);
+                    if ($val30 == 'N1') $scores['tieng_anh'] = $nnScore;
+                    if ($val30 == 'N4') $scores['tieng_trung'] = $nnScore;
+                    if ($val30 == 'N3') $scores['tieng_phap'] = $nnScore;
+                    if ($val30 == 'N6') $scores['tieng_nhat'] = $nnScore;
+                } else {
+                    // Style B: Column 29 is N1 (Tiếng Anh) score, Column 30 is N4 (Tiếng Trung) score
+                    $n1Score = $this->parseFloat($val29);
+                    if ($n1Score !== null && $n1Score !== '') {
+                        $scores['tieng_anh'] = $n1Score;
+                    }
+                    $n4Score = $this->parseFloat($val30);
+                    if ($n4Score !== null && $n4Score !== '') {
+                        $scores['tieng_trung'] = $n4Score;
+                    }
+                }
 
                 $scoresBatch[$cccd] = $scores;
                 $hoSoBatch[] = $cccd;
@@ -329,6 +345,35 @@ class ImportService {
             $errors = [];
             
             $this->db->beginTransaction(); 
+
+            // Collect all ho_so_ids in the uploaded file for this school
+            $hoSoIdsToDelete = [];
+            foreach ($dataArray as $idx => $rowData) {
+                if ($idx === 0 || count($rowData) < 11) continue;
+                $schoolCode = trim($rowData[3] ?? '');
+                if ($schoolCode !== $targetSchoolCode) continue;
+
+                $cccdRaw = trim($rowData[1] ?? '');
+                if (empty($cccdRaw)) continue;
+
+                $hoSoId = $profileMap[$cccdRaw] ?? $profileMap[ltrim($cccdRaw, '0')] ?? null;
+                if ($hoSoId) {
+                    $hoSoIdsToDelete[] = (int)$hoSoId;
+                }
+            }
+            $hoSoIdsToDelete = array_values(array_unique($hoSoIdsToDelete));
+
+            // Clean up existing aspirations for these candidates to prevent old ones from persisting
+            if (!empty($hoSoIdsToDelete)) {
+                $chunks = array_chunk($hoSoIdsToDelete, 500);
+                foreach ($chunks as $chunk) {
+                    $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                    $sqlDel = "DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ? AND ho_so_id IN ($placeholders)";
+                    $stmtDel = $this->db->prepare($sqlDel);
+                    $stmtDel->execute(array_merge([$batchId], $chunk));
+                }
+            }
+
             $buffer = [];
 
             foreach ($dataArray as $idx => $rowData) {
@@ -393,13 +438,14 @@ class ImportService {
         $jsonParam = json_encode(array_values($unique), JSON_UNESCAPED_UNICODE);
         $sql = "
             INSERT INTO nguyen_vong (
-                ho_so_id, so_cccd, thu_tu_nguyen_vong, ma_nganh, ten_nganh, 
+                ho_so_id, so_cccd, thu_tu_nguyen_vong, thu_tu_nv_bo, ma_nganh, ten_nganh, 
                 ma_phuong_thuc, ten_phuong_thuc, to_hop_mon, dot_tuyen_sinh_id, 
                 nguon_du_lieu, created_at, updated_at
             )
             SELECT 
                 (elem->>'ho_so_id')::int,
                 elem->>'so_cccd',
+                (elem->>'thu_tu')::int,
                 (elem->>'thu_tu')::int,
                 elem->>'ma_nganh',
                 elem->>'ten_nganh',
@@ -413,6 +459,7 @@ class ImportService {
                 ma_nganh = EXCLUDED.ma_nganh,
                 ten_nganh = EXCLUDED.ten_nganh,
                 ten_phuong_thuc = EXCLUDED.ten_phuong_thuc,
+                thu_tu_nv_bo = EXCLUDED.thu_tu_nv_bo,
                 updated_at = NOW()
         ";
         $this->db->prepare($sql)->execute([$batchId, $jsonParam]);
