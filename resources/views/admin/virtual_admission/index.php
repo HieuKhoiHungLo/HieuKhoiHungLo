@@ -335,12 +335,12 @@ if (!empty($combinations)) {
                 <span class="text-[10px] text-amber-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round((statsData.stats.nv2_admit / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
             </div>
             
-            <!-- Card 5: NV3 Admitted -->
+            <!-- Card 5: Admitted at remaining wishes -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-rose-100 relative overflow-hidden group">
                 <div class="absolute -right-3 -top-3 w-16 h-16 bg-rose-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-                <p class="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-2">Trúng tuyển ở NV3</p>
-                <h3 class="text-2xl font-black text-rose-700" x-text="statsData.stats ? parseFloat(statsData.stats.nv3_admit).toLocaleString() : '0'"></h3>
-                <span class="text-[10px] text-rose-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round((statsData.stats.nv3_admit / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
+                <p class="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-2">Trúng tuyển ở NV còn lại</p>
+                <h3 class="text-2xl font-black text-rose-700" x-text="statsData.stats ? parseFloat(statsData.stats.total_admitted - statsData.stats.nv1_admit - statsData.stats.nv2_admit).toLocaleString() : '0'"></h3>
+                <span class="text-[10px] text-rose-500 font-bold" x-text="statsData.stats && statsData.stats.total_admitted > 0 ? (Math.round(((statsData.stats.total_admitted - statsData.stats.nv1_admit - statsData.stats.nv2_admit) / statsData.stats.total_admitted) * 1000) / 10) + '% tổng trúng tuyển' : '0% tổng trúng tuyển'"></span>
             </div>
         </div>
 
@@ -956,14 +956,14 @@ if (!empty($combinations)) {
                     // 1. NGUYEN VONG CHART
                     const ctxNv = document.getElementById('nvChart');
                     if (ctxNv && this.statsData.stats) {
-                        let other = Math.max(0, parseInt(this.statsData.stats.total_admitted || 0) - (parseInt(this.statsData.stats.nv1_admit || 0) + parseInt(this.statsData.stats.nv2_admit || 0) + parseInt(this.statsData.stats.nv3_admit || 0)));
+                        let other = Math.max(0, parseInt(this.statsData.stats.total_admitted || 0) - (parseInt(this.statsData.stats.nv1_admit || 0) + parseInt(this.statsData.stats.nv2_admit || 0)));
                         this.chartInstances.nv = new Chart(ctxNv.getContext('2d'), {
                             type: 'doughnut',
                             data: {
-                                labels: ['NV1', 'NV2', 'NV3', 'Khác'],
+                                labels: ['NV1', 'NV2', 'NV còn lại'],
                                 datasets: [{
-                                    data: [parseInt(this.statsData.stats.nv1_admit || 0), parseInt(this.statsData.stats.nv2_admit || 0), parseInt(this.statsData.stats.nv3_admit || 0), other],
-                                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#94a3b8'],
+                                    data: [parseInt(this.statsData.stats.nv1_admit || 0), parseInt(this.statsData.stats.nv2_admit || 0), other],
+                                    backgroundColor: ['#4f46e5', '#10b981', '#94a3b8'],
                                     borderWidth: 0,
                                 }]
                             },
