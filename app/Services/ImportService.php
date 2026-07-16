@@ -323,7 +323,11 @@ class ImportService {
     }
 
     private function parseGender($str) {
-        return $str === '1' ? 'Nam' : 'Nữ';
+        $str = trim($str);
+        if ($str === '1' || strcasecmp($str, 'Nam') === 0) {
+            return 'Nam';
+        }
+        return 'Nữ';
     }
 
     public function parseApplications($filePath, $batchId, $token, $targetSchoolCode) {

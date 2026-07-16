@@ -196,7 +196,7 @@ class CertificateScoreController extends Controller {
         }
     }
 
-    public function import() {
+        public function import() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect(url('/admin/certificate-scores'));
         }
@@ -270,41 +270,149 @@ class CertificateScoreController extends Controller {
 
             $updateProgress(15, 100, 'Đang xử lý và chuẩn hóa dữ liệu...');
 
-            // Pre-process and validate rows in memory to deduplicate and validate
-            $validRows = [];
-            $headerSkipped = false;
-            foreach ($rows as $index => $row) {
-                if (!$headerSkipped) {
-                    $headerSkipped = true;
-                    continue;
-                }
-
-                if (count($row) < 3) {
-                    $errorCount++;
-                    continue;
-                }
-
-                // SimpleXLSX returns 0-indexed values
+            // Extract all non-empty CCCDs from the Excel rows first
+            $cccds = [];
+            for ($i = 1; $i < count($rows); $i++) {
+                $row = $rows[$i];
                 $cccd = $this->normalizeCCCD($row[0] ?? '');
-                $maMon = trim((string)($row[1] ?? 'N1'));
-                $score = trim((string)($row[2] ?? 0));
-                $note = trim((string)($row[3] ?? ''));
+                $hoTen = isset($row[1]) ? trim((string)$row[1]) : '';
+                $rawDob = isset($row[2]) ? trim((string)$row[2]) : '';
+                $maMon = isset($row[3]) ? trim((string)$row[3]) : '';
+                $scoreRaw = isset($row[4]) ? trim((string)$row[4]) : '';
+                
+                if (empty($cccd) && empty($hoTen) && empty($rawDob) && empty($maMon) && empty($scoreRaw)) {
+                    continue;
+                }
+                
+                if (!empty($cccd)) {
+                    $cccds[] = $cccd;
+                }
+            }
+            $cccds = array_values(array_unique($cccds));
 
-                if ($cccd !== '' && is_numeric($score)) {
-                    $scoreVal = (float)$score;
-                    if ($scoreVal < 0) $scoreVal = 0.0;
-                    if ($scoreVal > 10) $scoreVal = 10.0;
+            $candidatesMap = [];
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtTs = $db->prepare("SELECT so_cccd, ho_va_ten, ngay_sinh FROM thi_sinh WHERE so_cccd IN ($placeholders) AND deleted_at IS NULL");
+                $stmtTs->execute($cccds);
+                $tsRows = $stmtTs->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($tsRows as $tsRow) {
+                    $candidatesMap[$tsRow['so_cccd']] = $tsRow;
+                }
+            }
 
-                    $key = $cccd . '_' . $maMon;
-                    $validRows[$key] = [
+            $applicationsMap = [];
+            if (!empty($cccds)) {
+                $placeholders = implode(',', array_fill(0, count($cccds), '?'));
+                $stmtHs = $db->prepare("SELECT so_cccd FROM ho_so_xet_tuyen WHERE so_cccd IN ($placeholders) AND dot_tuyen_sinh_id = ? AND deleted_at IS NULL");
+                $stmtHs->execute(array_merge($cccds, [$sessionId]));
+                $hsRows = $stmtHs->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($hsRows as $hsRow) {
+                    $applicationsMap[$hsRow['so_cccd']] = true;
+                }
+            }
+
+            // Fetch valid subject codes from dm_mon
+            $stmtAllMon = $db->query("SELECT ma_mon FROM dm_mon");
+            $validMons = [];
+            while ($mCode = $stmtAllMon->fetchColumn()) {
+                $validMons[strtoupper($mCode)] = true;
+            }
+
+            $importData = [];
+            $validRows = [];
+
+            for ($i = 1; $i < count($rows); $i++) {
+                $row = $rows[$i];
+                
+                $cccd = $this->normalizeCCCD($row[0] ?? '');
+                $hoTen = isset($row[1]) ? trim((string)$row[1]) : '';
+                $rawDob = isset($row[2]) ? trim((string)$row[2]) : '';
+                $maMon = isset($row[3]) ? trim((string)$row[3]) : '';
+                $scoreRaw = isset($row[4]) ? trim((string)$row[4]) : '';
+                $note = isset($row[5]) ? trim((string)$row[5]) : '';
+
+                if (empty($cccd) && empty($hoTen) && empty($rawDob) && empty($maMon) && empty($scoreRaw)) {
+                    continue;
+                }
+
+                $errorMsg = '';
+                if (empty($cccd)) {
+                    $errorMsg = "Số CCCD không được để trống";
+                }
+
+                if (empty($errorMsg)) {
+                    $candidate = $candidatesMap[$cccd] ?? null;
+                    if (!$candidate) {
+                        $errorMsg = "Số ĐDCN, Họ tên, Ngày sinh không khớp trên hệ thống";
+                    } else {
+                        $dbName = mb_strtoupper(preg_replace('/\s+/', ' ', trim($candidate['ho_va_ten'])), 'UTF-8');
+                        $excelName = mb_strtoupper(preg_replace('/\s+/', ' ', trim($hoTen)), 'UTF-8');
+                        $dbDob = $candidate['ngay_sinh'];
+                        $excelDob = '';
+                        if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $rawDob, $matches)) {
+                            $excelDob = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                        } elseif (is_numeric($rawDob)) {
+                            try {
+                                $dateValue = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawDob);
+                                $excelDob = $dateValue->format('Y-m-d');
+                            } catch (\Exception $e) {}
+                        } else {
+                            $ts = strtotime(str_replace('/', '-', $rawDob));
+                            if ($ts) $excelDob = date('Y-m-d', $ts);
+                        }
+                        $dobMatch = ($dbDob && $excelDob && date('Y-m-d', strtotime($dbDob)) === $excelDob);
+                        if ($dbName !== $excelName || !$dobMatch) {
+                            $errorMsg = "Số ĐDCN, Họ tên, Ngày sinh không khớp trên hệ thống";
+                        } else {
+                            $hasApp = $applicationsMap[$cccd] ?? false;
+                            if (!$hasApp) {
+                                $errorMsg = "Thí sinh chưa đăng ký hồ sơ trong đợt tuyển sinh này";
+                            }
+                        }
+                    }
+                }
+
+                if (empty($errorMsg)) {
+                    if (!isset($validMons[strtoupper($maMon)])) {
+                        $errorMsg = "Mã môn quy đổi không tồn tại trên hệ thống";
+                    }
+                }
+
+                if (empty($errorMsg)) {
+                    $scoreNormalized = str_replace(',', '.', $scoreRaw);
+                    if ($scoreNormalized === '' || !is_numeric($scoreNormalized) || floatval($scoreNormalized) < 0 || floatval($scoreNormalized) > 10) {
+                        $errorMsg = "Điểm quy đổi không hợp lệ (phải từ 0 đến 10)";
+                    }
+                }
+
+                if (!empty($errorMsg)) {
+                    $status = "Thất bại";
+                    $reason = $errorMsg;
+                    $errorCount++;
+                } else {
+                    $status = "Thành công";
+                    $reason = "";
+                    $successCount++;
+                    $scoreVal = floatval(str_replace(',', '.', $scoreRaw));
+                    $validRows[] = [
                         'so_cccd' => $cccd,
                         'ma_mon' => $maMon,
                         'diem' => $scoreVal,
                         'ghi_chu' => $note
                     ];
-                } else {
-                    $errorCount++;
                 }
+
+                $importData[] = [
+                    'CCCD' => $cccd, 
+                    'Họ tên' => $hoTen, 
+                    'Ngày sinh' => $rawDob,
+                    'Mã môn' => $maMon, 
+                    'Điểm quy đổi' => $scoreRaw, 
+                    'Ghi chú' => $note, 
+                    'Trạng thái' => $status, 
+                    'Lý do' => $reason
+                ];
             }
 
             $totalImport = count($validRows);
@@ -344,7 +452,6 @@ class CertificateScoreController extends Controller {
                         $insertParams[] = $r['diem'];
                         $insertParams[] = $r['ghi_chu'];
                         $insertParams[] = $sessionId;
-                        $successCount++;
                     }
                     $sqlIns = "INSERT INTO diem_chung_chi (so_cccd, ma_mon, diem, ghi_chu, dot_tuyen_sinh_id) VALUES " . implode(", ", $insertValues);
                     $stmtIns = $db->prepare($sqlIns);
@@ -356,18 +463,25 @@ class CertificateScoreController extends Controller {
 
             $updateProgress(100, 100, "Hoàn tất! Đã nhập thành công $successCount bản ghi.");
 
+            if ($errorCount > 0) {
+                $_SESSION['flash_warning'] = "Đã import thành công $successCount bản ghi hợp lệ. Có $errorCount bản ghi bị lỗi thông tin đã được bỏ qua và tải về báo cáo lỗi.";
+                $exportService = new \App\Services\ExportService();
+                $exportService->toExcel($importData, 'ket_qua_import_diem_chung_chi_loi.xls');
+                exit;
+            }
+
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode([
                     'success' => true,
-                    'message' => "Import thành công $successCount bản ghi. Lỗi/Bỏ qua: $errorCount bản ghi.",
+                    'message' => "Import thành công toàn bộ $successCount bản ghi điểm chứng chỉ!",
                     'success_count' => $successCount,
                     'error_count' => $errorCount
                 ]);
                 exit;
             }
 
-            $_SESSION['flash_success'] = "Import thành công $successCount bản ghi. Lỗi/Bỏ qua: $errorCount bản ghi.";
+            $_SESSION['flash_success'] = "Import thành công toàn bộ $successCount bản ghi điểm chứng chỉ!";
 
         } catch (\Exception $e) {
             if (isset($db) && $db->inTransaction()) {
@@ -454,30 +568,6 @@ class CertificateScoreController extends Controller {
                     return;
                 }
             }
-            
-            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang được chọn
-            $deleteAll = $_POST['delete_all'] ?? false;
-            if ($deleteAll) {
-                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
-                if (!$sessionId) {
-                    $sessionModel = new \App\Models\AdmissionSession();
-                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
-                    $sessionId = $activeSession ? $activeSession['id'] : null;
-                }
-                
-                if ($sessionId) {
-                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
-                    $success = $stmt->execute([$sessionId]);
-                } else {
-                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id IS NULL");
-                    $success = $stmt->execute([]);
-                }
-                
-                if ($success) {
-                    $this->json(['success' => true]);
-                    return;
-                }
-            }
         }
         $this->json(['success' => false]);
     }
@@ -497,7 +587,7 @@ class CertificateScoreController extends Controller {
             $sessionId = $activeSession ? $activeSession['id'] : null;
         }
 
-        $query = "SELECT c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten 
+        $query = "SELECT c.so_cccd, c.ma_mon, c.diem, c.ghi_chu, ts.ho_va_ten, ts.ngay_sinh
                   FROM diem_chung_chi c
                   LEFT JOIN thi_sinh ts ON c.so_cccd = ts.so_cccd
                   WHERE ";
@@ -545,6 +635,8 @@ class CertificateScoreController extends Controller {
         foreach ($dataRows as $row) {
             $data[] = [
                 'CCCD (Bat buoc)' => "\t" . $row['so_cccd'],
+                'Họ tên' => $row['ho_va_ten'],
+                'Ngày sinh' => $row['ngay_sinh'] ? date('d/m/Y', strtotime($row['ngay_sinh'])) : '',
                 'Ma mon (N1, N2, N3...)' => $row['ma_mon'],
                 'Diem quy doi (Bat buoc)' => $row['diem'],
                 'Ghi chu' => $row['ghi_chu']
@@ -557,13 +649,16 @@ class CertificateScoreController extends Controller {
 
     public function template() {
         $data = [[
-            'CCCD (Bat buoc)' => "\t123456789",
+            'CCCD (Bat buoc)' => "\t026307006609",
+            'Họ tên' => 'NGUYỄN QUỲNH TRANG',
+            'Ngày sinh' => '04/06/2007',
             'Ma mon (N1, N2, N3...)' => 'N1',
-            'Diem quy doi (Bat buoc)' => '10.0',
-            'Ghi chu' => 'Vi du mau'
+            'Diem quy doi (Bat buoc)' => '8.00',
+            'Ghi chu' => 'Tiếng Anh - IELTS - 5'
         ]];
 
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, 'mau_import_diem_chung_chi.xls');
     }
+
 }

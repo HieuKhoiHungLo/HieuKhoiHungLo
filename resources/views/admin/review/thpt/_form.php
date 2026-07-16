@@ -8,9 +8,17 @@
 <div id="form_thpt" class="hidden animate-in fade-in slide-in-from-top-4 duration-300">
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-visible">
         <input type="hidden" name="application_id" value="<?= $user['application_id'] ?? '' ?>">
+        <?php
+            $hasScores = (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']);
+            if (!$hasScores && !empty($diemThi)) {
+                foreach(['toan','van','ly','hoa','sinh','su','dia','gdcd','tieng_anh','tieng_trung','ktpl','tin_hoc','cnnn'] as $c) {
+                    if(!empty($diemThi[$c])) { $hasScores = true; break; }
+                }
+            }
+        ?>
         
         <div style="padding: 2px;">
-            <div id="thpt_input_container" class="<?= (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']) ? '' : 'opacity-40 pointer-events-none' ?> transition-all duration-300">
+            <div class="transition-all duration-300">
                 <div class="overflow-x-auto border border-slate-200 rounded-xl mb-1">
                     <table class="w-full text-left border-collapse" style="font-size: 11px;">
                         <thead>
@@ -19,10 +27,10 @@
                                 <th style="padding: 5px 6px; text-align: left; font-weight: 700; font-size: 10px; color:#000; border-right: 1px solid #e2e8f0;">
                                     <div class="flex items-center justify-between">
                                         <span>Môn học</span>
-                                        <!-- Subtle Results Toggle (Label removed) -->
-                                        <label class="flex items-center cursor-pointer scale-75 origin-right mr-[-10px]">
+                                        <label class="flex items-center cursor-pointer scale-75 origin-right mr-[-10px] gap-1" title="Nhập điểm thi THPT">
+                                            <span class="text-[9px] text-slate-400 font-normal">Có điểm:</span>
                                             <div class="relative">
-                                                <input type="checkbox" name="has_scores" value="1" <?= (isset($diemThi['da_co_diem']) && $diemThi['da_co_diem']) ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
+                                                <input type="checkbox" name="has_scores" value="1" <?= $hasScores ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
                                                 <div class="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#0066FF]"></div>
                                             </div>
                                         </label>
@@ -31,7 +39,7 @@
                                 <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; width: 120px;">Điểm số</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="thpt_input_container" class="<?= $hasScores ? '' : 'opacity-40 pointer-events-none' ?> transition-all duration-300">
                             <?php 
                                 $thptSubjects = [
                                     'toan'=>'Toán học', 'van'=>'Ngữ văn', 'ly'=>'Vật lý', 'hoa'=>'Hóa học', 

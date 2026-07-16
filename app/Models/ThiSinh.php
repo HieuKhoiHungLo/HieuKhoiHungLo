@@ -820,7 +820,7 @@ class ThiSinh extends Model {
             'ho_va_ten', 'ngay_sinh', 'gioi_tinh', 'dan_toc', 
             'khu_vuc_uu_tien', 'doi_tuong_uu_tien', 'dien_thoai', 'email',
             'ma_tinh_ho_khau', 'ma_tinh_lop_12', 'ma_truong_lop_12', 
-            'nam_tot_nghiep', 'so_cccd', // Added so_cccd
+            'nam_tot_nghiep', 'so_cccd', 'so_bao_danh', // Added so_cccd & so_bao_danh
             'ma_tinh_thuong_tru', 'ma_xa_thuong_tru', 'dia_chi_chi_tiet',
             'is_custom_kv', 'is_custom_dt',
             'anh_dai_dien', 'anh_cccd_truoc', 'anh_cccd_sau', 

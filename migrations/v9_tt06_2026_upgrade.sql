@@ -53,14 +53,14 @@ END $$;
 
 -- 4. Cập nhật ngưỡng cho các nhóm ngành (mẫu - admin có thể tùy chỉnh sau)
 -- Nhóm Sư phạm: Giỏi + 20 điểm THPT
-UPDATE dm_nganh SET nhom_nganh = 'SuPham', nguong_hoc_luc = 'Gioi', nguong_diem_thpt = 20.00
+UPDATE dm_nganh SET nhom_nganh = 'SuPham', nguong_hoc_luc = 'Gioi', nguong_diem_thpt = 18.00
 WHERE ma_nganh LIKE '7140%' 
   AND ma_nganh NOT IN ('7140206','7140221','7140222');
 
 -- Nhóm Sư phạm đặc thù (GDTC, Âm nhạc, Mỹ thuật): Khá + 18 điểm
-UPDATE dm_nganh SET nhom_nganh = 'SuPhamDacThu', nguong_hoc_luc = 'Kha', nguong_diem_thpt = 18.00
+UPDATE dm_nganh SET nhom_nganh = 'SuPhamDacThu', nguong_hoc_luc = 'Kha', nguong_diem_thpt = 16.50
 WHERE ma_nganh IN ('7140206','7140221','7140222');
 
 -- Nhóm Điều dưỡng: Khá + 20 điểm
-UPDATE dm_nganh SET nhom_nganh = 'DieuDuong', nguong_hoc_luc = 'Kha', nguong_diem_thpt = 20.00
+UPDATE dm_nganh SET nhom_nganh = 'DieuDuong', nguong_hoc_luc = 'Kha', nguong_diem_thpt = 16.50
 WHERE ma_nganh = '7720301';

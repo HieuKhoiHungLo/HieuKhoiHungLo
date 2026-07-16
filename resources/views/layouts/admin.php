@@ -486,12 +486,12 @@
         </header>
 
         <!-- Dynamic Content -->
-        <main class="flex-grow <?= (isset($mode) && $mode === 'review') ? 'p-4 pt-1' : 'p-8' ?> relative z-0">
+        <main class="flex-grow <?= (isset($mode) && $mode === 'review') ? 'p-4 pt-1' : 'p-4 lg:p-6 pt-1 lg:pt-2' ?> relative z-0">
             <?= $content ?? '' ?>
         </main>
 
         <!-- Footer -->
-        <footer class="py-6 text-center text-xs font-medium text-slate-400 border-t border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <footer class="py-2.5 text-center text-[10px] font-medium text-slate-400 border-t border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-900">
             <?php $v = include __DIR__ . '/../../../config/version.php'; ?>
             &copy; <?= date('Y') ?> <?= $v['name'] ?> (V <?= $v['version'] ?>)
         </footer>

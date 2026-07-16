@@ -800,7 +800,7 @@ class ThiSinhRepository
     {
         if (empty($candidatesData)) return 0;
 
-        $cols = ['so_cccd', 'ho_va_ten', 'ngay_sinh', 'gioi_tinh', 'doi_tuong_uu_tien', 'khu_vuc_uu_tien', 'nam_tot_nghiep', 'ma_tinh_ho_khau', 'ma_tinh_thuong_tru', 'ma_xa_thuong_tru', 'ma_truong_lop_12', 'email', 'mat_khau', 'nguon_du_lieu'];
+        $cols = ['so_cccd', 'so_bao_danh', 'ho_va_ten', 'ngay_sinh', 'gioi_tinh', 'doi_tuong_uu_tien', 'khu_vuc_uu_tien', 'nam_tot_nghiep', 'ma_tinh_ho_khau', 'ma_tinh_thuong_tru', 'ma_xa_thuong_tru', 'ma_truong_lop_12', 'email', 'mat_khau', 'nguon_du_lieu'];
         
         $placeholders = [];
         $values = [];

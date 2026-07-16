@@ -69,84 +69,83 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
 
 <div class="h-full flex flex-col p-4 lg:p-6 bg-slate-50/50" id="resultsApp" x-data="{ activeTab: 'list', initCharts() { setTimeout(() => { renderAdmissionCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
 
-    <!-- Header -->
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-14 h-14 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200">
-                <i class="fas fa-file-invoice text-white text-2xl"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Danh sách Trúng tuyển</h1>
-                <p class="text-xs text-slate-400 font-medium mt-0.5">Kết quả xét tuyển chính thức — Server-side processing</p>
-            </div>
+    <!-- Header Row (Title & Filters) -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-file-invoice text-indigo-600"></i> Danh Sách Trúng Tuyển
+            </h1>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
+        
+        <!-- Year & Session Dropdowns -->
+        <div class="flex items-center gap-2 w-full md:w-auto">
             <!-- Session Selector -->
-            <div class="relative">
+            <div class="relative flex-1 md:flex-none md:min-w-[220px]">
                 <select id="sessionSelector" onchange="changeSession(this.value)"
-                    class="bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-400">
+                    class="w-full border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 text-slate-700 outline-none appearance-none cursor-pointer">
                     <?php foreach ($allSessions as $s): ?>
                         <option value="<?= $s['id'] ?>" <?= ($s['id'] == $sessionId) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($s['ten_dot'] ?? ('Đợt #' . $s['id'])) ?> (<?= $s['nam_tuyen_sinh'] ?? '' ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[9px] pointer-events-none"></i>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
             </div>
-            
-            <form action="<?= url('/admin/admission/results/set-template') ?>" method="POST" class="flex items-center gap-2">
+
+        </div>
+    </div>
+
+    <!-- Action Toolbar (clean design like virtual filter) -->
+    <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
+        <!-- Left: Action buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- 1. Export Excel Button -->
+            <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . $sessionId) ?>"
+               class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-file-excel"></i>
+                <span>Xuất Excel</span>
+            </a>
+
+            <!-- 2. Send Bulk Email Button -->
+            <button onclick="bulkEmailSelected()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-paper-plane"></i>
+                <span>Gửi Email Đã Chọn</span>
+            </button>
+
+            <!-- 3. Upload Results Excel Form Button -->
+            <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" class="flex items-center gap-2" id="importForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <select name="template_id" class="bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-700 shadow-sm appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-400" onchange="this.form.submit()">
-                    <option value="">-- Mẫu mặc định --</option>
-                    <?php foreach ($allTemplates as $tpl): ?>
-                        <option value="<?= $tpl['id'] ?>" <?= ($tpl['id'] == $currentTemplateId) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($tpl['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-file-import"></i>
+                    <span>Upload Kết Quả (Excel)</span>
+                    <input type="file" name="excel_file" class="hidden" accept=".xls,.xlsx" onchange="document.getElementById('importForm').submit();">
+                </label>
             </form>
 
-            <!-- Nút Công bố trúng tuyển -->
+            <!-- 4. Nút Công bố / Hủy công bố -->
             <form action="<?= url('/admin/admission/results/toggle-publish') ?>" method="POST" class="flex items-center">
                 <?= csrf_field() ?>
                 <input type="hidden" name="session_id" value="<?= $sessionId ?>">
                 <input type="hidden" name="status" value="<?= empty($activeSession['is_published_results']) ? '1' : '0' ?>">
-                <button type="submit" class="<?= empty($activeSession['is_published_results']) ? 'bg-emerald-600 hover:bg-emerald-700 border border-emerald-600' : 'bg-rose-50 hover:bg-rose-100 border border-rose-200' ?> px-4 py-2.5 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2 text-xs" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả xét tuyển đợt này lên cổng thông tin cho thí sinh tra cứu không?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này không?' ?>');">
-                    <i class="fas <?= empty($activeSession['is_published_results']) ? 'fa-bullhorn text-white' : 'fa-eye-slash text-rose-600' ?>"></i>
-                    <span class="<?= empty($activeSession['is_published_results']) ? 'text-white' : 'text-rose-600' ?>">
-                        <?= empty($activeSession['is_published_results']) ? 'Công bố' : 'Hủy công bố' ?>
+                <button type="submit" class="<?= empty($activeSession['is_published_results']) ? 'bg-teal-600 hover:bg-teal-700 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200' ?> px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả xét tuyển đợt này lên cổng thông tin cho thí sinh tra cứu không?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này không?' ?>');">
+                    <i class="fas <?= empty($activeSession['is_published_results']) ? 'fa-bullhorn' : 'fa-eye-slash' ?>"></i>
+                    <span>
+                        <?= empty($activeSession['is_published_results']) ? 'Công bố kết quả' : 'Hủy công bố kết quả' ?>
                     </span>
                 </button>
             </form>
+        </div>
 
-            <div class="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . $sessionId) ?>"
-                   class="px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all flex items-center gap-1.5">
-                    <i class="fas fa-file-excel"></i> Xuất Excel
-                </a>
-                <div class="w-px h-6 bg-slate-200 my-auto"></div>
-                <button onclick="bulkEmailSelected()" 
-                    class="px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all flex items-center gap-1.5">
-                    <i class="fas fa-paper-plane"></i> Gửi Email đã chọn
-                </button>
-            </div>
-
-            <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" class="flex items-center gap-2" id="importForm">
-                <?= csrf_field() ?>
-                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs cursor-pointer">
-                    <i class="fas fa-file-import"></i> Upload Kết Quả (Excel)
-                    <input type="file" name="excel_file" class="hidden" accept=".xls,.xlsx" onchange="document.getElementById('importForm').submit();">
-                </label>
-            </form>
-            
+        <!-- Right: Destructive clear action -->
+        <div>
             <form action="<?= url('/admin/admission/results/clear') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ kết quả của đợt này?');">
                 <?= csrf_field() ?>
                 <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-xs">
-                    <i class="fas fa-trash-alt"></i> Xóa đợt này
+                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-trash-alt"></i>
+                    <span>Xóa Đợt Này</span>
                 </button>
             </form>
         </div>
@@ -283,7 +282,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     <!-- Table -->
     <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/40 border border-slate-200 overflow-hidden flex flex-col flex-1">
         <!-- Table info bar -->
-        <div class="px-4 py-2 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+        <div class="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
             <span id="tableInfo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đang tải...</span>
             <div class="flex items-center gap-2">
                 <span id="selectedCount" class="text-[10px] font-bold text-indigo-600 hidden">0 đã chọn</span>
@@ -291,32 +290,32 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         </div>
 
         <div class="overflow-x-auto flex-1">
-            <table class="w-full text-left whitespace-nowrap border border-slate-300" id="resultsTable" style="border-collapse:collapse">
+            <table class="premium-table min-w-full text-left whitespace-nowrap" id="resultsTable">
                 <thead>
-                    <tr class="bg-gray-100 text-gray-700 text-xs">
-                        <th class="border border-slate-300 py-2 px-2 text-center w-8">
+                    <tr>
+                        <th class="text-center w-8">
                             <input type="checkbox" id="selectAllInline" onchange="toggleSelectAll(this.checked)" class="w-3.5 h-3.5">
                         </th>
-                        <th class="border border-slate-300 py-2 px-2 text-center w-10">STT</th>
-                        <th class="border border-slate-300 py-2 px-3">Mã ngành</th>
-                        <th class="border border-slate-300 py-2 px-3">Tên ngành</th>
-                        <th class="border border-slate-300 py-2 px-3">CCCD</th>
-                        <th class="border border-slate-300 py-2 px-3">Họ và Tên</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">KV</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">ĐT UT</th>
-                        <th class="border border-slate-300 py-2 px-3">Tổ hợp</th>
-                        <th class="border border-slate-300 py-2 px-3">Phương thức</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">M1</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">M2</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">M3</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">UTQ</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center">Điểm XT</th>
-                        <th class="border border-slate-300 py-2 px-2 text-center w-20">Kết quả</th>
-                        <th class="border border-slate-300 py-2 px-3">Ghi chú</th>
+                        <th class="text-center w-10">STT</th>
+                        <th>Mã ngành</th>
+                        <th>Tên ngành</th>
+                        <th>CCCD</th>
+                        <th>Họ và Tên</th>
+                        <th class="text-center">KV</th>
+                        <th class="text-center">ĐT UT</th>
+                        <th>Tổ hợp</th>
+                        <th>Phương thức</th>
+                        <th class="text-center">M1</th>
+                        <th class="text-center">M2</th>
+                        <th class="text-center">M3</th>
+                        <th class="text-center">UTQ</th>
+                        <th class="text-center">Điểm XT</th>
+                        <th class="text-center w-20">Kết quả</th>
+                        <th>Ghi chú</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody" class="text-xs text-gray-900">
-                    <tr><td colspan="19" class="py-16 text-center border border-slate-200"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
+                <tbody id="tableBody" class="text-[11px]">
+                    <tr><td colspan="19" class="py-16 text-center border-b border-slate-100"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
                 </tbody>
             </table>
         </div>
@@ -806,7 +805,7 @@ function reloadTable() {
 function renderTable(rows, startIndex) {
     const tbody = document.getElementById('tableBody');
     if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="19" class="py-16 text-center border border-slate-200 text-gray-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="19" class="py-16 text-center border-b border-slate-100 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
         return;
     }
 
@@ -815,42 +814,35 @@ function renderTable(rows, startIndex) {
         const isPass = row.is_pass;
         const details = row.chi_tiet_diem || {};
         const checked = selectedIds.has(row.id) ? 'checked' : '';
-        const rowBg = isPass ? '' : 'bg-gray-50 text-gray-400';
-        const utAmt = (details.priority_converted || 0) > 0 ? '+' + fmt(details.priority_converted) : '-';
+        const rowBg = isPass ? '' : 'bg-slate-50/50 text-slate-400';
 
-        html += `<tr class="${rowBg} hover:bg-blue-50 transition-colors">
-            <td class="border border-slate-200 py-1.5 px-2 text-center">
+        html += `<tr class="${rowBg} hover:bg-slate-50 transition-colors">
+            <td class="text-center">
                 <input type="checkbox" class="rowCheck w-3.5 h-3.5"
                     data-id="${row.id}" ${checked} onchange="toggleRowSelect(${row.id}, this.checked)">
             </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center text-gray-500">${startIndex + i + 1}</td>
-            <td class="border border-slate-200 py-1.5 px-3 font-mono">${row.ma_nganh}</td>
-            <td class="border border-slate-200 py-1.5 px-3 max-w-[180px]">
-                <span class="truncate block" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
+            <td class="text-center text-slate-400">${startIndex + i + 1}</td>
+            <td class="font-mono font-bold">${row.ma_nganh}</td>
+            <td class="max-w-[180px]">
+                <span class="truncate block font-semibold text-slate-700" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
             </td>
-            <td class="border border-slate-200 py-1.5 px-3 font-mono">
-                ${row.so_cccd}
+            <td class="font-mono text-slate-500">${row.so_cccd}</td>
+            <td class="font-bold text-slate-800">${escHtml(row.ho_ten)}</td>
+            <td class="text-center">${row.khu_vuc || '-'}</td>
+            <td class="text-center">${row.doi_tuong || '-'}</td>
+            <td>${escHtml(row.to_hop || '-')}</td>
+            <td class="max-w-[120px]">
+                <span class="truncate block text-slate-500 text-[10px]" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
             </td>
-            <td class="border border-slate-200 py-1.5 px-3 min-w-[140px]">
-                ${escHtml(row.ho_ten)}
+            <td class="text-center">${fmt3(row.diem_mon_1)}</td>
+            <td class="text-center">${fmt3(row.diem_mon_2)}</td>
+            <td class="text-center">${fmt3(row.diem_mon_3)}</td>
+            <td class="text-center font-medium">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
+            <td class="text-center font-black text-emerald-600 bg-emerald-50/20">${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}</td>
+            <td class="text-center">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">Đỗ</span>
             </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.khu_vuc || '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.doi_tuong || '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-3">${escHtml(row.to_hop || '-')}</td>
-            <td class="border border-slate-200 py-1.5 px-3 max-w-[120px]">
-                <span class="truncate block text-gray-500" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
-            </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_1)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_2)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${fmt3(row.diem_mon_3)}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center font-semibold text-green-700">
-                ${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}
-            </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">
-                <span class="text-green-700">Đỗ</span>
-            </td>
-            <td class="border border-slate-200 py-1.5 px-2 text-center">
+            <td>
                 ${escHtml(row.ghi_chu || '')}
             </td>
         </tr>`;
@@ -864,9 +856,9 @@ function renderPagination() {
     if (totalPages <= 1) { container.innerHTML = ''; return; }
 
     const btn = (label, page, active = false, disabled = false) => {
-        if (disabled) return `<button disabled class="px-2.5 py-1 text-xs border border-slate-200 rounded text-gray-300 cursor-not-allowed bg-white">${label}</button>`;
-        if (active)  return `<button class="px-2.5 py-1 text-xs border border-blue-600 rounded bg-blue-600 text-white font-semibold">${label}</button>`;
-        return `<button onclick="goPage(${page})" class="px-2.5 py-1 text-xs border border-slate-300 rounded bg-white text-gray-700 hover:bg-gray-100 transition-colors">${label}</button>`;
+        if (disabled) return `<button disabled class="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-300 cursor-not-allowed bg-slate-50">${label}</button>`;
+        if (active)  return `<button class="px-3 py-1.5 text-xs border border-indigo-600 rounded-lg bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-100">${label}</button>`;
+        return `<button onclick="goPage(${page})" class="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 transition-all font-semibold hover:border-slate-300">${label}</button>`;
     };
 
     let html = btn('«', currentPage - 1, false, currentPage === 0);
@@ -926,22 +918,67 @@ function updateSelectedCount() {
     }
 }
 
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('hidden');
+}
+
 function bulkEmailSelected() {
     if (selectedIds.size === 0) { alert('Vui lòng chọn ít nhất 1 thí sinh.'); return; }
-    if (!confirm(`Gửi email trúng tuyển cho ${selectedIds.size} thí sinh đã chọn?`)) return;
+    
+    // Set target count in email-modal (ID: 'email-target-count')
+    const countEl = document.getElementById('email-target-count');
+    if (countEl) countEl.innerText = selectedIds.size;
+    
+    // Clear/Reset modal input fields
+    const tplSelect = document.getElementById('email-template-select');
+    if (tplSelect) tplSelect.value = '';
+    const subjectInput = document.getElementById('email-modal-subject');
+    if (subjectInput) subjectInput.value = '';
+    const editor = document.getElementById('email-editor');
+    if (editor) editor.innerHTML = '';
+    const noteEl = document.getElementById('email-modal-internal-note');
+    if (noteEl) noteEl.value = '';
+    
+    // Show email modal
+    const emailModal = document.getElementById('email-modal');
+    if (emailModal) {
+        emailModal.classList.remove('hidden');
+    } else {
+        alert('Không tìm thấy giao diện Email Modal.');
+    }
+}
 
+function confirmSendEmail() {
+    const templateId = document.getElementById('email-template-select').value;
+    const subject = document.getElementById('email-modal-subject').value;
+    const content = document.getElementById('email-editor').innerHTML;
+    const internalNote = document.getElementById('email-modal-internal-note').value;
+    
+    if (!templateId && (!subject || !content || content.trim() === '')) {
+        alert('Vui lòng nhập tiêu đề và nội dung hoặc chọn mẫu thư.');
+        return;
+    }
+    
+    // Close modal
+    closeModal('email-modal');
+    
+    // Post to BULK_EMAIL_URL
     fetch(BULK_EMAIL_URL, {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `ids=${JSON.stringify([...selectedIds])}&session_id=${SESSION_ID}&csrf_token=${CSRF_TOKEN}`
+        body: `ids=${JSON.stringify([...selectedIds])}&session_id=${SESSION_ID}&csrf_token=${CSRF_TOKEN}&template_id=${templateId}&email_subject=${encodeURIComponent(subject)}&email_content=${encodeURIComponent(content)}&internal_note=${encodeURIComponent(internalNote)}`
     })
     .then(r => r.json())
     .then(data => {
-        alert(data.message || 'Hoàn thành');
+        alert(data.message || 'Gửi email hoàn thành');
         selectedIds.clear();
         updateSelectedCount();
+        reloadTable();
     })
-    .catch(err => alert('Lỗi: ' + err.message));
+    .catch(err => {
+        alert('Lỗi: ' + err.message);
+    });
 }
 
 // Helpers

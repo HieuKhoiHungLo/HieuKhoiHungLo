@@ -276,6 +276,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     // Virtual Filter Dashboard (New Grid UI)
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
+    $router->get('/admin/admission/overview-virtual-filter', 'VirtualAdmissionController@overviewVirtualFilter');
     $router->get('/admin/api/vf/load', 'VirtualAdmissionController@loadBatchData');
     $router->post('/admin/api/vf/load', 'VirtualAdmissionController@loadBatchData');
     $router->get('/admin/api/vf/get-cccds', 'VirtualAdmissionController@apiGetCccds');
@@ -290,6 +291,15 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/api/vf/stats', 'VirtualAdmissionController@getStats');
     $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
     $router->get('/admin/api/vf/batch-load', 'VirtualFilterController@loadBatchData');
+    // BGD Virtual Filter Import (Kết quả lọc ảo liên trường từ Bộ GD&ĐT)
+    $router->post('/admin/api/vf/import-bgd', 'VirtualAdmissionController@importBGDResult');
+    $router->get('/admin/api/vf/download-bgd-report', 'VirtualAdmissionController@downloadImportReport');
+    $router->get('/admin/api/vf/bgd-status', 'VirtualAdmissionController@getBGDImportStatus');
+    $router->get('/admin/api/vf/export-admitted-final', 'VirtualAdmissionController@exportAdmittedFinal');
+    $router->get('/admin/api/vf/export-eliminated-bgd', 'VirtualAdmissionController@exportEliminatedByBGD');
+    $router->get('/admin/api/vf/export-stats', 'VirtualAdmissionController@exportStats');
+    $router->get('/admin/api/vf/export-chart-data', 'VirtualAdmissionController@exportChartData');
+
 
     // New Admission Management (Year/Session Based)
     $router->get('/admin/admission/management', 'AdmissionManagementController@index');

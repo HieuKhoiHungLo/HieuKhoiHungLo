@@ -2,7 +2,48 @@
 $title = 'Quản lý Điểm năng khiếu';
 ob_start();
 ?>
-<div class="p-6 h-full flex flex-col" x-data="aptitudeData()">
+<style>
+    /* Spreadsheet style for Aptitude Scores Table matching review-management */
+    #aptitudeTable {
+        border-collapse: separate !important;
+        border-spacing: 0;
+        width: 100% !important;
+        table-layout: fixed;
+    }
+    #aptitudeTable th, #aptitudeTable td {
+        padding: 0.4rem 0.5rem !important;
+        border: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        vertical-align: middle !important;
+        font-size: 13px !important;
+        background-clip: padding-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    #aptitudeTable td {
+        font-weight: 400 !important;
+        text-transform: none !important;
+        color: #000000 !important;
+    }
+    #aptitudeTable th:first-child, #aptitudeTable td:first-child {
+        border-left: 1px solid #e2e8f0 !important;
+    }
+    #aptitudeTable thead tr:first-child th {
+        border-top: 1px solid #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    #aptitudeTable tbody tr:hover td {
+        background-color: #f1f5f9 !important;
+    }
+</style>
+
+<div class="h-full flex flex-col" x-data="aptitudeData()">
     <!-- Premium Loading Modal -->
     <div x-cloak x-show="isLoading" 
          x-transition:enter="transition ease-out duration-300"
@@ -54,16 +95,19 @@ ob_start();
     </div>
 
     <!-- Row 1: Header & Filters -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Điểm năng khiếu</h1>
-            <p class="text-slate-500 text-sm mt-1">Tổng cộng: <span class="font-semibold text-slate-700"><?= number_format($stats['total']) ?></span> bản ghi</p>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-5 bg-indigo-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Điểm năng khiếu</h1>
+            </div>
+            <p class="text-slate-500 text-xs ml-4 mt-0.5">Tổng cộng: <span class="font-bold text-indigo-600"><?= number_format($stats['total']) ?></span> bản ghi</p>
         </div>
         
-        <div class="flex flex-wrap items-center gap-3">
-            <label class="text-sm font-medium text-slate-600">Đợt tuyển sinh:</label>
+        <div class="flex flex-wrap items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Đợt tuyển sinh:</label>
             <!-- Filter by Year -->
-            <select id="yearFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
+            <select id="yearFilter" class="border border-slate-300 rounded-lg text-xs bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5 min-w-[90px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
                 <option value="">-- Năm --</option>
                 <?php foreach ($years as $year): ?>
                     <option value="<?= $year ?>"><?= $year ?></option>
@@ -71,7 +115,7 @@ ob_start();
             </select>
 
             <!-- Filter by Session -->
-            <select id="sessionFilter" class="border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 min-w-[250px]" x-model="selectedSession" @change="sessionChanged()">
+            <select id="sessionFilter" class="border border-slate-300 rounded-lg text-xs bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5 min-w-[200px]" x-model="selectedSession" @change="sessionChanged()">
                 <option value="">-- Chọn đợt xét tuyển --</option>
                 <template x-for="session in filteredSessions" :key="session.id">
                     <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
@@ -81,22 +125,22 @@ ob_start();
     </div>
 
     <!-- Row 2: Action Buttons (Constructive left, Destructive right) -->
-    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-2 bg-slate-50 p-3 px-4 rounded-xl border border-slate-200">
         <!-- Left side: Constructive actions -->
         <div class="flex flex-wrap items-center gap-2">
-            <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
+            <button @click="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-plus"></i>
                 <span>Thêm mới</span>
             </button>
-            <button @click="openImportModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
+            <button @click="openImportModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-file-excel"></i>
                 <span>Import Excel</span>
             </button>
-            <button @click="exportData()" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+            <button @click="exportData()" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
                 <i class="fas fa-download text-slate-500"></i>
                 <span>Xuất dữ liệu</span>
             </button>
-            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+            <a href="<?= url('/admin/aptitude-scores/template') ?>" class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
                 <i class="fas fa-file-csv text-slate-500"></i>
                 <span>Mẫu Import</span>
             </a>
@@ -105,11 +149,11 @@ ob_start();
         <!-- Right side: Destructive actions -->
         <div class="flex flex-wrap items-center gap-2 justify-end">
             <!-- Nút xóa hàng loạt -->
-            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-all shadow-sm flex items-center gap-2 text-sm hidden">
+            <button id="btnDeleteSelected" @click="deleteSelected()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm flex items-center gap-2 text-sm hidden">
                 <i class="fas fa-minus-circle"></i>
                 <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
             </button>
-            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-lg font-semibold transition-colors border border-red-200 flex items-center gap-2 text-sm shadow-sm">
+            <button @click="deleteAllScores()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-semibold transition-colors border border-red-200 flex items-center gap-2 text-sm shadow-sm">
                 <i class="fas fa-trash-alt"></i>
                 <span>Xóa tất cả</span>
             </button>
@@ -118,63 +162,57 @@ ob_start();
 
     <!-- Alert Messages -->
     <?php if (isset($_SESSION['flash_success'])): ?>
-        <div class="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg flex items-start shadow-sm">
-            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-3"></i>
+        <div class="mb-2 bg-emerald-50 border-l-4 border-emerald-500 p-2.5 rounded-r-xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-2 text-base"></i>
             <div>
-                <h3 class="text-emerald-800 font-bold text-sm">Thành công!</h3>
-                <p class="text-emerald-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
+                <h3 class="text-emerald-800 font-bold text-xs">Thành công!</h3>
+                <p class="text-emerald-700 text-xs mt-0.5"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
             </div>
         </div>
         <?php unset($_SESSION['flash_success']); ?>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['flash_error'])): ?>
-        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex items-start shadow-sm">
-            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+        <div class="mb-2 bg-red-50 border-l-4 border-red-500 p-2.5 rounded-r-xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-2 text-base"></i>
             <div>
-                <h3 class="text-red-800 font-bold text-sm">Lỗi!</h3>
-                <p class="text-red-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
+                <h3 class="text-red-800 font-bold text-xs">Lỗi!</h3>
+                <p class="text-red-700 text-xs mt-0.5"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
             </div>
         </div>
         <?php unset($_SESSION['flash_error']); ?>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['flash_warning'])): ?>
-        <div class="mb-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg flex items-start shadow-sm">
-            <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5 mr-3"></i>
+        <div class="mb-2 bg-amber-50 border-l-4 border-amber-500 p-2.5 rounded-r-xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5 mr-2 text-base"></i>
             <div>
-                <h3 class="text-amber-800 font-bold text-sm">Cảnh báo!</h3>
-                <p class="text-amber-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_warning']) ?></p>
+                <h3 class="text-amber-800 font-bold text-xs">Cảnh báo!</h3>
+                <p class="text-amber-700 text-xs mt-0.5"><?= htmlspecialchars($_SESSION['flash_warning']) ?></p>
             </div>
         </div>
         <?php unset($_SESSION['flash_warning']); ?>
     <?php endif; ?>
 
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
-        <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-            <h2 class="font-bold text-slate-700 flex items-center gap-2">
-                <i class="fas fa-table text-slate-400"></i>
-                Danh sách điểm thi tại trường
-            </h2>
-        </div>
         <div class="flex-1 min-h-0 p-4 relative overflow-auto custom-scrollbar">
             <table id="aptitudeTable" class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tl-lg text-center w-10">
-                            <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-indigo-600 focus:ring-indigo-500">
+                    <tr class="bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                        <th class="py-3 px-4 rounded-tl-xl text-center w-[40px]">
+                            <input type="checkbox" id="selectAll" class="border-slate-300 rounded text-[#0066FF] focus:ring-indigo-500 cursor-pointer">
                         </th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">ID</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">CCCD/CMND</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">SBD</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Họ và tên</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Mã Môn</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Điểm</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200">Ghi chú</th>
-                        <th class="py-3 px-4 font-semibold border-b border-slate-200 rounded-tr-lg text-right">Thao tác</th>
+                        <th class="py-3 px-4 w-[60px]">ID</th>
+                        <th class="py-3 px-4 w-[150px]">CCCD/CMND</th>
+                        <th class="py-3 px-4 w-[100px]">SBD</th>
+                        <th class="py-3 px-4">Họ và tên</th>
+                        <th class="py-3 px-4 w-[180px]">Mã Môn</th>
+                        <th class="py-3 px-4 w-[100px]">Điểm</th>
+                        <th class="py-3 px-4">Ghi chú</th>
+                        <th class="py-3 px-4 w-[120px] rounded-tr-xl text-right">Thao tác</th>
                     </tr>
                 </thead>
-                <tbody class="text-slate-700 text-sm divide-y divide-slate-100"></tbody>
+                <tbody class="text-slate-700 text-sm"></tbody>
             </table>
         </div>
     </div>
@@ -477,6 +515,8 @@ ob_start();
         const table = $('#aptitudeTable').DataTable({
             processing: true,
             serverSide: true,
+            pageLength: 8,
+            lengthMenu: [8, 16, 24, 32, 40],
             ajax: { 
                 url: '<?= url('/admin/aptitude-scores/api-list') ?>', 
                 type: 'POST',
@@ -490,43 +530,47 @@ ob_start();
                     data: null,
                     orderable: false,
                     width: '40px',
-                    className: 'text-center',
-                    render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-indigo-600 focus:ring-indigo-500" value="${row.id}">`
+                    className: 'text-center align-middle',
+                    render: (data, type, row) => `<input type="checkbox" class="row-select border-slate-300 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" value="${row.id}">`
                 },
-                { data: 'id', width: '60px', className: 'text-slate-500 font-mono text-xs' },
-                { data: 'so_cccd', className: 'font-medium font-mono text-indigo-600' },
-                { data: 'sbd' },
-                { data: 'ho_va_ten', defaultContent: '<span class="text-slate-400 italic">Chưa đăng ký HS</span>' },
+                { data: 'id', className: 'align-middle w-[60px]' },
+                { data: 'so_cccd', className: 'align-middle w-[150px]' },
+                { data: 'sbd', className: 'align-middle w-[100px]' },
+                { data: 'ho_va_ten', className: 'align-middle', defaultContent: '<span class="text-slate-400 italic">Chưa đăng ký HS</span>' },
                 { 
                     data: 'ma_mon',
+                    className: 'align-middle w-[180px]',
                     render: (data, type, row) => row.ten_mon ? `${data}: ${row.ten_mon}` : data
                 },
                 { 
                     data: 'diem',
-                    render: (data) => `<span class="px-2 py-1 bg-sky-100 text-sky-700 rounded-md font-bold">${data}</span>`
+                    className: 'align-middle text-center w-[100px]'
                 },
-                { data: 'ghi_chu' },
+                { data: 'ghi_chu', className: 'align-middle whitespace-normal' },
                 {
                     data: null,
                     orderable: false,
-                    className: 'text-right',
+                    width: '120px',
+                    className: 'text-center align-middle',
                     render: (data, type, row) => `
-                        <div class="flex justify-end gap-1">
-                            <button onclick='window.aptitudeDataInstance.editScore(${JSON.stringify(row)})' class="p-1 px-2 text-indigo-600 hover:bg-indigo-50 rounded transition-colors">
-                                <i class="fas fa-edit"></i>
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick='window.aptitudeDataInstance.editScore(${JSON.stringify(row)})' 
+                                class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded font-extrabold text-[10px] uppercase border border-blue-200 transition-all">
+                                SỬA
                             </button>
-                            <button onclick="deleteScore(${row.id})" class="p-1 px-2 text-red-600 hover:bg-red-50 rounded transition-colors">
-                                <i class="fas fa-trash"></i>
+                            <button onclick="deleteScore(${row.id})" 
+                                class="w-6 h-6 flex items-center justify-center text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Xóa">
+                                <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         </div>
                     `
                 }
             ],
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
-            dom: '<"flex justify-between items-center bg-white p-4 border-b border-slate-200"<"flex items-center gap-2"l><"search-box"f>>rt<"flex justify-between items-center p-4 bg-slate-50"ip>',
+            dom: '<"flex justify-between items-center bg-white p-2 px-4 border-b border-slate-200"<"flex items-center gap-2"l><"search-box"f>>rt<"flex justify-between items-center p-2 px-4 bg-slate-50"ip>',
             initComplete: function() {
-                $('.dataTables_filter input').addClass('w-64 pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all').attr('placeholder', 'Tìm CCCD, SBD...');
-                $('.dataTables_length select').addClass('border border-slate-300 rounded-md text-sm py-1 pl-2 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500');
+                $('.dataTables_filter input').addClass('w-64 pl-4 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all').attr('placeholder', 'Tìm CCCD, SBD...');
+                $('.dataTables_length select').addClass('border border-slate-300 rounded-md text-xs py-1 pl-2 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500');
             }
         });
         

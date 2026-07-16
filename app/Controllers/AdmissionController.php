@@ -258,6 +258,10 @@ class AdmissionController extends Controller {
         $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
 
         $allTemplates = $db->query("SELECT id, subject as name, code FROM email_templates")->fetchAll(\PDO::FETCH_ASSOC);
+        $emailTemplates = \App\Core\Cache::remember('email_templates_all', 60, function () {
+            $model = new \App\Models\EmailTemplate();
+            return $model->getAll();
+        });
         $currentTemplateId = null;
         if ($sessionId) {
             $stmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
@@ -277,6 +281,7 @@ class AdmissionController extends Controller {
             'activeSession' => $activeSession,
             'allSessions' => $allSessions,
             'allTemplates' => $allTemplates,
+            'emailTemplates' => $emailTemplates,
             'currentTemplateId' => $currentTemplateId
         ]);
     }
@@ -551,11 +556,17 @@ class AdmissionController extends Controller {
             }
         }
         
+        $customSubject = $_POST['email_subject'] ?? '';
+        $customContent = $_POST['email_content'] ?? '';
+        
+        $mailer = new \App\Services\MailerService();
+        
         foreach ($candidates as $cand) {
             if (empty($cand['email'])) continue;
             
             $data = [
                 'ho_ten' => $cand['ho_ten'],
+                'name' => $cand['ho_ten'],
                 'cccd' => $cand['so_cccd'],
                 'ten_nganh' => $cand['ten_nganh'],
                 'ma_nganh' => $cand['ma_nganh'],
@@ -563,7 +574,18 @@ class AdmissionController extends Controller {
                 'login_url' => url('/login')
             ];
             
-            $res = $this->emailService->sendWithTemplate($cand['email'], $templateCode, $data);
+            if (!empty($customSubject) && !empty($customContent)) {
+                $subject = $customSubject;
+                $body = $customContent;
+                foreach ($data as $key => $value) {
+                    $subject = str_replace('{{' . $key . '}}', htmlspecialchars($value ?? ''), $subject);
+                    $body = str_replace('{{' . $key . '}}', $value ?? '', $body);
+                }
+                $res = $mailer->send($cand['email'], $subject, $body, true, 'system');
+            } else {
+                $res = $this->emailService->sendWithTemplate($cand['email'], $templateCode, $data);
+            }
+            
             if ($res === true) { $count++; } else { $errors++; }
         }
         

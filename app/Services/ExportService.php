@@ -984,7 +984,16 @@ class ExportService {
                     $cellStr = ($cell !== null) ? (string)$cell : '';
                     $trimmedStr = trim($cellStr);
                     
-                    if ($trimmedStr !== '' && is_numeric($trimmedStr) && strpos($trimmedStr, ',') === false && !in_array($key, [
+                    $lowerKey = mb_strtolower($key, 'UTF-8');
+                    $isTextCol = false;
+                    foreach (['cccd', 'ddcn', 'mã ngành', 'ma_nganh', 'mã xét tuyển', 'ma_xet_tuyen', 'sbd', 'sđt', 'điện thoại', 'mã trường', 'ma_truong', 'thứ tự', 'thu_tu'] as $kw) {
+                        if (strpos($lowerKey, $kw) !== false) {
+                            $isTextCol = true;
+                            break;
+                        }
+                    }
+
+                    if ($trimmedStr !== '' && is_numeric($trimmedStr) && strpos($trimmedStr, ',') === false && !$isTextCol && !in_array($key, [
                         'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng', 'Đối tượng ƯT', 'Khu vực ƯT',
                         'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
                         'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
@@ -996,7 +1005,7 @@ class ExportService {
                         'Mã Trường', 'Mã trường', 'Mã Tỉnh', 'Mã tỉnh', 
                         'Mã Huyện', 'Mã huyện', 'Mã Xã', 'Mã xã',
                         'Mã Huyện/Quận', 'Mã Xã/Phường', 'Mã Tỉnh/Thành', 'Mã Tỉnh/Thành phố',
-                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực', 'CMND'
+                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực', 'CMND', 'SBD', 'Sbd', 'so_bao_danh'
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';

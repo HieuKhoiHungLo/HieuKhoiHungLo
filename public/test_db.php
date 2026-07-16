@@ -26,6 +26,21 @@ try {
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
     $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     echo "<h2 style='color:green;'>SUCCESS: Kết nối từ Web đến CSDL thành công!</h2>";
+    
+    // Kiểm tra danh sách bảng trong schema public
+    $stmt = $pdo->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename");
+    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    echo "<h3>Danh sách bảng hiện có (" . count($tables) . " bảng):</h3>";
+    if (count($tables) > 0) {
+        echo "<ul>";
+        foreach ($tables as $table) {
+            echo "<li>$table</li>";
+        }
+        echo "</ul>";
+    } else {
+        echo "<h3 style='color:orange;'>CẢNH BÁO: Không tìm thấy bảng nào trong database! Bạn có thể chưa migrate hoặc import dữ liệu.</h3>";
+    }
 } catch (Exception $e) {
     echo "<h2 style='color:red;'>ERROR: Kết nối thất bại!</h2>";
     echo "<pre>" . htmlspecialchars($e->getMessage()) . "</pre>";

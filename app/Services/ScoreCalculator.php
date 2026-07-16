@@ -282,40 +282,55 @@ class ScoreCalculator {
 
         // 1. Check Graduation Year Condition (Grad Year + 1)
         if (!empty($candidate['nam_tot_nghiep'])) {
-            $currentYear = date('Y');
-            if (($currentYear - $candidate['nam_tot_nghiep']) > 1) {
+            $currentYear = (int)date('Y');
+            if (($currentYear - (int)$candidate['nam_tot_nghiep']) > 1) {
                 return 0; // Expired priority
             }
         }
 
-        $prioSum = 0;
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $diemKhuVuc = 0;
+        $diemDoiTuong = 0;
 
         // 2. Area Priority
         if (!empty($candidate['khu_vuc_uu_tien'])) {
-            $keyMap = [
-                'KV1' => 'score_priority_kv1',
-                'KV2-NT' => 'score_priority_kv2_nt',
-                'KV2' => 'score_priority_kv2',
-                'KV3' => 'score_priority_kv3'
-            ];
-            $key = $keyMap[$candidate['khu_vuc_uu_tien']] ?? null;
-            if ($key) {
-                $prioSum += (float)$this->masterData->getSetting($key);
+            $rawKV = $candidate['khu_vuc_uu_tien'];
+            // Normalize
+            $maKV = $rawKV;
+            if ($maKV) {
+                $maKV = strtoupper(trim((string)$maKV));
+                $maKV = preg_replace('/^(KV|DT)/', '', $maKV);
+                $maKV = str_replace(['-', '_'], '', $maKV);
+                if (is_numeric($maKV)) {
+                    $maKV = (string)(int)$maKV;
+                }
             }
+            
+            $stmtKV = $db->prepare("SELECT diem_uu_tien FROM dm_khu_vuc WHERE ma_kv = ? OR TRIM(ma_kv) = ?");
+            $stmtKV->execute([$maKV, trim($rawKV)]);
+            $diemKhuVuc = (float)($stmtKV->fetchColumn() ?: 0);
         }
 
         // 3. Object Priority
         if (!empty($candidate['doi_tuong_uu_tien'])) {
-            $dt = $candidate['doi_tuong_uu_tien'];
-            if (in_array($dt, ['01','02','03','04'])) {
-                $prioSum += (float)$this->masterData->getSetting('score_priority_ut1');
-            } 
-            elseif (in_array($dt, ['05','06','07'])) {
-                $prioSum += (float)$this->masterData->getSetting('score_priority_ut2');
+            $rawDT = $candidate['doi_tuong_uu_tien'];
+            $maDT = $rawDT;
+            if ($maDT) {
+                $maDT = strtoupper(trim((string)$maDT));
+                $maDT = preg_replace('/^(KV|DT)/', '', $maDT);
+                $maDT = str_replace(['-', '_'], '', $maDT);
+                if (is_numeric($maDT)) {
+                    $maDT = (string)(int)$maDT;
+                }
             }
+            
+            $stmtDT = $db->prepare("SELECT diem_uu_tien FROM dm_doi_tuong WHERE ma_dt = ? OR TRIM(ma_dt) = ?");
+            $stmtDT->execute([$maDT, trim($rawDT)]);
+            $diemDoiTuong = (float)($stmtDT->fetchColumn() ?: 0);
         }
 
-        return $prioSum;
+        return $diemKhuVuc + $diemDoiTuong;
     }
 
     /**
@@ -336,16 +351,20 @@ class ScoreCalculator {
         $nhomNganh = $major['nhom_nganh'] ?? 'Khac';
         $nguongHocLuc = $major['nguong_hoc_luc'] ?? null;
         $nguongDiemTHPT = $major['nguong_diem_thpt'] ?? null;
+        $nguongDiemXTN = $major['nguong_diem_xtn'] ?? null;
+        $nguongDiemHocBa = $major['nguong_diem_hocba'] ?? null;
         
-        // No threshold for regular majors
-        if ($nhomNganh === 'Khac' && !$nguongHocLuc && !$nguongDiemTHPT) {
+        // No threshold for regular majors without any configured thresholds
+        if ($nhomNganh === 'Khac' && !$nguongHocLuc && !$nguongDiemTHPT && !$nguongDiemHocBa) {
             return $result;
         }
         
         $result['threshold'] = [
             'nhom_nganh' => $nhomNganh,
             'nguong_hoc_luc' => $nguongHocLuc,
-            'nguong_diem_thpt' => $nguongDiemTHPT
+            'nguong_diem_thpt' => $nguongDiemTHPT,
+            'nguong_diem_xtn' => $nguongDiemXTN,
+            'nguong_diem_hocba' => $nguongDiemHocBa
         ];
         
         // 1. Check Học lực lớp 12
@@ -377,18 +396,52 @@ class ScoreCalculator {
             }
         }
         
-        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp
+        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (điểm thô, chưa cộng ưu tiên)
         if ($nguongDiemTHPT) {
             $bestScore = $this->calculateBestScore($cccd, $ma_nganh);
             $thptTotal = $bestScore['thpt_total'] ?? 0;
             
             if ($thptTotal > 0 && $thptTotal < $nguongDiemTHPT) {
-                $result['passed'] = false;
-                $result['errors'][] = "Tổng điểm 3 môn thi THPT theo tổ hợp xét tuyển phải đạt từ " 
-                    . number_format($nguongDiemTHPT, 2) . " trở lên (hiện tại: " 
-                    . number_format($thptTotal, 2) . ")";
+                // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng
+                $passedByXTN = false;
+                if ($nguongDiemXTN) {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("SELECT diem_xet_tot_nghiep FROM diem_thi_thpt WHERE so_cccd = ? LIMIT 1");
+                    $stmt->execute([$cccd]);
+                    $diemXTN = $stmt->fetchColumn();
+                    $diemXTN = ($diemXTN !== null && $diemXTN !== false && $diemXTN !== '') ? (float)$diemXTN : null;
+                    
+                    if ($diemXTN !== null && $diemXTN >= $nguongDiemXTN) {
+                        $passedByXTN = true;
+                    }
+                }
+                
+                if (!$passedByXTN) {
+                    $result['passed'] = false;
+                    $errorMsg = "Tổng điểm 3 môn thi THPT theo tổ hợp xét tuyển phải đạt từ " 
+                        . number_format($nguongDiemTHPT, 2) . " trở lên (hiện tại: " 
+                        . number_format($thptTotal, 2) . ")";
+                    if ($nguongDiemXTN) {
+                        $errorMsg .= " HOẶC điểm xét TN THPT >= " . number_format($nguongDiemXTN, 2) 
+                            . " (hiện tại: " . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ")";
+                    }
+                    $result['errors'][] = $errorMsg;
+                }
             }
             // If thptTotal == 0, candidate hasn't entered THPT scores yet - don't block
+        }
+        
+        // 3. Check ĐTB Học bạ cho ngành ngoài Sư phạm (Phương thức xét học bạ)
+        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: "ĐTB 3 năm của 3 môn tổ hợp (đã tính ưu tiên) >= 18.0"
+        if ($nguongDiemHocBa && $nhomNganh === 'Khac') {
+            $bestScore = isset($bestScore) ? $bestScore : $this->calculateBestScore($cccd, $ma_nganh);
+            $transcriptTotal = $bestScore['transcript_total'] ?? 0;
+            
+            if ($transcriptTotal > 0 && $transcriptTotal < $nguongDiemHocBa) {
+                $result['passed'] = false;
+                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp (" . number_format($transcriptTotal, 2) 
+                    . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
+            }
         }
         
         return $result;

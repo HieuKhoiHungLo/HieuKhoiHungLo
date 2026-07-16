@@ -46,96 +46,101 @@ ob_start();
     }
 </style>
 
-<div class="p-4 h-full flex flex-col" x-data="certificateData()">
-    <!-- Header Page Section -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
-        <div class="flex items-center gap-4">
-            <div>
-                <div class="flex items-center gap-2.5">
-                    <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
-                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
-                </div>
-                <div class="flex items-center gap-2 mt-1 ml-4">
-                    <p class="text-slate-500 text-sm font-medium">Tổng cộng: <span class="text-indigo-600 font-bold"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
-                </div>
+<div class="h-full flex flex-col" x-data="certificateData()">
+    <!-- Row 1: Header & Filters -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-5 bg-indigo-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Điểm Chứng chỉ</h1>
             </div>
-            
-            <div class="flex items-center gap-2 ml-4">
-                <!-- Filter by Year -->
-                <select id="yearFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[100px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
-                    <option value="">-- Năm --</option>
-                    <?php foreach ($years as $year): ?>
-                        <option value="<?= $year ?>"><?= $year ?></option>
-                    <?php endforeach; ?>
-                </select>
-
-                <!-- Filter by Session -->
-                <select id="sessionFilter" class="border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 min-w-[180px]" x-model="selectedSession" @change="sessionChanged()">
-                    <option value="">-- Chọn đợt xét tuyển --</option>
-                    <template x-for="session in filteredSessions" :key="session.id">
-                        <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
-                    </template>
-                </select>
-            </div>
+            <p class="text-slate-500 text-xs ml-4 mt-0.5">Tổng cộng: <span class="font-bold text-indigo-600"><?= number_format($stats['total'] ?? 0) ?></span> bản ghi điểm quy đổi</p>
         </div>
-        <div class="flex flex-wrap gap-4 w-full md:w-auto">
-            <!-- Nút xóa hàng loạt -->
-            <button id="btnDeleteSelected" @click="deleteSelected()" 
-                class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-rose-200 flex items-center gap-2 shadow-sm hover:shadow-rose-100/50 hover:scale-[1.02] active:scale-[0.98] hidden">
-                <i class="fas fa-minus-circle text-rose-500"></i>
-                <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
-            </button>
-            
-            <button @click="deleteAllScores()" 
-                class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-red-200 flex items-center gap-2 shadow-sm hover:shadow-red-100/50 hover:scale-[1.02] active:scale-[0.98]">
-                <i class="fas fa-trash-alt"></i>
-                <span>Xóa tất cả</span>
-            </button>
+        
+        <div class="flex flex-wrap items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Đợt tuyển sinh:</label>
+            <!-- Filter by Year -->
+            <select id="yearFilter" class="border border-slate-300 rounded-lg text-xs bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5 min-w-[90px]" x-model="selectedYear" @change="selectedSession = ''; sessionChanged()">
+                <option value="">-- Năm --</option>
+                <?php foreach ($years as $year): ?>
+                    <option value="<?= $year ?>"><?= $year ?></option>
+                <?php endforeach; ?>
+            </select>
 
+            <!-- Filter by Session -->
+            <select id="sessionFilter" class="border border-slate-300 rounded-lg text-xs bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-2 py-1.5 min-w-[200px]" x-model="selectedSession" @change="sessionChanged()">
+                <option value="">-- Chọn đợt xét tuyển --</option>
+                <template x-for="session in filteredSessions" :key="session.id">
+                    <option :value="session.id" x-text="session.ten_dot || session.ten_dot_xet_tuyen" :selected="session.id == selectedSession"></option>
+                </template>
+            </select>
+        </div>
+    </div>
+
+    <!-- Row 2: Action Buttons (Constructive left, Destructive right) -->
+    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-2 bg-slate-50 p-3 px-4 rounded-xl border border-slate-200">
+        <!-- Left side: Constructive actions -->
+        <div class="flex flex-wrap items-center gap-2">
             <button @click="openAddModal()" 
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-indigo-100 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-plus"></i>
-                <span>Thêm điểm</span>
+                <span>Thêm mới</span>
             </button>
             
             <button @click="openImportModal = true" 
-                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-emerald-100 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm flex items-center gap-2 text-sm">
                 <i class="fas fa-file-excel"></i>
                 <span>Import Excel</span>
             </button>
             
             <button @click="exportData()" 
-                class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-indigo-200 flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]">
-                <i class="fas fa-download"></i>
+                class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-download text-slate-500"></i>
                 <span>Xuất dữ liệu</span>
             </button>
             
             <a href="<?= url('/admin/certificate-scores/template') ?>" 
-                class="bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border border-slate-200 flex items-center gap-2 shadow-sm hover:scale-[1.02] active:scale-[0.98]">
-                <i class="fas fa-file-csv"></i>
+                class="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-file-csv text-slate-500"></i>
                 <span>Mẫu Import</span>
             </a>
+        </div>
+
+        <!-- Right side: Destructive actions -->
+        <div class="flex flex-wrap items-center gap-2 justify-end">
+            <!-- Nút xóa hàng loạt -->
+            <button id="btnDeleteSelected" @click="deleteSelected()" 
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-sm flex items-center gap-2 text-sm hidden">
+                <i class="fas fa-minus-circle"></i>
+                <span>Xóa mục chọn (<span id="selectedCount">0</span>)</span>
+            </button>
+            
+            <button @click="deleteAllScores()" 
+                class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-semibold transition-colors border border-red-200 flex items-center gap-2 text-sm shadow-sm">
+                <i class="fas fa-trash-alt"></i>
+                <span>Xóa tất cả</span>
+            </button>
         </div>
     </div>
 
     <!-- Alert Messages (PHP Session Alerts) -->
     <?php if (isset($_SESSION['flash_success'])): ?>
-        <div class="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-2xl flex items-start shadow-sm animate-fade-in">
-            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-3 text-lg"></i>
+        <div class="mb-2 bg-emerald-50 border-l-4 border-emerald-500 p-2.5 rounded-r-xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-check-circle text-emerald-500 mt-0.5 mr-2 text-base"></i>
             <div>
-                <h3 class="text-emerald-800 font-bold text-sm">Thành công!</h3>
-                <p class="text-emerald-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
+                <h3 class="text-emerald-800 font-bold text-xs">Thành công!</h3>
+                <p class="text-emerald-700 text-xs mt-0.5"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
             </div>
         </div>
         <?php unset($_SESSION['flash_success']); ?>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['flash_error'])): ?>
-        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-start shadow-sm animate-fade-in">
-            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3 text-lg"></i>
+        <div class="mb-2 bg-red-50 border-l-4 border-red-500 p-2.5 rounded-r-xl flex items-start shadow-sm animate-fade-in">
+            <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-2 text-base"></i>
             <div>
-                <h3 class="text-red-800 font-bold text-sm">Lỗi!</h3>
-                <p class="text-red-700 text-sm mt-1"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
+                <h3 class="text-red-800 font-bold text-xs">Lỗi!</h3>
+                <p class="text-red-700 text-xs mt-0.5"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
             </div>
         </div>
         <?php unset($_SESSION['flash_error']); ?>
@@ -143,12 +148,6 @@ ob_start();
 
     <!-- Data Table Container -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
-        <div class="p-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-            <h2 class="font-bold text-slate-800 flex items-center gap-2">
-                <i class="fas fa-certificate text-indigo-500"></i>
-                Danh sách điểm chứng chỉ quy đổi
-            </h2>
-        </div>
         <div class="flex-1 min-h-0 p-4 relative overflow-auto custom-scrollbar">
             <table id="certTable" class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
@@ -267,6 +266,8 @@ ob_start();
                             <p class="text-xs">File Excel (.xlsx, .xls, .csv) có các cột lần lượt là:</p>
                             <ol class="list-decimal ml-4 text-xs font-mono font-bold text-slate-600">
                                 <li>Số CCCD/CMND (Bắt buộc)</li>
+                                <li>Họ tên</li>
+                                <li>Ngày sinh (định dạng ngày/tháng/năm)</li>
                                 <li>Mã môn quy đổi (Vd: N1, N2...)</li>
                                 <li>Điểm quy đổi (Từ 0.0 đến 10.0)</li>
                                 <li>Ghi chú (Tên chứng chỉ, chi tiết quy đổi...)</li>
@@ -475,37 +476,71 @@ ob_start();
                         throw new Error('Lỗi máy chủ (HTTP ' + response.status + ')');
                     }
 
-                    const result = await response.json();
-                    
-                    this.progress = 100;
-                    this.currentLoadingMessage = 'Hoàn tất xử lý!';
-                    
-                    setTimeout(() => {
-                        this.isLoading = false;
-                        this.openImportModal = false;
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/vnd.ms-excel')) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'ket_qua_import_diem_chung_chi_loi.xls';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
                         
-                        // Clear file state
-                        this.fileName = '';
-                        this.fileSize = '';
-                        fileInput.value = '';
+                        this.progress = 100;
+                        this.currentLoadingMessage = 'Hoàn tất xử lý!';
+                        
+                        setTimeout(() => {
+                            this.isLoading = false;
+                            this.openImportModal = false;
+                            this.fileName = '';
+                            this.fileSize = '';
+                            fileInput.value = '';
+                            
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Phát hiện dữ liệu không khớp!',
+                                text: 'Một số dòng dữ liệu bị lỗi thông tin (CCCD, Họ tên hoặc Ngày sinh). Hệ thống đã nhập các dòng hợp lệ và tự động tải về file Excel báo cáo lỗi chi tiết.',
+                                confirmButtonColor: '#3B82F6',
+                                confirmButtonText: 'Đóng'
+                            }).then(() => {
+                                window.location.href = '<?= url("/admin/certificate-scores") ?>?session_id=' + this.selectedSession;
+                            });
+                        }, 500);
+                    } else {
+                        const result = await response.json();
+                        this.progress = 100;
+                        this.currentLoadingMessage = 'Hoàn tất xử lý!';
+                        
+                        setTimeout(() => {
+                            this.isLoading = false;
+                            this.openImportModal = false;
+                            this.fileName = '';
+                            this.fileSize = '';
+                            fileInput.value = '';
 
-                        if (result.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Nhập dữ liệu thành công!',
-                                text: result.message || 'Hồ sơ điểm chứng chỉ đã được cập nhật.',
-                                confirmButtonColor: '#10B981'
-                            });
-                            $('#certTable').DataTable().ajax.reload();
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Thất bại',
-                                text: result.message || 'Lỗi không xác định khi nạp dữ liệu.',
-                                confirmButtonColor: '#EF4444'
-                            });
-                        }
-                    }, 500);
+                            if (result.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Nhập dữ liệu thành công!',
+                                    text: result.message || 'Hồ sơ điểm chứng chỉ đã được cập nhật.',
+                                    confirmButtonColor: '#10B981',
+                                    confirmButtonText: 'Đóng'
+                                }).then(() => {
+                                    window.location.href = '<?= url("/admin/certificate-scores") ?>?session_id=' + this.selectedSession;
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Thất bại',
+                                    text: result.message || 'Lỗi không xác định khi nạp dữ liệu.',
+                                    confirmButtonColor: '#EF4444',
+                                    confirmButtonText: 'Đóng'
+                                });
+                            }
+                        }, 500);
+                    }
 
                 } catch (e) {
                     isPolling = false;
@@ -560,7 +595,8 @@ ob_start();
         const table = $('#certTable').DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 10,
+            pageLength: 8,
+            lengthMenu: [8, 16, 24, 32, 40],
             ajax: { 
                 url: '<?= url('/admin/certificate-scores/api-list') ?>', 
                 type: 'POST',
@@ -588,19 +624,17 @@ ob_start();
                 },
                 { 
                     data: 'so_cccd', 
-                    className: 'align-middle font-mono w-[150px]'
+                    className: 'align-middle w-[150px]'
                 },
                 { 
                     data: 'ma_mon', 
-                    className: 'align-middle font-bold text-slate-700 text-center w-[100px]',
-                    render: (data) => `<span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-bold border border-slate-200">${data}</span>`
+                    className: 'align-middle text-center w-[100px]'
                 },
                 { 
                     data: 'diem',
-                    className: 'align-middle text-center w-[120px]',
-                    render: (data) => `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold border border-emerald-100 shadow-sm">${data}</span>`
+                    className: 'align-middle text-center w-[120px]'
                 },
-                { data: 'ghi_chu', className: 'align-middle text-slate-600 whitespace-normal font-medium' },
+                { data: 'ghi_chu', className: 'align-middle whitespace-normal' },
                 {
                     data: null,
                     orderable: false,
@@ -621,9 +655,9 @@ ob_start();
                 }
             ],
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json' },
-            dom: '<"flex justify-between items-center bg-white p-4 border-b border-slate-200"<"flex items-center gap-2"l>>rt<"flex justify-between items-center p-4 bg-slate-50/50 border-t border-slate-200"ip>',
+            dom: '<"flex justify-between items-center bg-white p-2 px-4 border-b border-slate-200"<"flex items-center gap-2"l>>rt<"flex justify-between items-center p-2 px-4 bg-slate-50/50 border-t border-slate-200"ip>',
             initComplete: function() {
-                $('.dataTables_length select').addClass('border border-slate-200 rounded-xl text-sm py-1.5 pl-3 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer');
+                $('.dataTables_length select').addClass('border border-slate-200 rounded-xl text-xs py-1 pl-2 pr-8 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer');
             }
         });
 
