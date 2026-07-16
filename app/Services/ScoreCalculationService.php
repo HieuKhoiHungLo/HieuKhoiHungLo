@@ -237,7 +237,7 @@ class ScoreCalculationService {
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v7");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v8");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
@@ -595,16 +595,18 @@ class ScoreCalculationService {
             // UPSERT into v_calc_summary
             $upsertSql = "
                 INSERT INTO v_calc_summary (
-                    nguyen_vong_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
+                    nguyen_vong_id, dot_tuyen_sinh_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
                     chi_tiet_diem, data_hash, diem_mon_1, diem_mon_2, diem_mon_3,
                     diem_uu_tien_goc, diem_uu_tien_qd, trang_thai_do, updated_at
                 )
                 SELECT 
-                    tmp.nv_id, tmp.score, tmp.combo, tmp.method,
+                    tmp.nv_id, nv.dot_tuyen_sinh_id, tmp.score, tmp.combo, tmp.method,
                     CAST(tmp.details AS JSONB), tmp.d_hash, tmp.m1, tmp.m2, tmp.m3,
                     tmp.prio_raw, tmp.prio_qd, tmp.is_passed, CURRENT_TIMESTAMP
                 FROM temp_calc_results tmp
+                JOIN nguyen_vong nv ON tmp.nv_id = nv.id
                 ON CONFLICT (nguyen_vong_id) DO UPDATE SET
+                    dot_tuyen_sinh_id = EXCLUDED.dot_tuyen_sinh_id,
                     diem_xet_tuyen = EXCLUDED.diem_xet_tuyen,
                     to_hop_toi_uu = EXCLUDED.to_hop_toi_uu,
                     phuong_thuc_toi_uu = EXCLUDED.phuong_thuc_toi_uu,
@@ -1370,11 +1372,14 @@ class ScoreCalculationService {
             $priority_converted = $details['priority_converted'] ?? 0;
 
             $sql = "INSERT INTO v_calc_summary (
-                        nguyen_vong_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
+                        nguyen_vong_id, dot_tuyen_sinh_id, diem_xet_tuyen, to_hop_toi_uu, phuong_thuc_toi_uu,
                         chi_tiet_diem, data_hash, diem_mon_1, diem_mon_2, diem_mon_3,
                         diem_uu_tien_goc, diem_uu_tien_qd, trang_thai_do, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    )
+                    SELECT ?, nv.dot_tuyen_sinh_id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+                    FROM nguyen_vong nv WHERE nv.id = ?
                     ON CONFLICT (nguyen_vong_id) DO UPDATE SET
+                        dot_tuyen_sinh_id = EXCLUDED.dot_tuyen_sinh_id,
                         diem_xet_tuyen = EXCLUDED.diem_xet_tuyen,
                         to_hop_toi_uu = EXCLUDED.to_hop_toi_uu,
                         phuong_thuc_toi_uu = EXCLUDED.phuong_thuc_toi_uu,
@@ -1398,7 +1403,8 @@ class ScoreCalculationService {
                 $dataHash,
                 $diem_mon_1, $diem_mon_2, $diem_mon_3,
                 $priority_raw, $priority_converted,
-                $admitted ? 1 : 0
+                $admitted ? 1 : 0,
+                $nvId
             ]);
         } catch (\PDOException $e) {
             $msg = "SQL Error in updateApplicationScore: " . $e->getMessage() . "\n";

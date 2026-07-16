@@ -5,18 +5,21 @@ use App\Core\Controller;
 use App\Models\MasterData;
 use App\Services\ScoreCalculationService;
 use App\Services\VirtualFilterService;
+use App\Services\BGDResultImportService;
 use PDO;
 
 class VirtualAdmissionController extends Controller {
     protected $masterData;
     protected $scoreService;
     protected $filterService;
+    protected $bgdImportService;
     protected $db;
 
     public function __construct() {
         $this->masterData = new MasterData();
         $this->scoreService = new ScoreCalculationService();
         $this->filterService = new VirtualFilterService();
+        $this->bgdImportService = new BGDResultImportService();
         $this->db = \App\Core\Database::getInstance()->getConnection();
     }
 
@@ -44,6 +47,31 @@ class VirtualAdmissionController extends Controller {
         ]);
     }
 
+    public function overviewVirtualFilter() {
+        $sessions = $this->masterData->getSessions();
+        // Lấy danh sách năm duy nhất
+        $years = $this->db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Cần truyền thêm danh sách tổ hợp để render table headers và hiển thị chi tiết (ví dụ: A00 (TO-LI-HO))
+        $combinations = $this->db->query("
+            SELECT th.ma_to_hop, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
+            FROM dm_to_hop th 
+            LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
+            ORDER BY th.ma_to_hop
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        
+        $this->view('admin/virtual_admission/index', [
+            'title' => 'Tổng quan Lọc ảo',
+            'sessions' => $sessions,
+            'years' => $years,
+            'combinations' => $combinations,
+            'needsDataTables' => true,
+            'isReadOnly' => true
+        ]);
+    }
+
     public function loadBatchData() {
         $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? null;
         if (!$sessionId) {
@@ -66,6 +94,9 @@ class VirtualAdmissionController extends Controller {
             $baseFrom = "FROM thi_sinh ts 
                          JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
                          LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id 
+                         LEFT JOIN ket_qua_loc_ao_bo_gd bgd 
+                             ON bgd.so_cccd = nv.so_cccd 
+                             AND bgd.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id 
                          WHERE nv.dot_tuyen_sinh_id = ?
                          AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')";
             
@@ -81,8 +112,14 @@ class VirtualAdmissionController extends Controller {
                 $params[] = "%$search%";
             }
 
-            // 3. Đếm tổng số lượng bản ghi (trước khi tìm kiếm)
-            $stmtTotal = $this->db->prepare("SELECT COUNT(*) " . explode("WHERE", $baseFrom)[0] . "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')");
+            // 3. Đếm tổng số lượng bản ghi (trước khi tìm kiếm) - Tối ưu bằng cách chỉ join thi_sinh và nguyen_vong, loại bỏ các bảng LEFT JOIN không ảnh hưởng đến số lượng dòng
+            $stmtTotal = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM thi_sinh ts 
+                JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
+                WHERE nv.dot_tuyen_sinh_id = ? 
+                  AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')
+            ");
             $stmtTotal->execute([$sessionId]);
             $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
 
@@ -116,6 +153,8 @@ class VirtualAdmissionController extends Controller {
                     cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu,
                     cs.chi_tiet_diem, cs.trang_thai_trung_tuyen,
                     cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3,
+                    cs.ket_qua_bo_gd, cs.bi_loai_truong_khac, cs.ma_truong_trung_tuyen_bo,
+                    bgd.ttnv_do as ttnv_do_bo, bgd.ma_truong_trung_tuyen as ma_truong_trung_tuyen_bgd,
                     (SELECT string_agg(ma_to_hop, ', ' ORDER BY ma_to_hop) 
                      FROM dm_nganh_to_hop nth 
                      WHERE nth.ma_nganh = nv.ma_nganh) as all_combos
@@ -472,9 +511,24 @@ class VirtualAdmissionController extends Controller {
 
         switch ($type) {
             case 'admitted':
+                // DS trúng tuyển nội bộ (TRƯỚC khi lọc Bộ GD&ĐT - để đối chiếu)
                 $extraWhere = " AND cs.trang_thai_trung_tuyen = TRUE";
                 $orderBy    = "ORDER BY nv.ma_nganh ASC, cs.diem_xet_tuyen DESC";
-                $filename   = 'danh_sach_trung_tuyen_' . $sessionId . '.xls';
+                $filename   = 'danh_sach_trung_tuyen_noi_bo_' . $sessionId . '.xls';
+                break;
+            case 'admitted_final':
+                // DS trúng tuyển CHÍNH THỨC (đã loại thí sinh trúng trường khác theo Bộ GD&ĐT)
+                $extraWhere = " AND cs.trang_thai_trung_tuyen = TRUE
+                               AND (cs.bi_loai_truong_khac IS NULL OR cs.bi_loai_truong_khac = FALSE)";
+                $orderBy    = "ORDER BY nv.ma_nganh ASC, cs.diem_xet_tuyen DESC";
+                $filename   = 'danh_sach_trung_tuyen_chinh_thuc_' . $sessionId . '.xls';
+                break;
+            case 'eliminated_by_bgd':
+                // DS thí sinh bị loại vì đã trúng tuyển trường khác (theo kết quả Bộ GD&ĐT)
+                $extraWhere = " AND cs.trang_thai_trung_tuyen = TRUE
+                               AND cs.bi_loai_truong_khac = TRUE";
+                $orderBy    = "ORDER BY nv.ma_nganh ASC, cs.diem_xet_tuyen DESC";
+                $filename   = 'danh_sach_bi_loai_truong_khac_' . $sessionId . '.xls';
                 break;
             case 'failed':
                 $extraWhere = " AND nv.so_cccd NOT IN (
@@ -498,9 +552,16 @@ class VirtualAdmissionController extends Controller {
                        cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, cs.diem_xet_tuyen, cs.trang_thai_trung_tuyen,
                        cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.chi_tiet_diem,
                        ts.ngay_sinh, ts.email, ts.dien_thoai, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.ghi_chu as ts_ghi_chu,
+                       ts.so_bao_danh, ts.gioi_tinh,
+                       p.ten_tinh as ten_tinh_tt,
+                       xa.ten_xa as ten_xa_tt,
+                       truong.ten_truong as ten_truong_thpt,
                        nv.diem_uu_tien_goc, nv.diem_uu_tien_qd, nv.ten_nganh, nv.ghi_chu as nv_ghi_chu
                 FROM nguyen_vong nv
                 JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                LEFT JOIN dm_tinh p ON COALESCE(ts.ma_tinh_thuong_tru, ts.ma_tinh_ho_khau) = p.ma_tinh
+                LEFT JOIN dm_xa xa ON ts.ma_xa_thuong_tru = xa.ma_xa
+                LEFT JOIN dm_truong_thpt truong ON ts.ma_truong_lop_12 = truong.ma_truong AND truong.is_active = TRUE
                 LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 $baseWhere $extraWhere
                 $orderBy";
@@ -520,6 +581,7 @@ class VirtualAdmissionController extends Controller {
 
         $data = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $sbd = (!empty($row['so_bao_danh'])) ? $row['so_bao_danh'] : ($sbdMap[$row['so_cccd']] ?? '');
             $toHopMax = isset($comboMap[$row['to_hop_toi_uu']]) ? $comboMap[$row['to_hop_toi_uu']] : ($row['to_hop_toi_uu'] ?: '-');
             $ptMax = isset($ptLabels[$row['phuong_thuc_toi_uu']]) ? $ptLabels[$row['phuong_thuc_toi_uu']] : ($row['phuong_thuc_toi_uu'] ?: '-');
 
@@ -639,8 +701,6 @@ class VirtualAdmissionController extends Controller {
                     $formattedNgaySinh = date('d/m/Y', strtotime($row['ngay_sinh']));
                 }
                 
-                $sbd = $sbdMap[$row['so_cccd']] ?? '';
-
                 $detail = $chiTietRaw;
                 $diemUt = isset($detail['priority_raw']) ? (float)$detail['priority_raw'] : ($row['diem_uu_tien_goc'] !== null ? (float)$row['diem_uu_tien_goc'] : 0.0);
                 $diemUtQd = isset($detail['priority_converted']) ? (float)$detail['priority_converted'] : ($row['diem_uu_tien_qd'] !== null ? (float)$row['diem_uu_tien_qd'] : 0.0);
@@ -650,8 +710,12 @@ class VirtualAdmissionController extends Controller {
                 $data[] = [
                     'CCCD'       => $row['so_cccd'],
                     'HOTEN'      => $row['ho_va_ten'],
+                    'GIOITINH'   => $row['gioi_tinh'],
                     'NGAYSINH'   => $formattedNgaySinh,
                     'SBD'        => $sbd,
+                    'TINH'       => $row['ten_tinh_tt'] ?: '',
+                    'XA_PHUONG'  => $row['ten_xa_tt'] ?: '',
+                    'TRUONG_THPT'=> $row['ten_truong_thpt'] ?: '',
                     'KV'         => $row['khu_vuc_uu_tien'] ?: '',
                     'DOITUONG'   => $row['doi_tuong_uu_tien'] ?: '',
                     'TOHOP'      => $toHopMax,
@@ -706,6 +770,7 @@ class VirtualAdmissionController extends Controller {
 
             $dataRow = [
                 'CCCD'              => $row['so_cccd'],
+                'SBD'               => $sbd,
                 'Họ tên'            => $row['ho_va_ten'],
                 'Ngành'             => $row['ma_nganh'],
                 'Khu vực'           => $row['khu_vuc_uu_tien'] ?: '',
@@ -765,6 +830,492 @@ class VirtualAdmissionController extends Controller {
         $exportService->toExcel($data, $filename);
     }
 
+    public function exportAdmittedFinal() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'admitted_final');
+    }
+
+    public function exportEliminatedByBGD() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        $this->doExportWithFilter($sessionId, 'eliminated_by_bgd');
+    }
+
+    /**
+     * POST /admin/api/vf/import-bgd
+     * Nhận file Excel kết quả lọc ảo từ Bộ GD&ĐT và xử lý.
+     */
+    public function importBGDResult() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method'], 405);
+            return;
+        }
+
+        $sessionId = intval($_POST['session_id'] ?? 0);
+        if (!$sessionId) {
+            $this->json(['success' => false, 'message' => 'Chưa chọn đợt tuyển sinh.']);
+            return;
+        }
+
+        if (empty($_FILES['bgd_file']) || $_FILES['bgd_file']['error'] !== UPLOAD_ERR_OK) {
+            $errorCode = $_FILES['bgd_file']['error'] ?? -1;
+            $this->json(['success' => false, 'message' => 'Lỗi upload file (code: ' . $errorCode . '). Vui lòng thử lại.']);
+            return;
+        }
+
+        $file = $_FILES['bgd_file'];
+        $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['xlsx', 'xls'])) {
+            $this->json(['success' => false, 'message' => 'Chỉ chấp nhận file .xlsx hoặc .xls']);
+            return;
+        }
+
+        // Lấy tên admin đang đăng nhập
+        $adminName = $_SESSION['admin_name'] ?? $_SESSION['username'] ?? 'admin';
+
+        // Import file lớn (~5000 dòng + remote DB) cần nhiều thời gian hơn default 120s
+        set_time_limit(600);
+        ini_set('memory_limit', '256M');
+
+        try {
+            $result = $this->bgdImportService->importFromFile(
+                $file['tmp_name'],
+                $sessionId,
+                $file['name'],   // tên file gốc để lấy đúng extension (.xls / .xlsx)
+                $adminName
+            );
+
+            if (isset($result['report'])) {
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                $_SESSION['last_bgd_import_report'] = $result['report'];
+                unset($result['report']);
+                $result['report_ready'] = true;
+            }
+
+            $this->json($result);
+        } catch (\Throwable $e) {
+            error_log('importBGDResult Error: ' . $e->getMessage());
+            $this->json(['success' => false, 'message' => 'Lỗi xử lý: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * GET /admin/api/vf/download-bgd-report
+     * Xuất và tải xuống báo cáo import lọc ảo liên trường Bộ GD&ĐT (Thành công/Thất bại có lý do).
+     */
+    public function downloadImportReport() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $report = $_SESSION['last_bgd_import_report'] ?? [];
+        if (empty($report)) {
+            die("Không tìm thấy dữ liệu báo cáo import gần nhất. Vui lòng import file trước.");
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($report, 'bao_cao_ket_qua_import_loc_ao_bo.xls');
+    }
+
+    /**
+     * GET /admin/api/vf/bgd-status?session_id=X
+     * Trả về trạng thái import BGD hiện tại của đợt.
+     */
+    public function getBGDImportStatus() {
+        $sessionId = intval($_GET['session_id'] ?? 0);
+        if (!$sessionId) {
+            $this->json(['success' => false, 'message' => 'Missing session_id']);
+            return;
+        }
+
+        try {
+            $status = $this->bgdImportService->getImportStatus($sessionId);
+            $this->json(array_merge(['success' => true], $status));
+        } catch (\Throwable $e) {
+            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Xuất Excel thống kê ngành trúng tuyển dự kiến & sau lọc ảo Bộ GD&ĐT
+     */
+    public function exportStats() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+        try {
+            // Kiểm tra xem đã có dữ liệu lọc ảo của Bộ GD&ĐT hay chưa để xuất Excel tương ứng
+            $stmtCheck = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_loc_ao_bo_gd WHERE dot_tuyen_sinh_id = ?");
+            $stmtCheck->execute([$sessionId]);
+            $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
+
+            $doBoExpr = $hasBgd 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+
+            $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
+                                COALESCE(ab.diem_chuan, 0) as diem_chuan,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                                $doBoExpr as so_luong_do_bo,
+                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                              FROM public.dm_nganh n
+                              LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = ?
+                              LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                              LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                              GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, ab.diem_chuan
+                              ORDER BY n.ma_nganh";
+            $stmt = $this->db->prepare($majorStatsSql);
+            $stmt->execute([$sessionId, $sessionId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $data = [];
+            $totalChiTieu = 0;
+            $totalTrungTuyen = 0;
+            $totalNv1Admit = 0;
+            $totalDoBo = 0;
+
+            foreach ($rows as $row) {
+                $ct = intval($row['chi_tieu']);
+                $stt = intval($row['so_trung_tuyen']);
+                $db = intval($row['so_luong_do_bo']);
+
+                $totalChiTieu += $ct;
+                $totalTrungTuyen += $stt;
+                $totalNv1Admit += intval($row['nv1_admit']);
+                $totalDoBo += $db;
+
+                $pct = $ct > 0 ? round(($stt / $ct) * 100, 1) . '%' : '0%';
+                $pctBo = $ct > 0 ? round(($db / $ct) * 100, 1) . '%' : '0%';
+
+                $diemThap = $row['diem_thap_nhat'] && floatval($row['diem_thap_nhat']) > 0 ? number_format(floatval($row['diem_thap_nhat']), 2) : '-';
+                $diemCao = $row['diem_cao_nhat'] && floatval($row['diem_cao_nhat']) > 0 ? number_format(floatval($row['diem_cao_nhat']), 2) : '-';
+                $mucDiem = ($diemThap !== '-') ? $diemThap . ' - ' . $diemCao : '-';
+
+                $data[] = [
+                    'Mã ngành' => $row['ma_nganh'],
+                    'Tên ngành' => $row['ten_nganh'],
+                    'Chỉ tiêu' => $ct,
+                    'Điểm chuẩn' => floatval($row['diem_chuan']) > 0 ? floatval($row['diem_chuan']) : '-',
+                    'Dự kiến - Tổng đỗ' => $stt,
+                    'Dự kiến - Đỗ NV1' => intval($row['nv1_admit']),
+                    'Dự kiến - Tiến độ (%)' => $pct,
+                    'Đỗ Bộ GD&ĐT - Tổng đỗ' => $db,
+                    'Đỗ Bộ GD&ĐT - Tiến độ (%)' => $pctBo,
+                    'Mức điểm (Thấp - Cao)' => $mucDiem
+                ];
+            }
+
+            // Thêm dòng tổng cộng ở cuối
+            $pctTotal = $totalChiTieu > 0 ? round(($totalTrungTuyen / $totalChiTieu) * 100, 1) . '%' : '0%';
+            $pctBoTotal = $totalChiTieu > 0 ? round(($totalDoBo / $totalChiTieu) * 100, 1) . '%' : '0%';
+
+            $data[] = [
+                'Mã ngành' => 'TỔNG CỘNG',
+                'Tên ngành' => '',
+                'Chỉ tiêu' => $totalChiTieu,
+                'Điểm chuẩn' => '',
+                'Dự kiến - Tổng đỗ' => $totalTrungTuyen,
+                'Dự kiến - Đỗ NV1' => $totalNv1Admit,
+                'Dự kiến - Tiến độ (%)' => $pctTotal,
+                'Đỗ Bộ GD&ĐT - Tổng đỗ' => $totalDoBo,
+                'Đỗ Bộ GD&ĐT - Tiến độ (%)' => $pctBoTotal,
+                'Mức điểm (Thấp - Cao)' => ''
+            ];
+
+            $filename = 'thong_ke_nganh_sau_loc_ao_' . $sessionId . '.xls';
+            $exportService = new \App\Services\ExportService();
+            $exportService->toExcel($data, $filename);
+
+        } catch (\Throwable $e) {
+            die("Lỗi xuất Excel: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Xuất Excel dữ liệu của các biểu đồ phân tích (dưới dạng các Sheet riêng biệt tương ứng từng biểu đồ)
+     */
+    public function exportChartData() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+
+        try {
+            // Kiểm tra xem đã có dữ liệu lọc ảo của Bộ GD&ĐT hay chưa
+            $stmtCheck = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_loc_ao_bo_gd WHERE dot_tuyen_sinh_id = ?");
+            $stmtCheck->execute([$sessionId]);
+            $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
+
+            $admitCond = $hasBgd 
+                ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+                : "cs.trang_thai_trung_tuyen = TRUE";
+
+            // 1. Thống kê lấp đầy các ngành
+            $doBoExpr = $hasBgd 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+
+            $majorSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                                $doBoExpr as so_luong_do_bo
+                         FROM public.dm_nganh n
+                         LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                         LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                         GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
+                         ORDER BY n.ma_nganh";
+            $stmt = $this->db->prepare($majorSql);
+            $stmt->execute([$sessionId, $sessionId]);
+            $majorRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // 2. Thống kê Nguyện vọng
+            $statsSql = "SELECT 
+                            COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1,
+                            COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 2 THEN 1 END) as nv2,
+                            COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3,
+                            COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong > 3 THEN 1 END) as nv_khac
+                         FROM public.nguyen_vong nv
+                         LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                         WHERE nv.dot_tuyen_sinh_id = ?";
+            $stmtStats = $this->db->prepare($statsSql);
+            $stmtStats->execute([$sessionId]);
+            $nvRow = $stmtStats->fetch(PDO::FETCH_ASSOC);
+
+            // 3. Demographics
+            $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                               COALESCE(dt.ten_tinh, NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2), 'Khác') as ten_tinh, 
+                               COALESCE(dthpt.ten_truong, t.ma_truong_lop_12, 'Khác') as ten_truong,
+                               COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) as candidate_province
+                        FROM public.nguyen_vong nv
+                        JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                        JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
+                        LEFT JOIN public.dm_tinh dt ON COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dt.ma_tinh
+                        LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong 
+                             AND COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dthpt.ma_tinh 
+                             AND dthpt.is_active = TRUE
+                        WHERE nv.dot_tuyen_sinh_id = ? AND $admitCond";
+            $stmtDemo = $this->db->prepare($demoSql);
+            $stmtDemo->execute([$sessionId]);
+            $demoRows = $stmtDemo->fetchAll(PDO::FETCH_ASSOC);
+
+            $genders = [];
+            $areas = [];
+            $objects = [];
+            $provinces = [];
+            $schools = [];
+
+            foreach ($demoRows as $row) {
+                // Gender
+                $gt = trim($row['gioi_tinh'] ?? '');
+                if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+                elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+                else $gt = 'Khác';
+                $genders[$gt] = ($genders[$gt] ?? 0) + 1;
+
+                // Area
+                $a = $row['khu_vuc_uu_tien'] ?: 'Khác';
+                $areas[$a] = ($areas[$a] ?? 0) + 1;
+
+                // Object
+                $o = $row['doi_tuong_uu_tien'] ?: 'Không';
+                $objects[$o] = ($objects[$o] ?? 0) + 1;
+
+                // Province
+                $p = $row['ten_tinh'] ?: 'Khác';
+                $provinces[$p] = ($provinces[$p] ?? 0) + 1;
+
+                // School (for Phu Tho only)
+                if ($row['candidate_province'] === '25') {
+                    $s = $row['ten_truong'] ?: 'Khác';
+                    $schools[$s] = ($schools[$s] ?? 0) + 1;
+                }
+            }
+
+            arsort($provinces);
+            arsort($schools);
+
+            // Clean output buffer
+            ob_clean();
+            $filename = 'du_lieu_bieu_do_loc_ao_' . $sessionId . '.xls';
+            header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+            header("Content-Disposition: attachment; filename=\"$filename\"");
+            header("Cache-Control: no-cache, no-store, must-revalidate");
+
+            // Write SpreadsheetML XML
+            echo '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+            echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+            
+            echo ' <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>Virtual Admission</Author></DocumentProperties>' . "\n";
+            
+            echo ' <Styles>' . "\n";
+            echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#334155"/></Style>' . "\n";
+            echo '  <Style ss:ID="sTitle"><Alignment ss:Vertical="Center"/><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="14" ss:Bold="1" ss:Color="#1e293b"/></Style>' . "\n";
+            echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#475569" ss:Bold="1"/><Interior ss:Color="#f8fafc" ss:Pattern="Solid"/></Style>' . "\n";
+            echo '  <Style ss:ID="sText"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="@"/></Style>' . "\n";
+            echo '  <Style ss:ID="sNum"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="0"/></Style>' . "\n";
+            echo '  <Style ss:ID="sPct"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="0.0%"/></Style>' . "\n";
+            echo ' </Styles>' . "\n";
+
+            // Sheet 1: Tỷ lệ lấp đầy
+            echo ' <Worksheet ss:Name="Tỷ lệ lấp đầy">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="80"/>' . "\n";
+            echo '   <Column ss:Width="250"/>' . "\n";
+            echo '   <Column ss:Width="80"/>' . "\n";
+            echo '   <Column ss:Width="120"/>' . "\n";
+            echo '   <Column ss:Width="120"/>' . "\n";
+            echo '   <Column ss:Width="120"/>' . "\n";
+            echo '   <Column ss:Width="120"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="6"><Data ss:Type="String">THỐNG KÊ TỶ LỆ LẤP ĐẦY CHUYÊN NGÀNH</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Mã ngành</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tên ngành</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Chỉ tiêu</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Dự kiến đỗ (Tổng)</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Đỗ Bộ GD&amp;ĐT</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tiến độ dự kiến (%)</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tiến độ thực tế (%)</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($majorRows as $mr) {
+                $ct = intval($mr['chi_tieu']);
+                $stt = intval($mr['so_trung_tuyen']);
+                $db = intval($mr['so_luong_do_bo']);
+                $pct = $ct > 0 ? ($stt / $ct) : 0;
+                $pctBo = $ct > 0 ? ($db / $ct) : 0;
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($mr['ma_nganh']) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($mr['ten_nganh']) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $ct . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $stt . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $db . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sPct"><Data ss:Type="Number">' . $pct . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sPct"><Data ss:Type="Number">' . $pctBo . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 2: Nguyện vọng
+            echo ' <Worksheet ss:Name="Thứ tự nguyện vọng">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="200"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO NGUYỆN VỌNG</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Thứ tự nguyện vọng</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            echo '   <Row><Cell ss:StyleID="sText"><Data ss:Type="String">Nguyện vọng 1</Data></Cell><Cell ss:StyleID="sNum"><Data ss:Type="Number">' . intval($nvRow['nv1']) . '</Data></Cell></Row>' . "\n";
+            echo '   <Row><Cell ss:StyleID="sText"><Data ss:Type="String">Nguyện vọng 2</Data></Cell><Cell ss:StyleID="sNum"><Data ss:Type="Number">' . intval($nvRow['nv2']) . '</Data></Cell></Row>' . "\n";
+            echo '   <Row><Cell ss:StyleID="sText"><Data ss:Type="String">Nguyện vọng 3</Data></Cell><Cell ss:StyleID="sNum"><Data ss:Type="Number">' . intval($nvRow['nv3']) . '</Data></Cell></Row>' . "\n";
+            echo '   <Row><Cell ss:StyleID="sText"><Data ss:Type="String">Nguyện vọng khác (&gt;3)</Data></Cell><Cell ss:StyleID="sNum"><Data ss:Type="Number">' . intval($nvRow['nv_khac']) . '</Data></Cell></Row>' . "\n";
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 3: Giới tính
+            echo ' <Worksheet ss:Name="Giới tính">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO GIỚI TÍNH</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Giới tính</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($genders as $g => $count) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($g) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $count . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 4: Khu vực
+            echo ' <Worksheet ss:Name="Khu vực">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO KHU VỰC ƯU TIÊN</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Khu vực</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($areas as $a => $count) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($a) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $count . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 5: Đối tượng
+            echo ' <Worksheet ss:Name="Đối tượng ưu tiên">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO ĐỐI TƯỢNG ƯU TIÊN</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Đối tượng</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($objects as $o => $count) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($o) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $count . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 6: Tỉnh thành
+            echo ' <Worksheet ss:Name="Tỉnh thành">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="250"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO TỈNH THÀNH PHỐ</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tỉnh / Thành phố</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($provinces as $p => $count) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($p) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $count . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            // Sheet 7: Trường THPT Phú Thọ
+            echo ' <Worksheet ss:Name="THPT Phú Thọ">' . "\n";
+            echo '  <Table>' . "\n";
+            echo '   <Column ss:Width="300"/>' . "\n";
+            echo '   <Column ss:Width="150"/>' . "\n";
+            echo '   <Row ss:Height="30"><Cell ss:StyleID="sTitle" ss:MergeAcross="1"><Data ss:Type="String">PHÂN BỐ TRÚNG TUYỂN THEO TRƯỜNG THPT PHÚ THỌ</Data></Cell></Row>' . "\n";
+            echo '   <Row ss:Height="25">' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Trường THPT</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Số lượng trúng tuyển</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+            foreach ($schools as $s => $count) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars($s) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sNum"><Data ss:Type="Number">' . $count . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+
+            echo '</Workbook>' . "\n";
+            exit;
+
+        } catch (\Throwable $e) {
+            die("Lỗi xuất Excel Biểu đồ: " . $e->getMessage());
+        }
+    }
+
     public function exportVirtualFilterAdmitted() {
         $sessionId = $_GET['session_id'] ?? null;
         if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
@@ -800,54 +1351,62 @@ class VirtualAdmissionController extends Controller {
             return;
         }
 
-        // 1. Global Stats
-        $statsSql = "SELECT 
-                        COUNT(DISTINCT nv.so_cccd) as total_candidates,
-                        COUNT(nv.id) as total_wishes,
-                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as total_admitted,
-                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
-                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 2 THEN 1 END) as nv2_admit,
-                        COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3_admit
+        // Kiểm tra xem đã có dữ liệu lọc ảo của Bộ GD&ĐT hay chưa
+        $stmtCheck = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_loc_ao_bo_gd WHERE dot_tuyen_sinh_id = ?");
+        $stmtCheck->execute([$sessionId]);
+        $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
+
+        $admitCond = $hasBgd 
+            ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+            : "cs.trang_thai_trung_tuyen = TRUE";
+
+        $intSessionId = (int)$sessionId;
+
+        // 1. Global Stats - Optimized by splitting into two fast index-based queries to avoid full Seq Scan on v_calc_summary
+        $statsSqlA = "SELECT 
+                        COUNT(DISTINCT so_cccd) as total_candidates,
+                        COUNT(id) as total_wishes
+                     FROM public.nguyen_vong 
+                     WHERE dot_tuyen_sinh_id = $intSessionId";
+        $statsStmtA = $this->db->query($statsSqlA);
+        $statsA = $statsStmtA->fetch(PDO::FETCH_ASSOC) ?: ['total_candidates' => 0, 'total_wishes' => 0];
+
+        $statsSqlB = "SELECT 
+                        COUNT(CASE WHEN $admitCond THEN 1 END) as total_admitted,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 2 THEN 1 END) as nv2_admit,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3_admit
                      FROM public.nguyen_vong nv
-                     LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                     WHERE nv.dot_tuyen_sinh_id = ?";
-        $statsStmt = $this->db->prepare($statsSql);
-        $statsStmt->execute([$sessionId]);
-        $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+                     JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                     WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId AND cs.trang_thai_trung_tuyen = TRUE";
+        $statsStmtB = $this->db->query($statsSqlB);
+        $statsB = $statsStmtB->fetch(PDO::FETCH_ASSOC) ?: ['total_admitted' => 0, 'nv1_admit' => 0, 'nv2_admit' => 0, 'nv3_admit' => 0];
+
+        $stats = array_merge($statsA, $statsB);
 
         // 2. Per-major stats (admitted vs chi_tieu)  
+        $doBoExpr = $hasBgd 
+            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+            : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
                             COALESCE(ab.diem_chuan, 0) as diem_chuan,
                             COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
                             COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                            $doBoExpr as so_luong_do_bo,
                             MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
                             MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
                           FROM public.dm_nganh n
-                          LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = ?
-                          LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
-                          LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                          LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = $intSessionId
+                          LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = $intSessionId
+                          LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
                           GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh, ab.diem_chuan
                           ORDER BY n.ma_nganh";
-        $majorStatsStmt = $this->db->prepare($majorStatsSql);
-        $majorStatsStmt->execute([$sessionId, $sessionId]);
+        $majorStatsStmt = $this->db->query($majorStatsSql);
         $majorStats = $majorStatsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Demographics for Charts
-        $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
-                           COALESCE(dt.ten_tinh, NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2), 'Khác') as ten_tinh, 
-                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12, 'Khác') as ten_truong,
-                           COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) as candidate_province
-                    FROM public.nguyen_vong nv
-                    JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                    JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
-                    LEFT JOIN public.dm_tinh dt ON COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dt.ma_tinh
-                    LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong 
-                         AND COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dthpt.ma_tinh 
-                         AND dthpt.is_active = TRUE
-                    WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE";
-        $demoStmt = $this->db->prepare($demoSql);
-        $demoStmt->execute([$sessionId]);
-        $demoRows = $demoStmt->fetchAll(PDO::FETCH_ASSOC);
+        // 3. Demographics for Charts - Lazy loaded
+        $includeDemo = ($_GET['include_demo'] ?? $_POST['include_demo'] ?? 0) == 1;
 
         $chartDist = [
             'gender' => [],
@@ -857,36 +1416,67 @@ class VirtualAdmissionController extends Controller {
             'school' => []
         ];
 
-        foreach ($demoRows as $row) {
-            // Gender
-            $gt = trim($row['gioi_tinh'] ?? '');
-            if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
-            elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
-            else $gt = 'Khác';
-            $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
+        if ($includeDemo) {
+            // Load tinh map and school map to map IDs to names in PHP (saves massive JOIN execution time)
+            $tinhMap = $this->db->query("SELECT ma_tinh, ten_tinh FROM dm_tinh")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $schoolStmt = $this->db->prepare("SELECT ma_truong, ten_truong FROM dm_truong_thpt WHERE ma_tinh = '25' AND is_active = TRUE");
+            $schoolStmt->execute();
+            $schoolMap = $schoolStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-            // Area
-            $a = $row['khu_vuc_uu_tien'] ?: 'Khác';
-            $chartDist['area'][$a] = ($chartDist['area'][$a] ?? 0) + 1;
+            // Optimized FLAT Query without slow dm_tinh and dm_truong_thpt joins
+            $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                               t.ma_tinh_lop_12, t.ma_tinh_ho_khau, t.ma_truong_lop_12
+                        FROM public.nguyen_vong nv
+                        JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
+                        JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
+                        WHERE nv.dot_tuyen_sinh_id = $intSessionId AND $admitCond";
+            $demoStmt = $this->db->query($demoSql);
+            $demoRows = $demoStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Object
-            $o = $row['doi_tuong_uu_tien'] ?: 'Không';
-            $chartDist['object'][$o] = ($chartDist['object'][$o] ?? 0) + 1;
+            foreach ($demoRows as $row) {
+                // Gender
+                $gt = trim($row['gioi_tinh'] ?? '');
+                if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+                elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+                else $gt = 'Khác';
+                $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
 
-            // Province
-            $p = $row['ten_tinh'] ?: 'Khác';
-            $chartDist['province'][$p] = ($chartDist['province'][$p] ?? 0) + 1;
+                // Area
+                $a = $row['khu_vuc_uu_tien'] ?: 'Khác';
+                $chartDist['area'][$a] = ($chartDist['area'][$a] ?? 0) + 1;
 
-            // School - strictly for Phu Tho candidates (ma_tinh = '25')
-            if ($row['candidate_province'] === '25') {
-                $s = $row['ten_truong'] ?: 'Khác';
-                $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+                // Object
+                $o = $row['doi_tuong_uu_tien'] ?: 'Không';
+                $chartDist['object'][$o] = ($chartDist['object'][$o] ?? 0) + 1;
+
+                // Province mapping in PHP
+                $maTinh12 = trim($row['ma_tinh_lop_12'] ?? '');
+                $maTinhHK = trim($row['ma_tinh_ho_khau'] ?? '');
+                $maTruong12 = trim($row['ma_truong_lop_12'] ?? '');
+
+                $candidateProvince = '';
+                if ($maTinh12 !== '') {
+                    $candidateProvince = $maTinh12;
+                } elseif ($maTinhHK !== '') {
+                    $candidateProvince = $maTinhHK;
+                } elseif (strlen($maTruong12) >= 2) {
+                    $candidateProvince = substr($maTruong12, 0, 2);
+                }
+
+                $p = isset($tinhMap[$candidateProvince]) ? $tinhMap[$candidateProvince] : ($candidateProvince ?: 'Khác');
+                $chartDist['province'][$p] = ($chartDist['province'][$p] ?? 0) + 1;
+
+                // School mapping in PHP - strictly for Phu Tho candidates (ma_tinh = '25')
+                if ($candidateProvince === '25') {
+                    $s = isset($schoolMap[$maTruong12]) ? $schoolMap[$maTruong12] : ($maTruong12 ?: 'Khác');
+                    $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+                }
             }
-        }
 
-        // Sort sub-arrays desc
-        arsort($chartDist['province']);
-        arsort($chartDist['school']);
+            // Sort sub-arrays desc
+            arsort($chartDist['province']);
+            arsort($chartDist['school']);
+        }
 
         $this->json([
             'success' => true,

@@ -1,5 +1,6 @@
 <?php
-$title = 'Xét tuyển - Lọc ảo';
+$isReadOnly = $isReadOnly ?? false;
+$title = $isReadOnly ? 'Tổng quan Lọc ảo' : 'Xét tuyển - Lọc ảo';
 ob_start();
 
 // Tính tổng số môn/tổ hợp tối đa để tạo cột.
@@ -14,13 +15,21 @@ if (!empty($combinations)) {
 }
 ?>
 
-<!-- DataTables & jQuery -->
+<style>
+[x-cloak] { display: none !important; }
+</style>
+
+<!-- jQuery & Chart.js always needed -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- DataTables loaded only when NOT read-only -->
+<?php if (!$isReadOnly): ?>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<?php endif; ?>
 
 <script>
     // Alias for Toast functionality used in this file
@@ -62,6 +71,7 @@ if (!empty($combinations)) {
         </div>
     </div>
 
+    <?php if (!$isReadOnly): ?>
     <!-- Action Toolbar (Down on a new line, clean layout) -->
     <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
         <!-- Left: Computational actions -->
@@ -88,6 +98,15 @@ if (!empty($combinations)) {
                     :disabled="isLoading || !selectedSession">
                 <i class="fas fa-magic" :class="{'fa-spin': isFiltering}"></i>
                 <span>Chạy Lọc Ảo</span>
+            </button>
+
+            <!-- 4. Import BGD Result Button -->
+            <button @click="showBgdUploadModal = true; bgdStatus.lastMessage = ''; bgdStatus.selectedFileName = ''; bgdStatus.selectedFile = null; if(document.getElementById('bgd-file-input-modal')) document.getElementById('bgd-file-input-modal').value = '';" 
+                    style="background-color: #7c3aed;"
+                    class="text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none hover:opacity-90" 
+                    :disabled="isLoading || !selectedSession">
+                <i class="fas fa-file-import"></i>
+                <span>Nhập KQ lọc ảo</span>
             </button>
         </div>
 
@@ -156,79 +175,227 @@ if (!empty($combinations)) {
                         <div class="text-xs text-amber-500/70">Sắp xếp: Ngành ↗ &bull; Điểm ↘</div>
                     </div>
                 </a>
+
+                <!-- Divider: BGD Section -->
+                <hr class="border-slate-100 my-1">
+                <div class="px-4 py-1.5">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sau lọc ảo Bộ GD&ĐT</p>
+                </div>
+
+                <a @click="exportOpen = false; exportAdmittedFinal()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer"
+                   :class="bgdStatus.imported ? 'text-emerald-800 hover:bg-emerald-50' : 'text-slate-400 pointer-events-none opacity-50'">
+                    <i class="fas fa-star text-emerald-600 w-4"></i>
+                    <div>
+                        <div class="font-bold">DS Trúng tuyển Chính thức</div>
+                        <div class="text-xs opacity-70" x-text="bgdStatus.imported ? 'Đã loại ' + (bgdStatus.bi_loai || 0) + ' TS trúng trường khác' : 'Cần import kết quả Bộ GD&ĐT trước'"></div>
+                    </div>
+                    <span x-show="bgdStatus.imported" class="ml-auto text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" x-text="(bgdStatus.giu_lai || 0) + ' TS'"></span>
+                </a>
+
+                <a @click="exportOpen = false; exportEliminatedByBGD()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer"
+                   :class="bgdStatus.imported ? 'text-rose-700 hover:bg-rose-50' : 'text-slate-400 pointer-events-none opacity-50'">
+                    <i class="fas fa-ban text-rose-500 w-4"></i>
+                    <div>
+                        <div class="font-medium">DS Bị loại (trúng trường khác)</div>
+                        <div class="text-xs opacity-70" x-text="bgdStatus.imported ? 'Đã trúng tuyển ở trường khác' : 'Cần import kết quả Bộ GD&ĐT trước'"></div>
+                    </div>
+                    <span x-show="bgdStatus.imported" class="ml-auto text-[10px] font-black bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full" x-text="(bgdStatus.bi_loai || 0) + ' TS'"></span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- ============================================================ -->
+    <!-- PANEL: Kết quả Lọc ảo Bộ GD&ĐT                             -->
+    <!-- ============================================================ -->
+    <!-- ============================================================ -->
+    <!-- BANNER: Trạng thái Kết quả Lọc ảo Bộ GD&ĐT                   -->
+    <!-- ============================================================ -->
+    <div class="mb-4 rounded-xl border p-3 flex flex-wrap items-center justify-between gap-4 transition-all duration-300"
+         :class="bgdStatus.imported
+             ? 'bg-emerald-50/50 border-emerald-200 text-emerald-800'
+             : 'bg-slate-50 border-slate-200 text-slate-500'">
+        
+        <div class="flex items-center gap-2">
+            <i class="fas" :class="bgdStatus.imported ? 'fa-check-circle text-emerald-500' : 'fa-info-circle text-slate-400'"></i>
+            <span class="text-xs font-semibold"
+                  x-text="bgdStatus.imported
+                      ? 'Đã import Kết quả Bộ GD&ĐT: ' + (bgdStatus.lan_loc_ao || '') + ' lúc ' + (bgdStatus.lan_import_cuoi || '') + ' (Bởi ' + (bgdStatus.imported_by || '') + ')'
+                      : 'Chưa import kết quả lọc ảo từ Bộ GD&ĐT. Vui lòng bấm nút &ldquo;Nhập KQ lọc ảo&rdquo; để đối chiếu.'"></span>
+        </div>
+
+        <!-- Stats badges (chỉ show sau khi đã import) -->
+        <div x-show="bgdStatus.imported" class="flex items-center gap-2 text-[10px] font-bold">
+            <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                📄 <span x-text="bgdStatus.tong_bo_gd"></span> dòng
+            </span>
+            <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                ✅ Giữ lại: <span x-text="bgdStatus.giu_lai"></span> TS
+            </span>
+            <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+                🚫 Bị loại: <span x-text="bgdStatus.bi_loai"></span> TS
+            </span>
+            <!-- Download report link -->
+            <a href="<?= url('/admin/api/vf/download-bgd-report') ?>" 
+               class="text-indigo-600 hover:text-indigo-800 underline ml-2 flex items-center gap-1 font-bold">
+                <i class="fas fa-file-download"></i> Tải báo cáo đối chiếu
+            </a>
+        </div>
+    </div>
+
+    <!-- MODAL: NHẬP KQ LỌC ẢO BỘ GD&ĐT -->
+    <div x-show="showBgdUploadModal" class="fixed z-50 inset-0 overflow-y-auto" x-cloak style="display: none;">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 transition-opacity" @click="!bgdStatus.importing && (showBgdUploadModal = false)">
+                <div class="absolute inset-0 bg-slate-900 opacity-75 backdrop-blur-sm"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            
+            <!-- Modal Content Wrapper -->
+            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <!-- Emerald Icon -->
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-file-excel text-emerald-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-bold text-slate-900">Import Kết quả Lọc ảo Bộ</h3>
+                            
+                            <!-- Expected Columns box -->
+                            <div class="mt-2 text-sm text-slate-500 space-y-2">
+                                 <ol class="list-decimal ml-4 text-xs font-mono bg-slate-50 p-3 rounded-md border border-slate-200">
+                                     <li>Lần lọc ảo</li>
+                                     <li>SBD</li>
+                                     <li>Họ và tên</li>
+                                     <li>ĐDCN (CCCD)</li>
+                                     <li>Mã ngành (HVU)</li>
+                                     <li>Thứ tự NV</li>
+                                     <li>Kết quả (Đỗ/Trượt)</li>
+                                     <li>Mã trường trúng tuyển</li>
+                                 </ol>
+                            </div>
+
+                            <!-- File Selector -->
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Chọn file</label>
+                                <input type="file" id="bgd-file-input-modal" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" accept=".xlsx, .xls" @change="handleBGDFileChange($event)" :disabled="bgdStatus.importing">
+                            </div>
+
+                            <!-- Result message -->
+                            <div x-show="bgdStatus.lastMessage" x-cloak class="mt-3 text-xs px-3 py-3 rounded-lg flex flex-col gap-2"
+                                 :class="bgdStatus.lastMessageType === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'">
+                                <div class="flex items-center gap-2 font-bold">
+                                    <i class="fas" :class="bgdStatus.lastMessageType === 'success' ? 'fa-check-circle text-emerald-600' : 'fa-exclamation-circle text-rose-600'"></i>
+                                    <span x-text="bgdStatus.lastMessageType === 'success' ? 'Đối chiếu thành công!' : 'Có lỗi xảy ra'"></span>
+                                </div>
+                                <p x-text="bgdStatus.lastMessage" class="opacity-95"></p>
+                                
+                                <!-- Download Report Button -->
+                                <template x-if="bgdStatus.lastMessageType === 'success'">
+                                    <a href="<?= url('/admin/api/vf/download-bgd-report') ?>" 
+                                       class="inline-flex items-center gap-1.5 w-max bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg mt-1 transition-all active:scale-95">
+                                        <i class="fas fa-file-download"></i> Tải file báo cáo đối chiếu (.xls)
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Buttons -->
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-200 gap-2">
+                    <button @click="uploadBGDFile()"
+                            :disabled="!bgdStatus.selectedFileName || bgdStatus.importing"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 sm:w-auto sm:text-sm disabled:opacity-40 disabled:pointer-events-none">
+                        Tiến hành Import
+                    </button>
+                    <button @click="showBgdUploadModal = false" :disabled="bgdStatus.importing"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-40">
+                        Hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Loading Modal -->
+    <div x-cloak x-show="isLoading" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
+            <!-- Decorative background shapes -->
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+            <!-- Animated Logo Container -->
+            <div class="relative w-28 h-28 mx-auto mb-6">
+                <!-- Outer Pulse ring -->
+                <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulsing-slow"></div>
+                <!-- Dotted rotating ring -->
+                <div class="absolute inset-1 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
+                <!-- Glassmorphism Circle with Logo -->
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
+                    <img src="<?= url('/assets/img/Logo.png') ?>" 
+                         alt="Logo" 
+                         class="w-full h-full object-contain p-2 relative z-10">
+                    <!-- Internal Shimmer -->
+                    <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Hệ thống đang xử lý</h3>
+            <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
+            
+            <!-- Progress container -->
+            <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div class="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
+                     :style="`width: ${progress}%`"
+                     id="loadingProgress">
+                </div>
+                <!-- Shimmering overlay -->
+                <div class="shimmer-glare absolute inset-0"></div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+                <span x-text="progress + '%'"></span>
+                <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
             </div>
         </div>
     </div>
 
     <!-- Tab Selector -->
     <div class="flex bg-slate-100 p-1 rounded-xl mb-4 w-max shadow-sm border border-slate-200">
+        <?php if (!$isReadOnly): ?>
         <button @click="activeTab = 'list'"
             :class="activeTab === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-list-ul mr-2"></i>Danh sách nguyện vọng
         </button>
-        <button @click="activeTab = 'stats'; fetchStats()"
+        <?php endif; ?>
+        <button @click="activeTab = 'stats'; fetchStats(false)"
             :class="activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-chart-bar mr-2"></i>Thống kê lọc ảo
         </button>
-        <button @click="activeTab = 'charts'; fetchStats().then(() => initCharts())"
+        <button @click="activeTab = 'charts'; fetchStats(true).then(() => initCharts())"
             :class="activeTab === 'charts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="px-4 py-2 rounded-lg font-bold text-xs transition duration-250 uppercase tracking-wider cursor-pointer whitespace-nowrap">
             <i class="fas fa-chart-pie mr-2"></i>Biểu đồ phân tích
         </button>
     </div>
 
+    <?php if (!$isReadOnly): ?>
     <div x-show="activeTab === 'list'" class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden relative">
-        <!-- Premium Loading Modal -->
-        <div x-cloak x-show="isLoading" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-            
-            <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-md p-8 text-center relative overflow-hidden">
-                <!-- Decorative background shapes -->
-                <div class="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
-                <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
-
-                <!-- Animated Logo Container -->
-                <div class="relative w-28 h-28 mx-auto mb-6">
-                    <!-- Outer Pulse ring -->
-                    <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-pulsing-slow"></div>
-                    <!-- Dotted rotating ring -->
-                    <div class="absolute inset-1 border-2 border-indigo-200 border-dashed rounded-full animate-spin-slow"></div>
-                    <!-- Glassmorphism Circle with Logo -->
-                    <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center shadow-xl border border-white/50 overflow-hidden">
-                        <img src="<?= url('/assets/img/Logo.png') ?>" 
-                             alt="Logo" 
-                             class="w-full h-full object-contain p-2 relative z-10">
-                        <!-- Internal Shimmer -->
-                        <div class="shimmer-glare absolute inset-0 z-20 opacity-30"></div>
-                    </div>
-                </div>
-
-                <h3 class="text-xl font-bold text-slate-800 mb-2">Đang xử lý dữ liệu</h3>
-                <p class="text-slate-500 text-sm mb-6 px-4" x-text="currentLoadingMessage"></p>
-                
-                <!-- Progress container -->
-                <div class="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-                    <div class="absolute top-0 left-0 h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
-                         :style="`width: ${progress}%`"
-                         id="loadingProgress">
-                    </div>
-                    <!-- Shimmering overlay -->
-                    <div class="shimmer-glare absolute inset-0"></div>
-                </div>
-                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
-                    <span x-text="progress + '%'"></span>
-                    <span x-text="progress < 100 ? 'Vui lòng không đóng trang' : 'Hoàn thành!'"></span>
-                </div>
-            </div>
-        </div>
 
         <div class="px-4 py-3 border-b border-slate-200 flex flex-wrap justify-between items-center bg-slate-50 gap-2">
             <h2 class="font-semibold text-slate-700 flex items-center gap-2">
@@ -281,6 +448,7 @@ if (!empty($combinations)) {
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">ĐK học lực</th>
                         <th rowspan="2" class="py-2 px-2 border border-slate-200 font-bold bg-slate-100">ĐK Ngưỡng</th>
                         <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 min-w-[80px]">Kết quả<br>xét tuyển</th>
+                        <th rowspan="2" class="py-2 px-3 border border-slate-200 font-bold bg-slate-100 min-w-[90px]">KQ lọc ảo</th>
                     </tr>
                     <tr class="text-slate-500 uppercase tracking-wider text-[9px] text-center bg-slate-50">
                         <th class="py-1 px-2 border border-slate-200 bg-blue-50/50">TH1</th>
@@ -298,9 +466,18 @@ if (!empty($combinations)) {
             </table>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- TAB: STATS (Thống kê trúng tuyển) -->
-    <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar">
+    <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar relative">
+        <!-- Local Loading Overlay -->
+        <div x-cloak x-show="isStatsLoading" class="absolute inset-0 bg-slate-50/60 backdrop-blur-[2px] z-50 flex items-center justify-center">
+            <div class="bg-white/80 border border-slate-200 shadow-xl rounded-2xl p-6 flex flex-col items-center max-w-xs">
+                <i class="fas fa-circle-notch fa-spin text-indigo-600 text-3xl mb-3"></i>
+                <span class="text-xs font-black text-slate-700 uppercase tracking-wider">Đang tải thống kê</span>
+                <span class="text-[10px] text-slate-400 mt-1">Vui lòng đợi trong giây lát...</span>
+            </div>
+        </div>
         <!-- Stats Summary Cards -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             <!-- Card 1: Total Candidates -->
@@ -346,10 +523,19 @@ if (!empty($combinations)) {
 
         <!-- Table of Major stats -->
         <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-6">
-                <span class="w-1.5 h-4 bg-emerald-500 rounded-full mr-2"></span>
-                Thống kê kết quả trúng tuyển dự kiến theo ngành
-            </h3>
+            <div class="flex flex-wrap justify-between items-center mb-6 gap-2">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-0">
+                    <span class="w-1.5 h-4 bg-emerald-500 rounded-full mr-2"></span>
+                    Thống kê kết quả trúng tuyển dự kiến theo ngành
+                </h3>
+                <button @click="exportStats()" 
+                        style="background-color: #10b981;"
+                        class="text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-1.5 hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
+                        :disabled="isReadOnly || !selectedSession">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Xuất Excel Thống kê</span>
+                </button>
+            </div>
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="premium-table min-w-[800px] lg:min-w-full">
                     <thead>
@@ -359,12 +545,15 @@ if (!empty($combinations)) {
                             <th style="width: 80px" class="text-center" rowspan="2">Chỉ tiêu</th>
                             <th style="width: 90px" class="text-center" rowspan="2">Điểm chuẩn</th>
                             <th class="text-center" colspan="3">Trúng tuyển dự kiến</th>
+                            <th class="text-center bg-purple-50 text-purple-800 font-bold" colspan="2" style="border-bottom: 2px solid #8b5cf6;">Dự kiến sau lọc ảo Bộ</th>
                             <th style="width: 150px" class="text-center" rowspan="2">Mức điểm (Thấp-Cao)</th>
                         </tr>
                         <tr>
                             <th style="width: 80px" class="text-center">Tổng</th>
                             <th style="width: 80px" class="text-center">NV1</th>
                             <th style="width: 100px" class="text-center">Tiến độ (%)</th>
+                            <th style="width: 80px" class="text-center bg-purple-50 text-purple-800 font-bold">Tổng</th>
+                            <th style="width: 120px" class="text-center bg-purple-50 text-purple-800 font-bold">Tiến độ (%)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -386,6 +575,18 @@ if (!empty($combinations)) {
                                         <span class="text-[10px] font-black w-8 text-right" 
                                               :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
                                               x-text="ms.chi_tieu > 0 ? Math.round((ms.so_trung_tuyen / ms.chi_tieu) * 1000) / 10 + '%' : '0%'"></span>
+                                    </div>
+                                </td>
+                                <!-- DỰ KIẾN SAU LỌC ẢO BỘ (TỔNG & TIẾN ĐỘ %) -->
+                                <td class="text-center font-black text-purple-700 bg-purple-50/20" x-text="ms.so_luong_do_bo || '0'"></td>
+                                <td class="bg-purple-50/10">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-purple-600 rounded-full" 
+                                                 :style="'width: ' + Math.min(ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0, 100) + '%'"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black w-8 text-right text-purple-700" 
+                                              x-text="ms.chi_tieu > 0 ? Math.round((ms.so_luong_do_bo / ms.chi_tieu) * 1000) / 10 + '%' : '0%'"></span>
                                     </div>
                                 </td>
                                 <td class="text-center">
@@ -418,6 +619,16 @@ if (!empty($combinations)) {
                                     <span class="text-[10px] font-black w-8 text-right text-indigo-600" x-text="totalStatsSum().pct + '%'"></span>
                                 </div>
                             </td>
+                            <!-- DỰ KIẾN SAU LỌC ẢO BỘ TOTALS -->
+                            <td class="text-center text-purple-800 bg-purple-50/30 font-black" x-text="totalStatsSum().so_luong_do_bo"></td>
+                            <td class="bg-purple-50/20">
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-purple-600 rounded-full" :style="'width: ' + Math.min(totalStatsSum().pct_bo, 100) + '%'"></div>
+                                    </div>
+                                    <span class="text-[10px] font-black w-8 text-right text-purple-700" x-text="totalStatsSum().pct_bo + '%'"></span>
+                                </div>
+                            </td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -427,7 +638,29 @@ if (!empty($combinations)) {
     </div> <!-- END TAB STATS -->
 
     <!-- TAB: CHARTS (Biểu đồ phân tích) -->
-    <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar">
+    <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6 flex-1 overflow-auto custom-scrollbar relative">
+        <!-- Local Loading Overlay -->
+        <div x-cloak x-show="isStatsLoading" class="absolute inset-0 bg-slate-50/60 backdrop-blur-[2px] z-50 flex items-center justify-center">
+            <div class="bg-white/80 border border-slate-200 shadow-xl rounded-2xl p-6 flex flex-col items-center max-w-xs">
+                <i class="fas fa-circle-notch fa-spin text-indigo-600 text-3xl mb-3"></i>
+                <span class="text-xs font-black text-slate-700 uppercase tracking-wider">Đang phân tích biểu đồ</span>
+                <span class="text-[10px] text-slate-400 mt-1">Vui lòng đợi trong giây lát...</span>
+            </div>
+        </div>
+        <!-- Export Button for Chart Data -->
+        <div class="flex justify-between items-center gap-2 mb-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+                <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Dữ liệu thô phân tích số liệu biểu đồ</h4>
+                <p class="text-[10px] text-slate-500 mt-0.5">Tải file Excel gồm 7 Sheet chứa số liệu thống kê chi tiết của từng biểu đồ bên dưới để tùy biến báo cáo.</p>
+            </div>
+            <button @click="exportChartData()" 
+                    style="background-color: #7c3aed;"
+                    class="text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-1.5 hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                    :disabled="isReadOnly || !selectedSession">
+                <i class="fas fa-file-excel"></i>
+                <span>Xuất Excel Biểu đồ</span>
+            </button>
+        </div>
         <!-- Row 1: Full-width Major fill chart -->
         <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
             <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
@@ -514,9 +747,10 @@ if (!empty($combinations)) {
 <script>
     function virtualAdmission() {
         return {
+            isReadOnly: <?= json_encode($isReadOnly) ?>,
             selectedYear: '',
             selectedSession: '',
-            activeTab: 'list',
+            activeTab: <?= $isReadOnly ? "'stats'" : "'list'" ?>,
             statsData: {
                 stats: null,
                 majorStats: [],
@@ -527,9 +761,25 @@ if (!empty($combinations)) {
             showAllSchools: false,
             allSessions: <?= json_encode($sessions) ?>,
             isLoading: false,
+            isStatsLoading: false,
             isCalculating: false,
             isSyncing: false,
             isFiltering: false,
+            showBgdUploadModal: false,
+            bgdStatus: {
+                imported: false,
+                importing: false,
+                tong_bo_gd: 0,
+                bi_loai: 0,
+                giu_lai: 0,
+                lan_loc_ao: '',
+                lan_import_cuoi: '',
+                imported_by: '',
+                selectedFileName: '',
+                selectedFile: null,
+                lastMessage: '',
+                lastMessageType: 'success'
+            },
             loadingMessage: 'Đang tải...',
             currentLoadingMessage: 'Đang tải bản ghi...',
             progress: 0,
@@ -598,7 +848,9 @@ if (!empty($combinations)) {
             },
 
             init() {
-                this.initDataTable();
+                if (!this.isReadOnly) {
+                    this.initDataTable();
+                }
                 
                 // TỰ ĐỘNG CHỌN ĐỢT TUYỂN SINH ĐANG KÍCH HOẠT ĐỂ TIẾT KIỆM THỜI GIAN CO USER
                 let activeSession = this.allSessions.find(s => s.kich_hoat == 1 || s.kich_hoat === true || s.kich_hoat === 't');
@@ -612,6 +864,7 @@ if (!empty($combinations)) {
                     setTimeout(() => {
                         this.selectedSession = activeSession.id;
                         this.loadData();
+                        this.fetchBGDStatus();
                     }, 50);
                 }
             },
@@ -819,6 +1072,37 @@ if (!empty($combinations)) {
                     }
                 });
 
+                // KQ lọc ảo
+                columns.push({
+                    data: 'ket_qua_bo_gd',
+                    className: 'text-center uppercase text-[10px] font-bold',
+                    render: function(data, type, row) {
+                        // Nếu Kết quả xét tuyển nội bộ không phải Đỗ (không gửi lên Bộ lọc ảo) thì không hiện trạng thái
+                        if (row.trang_thai_trung_tuyen != 1 && row.trang_thai_trung_tuyen !== true && row.trang_thai_trung_tuyen !== '1') {
+                            return '-';
+                        }
+                        if (!data) {
+                            return '<span class="text-slate-400 bg-slate-100 px-2 py-1 rounded">Chưa có</span>';
+                        }
+                        if (data === 'Đỗ') {
+                            return '<span class="text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Đỗ</span>';
+                        }
+                        if (data === 'Trượt') {
+                            let title = '';
+                            if (row.ma_truong_trung_tuyen_bgd === 'DKS' && row.ttnv_do_bo) {
+                                title = `Trượt nguyện vọng này do đỗ nguyện vọng cao hơn tại HVU (Nguyện vọng ${row.ttnv_do_bo})`;
+                                return `<span class="text-rose-600 bg-rose-50 px-2 py-1 rounded cursor-help" title="${title}">Trượt (Đỗ NV ${row.ttnv_do_bo})</span>`;
+                            }
+                            if (row.bi_loai_truong_khac && row.ma_truong_trung_tuyen_bo) {
+                                title = `Trúng tuyển trường khác: ${row.ma_truong_trung_tuyen_bo}`;
+                                return `<span class="text-rose-600 bg-rose-50 px-2 py-1 rounded cursor-help" title="${title}">Trượt (${row.ma_truong_trung_tuyen_bo})</span>`;
+                            }
+                            return '<span class="text-rose-600 bg-rose-50 px-2 py-1 rounded">Trượt</span>';
+                        }
+                        return `<span class="text-slate-600 bg-slate-100 px-2 py-1 rounded">${data}</span>`;
+                    }
+                });
+
                 this.dt = $('#virtualGrid').DataTable({
                     serverSide: true,
                     processing: true,
@@ -892,32 +1176,47 @@ if (!empty($combinations)) {
                 
                 if (this.selectedSession) {
                     if (this.activeTab === 'stats') {
-                        this.fetchStats();
+                        this.fetchStats(false);
                     } else if (this.activeTab === 'charts') {
-                        this.fetchStats().then(() => this.initCharts());
+                        this.fetchStats(true).then(() => this.initCharts());
                     }
                 }
 
+                if (this.isReadOnly) {
+                    return;
+                }
+
                 if (!this.selectedSession) {
-                    this.dt.clear().draw();
-                    document.getElementById('candidateCount').textContent = '0';
-                    document.getElementById('rowCount').textContent = '0';
+                    if (this.dt) {
+                        this.dt.clear().draw();
+                    }
+                    if (document.getElementById('candidateCount')) document.getElementById('candidateCount').textContent = '0';
+                    if (document.getElementById('rowCount')) document.getElementById('rowCount').textContent = '0';
                     return;
                 }
                 
                 // Server-Side Processing gánh toàn bộ tải trọng, chỉ cần bắt Ajax gửi lại lệnh Reload mà ko tốn RAM của User
-                this.dt.ajax.reload(null, true);
+                if (this.dt) {
+                    this.dt.ajax.reload(null, true);
+                }
             },
 
-            fetchStats() {
+            fetchStats(includeDemo = false) {
                 if (!this.selectedSession) return Promise.resolve();
-                if (this.statsData.stats) return Promise.resolve();
                 
-                this.isLoading = true;
+                // If stats are already loaded and either we don't need demo or demo is already loaded, resolve
+                if (this.statsData.stats && (!includeDemo || Object.keys(this.statsData.chartDist.gender || {}).length > 0)) {
+                    return Promise.resolve();
+                }
+                
+                this.isStatsLoading = true;
                 return new Promise((resolve, reject) => {
                     $.ajax({
                         url: '<?= url("/admin/api/vf/stats") ?>',
-                        data: { session_id: this.selectedSession },
+                        data: { 
+                            session_id: this.selectedSession,
+                            include_demo: includeDemo ? 1 : 0
+                        },
                         success: (res) => {
                             if (res.success) {
                                 this.statsData = res;
@@ -932,23 +1231,32 @@ if (!empty($combinations)) {
                             reject();
                         },
                         complete: () => {
-                            this.isLoading = false;
+                            this.isStatsLoading = false;
                         }
                     });
                 });
             },
 
             totalStatsSum() {
-                let ct = 0, tt = 0, nv1 = 0;
+                let ct = 0, tt = 0, nv1 = 0, do_bo = 0;
                 if (this.statsData && this.statsData.majorStats) {
                     this.statsData.majorStats.forEach(ms => {
                         ct += parseInt(ms.chi_tieu || 0);
                         tt += parseInt(ms.so_trung_tuyen || 0);
                         nv1 += parseInt(ms.nv1_admit || 0);
+                        do_bo += parseInt(ms.so_luong_do_bo || 0);
                     });
                 }
                 let pct = ct > 0 ? Math.round((tt / ct) * 1000) / 10 : 0;
-                return { chi_tieu: ct, so_trung_tuyen: tt, nv1_admit: nv1, pct: pct };
+                let pct_bo = ct > 0 ? Math.round((do_bo / ct) * 1000) / 10 : 0;
+                return { 
+                    chi_tieu: ct, 
+                    so_trung_tuyen: tt, 
+                    nv1_admit: nv1, 
+                    so_luong_do_bo: do_bo, 
+                    pct: pct, 
+                    pct_bo: pct_bo 
+                };
             },
 
             initCharts() {
@@ -1000,6 +1308,12 @@ if (!empty($combinations)) {
                                         label: 'Số Trúng tuyển',
                                         data: sortedMajors.map(m => m.so_trung_tuyen),
                                         backgroundColor: '#4f46e5',
+                                        borderRadius: 4,
+                                    },
+                                    {
+                                        label: 'Đỗ Bộ GD&ĐT',
+                                        data: sortedMajors.map(m => m.so_luong_do_bo),
+                                        backgroundColor: '#8b5cf6',
                                         borderRadius: 4,
                                     },
                                     {
@@ -1386,6 +1700,178 @@ if (!empty($combinations)) {
             exportAcademicFail() {
                 if (!this.selectedSession) return;
                 window.location.href = '<?= url("/admin/api/vf/export-academic-fail") ?>?session_id=' + this.selectedSession;
+            },
+
+            // =====================================================
+            // BGD GD&ĐT Virtual Filter Import Methods
+            // =====================================================
+
+            fetchBGDStatus() {
+                if (!this.selectedSession) return;
+                $.get('<?= url("/admin/api/vf/bgd-status") ?>?session_id=' + this.selectedSession, (res) => {
+                    let parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                    if (parsed.success) {
+                        this.bgdStatus.imported       = parsed.imported || false;
+                        this.bgdStatus.tong_bo_gd     = parsed.tong_bo_gd || 0;
+                        this.bgdStatus.bi_loai        = parsed.bi_loai || 0;
+                        this.bgdStatus.giu_lai        = parsed.giu_lai || 0;
+                        this.bgdStatus.lan_loc_ao     = parsed.lan_loc_ao || '';
+                        this.bgdStatus.lan_import_cuoi= parsed.lan_import_cuoi || '';
+                        this.bgdStatus.imported_by    = parsed.imported_by || '';
+                    }
+                });
+            },
+
+            handleBGDFileChange(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                this.bgdStatus.selectedFile = file;
+                this.bgdStatus.selectedFileName = file.name;
+                this.bgdStatus.lastMessage = '';
+            },
+
+            handleBGDFileDrop(event) {
+                const file = event.dataTransfer.files[0];
+                if (!file) return;
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['xlsx', 'xls'].includes(ext)) {
+                    toast.error('Chỉ chấp nhận file .xlsx hoặc .xls');
+                    return;
+                }
+                this.bgdStatus.selectedFile = file;
+                this.bgdStatus.selectedFileName = file.name;
+                this.bgdStatus.lastMessage = '';
+                // Also update the input element
+                const inputEl = document.getElementById('bgd-file-input-modal');
+                if (inputEl) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    inputEl.files = dt.files;
+                }
+            },
+
+            uploadBGDFile() {
+                if (!this.bgdStatus.selectedFile || !this.selectedSession) return;
+
+                this.bgdStatus.importing = true;
+                this.bgdStatus.lastMessage = '';
+
+                // Kích hoạt màn hình chờ Premium Loading của hệ thống giống như tính năng Import
+                this.isLoading = true;
+                this.currentLoadingMessage = 'Đang phân tích cấu trúc file & đối chiếu dữ liệu...';
+                this.progress = 5;
+                this.showBgdUploadModal = false; // Tạm ẩn modal upload để người dùng nhìn màn hình loading
+
+                // Chạy hiệu ứng tăng dần tiến trình ảo (đến 90%) tạo cảm giác sống động
+                let progressInterval = setInterval(() => {
+                    if (this.progress < 90) {
+                        this.progress += Math.floor(Math.random() * 8) + 2;
+                    }
+                }, 250);
+
+                const formData = new FormData();
+                formData.append('bgd_file', this.bgdStatus.selectedFile);
+                formData.append('session_id', this.selectedSession);
+                formData.append('_csrf_token', '<?= csrf_token() ?>');
+
+                fetch('<?= url("/admin/api/vf/import-bgd") ?>', {
+                    method: 'POST',
+                    headers: {
+                        // Báo cho SecurityMiddleware biết đây là AJAX → trả JSON không phải HTML
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(async r => {
+                    const text = await r.text();
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        // Server trả HTML (PHP error) — log ra console để debug
+                        console.error('Server returned non-JSON (PHP error):');
+                        console.error(text.substring(0, 2000));
+                        // Lấy thông báo lỗi từ HTML
+                        const match = text.match(/<b>(?:Fatal error|Warning|Notice|Error)<\/b>:\s*(.+?)\s*in/i);
+                        throw new Error(match ? match[1] : 'Server error (PHP). Kiểm tra console để xem chi tiết.');
+                    }
+                })
+                .then(parsed => {
+                    clearInterval(progressInterval);
+                    this.progress = 100;
+
+                    // Chờ một khoảng nhỏ để thanh progress hoàn tất 100% về mặt thị giác
+                    setTimeout(() => {
+                        this.bgdStatus.importing = false;
+                        this.isLoading = false; // Tắt màn hình chờ
+                        this.showBgdUploadModal = true; // Mở lại modal để xem kết quả và tải file
+
+                        if (parsed.success) {
+                            this.bgdStatus.lastMessage = `✅ Đối chiếu thành công ${parsed.total_rows} dòng. Giữ lại: ${parsed.giu_lai} TS, Bị loại: ${parsed.bi_loai} TS.`;
+                            this.bgdStatus.lastMessageType = 'success';
+                            this.bgdStatus.selectedFileName = '';
+                            this.bgdStatus.selectedFile = null;
+                            
+                            const inputEl = document.getElementById('bgd-file-input-modal');
+                            if (inputEl) inputEl.value = '';
+
+                            // Cập nhật lại stats & reload table
+                            this.fetchBGDStatus();
+                            if (this.dt) this.dt.ajax.reload(null, false);
+
+                            toast.success(`Import hoàn tất! Tải báo cáo đối chiếu sau giây lát...`);
+                            
+                            // Tự động kích hoạt download báo cáo Excel đối chiếu
+                            setTimeout(() => {
+                                window.location.href = '<?= url("/admin/api/vf/download-bgd-report") ?>';
+                            }, 1000);
+                        } else {
+                            this.bgdStatus.lastMessage = '❌ Lỗi: ' + (parsed.message || 'Không rõ lỗi');
+                            this.bgdStatus.lastMessageType = 'error';
+                            if (parsed.errors && parsed.errors.length) {
+                                console.warn('BGD Import Errors:', parsed.errors);
+                            }
+                            toast.error(parsed.message || 'Import thất bại');
+                        }
+                    }, 800);
+                })
+                .catch(err => {
+                    clearInterval(progressInterval);
+                    this.bgdStatus.importing = false;
+                    this.isLoading = false;
+                    this.showBgdUploadModal = true;
+                    this.bgdStatus.lastMessage = '❌ ' + err.message;
+                    this.bgdStatus.lastMessageType = 'error';
+                    toast.error(err.message);
+                });
+            },
+
+            exportAdmittedFinal() {
+                if (!this.selectedSession) return;
+                if (!this.bgdStatus.imported) {
+                    toast.warning('Cần import kết quả Bộ GD&ĐT trước khi xuất danh sách chính thức!');
+                    return;
+                }
+                window.location.href = '<?= url("/admin/api/vf/export-admitted-final") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportEliminatedByBGD() {
+                if (!this.selectedSession) return;
+                if (!this.bgdStatus.imported) {
+                    toast.warning('Cần import kết quả Bộ GD&ĐT trước!');
+                    return;
+                }
+                window.location.href = '<?= url("/admin/api/vf/export-eliminated-bgd") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportStats() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-stats") ?>?session_id=' + this.selectedSession;
+            },
+
+            exportChartData() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-chart-data") ?>?session_id=' + this.selectedSession;
             }
         }
     }
