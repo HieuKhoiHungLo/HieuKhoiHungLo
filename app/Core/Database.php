@@ -31,12 +31,14 @@ class Database {
         try {
             $this->pdo = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
-            die("<div style='padding:20px;background:#fff5f5;border:1px solid #ffc1c1;color:#c00;font-family:sans-serif;'>"
-              . "<h3>[Debug DSN] Lỗi kết nối cơ sở dữ liệu:</h3>"
-              . "<p><b>Message:</b> " . htmlspecialchars($e->getMessage()) . "</p>"
-              . "<p><b>DSN:</b> " . htmlspecialchars($dsn) . "</p>"
-              . "<p><b>User:</b> " . htmlspecialchars($user) . "</p>"
-              . "</div>");
+            if (isset($_GET['debug_db'])) {
+                die("<div style='padding:20px;background:#fff5f5;border:1px solid #ffc1c1;color:#c00;font-family:sans-serif;'>"
+                  . "<h3>[Debug DSN] Lỗi kết nối cơ sở dữ liệu:</h3>"
+                  . "<p><b>Message:</b> " . htmlspecialchars($e->getMessage()) . "</p>"
+                  . "<p><b>DSN:</b> " . htmlspecialchars($dsn) . "</p>"
+                  . "<p><b>User:</b> " . htmlspecialchars($user) . "</p>"
+                  . "</div>");
+            }
 
             // Show detailed database error on local machine for easy debugging
             $isLocal = isset($_SERVER['HTTP_HOST']) && 
