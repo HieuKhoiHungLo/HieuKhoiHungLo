@@ -23,7 +23,7 @@ class AdmissionManagementController extends Controller {
 
     public function index() {
         $years = $this->db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(PDO::FETCH_COLUMN);
-        $activeSession = $this->sessionModel->getActiveSession();
+        $activeSession = $this->sessionModel->getActiveSession() ?? $this->sessionModel->getLatestActiveSession();
         
         $this->view('admin/admission/management', [
             'title' => 'Thiết lập Điểm chuẩn',
