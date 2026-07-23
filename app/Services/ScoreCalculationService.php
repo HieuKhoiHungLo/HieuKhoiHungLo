@@ -1129,9 +1129,10 @@ class ScoreCalculationService {
             }
 
             if ($namTN !== null && $namTN !== '' && (int)$namTN >= 2026) {
-                if (!$this->checkThptExamSourceThreshold($cccd, $majorDetails)) {
+                $err = "";
+                if (!$this->checkThptExamSourceThreshold($cccd, $majorDetails, $bestMethod, $err)) {
                     $result['passed'] = false;
-                    $result['errors'][] = "Vi phạm nguồn tuyển: Tổng điểm 3 môn thi tốt nghiệp THPT năm " . $namTN . " dưới 15.00";
+                    $result['errors'][] = "Vi phạm nguồn tuyển: " . $err;
                 }
             }
         }
@@ -1302,10 +1303,13 @@ class ScoreCalculationService {
 
     /**
      * Kiểm tra quy chế nguồn tuyển đối với thí sinh tốt nghiệp từ năm 2026:
-     * Tổng điểm 3 môn thi tốt nghiệp THPT đạt tối thiểu 15.00 điểm.
-     * 3 môn này có thể là theo tổ hợp đăng ký xét tuyển HOẶC sử dụng Toán, Ngữ văn và một môn thi khác.
+     * Quy chế Bộ GD&ĐT quy định ngưỡng sàn thi THPT đối với các ngành đào tạo:
+     * - Xét bằng phương thức khác THPT (Học bạ, kết hợp):
+     *   + Sư phạm (714): Sàn THPT từ 18.00 điểm (riêng GDTC, SPAN, SPMT từ 16.50 điểm).
+     *   + Sức khỏe (772): Sàn THPT từ 20.00 điểm (riêng Điều dưỡng, Hộ sinh... từ 16.50 điểm).
+     *   + Các ngành khác: Sàn THPT từ 15.00 điểm.
      */
-    protected function checkThptExamSourceThreshold($cccd, $majorDetails = null) {
+    protected function checkThptExamSourceThreshold($cccd, $majorDetails = null, $bestMethod = null, &$errorMessage = '') {
         $record = null;
         if ($this->bulkData) {
             $record = $this->bulkData['thpt'][$cccd] ?? null;
@@ -1314,7 +1318,8 @@ class ScoreCalculationService {
         }
 
         if (!$record) {
-            return false; // Không có thông tin điểm thi THPT
+            $errorMessage = "Không có thông tin điểm thi tốt nghiệp THPT";
+            return false;
         }
 
         $scores = [];
@@ -1330,11 +1335,54 @@ class ScoreCalculationService {
             }
         }
 
+        // Xác định ngưỡng điểm sàn của Bộ dựa trên nhóm ngành và phương thức
+        $maNganh = $majorDetails['ma_nganh'] ?? '';
+        
+        $requiredThpt = 15.00;
+        $requiredXTN = null;
+        
+        if ($bestMethod === '200') {
+            // Nhóm Sư phạm (714)
+            if (strpos($maNganh, '714') === 0) {
+                $isSpecialPedagogy = in_array((string)$maNganh, ['7140206', '7140221', '7140222']);
+                if ($isSpecialPedagogy) {
+                    $requiredThpt = 16.50;
+                    $requiredXTN = 6.50;
+                } else {
+                    $requiredThpt = 18.00;
+                    $requiredXTN = 8.50;
+                }
+            }
+            // Nhóm Sức khỏe (772)
+            elseif (strpos($maNganh, '772') === 0) {
+                $isNursingGroup = in_array((string)$maNganh, [
+                    '7720301', '7720501', '7720302', '7720303', '7720401', '7720402', '7720601'
+                ]);
+                if ($isNursingGroup) {
+                    $requiredThpt = 16.50;
+                    $requiredXTN = 6.50;
+                } else {
+                    $requiredThpt = 20.00;
+                    $requiredXTN = 8.50;
+                }
+            }
+        }
+
+        // A. Kiểm tra điều kiện tốt nghiệp (Nếu đạt thì được miễn điều kiện thi 3 môn)
+        if ($requiredXTN !== null) {
+            $diemXTN = $this->getDiemXetTotNghiep($cccd);
+            if ($diemXTN !== null && $diemXTN >= $requiredXTN) {
+                return true;
+            }
+        }
+
         if (count($scores) < 3) {
+            $errorMessage = "Thiếu thông tin điểm thi (yêu cầu tối thiểu 3 môn)";
             return false;
         }
 
-        // 1. Kiểm tra THPT theo Toán + Văn + 1 môn bất kỳ
+        // B. Kiểm tra THPT theo Toán + Văn + 1 môn bất kỳ
+        $passedToanVan = false;
         if (isset($scores['toan']) && isset($scores['van'])) {
             $toanVal = $scores['toan'];
             $vanVal = $scores['van'];
@@ -1347,12 +1395,16 @@ class ScoreCalculationService {
                     }
                 }
             }
-            if ($maxOther >= 0 && ($toanVal + $vanVal + $maxOther) >= 15.00) {
-                return true;
+            if ($maxOther >= 0 && ($toanVal + $vanVal + $maxOther) >= $requiredThpt) {
+                $passedToanVan = true;
             }
         }
 
-        // 2. Kiểm tra THPT theo các tổ hợp hợp lệ của ngành đăng ký xét tuyển
+        if ($passedToanVan) {
+            return true;
+        }
+
+        // C. Kiểm tra THPT theo các tổ hợp hợp lệ của ngành đăng ký xét tuyển
         $allowedCombos = [];
         if ($majorDetails && !empty($majorDetails['khoi_xet_tuyen'])) {
             $allowedCombos = array_map('trim', explode(',', $majorDetails['khoi_xet_tuyen']));
@@ -1393,7 +1445,6 @@ class ScoreCalculationService {
         }
 
         foreach ($combos as $combo) {
-            // Nếu có cấu hình khối xét tuyển cho ngành, chỉ xét các tổ hợp được phép tuyển của ngành đó
             if (!empty($allowedCombos) && !in_array($combo['ma_to_hop'], $allowedCombos)) {
                 continue;
             }
@@ -1405,13 +1456,17 @@ class ScoreCalculationService {
             if ($m1_code && $m2_code && $m3_code) {
                 if (isset($scoresByCode[$m1_code]) && isset($scoresByCode[$m2_code]) && isset($scoresByCode[$m3_code])) {
                     $sum = $scoresByCode[$m1_code] + $scoresByCode[$m2_code] + $scoresByCode[$m3_code];
-                    if ($sum >= 15.00) {
+                    if ($sum >= $requiredThpt) {
                         return true;
                     }
                 }
             }
         }
 
+        $errorMessage = "Tổng điểm 3 môn thi tốt nghiệp THPT theo tổ hợp xét tuyển dưới " . number_format($requiredThpt, 2);
+        if ($requiredXTN !== null) {
+            $errorMessage .= " và điểm xét tốt nghiệp dưới " . number_format($requiredXTN, 2);
+        }
         return false;
     }
 
