@@ -406,13 +406,14 @@ class ScoreCalculator {
             }
         }
         
-        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (điểm thô, chưa cộng ưu tiên)
+        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (Đã cộng điểm ưu tiên)
         if ($nguongDiemTHPT) {
             $bestScore = $this->calculateBestScore($cccd, $ma_nganh);
             $methodCode = $bestScore['method_code'] ?? null;
             $thptTotal = $bestScore['thpt_total'] ?? 0;
+            $diemSoSanh = $thptTotal + ($bestScore['priority_score'] ?? 0);
             
-            if ($methodCode === '100' && $thptTotal > 0 && $thptTotal < $nguongDiemTHPT) {
+            if ($methodCode === '100' && $thptTotal > 0 && $diemSoSanh < $nguongDiemTHPT) {
                 // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng
                 $passedByXTN = false;
                 if ($nguongDiemXTN) {

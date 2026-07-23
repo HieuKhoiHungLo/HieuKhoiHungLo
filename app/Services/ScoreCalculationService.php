@@ -1205,10 +1205,9 @@ class ScoreCalculationService {
             }
         }
         
-        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (dùng điểm THÔ, chưa cộng ưu tiên)
-        // Quy chế Bộ GD&ĐT: "tổng điểm 03 môn thi tốt nghiệp THPT" = điểm gốc, không bao gồm ưu tiên
+        // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (Đã cộng điểm ưu tiên)
         if ($bestMethod === '100' && $nguongDiemTHPT && !$isTalentPedagogy) {
-            $diemSoSanh = $totalRaw > 0 ? $totalRaw : $bestScore; // Fallback cho backward compatibility
+            $diemSoSanh = $bestScore; // Dùng điểm xét tuyển đã tính ưu tiên
             
             if ($diemSoSanh > 0 && $diemSoSanh < $nguongDiemTHPT) {
                 // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng
@@ -1223,7 +1222,7 @@ class ScoreCalculationService {
                 
                 if (!$passedByXTN) {
                     $result['passed'] = false;
-                    $errorMsg = "Tổng điểm 3 môn (" . number_format($diemSoSanh, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemTHPT, 2);
+                    $errorMsg = "Tổng điểm xét tuyển (" . number_format($diemSoSanh, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemTHPT, 2);
                     if ($nguongDiemXTN) {
                         $diemXTN = $this->getDiemXetTotNghiep($cccd);
                         $errorMsg .= " và ĐXét TN (" . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ") < " . number_format($nguongDiemXTN, 2);
