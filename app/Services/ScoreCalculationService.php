@@ -1141,6 +1141,7 @@ class ScoreCalculationService {
         $nguongDiemTHPT = $majorDetails['nguong_diem_thpt'] ?? null;
         $nguongDiemXTN = $majorDetails['nguong_diem_xtn'] ?? null;
         $nguongDiemHocBa = $majorDetails['nguong_diem_hocba'] ?? null;
+        $isTalentPedagogy = in_array((string)$ma_nganh, ['7140201', '7140206', '7140221', '7140222']);
 
         // Quy chế Bộ GD&ĐT: TS01 (100) và TS04 (THPT + Năng khiếu) KHÔNG xét học bạ Giỏi/Khá
         // Chỉ áp dụng điều kiện học lực cho TS02 (200) và TS05 (Học bạ + Năng khiếu)
@@ -1206,7 +1207,7 @@ class ScoreCalculationService {
         
         // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (dùng điểm THÔ, chưa cộng ưu tiên)
         // Quy chế Bộ GD&ĐT: "tổng điểm 03 môn thi tốt nghiệp THPT" = điểm gốc, không bao gồm ưu tiên
-        if ($nguongDiemTHPT) {
+        if ($nguongDiemTHPT && !$isTalentPedagogy) {
             $diemSoSanh = $totalRaw > 0 ? $totalRaw : $bestScore; // Fallback cho backward compatibility
             
             if ($diemSoSanh > 0 && $diemSoSanh < $nguongDiemTHPT) {
@@ -1279,9 +1280,9 @@ class ScoreCalculationService {
                 
                 $culturalWithPriority = $culturalRaw + $priorityScaled;
                 
-                // Xác định ngưỡng tối thiểu cho tổng 2 môn văn hóa
-                $requiredCultural = ((string)$ma_nganh === '7140201') ? 13.33 : 12.67;
-                $requiredTotal = ((string)$ma_nganh === '7140201') ? 20.0 : 19.0;
+                // Xác định ngưỡng tối thiểu cho tổng 2 môn văn hóa từ database (13.33 hoặc 12.67)
+                $requiredCultural = $nguongDiemTHPT ? (float)$nguongDiemTHPT : (((string)$ma_nganh === '7140201' ) ? 13.33 : 12.67);
+                $requiredTotal = round($requiredCultural * 1.5, 1);
                 
                 // a. Kiểm tra ngưỡng 2 môn văn hóa + ưu tiên * 2/3
                 if (round($culturalWithPriority, 3) < $requiredCultural) {
