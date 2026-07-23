@@ -163,6 +163,10 @@ class NgoaiLeController extends Controller {
                 return;
             }
 
+            // Chuẩn bị statement để kiểm tra CCCD tồn tại trong CSDL nhằm khớp chính xác định dạng lưu trữ (9 số hay 12 số)
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmtCheckCccd = $db->prepare("SELECT so_cccd FROM thi_sinh WHERE so_cccd = ? LIMIT 1");
+
             $items = [];
             foreach ($rows as $rowIndex => $row) {
                 if ($rowIndex <= $headerRowIndex) continue;
@@ -171,10 +175,42 @@ class NgoaiLeController extends Controller {
                 $rawMajor = trim((string)($row[$colMajor] ?? ''));
                 $rawReason = $colReason ? trim((string)($row[$colReason] ?? '')) : '';
 
-                // Format CCCD: bỏ ký tự không phải số, pad cho đủ 12 số nếu thiếu
+                // Format CCCD: bỏ ký tự không phải số
                 $cccd = preg_replace('/[^0-9]/', '', $rawCccd);
-                if (strlen($cccd) > 0 && strlen($cccd) < 12) {
-                    $cccd = str_pad($cccd, 12, '0', STR_PAD_LEFT);
+                
+                if (strlen($cccd) > 0) {
+                    $matchedCccd = null;
+
+                    // 1. Kiểm tra trực tiếp dạng thô từ Excel
+                    $stmtCheckCccd->execute([$cccd]);
+                    if ($stmtCheckCccd->fetchColumn()) {
+                        $matchedCccd = $cccd;
+                    }
+
+                    // 2. Nếu không khớp và chuỗi dưới 12 ký tự, thử đệm thành 12 số (CCCD mới mất số 0 đầu)
+                    if (!$matchedCccd && strlen($cccd) < 12) {
+                        $padded12 = str_pad($cccd, 12, '0', STR_PAD_LEFT);
+                        $stmtCheckCccd->execute([$padded12]);
+                        if ($stmtCheckCccd->fetchColumn()) {
+                            $matchedCccd = $padded12;
+                        }
+                    }
+
+                    // 3. Nếu vẫn không khớp và chuỗi dưới 9 ký tự, thử đệm thành 9 số (CMND cũ mất số 0 đầu)
+                    if (!$matchedCccd && strlen($cccd) < 9) {
+                        $padded9 = str_pad($cccd, 9, '0', STR_PAD_LEFT);
+                        $stmtCheckCccd->execute([$padded9]);
+                        if ($stmtCheckCccd->fetchColumn()) {
+                            $matchedCccd = $padded9;
+                        }
+                    }
+
+                    // 4. Nếu không khớp ai trong CSDL, dùng giá trị đệm 12 số mặc định
+                    if (!$matchedCccd) {
+                        $matchedCccd = strlen($cccd) < 12 ? str_pad($cccd, 12, '0', STR_PAD_LEFT) : $cccd;
+                    }
+
+                    $cccd = $matchedCccd;
                 }
 
                 $majorCode = strtoupper(trim($rawMajor));
