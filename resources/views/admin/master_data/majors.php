@@ -95,8 +95,8 @@
                                 echo $nguongHL ? '<span class="text-amber-600">' . ($hlLabels[$nguongHL] ?? $nguongHL) . '</span>' : '--';
                                 ?>
                             </td>
-                            <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] ? number_format($major['nguong_diem_thpt'], 1) : '--' ?></td>
-                            <td class="px-6 py-4 text-center font-black text-teal-600"><?= isset($major['nguong_diem_hocba']) && $major['nguong_diem_hocba'] ? number_format($major['nguong_diem_hocba'], 1) : '--' ?></td>
+                            <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] !== null ? (float)$major['nguong_diem_thpt'] : '--' ?></td>
+                            <td class="px-6 py-4 text-center font-black text-teal-600"><?= isset($major['nguong_diem_hocba']) && $major['nguong_diem_hocba'] !== null ? (float)$major['nguong_diem_hocba'] : '--' ?></td>
                             <td class="px-6 py-4 text-center">
                                 <?php 
                                     $rawKichHoat = $major['kich_hoat'] ?? null;
@@ -214,12 +214,12 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng THPT</label>
-                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 15"
+                                <input type="number" step="any" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 15"
                                     class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng Học bạ</label>
-                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_hocba" id="nguong_diem_hocba" placeholder="VD: 18"
+                                <input type="number" step="any" min="0" max="30" name="nguong_diem_hocba" id="nguong_diem_hocba" placeholder="VD: 18"
                                     class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
                             </div>
                         </div>
