@@ -432,15 +432,18 @@ class ScoreCalculator {
         }
         
         // 3. Check ĐTB Học bạ cho ngành ngoài Sư phạm (Phương thức xét học bạ)
-        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: "ĐTB 3 năm của 3 môn tổ hợp (đã tính ưu tiên) >= 18.0"
+        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: "ĐTB 3 năm của 3 môn tổ hợp chưa quy đổi + điểm ưu tiên >= ngưỡng (mặc định 18.0)"
         if ($nguongDiemHocBa && $nhomNganh === 'Khac') {
             $bestScore = isset($bestScore) ? $bestScore : $this->calculateBestScore($cccd, $ma_nganh);
             $transcriptTotal = $bestScore['transcript_total'] ?? 0;
+            $priority = $bestScore['priority_score'] ?? 0;
+            $scoreToCompare = $transcriptTotal + $priority;
             
-            if ($transcriptTotal > 0 && $transcriptTotal < $nguongDiemHocBa) {
+            if ($transcriptTotal > 0 && $scoreToCompare < $nguongDiemHocBa) {
                 $result['passed'] = false;
-                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp (" . number_format($transcriptTotal, 2) 
-                    . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
+                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp chưa quy đổi đã tính ưu tiên (" 
+                    . number_format($scoreToCompare, 2) . ") phải đạt từ " 
+                    . number_format($nguongDiemHocBa, 2) . " trở lên";
             }
         }
         

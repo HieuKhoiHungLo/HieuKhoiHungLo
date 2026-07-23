@@ -43,4 +43,44 @@ class NgoaiLe extends Model {
         $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE id = ?");
         return $stmt->execute([$id]);
     }
+
+    public function bulkSaveBoGDExceptions($sessionId, array $items) {
+        if (empty($items)) {
+            return 0;
+        }
+
+        $count = 0;
+        $this->db->beginTransaction();
+        try {
+            $stmtSelect = $this->db->prepare("SELECT id FROM {$this->table} WHERE dot_tuyen_sinh_id = ? AND so_cccd = ? AND ma_nganh = ?");
+            $stmtUpdate = $this->db->prepare("UPDATE {$this->table} SET trang_thai_ep_buoc = 'Truot', ghi_chu = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmtInsert = $this->db->prepare("INSERT INTO {$this->table} (dot_tuyen_sinh_id, so_cccd, ma_nganh, trang_thai_ep_buoc, ghi_chu) VALUES (?, ?, ?, 'Truot', ?)");
+
+            foreach ($items as $item) {
+                $cccd = $item['cccd'];
+                $majorCode = $item['ma_nganh'];
+                $note = '[Bộ GD&ĐT] ' . ($item['ghi_chu'] ?? 'Vi phạm điều kiện nguồn tuyển');
+
+                $stmtSelect->execute([$sessionId, $cccd, $majorCode]);
+                $existingId = $stmtSelect->fetchColumn();
+
+                if ($existingId) {
+                    $stmtUpdate->execute([$note, $existingId]);
+                } else {
+                    $stmtInsert->execute([$sessionId, $cccd, $majorCode, $note]);
+                }
+                $count++;
+            }
+            $this->db->commit();
+            return $count;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function deleteBoGDExceptions($sessionId) {
+        $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE dot_tuyen_sinh_id = ? AND (ghi_chu LIKE '[Bộ GD&ĐT]%' OR ghi_chu LIKE '%[Bộ GD&ĐT]%')");
+        return $stmt->execute([$sessionId]);
+    }
 }

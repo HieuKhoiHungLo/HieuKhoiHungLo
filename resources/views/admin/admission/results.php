@@ -99,19 +99,22 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
         <!-- Left: Action buttons -->
         <div class="flex flex-wrap items-center gap-3">
-            <!-- 1. Export Excel Button -->
-            <a href="<?= url('/admin/reports/export-all-admitted?session_id=' . $sessionId) ?>"
-               class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                <i class="fas fa-file-excel"></i>
-                <span>Xuất Excel</span>
-            </a>
-
-            <!-- 2. Send Bulk Email Button -->
+            <!-- 1. Send Bulk Email Button -->
             <button onclick="bulkEmailSelected()" 
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
                 <i class="fas fa-paper-plane"></i>
                 <span>Gửi Email Đã Chọn</span>
             </button>
+
+            <!-- 2. Sync from Virtual Filter Button -->
+            <form action="<?= url('/admin/admission/results/sync-virtual') ?>" method="POST" class="flex items-center" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA kết quả hiện tại và ĐỒNG BỘ lại toàn bộ từ Lọc Ảo đợt này? Hành động này không thể hoàn tác.');">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Đồng bộ từ Lọc Ảo</span>
+                </button>
+            </form>
 
             <!-- 3. Upload Results Excel Form Button -->
             <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" class="flex items-center gap-2" id="importForm">
@@ -132,10 +135,16 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 <button type="submit" class="<?= empty($activeSession['is_published_results']) ? 'bg-teal-600 hover:bg-teal-700 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200' ?> px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả xét tuyển đợt này lên cổng thông tin cho thí sinh tra cứu không?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này không?' ?>');">
                     <i class="fas <?= empty($activeSession['is_published_results']) ? 'fa-bullhorn' : 'fa-eye-slash' ?>"></i>
                     <span>
-                        <?= empty($activeSession['is_published_results']) ? 'Công bố kết quả' : 'Hủy công bố kết quả' ?>
+                        <?= empty($activeSession['is_published_results']) ? 'Công bố kết quả' : 'Hủy công bố' ?>
                     </span>
                 </button>
             </form>
+            
+            <!-- 5. Soạn Giấy Báo Trúng Tuyển -->
+            <button type="button" onclick="openTemplateModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-edit"></i>
+                <span>Mẫu Giấy Báo</span>
+            </button>
         </div>
 
         <!-- Right: Destructive clear action -->
@@ -986,42 +995,168 @@ function escHtml(s) { if (!s) return ''; const d = document.createElement('div')
 function fmt(v) { return v != null ? parseFloat(v).toFixed(2) : '-'; }
 function fmt3(v) { return v != null ? parseFloat(v).toFixed(3) : '-'; }
 
-function syncFromVirtualFilter() {
-    if (!confirm('Đồng bộ kết quả lọc ảo vào trạng thái nguyện vọng?\n\nThao tác này sẽ cập nhật trạng thái "Trúng tuyển" / "Không đạt" dựa trên kết quả lọc ảo mới nhất.')) return;
-    
-    const btn = document.getElementById('syncBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đồng bộ...';
+// Template Modal Logic
+let editorInstance = null;
 
-    fetch('<?= url("/admin/admission/results/sync") ?>', {
+function openTemplateModal() {
+    const modal = document.getElementById('template-modal');
+    // Move to body to avoid layout z-index issues
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+    modal.classList.remove('hidden');
+    
+    // Hàm hỗ trợ tải CKEditor
+    const initEditor = () => {
+        if (!editorInstance) {
+            if (typeof CKEDITOR !== 'undefined') {
+                if (CKEDITOR.instances['template-editor']) {
+                    CKEDITOR.instances['template-editor'].destroy(true);
+                }
+                editorInstance = CKEDITOR.replace('template-editor', {
+                    height: 400,
+                    allowedContent: true // Cho phép chèn HTML tuỳ ý để không mất CSS
+                });
+            } else {
+                console.error("CKEDITOR is undefined.");
+            }
+        }
+    };
+
+    if (typeof CKEDITOR === 'undefined') {
+        const btn = document.getElementById('template-modal').querySelector('button[onclick="saveTemplate()"]');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải trình soạn thảo...';
+        btn.disabled = true;
+
+        const script = document.createElement('script');
+        // Load locally instead of CDN to avoid all firewall/adblock issues
+        script.src = '<?= url("/ckeditor/ckeditor.js") ?>';
+        script.onload = () => {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+            setTimeout(initEditor, 100);
+        };
+        script.onerror = () => {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+            console.error("Lỗi tải CKEditor từ Local. Sẽ sử dụng Textarea mặc định.");
+            initEditor(); 
+        };
+        document.head.appendChild(script);
+    } else {
+        setTimeout(initEditor, 100);
+    }
+    
+    // Fetch template
+        fetch('<?= url("/admin/admission/results/get-template") ?>?session_id=' + SESSION_ID)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.template) {
+                document.getElementById('template-subject').value = data.template.subject || '';
+                if (editorInstance) {
+                    editorInstance.setData(data.template.body || '');
+                } else {
+                    document.getElementById('template-editor').value = data.template.body || '';
+                }
+            }
+        })
+        .catch(err => console.error(err));
+}
+
+function insertTemplateVar(variable) {
+    const editor = (typeof CKEDITOR !== 'undefined') ? CKEDITOR.instances['template-editor'] : editorInstance;
+    if (editor) {
+        editor.focus();
+        editor.insertHtml(variable);
+    } else {
+        const textarea = document.getElementById('template-editor');
+        if (textarea) textarea.value += variable;
+    }
+}
+
+function saveTemplate() {
+    const subject = document.getElementById('template-subject').value;
+    const editor = (typeof CKEDITOR !== 'undefined') ? CKEDITOR.instances['template-editor'] : editorInstance;
+    const body = editor ? editor.getData() : document.getElementById('template-editor').value;
+    
+    fetch('<?= url("/admin/admission/results/save-template") ?>', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `session_id=${SESSION_ID}&csrf_token=${CSRF_TOKEN}`
+        body: `session_id=${SESSION_ID}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     })
     .then(r => r.json())
     .then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo';
         if (data.success) {
-            // Show success notification
-            const notify = document.createElement('div');
-            notify.className = 'fixed top-4 right-4 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-bold animate-bounce';
-            notify.innerHTML = `<i class="fas fa-check-circle text-lg"></i><span>${data.message}</span>`;
-            document.body.appendChild(notify);
-            setTimeout(() => notify.remove(), 4000);
-            // Reload the table to reflect updated statuses
-            reloadTable();
+            alert('Lưu mẫu giấy báo thành công!');
+            closeModal('template-modal');
         } else {
-            alert('Lỗi: ' + (data.message || 'Không xác định'));
+            alert('Lỗi: ' + data.message);
         }
     })
-    .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Đồng bộ Lọc Ảo';
-        alert('Lỗi kết nối: ' + err.message);
-    });
+    .catch(err => alert('Lỗi kết nối: ' + err.message));
 }
 </script>
+
+<!-- Template Editor Modal -->
+<div id="template-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('template-modal')"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col relative z-10 animate-fade-in-up">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-file-signature text-purple-500"></i> Mẫu Giấy Báo Trúng Tuyển
+            </h3>
+            <button type="button" onclick="closeModal('template-modal')" class="text-slate-400 hover:text-slate-600 transition-colors bg-white rounded-full p-1.5 shadow-sm hover:shadow">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Tiêu đề (Email / Thông báo)</label>
+                <input type="text" id="template-subject" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-purple-500 focus:ring-purple-500">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Các biến (Click để chèn)</label>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="insertTemplateVar('{{HOTEN}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Họ tên</button>
+                    <button type="button" onclick="insertTemplateVar('{{CCCD}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">CCCD</button>
+                    <button type="button" onclick="insertTemplateVar('{{NGAYSINH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Ngày sinh</button>
+                    <button type="button" onclick="insertTemplateVar('{{SBD}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">SBD</button>
+                    <button type="button" onclick="insertTemplateVar('{{NGANH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Ngành trúng tuyển</button>
+                    <button type="button" onclick="insertTemplateVar('{{MANGANH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Mã ngành</button>
+                    <button type="button" onclick="insertTemplateVar('{{DIEMXT}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Điểm xét tuyển</button>
+                    <button type="button" onclick="insertTemplateVar('{{QR_ThanhToan}}')" class="px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded text-xs hover:bg-blue-100"><i class="fas fa-qrcode"></i> Mã QR Thanh Toán</button>
+                    <button type="button" onclick="insertTemplateVar('{{QR_CCCD}}')" class="px-2 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded text-xs hover:bg-purple-100"><i class="fas fa-qrcode"></i> Mã QR CCCD</button>
+                </div>
+            </div>
+            
+            <div class="mb-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Nội dung Giấy báo (HTML)</label>
+                <textarea id="template-editor" class="w-full border-slate-300 rounded-lg shadow-sm" rows="10"></textarea>
+            </div>
+            <p class="text-xs text-slate-500 italic">Bạn có thể chèn ảnh, bảng và thiết kế tự do bằng công cụ trình soạn thảo. Mẫu này sẽ hiển thị khi thí sinh tra cứu kết quả trực tuyến.</p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 rounded-b-2xl">
+            <button type="button" onclick="closeModal('template-modal')" class="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-sm">
+                Hủy bỏ
+            </button>
+            <button type="button" onclick="saveTemplate()" class="px-5 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm shadow-purple-600/20 transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-save"></i>
+                <span>Lưu thay đổi</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <style>
 .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }

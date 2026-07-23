@@ -19,6 +19,7 @@
                     <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                         <th class="px-6 py-5 pl-8">#</th>
                         <th class="px-6 py-5">Tên đợt</th>
+                        <th class="px-6 py-5">Loại xét tuyển</th>
                         <th class="px-6 py-5">Năm</th>
                         <th class="px-6 py-5">Thời gian nhận hồ sơ</th>
                         <th class="px-6 py-5">Trạng thái</th>
@@ -28,7 +29,7 @@
                 <tbody class="divide-y divide-slate-50">
                     <?php if (empty($sessions)): ?>
                         <tr>
-                            <td colspan="6" class="px-6 py-20 text-center">
+                            <td colspan="7" class="px-6 py-20 text-center">
                                 <div class="flex flex-col items-center">
                                     <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 text-slate-200">
                                         <i class="fas fa-calendar-times text-3xl"></i>
@@ -45,6 +46,11 @@
                                 </td>
                                 <td class="px-6 py-6">
                                     <div class="font-black text-slate-700 uppercase tracking-tight"><?= htmlspecialchars($session['ten_dot']) ?></div>
+                                </td>
+                                <td class="px-6 py-6">
+                                    <span class="text-xs font-black px-2.5 py-1.5 rounded-lg <?= ($session['loai_xet_tuyen'] ?? 'chinh_thuc') === 'hoc_ba' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200' ?>">
+                                        <?= ($session['loai_xet_tuyen'] ?? 'chinh_thuc') === 'hoc_ba' ? 'Học bạ' : 'Chính thức' ?>
+                                    </span>
                                 </td>
                                 <td class="px-6 py-6">
                                     <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
@@ -107,6 +113,15 @@
                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#0066FF] focus:bg-white transition"
                        placeholder="VD: Đợt 1">
             </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Loại xét tuyển</label>
+                <select name="loai_xet_tuyen" id="loai_xet_tuyen" required
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#0066FF] focus:bg-white transition">
+                    <option value="chinh_thuc">Chính thức (Điểm thi THPT)</option>
+                    <option value="hoc_ba">Xét tuyển sớm (Học bạ)</option>
+                </select>
+            </div>
             
             <div>
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Năm tuyển sinh</label>
@@ -156,6 +171,7 @@
         document.getElementById('modal-title').innerText = 'Thêm đợt mới';
         document.getElementById('session_id').value = '';
         document.getElementById('ten_dot').value = '';
+        document.getElementById('loai_xet_tuyen').value = 'chinh_thuc';
         document.getElementById('nam_tuyen_sinh').value = '<?= date('Y') ?>';
         document.getElementById('ngay_bat_dau').value = '';
         document.getElementById('ngay_ket_thuc').value = '';
@@ -170,6 +186,7 @@
         document.getElementById('modal-title').innerText = 'Sửa đợt tuyển sinh';
         document.getElementById('session_id').value = s.id;
         document.getElementById('ten_dot').value = s.ten_dot;
+        document.getElementById('loai_xet_tuyen').value = s.loai_xet_tuyen || 'chinh_thuc';
         document.getElementById('nam_tuyen_sinh').value = s.nam_tuyen_sinh;
         document.getElementById('ngay_bat_dau').value = s.ngay_bat_dau;
         document.getElementById('ngay_ket_thuc').value = s.ngay_ket_thuc;

@@ -63,6 +63,7 @@
                         <th class="px-6 py-4 text-center">Chỉ tiêu</th>
                         <th class="px-6 py-4 text-center">KQHT L12</th>
                         <th class="px-6 py-4 text-center">Ngưỡng THPT</th>
+                        <th class="px-6 py-4 text-center">Ngưỡng Học bạ</th>
                         <th class="px-6 py-4 text-center w-24">Trạng thái</th>
                         <th class="px-6 py-4 text-center">Thao tác</th>
                     </tr>
@@ -95,6 +96,7 @@
                                 ?>
                             </td>
                             <td class="px-6 py-4 text-center font-black text-amber-600"><?= isset($major['nguong_diem_thpt']) && $major['nguong_diem_thpt'] ? number_format($major['nguong_diem_thpt'], 1) : '--' ?></td>
+                            <td class="px-6 py-4 text-center font-black text-teal-600"><?= isset($major['nguong_diem_hocba']) && $major['nguong_diem_hocba'] ? number_format($major['nguong_diem_hocba'], 1) : '--' ?></td>
                             <td class="px-6 py-4 text-center">
                                 <?php 
                                     $rawKichHoat = $major['kich_hoat'] ?? null;
@@ -189,7 +191,7 @@
                             <span class="bg-amber-100 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-amber-600">2</span>
                             Ngưỡng đầu vào (TT06/2026)
                         </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Nhóm ngành</label>
                                 <select name="nhom_nganh" id="nhom_nganh"
@@ -212,7 +214,12 @@
                             </div>
                             <div>
                                 <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng THPT</label>
-                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 20"
+                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_thpt" id="nguong_diem_thpt" placeholder="VD: 15"
+                                    class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-amber-700/60 uppercase mb-1.5 ml-1">Ngưỡng Học bạ</label>
+                                <input type="number" step="0.5" min="0" max="30" name="nguong_diem_hocba" id="nguong_diem_hocba" placeholder="VD: 18"
                                     class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none transition font-bold text-sm text-amber-900">
                             </div>
                         </div>
@@ -355,6 +362,7 @@
         document.getElementById('nhom_nganh').value = 'Khac';
         document.getElementById('nguong_hoc_luc').value = '';
         document.getElementById('nguong_diem_thpt').value = '';
+        document.getElementById('nguong_diem_hocba').value = '';
         document.getElementById('co_xet_chung_chi').checked = false;
         document.getElementById('co_diem_nangkhieu_thpt').checked = false;
         document.getElementById('co_diem_nangkhieu_hochba').checked = false;
@@ -382,6 +390,7 @@
         document.getElementById('nhom_nganh').value = m.nhom_nganh || 'Khac';
         document.getElementById('nguong_hoc_luc').value = m.nguong_hoc_luc || '';
         document.getElementById('nguong_diem_thpt').value = m.nguong_diem_thpt || '';
+        document.getElementById('nguong_diem_hocba').value = m.nguong_diem_hocba || '';
         
         document.getElementById('co_xet_chung_chi').checked = m.co_xet_chung_chi ? true : false;
         document.getElementById('co_diem_nangkhieu_thpt').checked = m.co_diem_nangkhieu_thpt ? true : false;

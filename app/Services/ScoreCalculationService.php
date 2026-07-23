@@ -240,7 +240,7 @@ class ScoreCalculationService {
         return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v8");
     }
 
-    public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false) {
+    public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false, $skipThptCondition = false) {
         // 1. Fetch ALL Data (Uses bulkData if pre-loaded)
         $transcriptavgs = $this->calculateTranscriptAverages($cccd);
         $thptScores = $this->getThptScores($cccd);
@@ -291,7 +291,7 @@ class ScoreCalculationService {
                 $hbResult = $this->calculateMethodScore('HOC_BA', $comboSubjects, $transcriptavgs, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                 if ($hbResult) {
                     $allCombinationsParams["HB_{$comboCode}"] = $hbResult['total_raw'];
-                    $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200', $hbResult['total_raw']);
+                    $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200', $hbResult['total_raw'], $skipThptCondition, $hbResult['details']);
                     
                     $isBetter = false;
                     if ($hbThreshold['passed']) {
@@ -318,7 +318,7 @@ class ScoreCalculationService {
                     $thptResult = $this->calculateMethodScore('DIEM_THI', $comboSubjects, $thptScores, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                     if ($thptResult) {
                         $allCombinationsParams["THPT_{$comboCode}"] = $thptResult['total_raw'];
-                        $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100', $thptResult['total_raw']);
+                        $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100', $thptResult['total_raw'], $skipThptCondition, $thptResult['details']);
                         
                         $isBetter = false;
                         if ($thptThreshold['passed']) {
@@ -382,7 +382,7 @@ class ScoreCalculationService {
     /**
      * High-Performance Chunk Recalculation (Targeted at 15k+ scaling)
      */
-    public function recalculateBatch($sessionId, array $cccds, $force = false) {
+    public function recalculateBatch($sessionId, array $cccds, $force = false, $skipThptCondition = false) {
         if (empty($cccds)) return 0;
         
         try {
@@ -392,8 +392,8 @@ class ScoreCalculationService {
             $allResults = []; // Khởi tạo mảng kết quả
             
             foreach ($cccds as $cccd) {
-                // Pass $force to bypass dirty checking
-                $results = $this->calculate($cccd, $sessionId, true, $force);
+                // Pass $force and $skipThptCondition through to calculate()
+                $results = $this->calculate($cccd, $sessionId, true, $force, $skipThptCondition);
                 if (!empty($results)) {
                     $allResults = array_merge($allResults, $results);
                 }
@@ -634,9 +634,9 @@ class ScoreCalculationService {
     /**
      * Legacy method preserved for compatibility but now suboptimal
      */
-    public function recalculateSession($sessionId, $force = false) {
+    public function recalculateSession($sessionId, $force = false, $skipThptCondition = false) {
         $cccds = $this->getCandidateIds($sessionId, $force);
-        return $this->recalculateBatch($sessionId, $cccds, $force);
+        return $this->recalculateBatch($sessionId, $cccds, $force, $skipThptCondition);
     }
 
 
@@ -1106,28 +1106,31 @@ class ScoreCalculationService {
      * @param array $majorDetails Thông tin ngành (nhom_nganh, nguong_hoc_luc, nguong_diem_thpt, nguong_diem_xtn, nguong_diem_hocba)
      * @param float $bestScore Điểm xét tuyển tổng (đã cộng ưu tiên)
      * @param string|null $bestMethod Phương thức xét tuyển ('100' = THPT, '200' = Học bạ)
-     * @param float $totalRaw Tổng điểm thô 3 môn (CHƯA cộng ưu tiên) - dùng để so sánh ngưỡng
+     * @param array $details Thông tin chi tiết điểm tổ hợp (diem_mon_1, diem_mon_2, diem_mon_3, priority_raw)
      * @return array ['passed' => bool, 'errors' => string[]]
      */
-    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore, $bestMethod = null, $totalRaw = 0) {
+    protected function checkAdmissionThresholdInternal($cccd, $ma_nganh, $majorDetails, $bestScore, $bestMethod = null, $totalRaw = 0, $skipThptCondition = false, $details = []) {
         $result = ['passed' => true, 'errors' => []];
 
         // 0. Kiểm tra quy chế nguồn tuyển đối với thí sinh tốt nghiệp từ năm 2026
-        $namTN = null;
-        if ($this->bulkData && isset($this->bulkData['candidates_profile'][$cccd])) {
-            $namTN = $this->bulkData['candidates_profile'][$cccd]['nam_tot_nghiep'] ?? null;
-        } else {
-            try {
-                $stmt = $this->db->prepare("SELECT nam_tot_nghiep FROM thi_sinh WHERE so_cccd = ?");
-                $stmt->execute([$cccd]);
-                $namTN = $stmt->fetchColumn();
-            } catch (\Exception $e) {}
-        }
+        // Bỏ qua điều kiện này cho đợt Xét tuyển Học Bạ (thí sinh chưa thi THPT)
+        if (!$skipThptCondition) {
+            $namTN = null;
+            if ($this->bulkData && isset($this->bulkData['candidates_profile'][$cccd])) {
+                $namTN = $this->bulkData['candidates_profile'][$cccd]['nam_tot_nghiep'] ?? null;
+            } else {
+                try {
+                    $stmt = $this->db->prepare("SELECT nam_tot_nghiep FROM thi_sinh WHERE so_cccd = ?");
+                    $stmt->execute([$cccd]);
+                    $namTN = $stmt->fetchColumn();
+                } catch (\Exception $e) {}
+            }
 
-        if ($namTN !== null && $namTN !== '' && (int)$namTN >= 2026) {
-            if (!$this->checkThptExamSourceThreshold($cccd)) {
-                $result['passed'] = false;
-                $result['errors'][] = "Vi phạm nguồn tuyển: Tổng điểm 3 môn thi tốt nghiệp THPT năm " . $namTN . " dưới 15.00";
+            if ($namTN !== null && $namTN !== '' && (int)$namTN >= 2026) {
+                if (!$this->checkThptExamSourceThreshold($cccd)) {
+                    $result['passed'] = false;
+                    $result['errors'][] = "Vi phạm nguồn tuyển: Tổng điểm 3 môn thi tốt nghiệp THPT năm " . $namTN . " dưới 15.00";
+                }
             }
         }
         
@@ -1228,12 +1231,19 @@ class ScoreCalculationService {
         }
         
         // 3. Check ĐTB Học bạ cho ngành ngoài Sư phạm (Phương thức xét học bạ)
-        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: "ĐTB 3 năm của 3 môn tổ hợp (đã tính ưu tiên) >= 18.0"
+        // Quy chế Bộ GD&ĐT mục 3.1.2 khoản 3: ĐTB 3 năm của 3 môn tổ hợp chưa quy đổi + điểm ưu tiên >= ngưỡng (mặc định 18.0)
         if ($bestMethod === '200' && $nguongDiemHocBa && $nhomNganh === 'Khac') {
-            // Với phương thức học bạ: bestScore = totalRaw + priority, đây chính là "đã tính ưu tiên"
-            if ($bestScore > 0 && $bestScore < $nguongDiemHocBa) {
+            $unscaledRaw = 0;
+            $priorityRaw = 0;
+            if (is_array($details)) {
+                $unscaledRaw = ($details['diem_mon_1'] ?? 0) + ($details['diem_mon_2'] ?? 0) + ($details['diem_mon_3'] ?? 0);
+                $priorityRaw = $details['priority_raw'] ?? 0;
+            }
+            $scoreToCompare = $unscaledRaw + $priorityRaw;
+            
+            if ($scoreToCompare > 0 && $scoreToCompare < $nguongDiemHocBa) {
                 $result['passed'] = false;
-                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp (" . number_format($bestScore, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
+                $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp chưa quy đổi (" . number_format($scoreToCompare, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
             }
         }
         

@@ -159,6 +159,8 @@ class VirtualFilterController extends Controller {
             $batchId = $_POST['session_id'] ?? ($_POST['batch_id'] ?? 0);
             $benchmarks = $_POST['benchmarks'] ?? []; 
             $quotas = $_POST['quotas'] ?? []; 
+            $mode = $_POST['mode'] ?? 'chinh_thuc'; // 'hoc_ba' | 'chinh_thuc'
+            $isHocBa = ($mode === 'hoc_ba');
 
             if (is_string($benchmarks)) {
                 $benchmarks = json_decode($benchmarks, true) ?? [];
@@ -188,7 +190,7 @@ class VirtualFilterController extends Controller {
                 $service->saveExpectedBenchmarks($batchId, $benchmarks, $quotas);
             }
 
-            $result = $service->runVirtualFilter($batchId, $benchmarks);
+            $result = $service->runVirtualFilter($batchId, $benchmarks, $isHocBa);
             
             if (ob_get_length() > 0) ob_clean();
             $this->json($result);

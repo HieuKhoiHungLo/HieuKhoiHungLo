@@ -26,8 +26,9 @@ while (true) {
             echo "[" . date('H:i:s') . "] Processing job: $type ($id)...\n";
             
             if ($type === 'recalculate_session' && $id) {
-                $count = $service->recalculateSession($id, $force);
-                echo "DONE: Recalculated $count candidates.\n";
+                $skipThpt = (bool)($job['skip_thpt_condition'] ?? false);
+                $count = $service->recalculateSession($id, $force, $skipThpt);
+                echo "DONE: Recalculated $count candidates" . ($skipThpt ? " [Chế độ Học Bạ - bỏ qua THPT]" : "") . ".\n";
             }
         }
     } catch (\Throwable $e) {

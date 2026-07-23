@@ -25,6 +25,7 @@ class OnlineTracking extends Model
 
     public function getOnlineCounts($minutes = 15)
     {
+        $minutes = intval($minutes);
         $sql = "SELECT 
                     COUNT(*) as total,
                     COUNT(user_id) as logged_in_users,
@@ -39,6 +40,7 @@ class OnlineTracking extends Model
 
     public function cleanOldSessions($minutes = 30)
     {
+        $minutes = intval($minutes);
         $sql = "DELETE FROM {$this->table} WHERE last_activity < NOW() - INTERVAL '$minutes minutes'";
         return $this->db->exec($sql);
     }

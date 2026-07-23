@@ -19,7 +19,7 @@ class VirtualFilterService {
      * @param array $benchmarks Mảng associative: ['ma_nganh' => diem_chuan, ...]
      * @return array Thống kê kết quả
      */
-    public function runVirtualFilter($batchId, $benchmarks) {
+    public function runVirtualFilter($batchId, $benchmarks, $isHocBa = false) {
         $this->db->beginTransaction();
 
         try {
@@ -109,6 +109,16 @@ class VirtualFilterService {
                     SET trang_thai_trung_tuyen = TRUE 
                     WHERE nguyen_vong_id IN ($idsList)
                 ");
+
+                // Đối với đợt Học Bạ: 100% đạt lọc ảo Bộ GD
+                // Tự động ghi nhận ket_qua_bo_gd = 'Đỗ' mà không cần import file từ Bộ
+                if ($isHocBa) {
+                    $this->db->exec("
+                        UPDATE v_calc_summary 
+                        SET ket_qua_bo_gd = 'Đỗ', bi_loai_truong_khac = FALSE
+                        WHERE nguyen_vong_id IN ($idsList)
+                    ");
+                }
             }
 
             $this->db->commit();

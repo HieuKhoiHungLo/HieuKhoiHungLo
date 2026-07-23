@@ -266,6 +266,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/results/clear', 'AdmissionController@clearBatch');
     $router->post('/admin/admission/results/set-template', 'AdmissionController@setSessionTemplate');
     $router->post('/admin/admission/results/toggle-publish', 'AdmissionController@togglePublish');
+    $router->post('/admin/admission/results/sync-virtual', 'AdmissionController@syncFromVirtualFilter');
+    $router->get('/admin/admission/results/get-template', 'AdmissionController@getTemplate');
+    $router->post('/admin/admission/results/save-template', 'AdmissionController@saveTemplate');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 
@@ -273,6 +276,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/exceptions', 'NgoaiLeController@index');
     $router->post('/admin/admission/exceptions/save', 'NgoaiLeController@save');
     $router->post('/admin/admission/exceptions/delete', 'NgoaiLeController@delete');
+    $router->post('/admin/admission/exceptions/import-bo-gd', 'NgoaiLeController@importBoGD');
+    $router->post('/admin/admission/exceptions/delete-bo-gd', 'NgoaiLeController@deleteBoGD');
 
     // Virtual Filter Dashboard (New Grid UI)
     $router->get('/admin/admission/virtual-filter', 'VirtualAdmissionController@index');
@@ -289,6 +294,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/api/vf/export-academic-fail','VirtualAdmissionController@exportAcademicFail');
     $router->get('/admin/api/vf/export-virtual-filter', 'VirtualAdmissionController@exportVirtualFilterAdmitted');
     $router->get('/admin/api/vf/stats', 'VirtualAdmissionController@getStats');
+    $router->get('/admin/api/vf/session-type', 'VirtualAdmissionController@getSessionType');
     $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
     $router->get('/admin/api/vf/batch-load', 'VirtualFilterController@loadBatchData');
     // BGD Virtual Filter Import (Kết quả lọc ảo liên trường từ Bộ GD&ĐT)
@@ -482,6 +488,19 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/profile/change-password', 'AdminProfileController@changePassword');
 
     $router->get('/admin/logout', 'AuthController@adminLogout');
+
+    // Enrollment Management
+    $router->get('/admin/enrollment/setup', 'EnrollmentController@setup');
+    $router->post('/admin/enrollment/setup/save', 'EnrollmentController@saveSetup');
+    $router->get('/admin/enrollment/process', 'EnrollmentController@process');
+    $router->get('/admin/enrollment/search', 'EnrollmentController@searchCandidate');
+    $router->post('/admin/enrollment/submit', 'EnrollmentController@submitEnrollment');
+    $router->get('/admin/enrollment/print', 'EnrollmentController@printReceipt');
+    $router->get('/admin/enrollment/stats', 'EnrollmentController@stats');
+    
+    // New Dashboard APIs
+    $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
+    $router->get('/admin/enrollment/api/list', 'EnrollmentController@apiListEnrolled');
 
     // Email Queue Management
     $router->get('/admin/email-queue', 'EmailQueueController@index');

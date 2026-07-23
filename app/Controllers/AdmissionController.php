@@ -776,4 +776,140 @@ class AdmissionController extends Controller {
             $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
         }
     }
+
+    public function syncFromVirtualFilter() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? 0;
+        if (!$sessionId) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+            return;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        try {
+            $db->beginTransaction();
+
+            // 1. Xóa kết quả hiện tại của đợt
+            $db->prepare("DELETE FROM ket_qua_trung_tuyen WHERE session_id = ?")->execute([$sessionId]);
+
+            // 2. Insert từ v_calc_summary (chỉ những người có trang_thai_trung_tuyen = TRUE)
+            $sql = "INSERT INTO ket_qua_trung_tuyen (
+                        session_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
+                        diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
+                        diem_xt, ma_nganh, ten_nganh, phuong_thuc, email, sdt, ghi_chu
+                    )
+                    SELECT 
+                        ?, nv.so_cccd, ts.ho_va_ten, ts.ngay_sinh, COALESCE(ts.so_bao_danh, ''), ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, cs.to_hop_toi_uu,
+                        cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3, (COALESCE(cs.diem_mon_1,0) + COALESCE(cs.diem_mon_2,0) + COALESCE(cs.diem_mon_3,0)), nv.diem_uu_tien_goc, nv.diem_uu_tien_qd,
+                        cs.diem_xet_tuyen, nv.ma_nganh, nv.ten_nganh, cs.phuong_thuc_toi_uu, ts.email, ts.dien_thoai, COALESCE(nv.ghi_chu, ts.ghi_chu)
+                    FROM nguyen_vong nv
+                    JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                    JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                    WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE";
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$sessionId, $sessionId]);
+            $inserted = $stmt->rowCount();
+
+            $db->commit();
+            
+            $this->redirect(url('/admin/admission/results?session_id=' . $sessionId . '&success=' . urlencode("Đồng bộ thành công $inserted thí sinh trúng tuyển từ dữ liệu lọc ảo.")));
+        } catch (\Exception $e) {
+            $db->rollBack();
+            $this->redirect(url('/admin/admission/results?session_id=' . $sessionId . '&error=' . urlencode('Lỗi đồng bộ: ' . $e->getMessage())));
+        }
+    }
+
+    public function getTemplate() {
+        $sessionId = $_GET['session_id'] ?? 0;
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+        $tplIdStmt->execute([$sessionId]);
+        $templateId = $tplIdStmt->fetchColumn();
+        
+        $template = null;
+        if ($templateId) {
+            $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE id = ?");
+            $tplStmt->execute([$templateId]);
+            $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
+        }
+        
+        if (!$template) {
+            $tplStmt = $db->prepare("SELECT * FROM email_templates WHERE code = 'ADMISSION_LETTER' LIMIT 1");
+            $tplStmt->execute();
+            $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'template' => $template]);
+        exit;
+    }
+
+    public function saveTemplate() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? 0;
+        $body = $_POST['body'] ?? '';
+        $subject = $_POST['subject'] ?? 'Thông báo trúng tuyển';
+        
+        if (!$sessionId) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Chưa chọn đợt tuyển sinh']);
+            exit;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        try {
+            $db->beginTransaction();
+            
+            // Tìm template đang dùng cho session, nếu không có thì tạo mới
+            $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
+            $tplIdStmt->execute([$sessionId]);
+            $templateId = $tplIdStmt->fetchColumn();
+            
+            if ($templateId) {
+                // Check nếu là template gốc ADMISSION_LETTER, không nên ghi đè gốc mà nên clone
+                $checkStmt = $db->prepare("SELECT code FROM email_templates WHERE id = ?");
+                $checkStmt->execute([$templateId]);
+                $code = $checkStmt->fetchColumn();
+                
+                if ($code === 'ADMISSION_LETTER') {
+                    // Clone
+                    $insStmt = $db->prepare("INSERT INTO email_templates (subject, body, code, category, created_at) VALUES (?, ?, ?, 'admission_letter', NOW()) RETURNING id");
+                    $insStmt->execute([$subject, $body, 'ADMISSION_SESSION_' . $sessionId]);
+                    $templateId = $insStmt->fetchColumn();
+                    
+                    // Update session
+                    $updStmt = $db->prepare("UPDATE session_templates SET template_id = ? WHERE session_id = ?");
+                    $updStmt->execute([$templateId, $sessionId]);
+                } else {
+                    // Update existing specific template
+                    $upd = $db->prepare("UPDATE email_templates SET subject = ?, body = ?, updated_at = NOW() WHERE id = ?");
+                    $upd->execute([$subject, $body, $templateId]);
+                }
+            } else {
+                // Tạo mới
+                $insStmt = $db->prepare("INSERT INTO email_templates (subject, body, code, category, created_at) VALUES (?, ?, ?, 'admission_letter', NOW()) RETURNING id");
+                $insStmt->execute([$subject, $body, 'ADMISSION_SESSION_' . $sessionId]);
+                $templateId = $insStmt->fetchColumn();
+                
+                $sessStmt = $db->prepare("INSERT INTO session_templates (session_id, template_id) VALUES (?, ?)");
+                $sessStmt->execute([$sessionId, $templateId]);
+            }
+            
+            $db->commit();
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Đã lưu mẫu Giấy báo trúng tuyển thành công']);
+            exit;
+        } catch (\Exception $e) {
+            $db->rollBack();
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+    }
 }

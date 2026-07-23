@@ -442,7 +442,8 @@ class ThiSinhRepository
 
             $tables = ['chung_chi_thi_sinh', 'nguyen_vong', 'ho_so_xet_tuyen', 'diem_thi_thpt', 'ket_qua_hoc_tap'];
             foreach ($tables as $tb) {
-                $this->db->exec("DELETE FROM $tb WHERE so_cccd IN ($placeholders)");
+                $delStmt = $this->db->prepare("DELETE FROM $tb WHERE so_cccd IN ($placeholders)");
+                $delStmt->execute($cccds);
             }
 
             $stmt4 = $this->db->prepare("DELETE FROM thi_sinh WHERE so_cccd IN ($placeholders)");

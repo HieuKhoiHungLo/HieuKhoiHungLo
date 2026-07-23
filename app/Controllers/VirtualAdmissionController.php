@@ -222,6 +222,9 @@ class VirtualAdmissionController extends Controller {
             exit;
         }
 
+        $mode = $_POST['mode'] ?? 'chinh_thuc'; // 'hoc_ba' | 'chinh_thuc'
+        $skipThptCondition = ($mode === 'hoc_ba');
+
         try {
             // Support Chunked Processing: Check if specific CCCDs were sent
             $cccds = $_POST['cccds'] ?? null;
@@ -233,7 +236,7 @@ class VirtualAdmissionController extends Controller {
 
             if (!empty($cccds) && is_array($cccds)) {
                 // High-performance batch calculation (Still synchronous for small chunks from UI)
-                $successCount = $this->scoreService->recalculateBatch($sessionId, $cccds, $force);
+                $successCount = $this->scoreService->recalculateBatch($sessionId, $cccds, $force, $skipThptCondition);
                 $this->json(['success' => true, 'count' => $successCount]);
             } else {
                 // Full Recalculate -> Lead to Queue for true background processing
@@ -242,6 +245,7 @@ class VirtualAdmissionController extends Controller {
                     'type' => 'recalculate_session',
                     'session_id' => $sessionId,
                     'force' => $force,
+                    'skip_thpt_condition' => $skipThptCondition,
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
                 
@@ -255,6 +259,30 @@ class VirtualAdmissionController extends Controller {
             error_log("Recalculate Error: " . $e->getMessage());
             $this->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * API: Lấy thông tin loại đợt xét tuyển (hoc_ba | chinh_thuc)
+     * Frontend dùng để quyết định hiển thị nút nào
+     */
+    public function getSessionType() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) {
+            $this->json(['success' => false, 'message' => 'Missing session_id'], 400);
+            return;
+        }
+        $stmt = $this->db->prepare("
+            SELECT id, ten_dot, nam_tuyen_sinh,
+                   COALESCE(loai_xet_tuyen, 'chinh_thuc') AS loai_xet_tuyen
+            FROM dot_tuyen_sinh WHERE id = ?
+        ");
+        $stmt->execute([$sessionId]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$session) {
+            $this->json(['success' => false, 'message' => 'Không tìm thấy đợt tuyển sinh'], 404);
+            return;
+        }
+        $this->json(['success' => true, 'session' => $session]);
     }
 
     /**
@@ -1419,9 +1447,15 @@ class VirtualAdmissionController extends Controller {
         if ($includeDemo) {
             // Load tinh map and school map to map IDs to names in PHP (saves massive JOIN execution time)
             $tinhMap = $this->db->query("SELECT ma_tinh, ten_tinh FROM dm_tinh")->fetchAll(PDO::FETCH_KEY_PAIR);
-            $schoolStmt = $this->db->prepare("SELECT ma_truong, ten_truong FROM dm_truong_thpt WHERE ma_tinh = '25' AND is_active = TRUE");
+            $schoolStmt = $this->db->prepare("SELECT ma_truong, ten_truong FROM dm_truong_thpt WHERE ma_tinh = '25'");
             $schoolStmt->execute();
             $schoolMap = $schoolStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Khởi tạo tất cả trường THPT tại Phú Thọ bằng 0 để hiển thị đầy đủ danh sách
+            $chartDist['school'] = [];
+            foreach ($schoolMap as $ma => $ten) {
+                $chartDist['school'][$ten] = 0;
+            }
 
             // Optimized FLAT Query without slow dm_tinh and dm_truong_thpt joins
             $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
@@ -1468,8 +1502,14 @@ class VirtualAdmissionController extends Controller {
 
                 // School mapping in PHP - strictly for Phu Tho candidates (ma_tinh = '25')
                 if ($candidateProvince === '25') {
-                    $s = isset($schoolMap[$maTruong12]) ? $schoolMap[$maTruong12] : ($maTruong12 ?: 'Khác');
-                    $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+                    $s = isset($schoolMap[$maTruong12]) ? $schoolMap[$maTruong12] : null;
+                    if ($s !== null) {
+                        $chartDist['school'][$s] = ($chartDist['school'][$s] ?? 0) + 1;
+                    } elseif ($maTruong12 !== '') {
+                        $chartDist['school'][$maTruong12] = ($chartDist['school'][$maTruong12] ?? 0) + 1;
+                    } else {
+                        $chartDist['school']['Khác'] = ($chartDist['school']['Khác'] ?? 0) + 1;
+                    }
                 }
             }
 
@@ -1480,6 +1520,7 @@ class VirtualAdmissionController extends Controller {
 
         $this->json([
             'success' => true,
+            'hasBgd' => $hasBgd,
             'stats' => $stats,
             'majorStats' => $majorStats,
             'chartDist' => $chartDist

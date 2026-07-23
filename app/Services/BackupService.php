@@ -61,13 +61,13 @@ class BackupService
 
         putenv("PGPASSWORD={$this->restoreConfig['password']}");
 
-        $cmd = "\"{$pgDump}\" "
-             . "-h {$this->restoreConfig['host']} "
-             . "-p {$this->restoreConfig['port']} "
-             . "-U {$this->restoreConfig['username']} "
-             . "-d {$this->dbConfig['database']} "
-             . "-F c -b -v -n public --no-owner --no-privileges "
-             . "-f \"{$filePath}\" 2>&1";
+        $cmd = escapeshellarg($pgDump)
+             . " -h " . escapeshellarg($this->restoreConfig['host'])
+             . " -p " . escapeshellarg($this->restoreConfig['port'])
+             . " -U " . escapeshellarg($this->restoreConfig['username'])
+             . " -d " . escapeshellarg($this->dbConfig['database'])
+             . " -F c -b -v -n public --no-owner --no-privileges"
+             . " -f " . escapeshellarg($filePath) . " 2>&1";
 
         $results[] = "[INFO] Đang chạy pg_dump...";
         exec($cmd, $output, $returnCode);
@@ -204,15 +204,15 @@ class BackupService
         $jobs = (int)($_ENV['DB_RESTORE_JOBS'] ?? '4');
         $jobsOption = $jobs > 1 ? "-j {$jobs} " : "";
 
-        $cmd = "\"{$pgRestore}\" "
-             . "-h {$this->restoreConfig['host']} "
-             . "-p {$this->restoreConfig['port']} "
-             . "-U {$this->restoreConfig['username']} "
-             . "-d {$targetDb} "
-             . $jobsOption
+        $cmd = escapeshellarg($pgRestore)
+             . " -h " . escapeshellarg($this->restoreConfig['host'])
+             . " -p " . escapeshellarg($this->restoreConfig['port'])
+             . " -U " . escapeshellarg($this->restoreConfig['username'])
+             . " -d " . escapeshellarg($targetDb)
+             . " " . $jobsOption
              . "-n public "
              . "--clean --if-exists --no-owner --no-privileges -v "
-             . "\"{$filePath}\" 2>&1";
+             . escapeshellarg($filePath) . " 2>&1";
 
         exec($cmd, $output, $returnCode);
 
@@ -258,12 +258,12 @@ class BackupService
             throw new \Exception("Không tìm thấy psql. Hãy cấu hình PG_BIN_PATH trong file .env");
         }
 
-        $cmd = "\"{$psql}\" "
-             . "-h {$this->restoreConfig['host']} "
-             . "-p {$this->restoreConfig['port']} "
-             . "-U {$this->restoreConfig['username']} "
-             . "-d {$targetDb} "
-             . "-f \"{$sqlPath}\" 2>&1";
+        $cmd = escapeshellarg($psql)
+             . " -h " . escapeshellarg($this->restoreConfig['host'])
+             . " -p " . escapeshellarg($this->restoreConfig['port'])
+             . " -U " . escapeshellarg($this->restoreConfig['username'])
+             . " -d " . escapeshellarg($targetDb)
+             . " -f " . escapeshellarg($sqlPath) . " 2>&1";
 
         exec($cmd, $output, $returnCode);
 

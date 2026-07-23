@@ -714,7 +714,7 @@ if (!empty($combinations)) {
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div class="grid grid-cols-1 gap-6 mt-6">
             <!-- Chart: Theo tỉnh -->
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
@@ -1267,6 +1267,48 @@ if (!empty($combinations)) {
                     Object.values(this.chartInstances).forEach(inst => { if(inst) inst.destroy(); });
                     this.chartInstances = {};
 
+                    // Define custom inline plugin for data labels
+                    const customDatalabelsPlugin = {
+                        id: 'customDatalabels',
+                        afterDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            chart.data.datasets.forEach((dataset, i) => {
+                                const meta = chart.getDatasetMeta(i);
+                                if (meta.hidden) return;
+                                
+                                const total = dataset.data.reduce((sum, val) => sum + parseFloat(val || 0), 0);
+                                if (total === 0) return;
+
+                                meta.data.forEach((element, index) => {
+                                    const value = dataset.data[index];
+                                    if (!value || value <= 0) return;
+                                    
+                                    const percent = Math.round((value / total) * 100);
+                                    const midAngle = element.startAngle + (element.endAngle - element.startAngle) / 2;
+                                    const radius = element.innerRadius + (element.outerRadius - element.innerRadius) / 2;
+                                    
+                                    const x = element.x + Math.cos(midAngle) * radius;
+                                    const y = element.y + Math.sin(midAngle) * radius;
+                                    
+                                    ctx.save();
+                                    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                                    ctx.shadowBlur = 3;
+                                    ctx.fillStyle = '#ffffff';
+                                    ctx.font = 'bold 9px sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    
+                                    const angle = element.endAngle - element.startAngle;
+                                    if (angle > 0.15) {
+                                        ctx.fillText(`${value}`, x, y - 5);
+                                        ctx.fillText(`${percent}%`, x, y + 5);
+                                    }
+                                    ctx.restore();
+                                });
+                            });
+                        }
+                    };
+
                     // 1. NGUYEN VONG CHART
                     const ctxNv = document.getElementById('nvChart');
                     if (ctxNv && this.statsData.stats) {
@@ -1288,7 +1330,8 @@ if (!empty($combinations)) {
                                 plugins: {
                                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
                                 }
-                            }
+                            },
+                            plugins: [customDatalabelsPlugin]
                         });
                     }
 
@@ -1298,31 +1341,71 @@ if (!empty($combinations)) {
                         const sortedMajors = [...this.statsData.majorStats].sort((a,b) => {
                             return a.ma_nganh.localeCompare(b.ma_nganh);
                         });
+
+                        const hasBgd = !!this.statsData.hasBgd;
+                        const datasets = [];
+
+                        if (hasBgd) {
+                            datasets.push({
+                                label: 'Số Trúng tuyển (Dự kiến)',
+                                data: sortedMajors.map(m => m.so_trung_tuyen),
+                                backgroundColor: '#60a5fa', // Light blue
+                                borderRadius: 4,
+                            });
+                            datasets.push({
+                                label: 'Đỗ Bộ GD&ĐT (Sau lọc ảo)',
+                                data: sortedMajors.map(m => m.so_luong_do_bo),
+                                backgroundColor: '#10b981', // Solid emerald green (final target)
+                                borderRadius: 4,
+                            });
+                        } else {
+                            datasets.push({
+                                label: 'Trúng tuyển (Dự kiến)',
+                                data: sortedMajors.map(m => m.so_trung_tuyen),
+                                backgroundColor: '#10b981', // Solid emerald green (final target)
+                                borderRadius: 4,
+                            });
+                        }
+
+                        datasets.push({
+                            label: 'Chỉ tiêu',
+                            data: sortedMajors.map(m => m.chi_tieu),
+                            backgroundColor: '#f59e0b', // Warm amber/gold
+                            borderRadius: 4,
+                        });
+
+                        const majorDatalabelsPlugin = {
+                            id: 'majorDatalabels',
+                            afterDraw: (chart) => {
+                                const ctx = chart.ctx;
+                                // Label the final target dataset (index 1 if hasBgd, index 0 if not)
+                                const targetIdx = hasBgd ? 1 : 0;
+                                const dataset = chart.data.datasets[targetIdx];
+                                if (!dataset) return;
+
+                                const meta = chart.getDatasetMeta(targetIdx);
+                                if (meta.hidden) return;
+
+                                meta.data.forEach((element, index) => {
+                                    const value = dataset.data[index];
+                                    if (value === undefined || value === null || value <= 0) return;
+
+                                    ctx.save();
+                                    ctx.fillStyle = '#1e293b'; // Slate 800
+                                    ctx.font = 'bold 9px sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'bottom';
+                                    ctx.fillText(value, element.x, element.y - 3);
+                                    ctx.restore();
+                                });
+                            }
+                        };
                         
                         this.chartInstances.major = new Chart(ctxMajor.getContext('2d'), {
                             type: 'bar',
                             data: {
                                 labels: sortedMajors.map(m => m.ma_nganh),
-                                datasets: [
-                                    {
-                                        label: 'Số Trúng tuyển',
-                                        data: sortedMajors.map(m => m.so_trung_tuyen),
-                                        backgroundColor: '#4f46e5',
-                                        borderRadius: 4,
-                                    },
-                                    {
-                                        label: 'Đỗ Bộ GD&ĐT',
-                                        data: sortedMajors.map(m => m.so_luong_do_bo),
-                                        backgroundColor: '#8b5cf6',
-                                        borderRadius: 4,
-                                    },
-                                    {
-                                        label: 'Chỉ tiêu',
-                                        data: sortedMajors.map(m => m.chi_tieu),
-                                        backgroundColor: '#cbd5e1',
-                                        borderRadius: 4,
-                                    }
-                                ]
+                                datasets: datasets
                             },
                             options: {
                                 responsive: true,
@@ -1340,9 +1423,10 @@ if (!empty($combinations)) {
                                 },
                                 scales: {
                                     x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } },
-                                    y: { beginAtZero: true }
+                                    y: { beginAtZero: true, grace: '5%' }
                                 }
-                            }
+                            },
+                            plugins: [majorDatalabelsPlugin]
                         });
                     }
 
@@ -1350,7 +1434,7 @@ if (!empty($combinations)) {
                     const ctxGender = document.getElementById('genderChart');
                     if (ctxGender && this.statsData.chartDist && this.statsData.chartDist.gender) {
                         this.chartInstances.gender = new Chart(ctxGender.getContext('2d'), {
-                            type: 'pie',
+                            type: 'doughnut',
                             data: {
                                 labels: Object.keys(this.statsData.chartDist.gender),
                                 datasets: [{
@@ -1359,7 +1443,15 @@ if (!empty($combinations)) {
                                     borderWidth: 0,
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                cutout: '65%',
+                                plugins: { 
+                                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                                } 
+                            },
+                            plugins: [customDatalabelsPlugin]
                         });
                     }
 
@@ -1372,11 +1464,19 @@ if (!empty($combinations)) {
                                 labels: Object.keys(this.statsData.chartDist.area),
                                 datasets: [{
                                     data: Object.values(this.statsData.chartDist.area),
-                                    backgroundColor: ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'],
+                                    backgroundColor: ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#64748b', '#ec4899', '#14b8a6'],
                                     borderWidth: 0,
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                cutout: '65%', 
+                                plugins: { 
+                                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                                } 
+                            },
+                            plugins: [customDatalabelsPlugin]
                         });
                     }
 
@@ -1384,25 +1484,67 @@ if (!empty($combinations)) {
                     const ctxObject = document.getElementById('objectChart');
                     if (ctxObject && this.statsData.chartDist && this.statsData.chartDist.object) {
                         this.chartInstances.object = new Chart(ctxObject.getContext('2d'), {
-                            type: 'bar',
+                            type: 'doughnut',
                             data: {
                                 labels: Object.keys(this.statsData.chartDist.object),
                                 datasets: [{
-                                    label: 'Số lượng',
                                     data: Object.values(this.statsData.chartDist.object),
-                                    backgroundColor: '#f59e0b',
-                                    borderRadius: 4,
+                                    backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'],
+                                    borderWidth: 0,
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                cutout: '65%',
+                                plugins: { 
+                                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                                } 
+                            },
+                            plugins: [customDatalabelsPlugin]
                         });
                     }
+
+                    // Define custom inline plugin for bar charts data labels
+                    const barDatalabelsPlugin = {
+                        id: 'barDatalabels',
+                        afterDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            chart.data.datasets.forEach((dataset, i) => {
+                                const meta = chart.getDatasetMeta(i);
+                                if (meta.hidden) return;
+
+                                meta.data.forEach((element, index) => {
+                                    const value = dataset.data[index];
+                                    if (value === undefined || value === null || value <= 0) return;
+                                    
+                                    ctx.save();
+                                    ctx.fillStyle = '#475569'; // Slate 600
+                                    ctx.font = 'bold 9px sans-serif';
+                                    
+                                    if (chart.options.indexAxis === 'y') {
+                                        ctx.textAlign = 'left';
+                                        ctx.textBaseline = 'middle';
+                                        ctx.fillText(` ${value}`, element.x + 3, element.y);
+                                    } else {
+                                        ctx.textAlign = 'center';
+                                        ctx.textBaseline = 'bottom';
+                                        ctx.fillText(`${value}`, element.x, element.y - 3);
+                                    }
+                                    ctx.restore();
+                                });
+                            });
+                        }
+                    };
 
                     // 6. PROVINCE CHART
                     const ctxProv = document.getElementById('provinceChart');
                     if (ctxProv && this.statsData.chartDist && this.statsData.chartDist.province) {
-                        const topProvKeys = Object.keys(this.statsData.chartDist.province).slice(0, 10);
-                        const topProvVals = Object.values(this.statsData.chartDist.province).slice(0, 10);
+                        const provEntries = Object.entries(this.statsData.chartDist.province)
+                            .sort((a, b) => b[1] - a[1]);
+                        const topProvKeys = provEntries.map(e => e[0]).slice(0, 20);
+                        const topProvVals = provEntries.map(e => e[1]).slice(0, 20);
+                        
                         this.chartInstances.province = new Chart(ctxProv.getContext('2d'), {
                             type: 'bar',
                             data: {
@@ -1440,20 +1582,23 @@ if (!empty($combinations)) {
                                             }
                                         } 
                                     }, 
-                                    y: { beginAtZero: true } 
+                                    y: { beginAtZero: true, grace: '5%' } 
                                 } 
-                            }
+                            },
+                            plugins: [barDatalabelsPlugin]
                         });
                     }
 
                     // 7. SCHOOL CHART
                     const ctxSchool = document.getElementById('schoolChart');
                     if (ctxSchool && this.statsData.chartDist && this.statsData.chartDist.school) {
-                        const allSchools = Object.keys(this.statsData.chartDist.school);
-                        const topSchKeys = this.showAllSchools ? allSchools : allSchools.slice(0, 20);
-                        const topSchVals = this.showAllSchools 
-                            ? Object.values(this.statsData.chartDist.school) 
-                            : Object.values(this.statsData.chartDist.school).slice(0, 20);
+                        const schEntries = Object.entries(this.statsData.chartDist.school)
+                            .sort((a, b) => b[1] - a[1]);
+                        const allSchoolsKeys = schEntries.map(e => e[0]);
+                        const allSchoolsVals = schEntries.map(e => e[1]);
+                        
+                        const topSchKeys = this.showAllSchools ? allSchoolsKeys : allSchoolsKeys.slice(0, 20);
+                        const topSchVals = this.showAllSchools ? allSchoolsVals : allSchoolsVals.slice(0, 20);
 
                         // Dynamically adjust height of parent container to avoid squishing
                         const container = ctxSchool.parentElement;
@@ -1495,9 +1640,10 @@ if (!empty($combinations)) {
                                             }
                                         } 
                                     }, 
-                                    x: { beginAtZero: true } 
+                                    x: { beginAtZero: true, grace: '5%' } 
                                 } 
-                            }
+                            },
+                            plugins: [barDatalabelsPlugin]
                         });
                     }
 

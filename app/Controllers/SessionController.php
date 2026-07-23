@@ -45,7 +45,8 @@ class SessionController extends Controller {
                 'dm_nam_tuyen_sinh_nam' => (int)$_POST['nam_tuyen_sinh'], // Ensure FK is updated
                 'ngay_bat_dau' => $_POST['ngay_bat_dau'],
                 'ngay_ket_thuc' => $_POST['ngay_ket_thuc'],
-                'kich_hoat' => isset($_POST['kich_hoat']) ? 'true' : 'false'
+                'kich_hoat' => isset($_POST['kich_hoat']) ? 'true' : 'false',
+                'loai_xet_tuyen' => $_POST['loai_xet_tuyen'] ?? 'chinh_thuc'
             ];
 
             if ($id) {
