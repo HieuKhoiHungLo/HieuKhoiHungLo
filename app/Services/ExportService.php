@@ -997,7 +997,7 @@ class ExportService {
                         'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng', 'Đối tượng ƯT', 'Khu vực ƯT',
                         'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
                         'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
-                        'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT', 'Năm TN',
+                        'STT', 'ĐDCN', 'ĐTƯT', 'KVƯT', 'Năm TN THPT', 'Năm TN', 'Năm tốt nghiệp THPT', 'Năm tốt nghiệp',
                         'Nơi thường trú - Mã tỉnh', 'Nơi thường trú - Mã Quận huyện', 'Nơi thường trú - Mã xã phường',
                         'Mã tỉnh lớp 12', 'Mã trường lớp 12',
                         'Số ĐDCN', 'Thứ tự nguyện vọng', 'Thang điểm', 'Mã xét tuyển', 'Lớp',
