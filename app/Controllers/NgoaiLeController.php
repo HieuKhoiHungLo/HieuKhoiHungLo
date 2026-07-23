@@ -132,6 +132,8 @@ class NgoaiLeController extends Controller {
             $colCccd = null;
             $colMajor = null;
             $colReason = null;
+            $colExempt = null;
+            $colResult = null;
 
             foreach ($rows as $rowIndex => $row) {
                 foreach ($row as $colLetter => $cellValue) {
@@ -144,8 +146,14 @@ class NgoaiLeController extends Controller {
                     if (!$colMajor && (strpos($cleanVal, 'mã xét tuyển') !== false || strpos($cleanVal, 'mã ngành') !== false || strpos($cleanVal, 'ma_nganh') !== false)) {
                         $colMajor = $colLetter;
                     }
-                    if (!$colReason && (strpos($cleanVal, 'kết quả') !== false || strpos($cleanVal, 'nguồn tuyển') !== false || strpos($cleanVal, 'lý do') !== false)) {
+                    if (!$colReason && (strpos($cleanVal, 'lý do') !== false || strpos($cleanVal, 'ghi chú') !== false || strpos($cleanVal, 'điểm xét') !== false)) {
                         $colReason = $colLetter;
+                    }
+                    if (!$colExempt && (strpos($cleanVal, 'đặc cách') !== false || strpos($cleanVal, 'dac_cach') !== false)) {
+                        $colExempt = $colLetter;
+                    }
+                    if (!$colResult && (strpos($cleanVal, 'kết quả') !== false || strpos($cleanVal, 'ket_qua') !== false)) {
+                        $colResult = $colLetter;
                     }
                 }
 
@@ -174,6 +182,24 @@ class NgoaiLeController extends Controller {
                 $rawCccd = trim((string)($row[$colCccd] ?? ''));
                 $rawMajor = trim((string)($row[$colMajor] ?? ''));
                 $rawReason = $colReason ? trim((string)($row[$colReason] ?? '')) : '';
+                $rawExempt = $colExempt ? trim((string)($row[$colExempt] ?? '')) : '';
+                $rawResult = $colResult ? trim((string)($row[$colResult] ?? '')) : '';
+
+                // 1. Nếu thí sinh thuộc diện đặc cách tốt nghiệp THPT -> Quy chế không áp dụng, bỏ qua không ép trượt
+                if (!empty($rawExempt)) {
+                    $cleanExempt = mb_strtolower($rawExempt, 'UTF-8');
+                    if (strpos($cleanExempt, 'không') === false && $cleanExempt !== 'no' && $cleanExempt !== '0' && $cleanExempt !== '') {
+                        continue; // Bỏ qua diện đặc cách
+                    }
+                }
+
+                // 2. Nếu kết quả xét ĐK nguồn tuyển báo là "Đạt" hoặc "Đặc cách" -> Bỏ qua không ép trượt
+                if (!empty($rawResult)) {
+                    $cleanResult = mb_strtolower($rawResult, 'UTF-8');
+                    if (strpos($cleanResult, 'không đạt') === false && (strpos($cleanResult, 'đạt') !== false || strpos($cleanResult, 'đặc cách') !== false)) {
+                        continue; // Bỏ qua nếu đã Đạt hoặc Đặc cách
+                    }
+                }
 
                 // Format CCCD: bỏ ký tự không phải số
                 $cccd = preg_replace('/[^0-9]/', '', $rawCccd);
