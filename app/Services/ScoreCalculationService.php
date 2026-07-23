@@ -291,6 +291,7 @@ class ScoreCalculationService {
                 $hbResult = $this->calculateMethodScore('HOC_BA', $comboSubjects, $transcriptavgs, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                 if ($hbResult) {
                     $allCombinationsParams["HB_{$comboCode}"] = $hbResult['total_raw'];
+                    $hbResult['details']['combo_code'] = $comboCode;
                     $hbThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $hbResult['total'], '200', $hbResult['total_raw'], $skipThptCondition, $hbResult['details']);
                     
                     $isBetter = false;
@@ -318,6 +319,7 @@ class ScoreCalculationService {
                     $thptResult = $this->calculateMethodScore('DIEM_THI', $comboSubjects, $thptScores, $certificates, $aptitudeScores, $majorDetails, $priorityPoints);
                     if ($thptResult) {
                         $allCombinationsParams["THPT_{$comboCode}"] = $thptResult['total_raw'];
+                        $thptResult['details']['combo_code'] = $comboCode;
                         $thptThreshold = $this->checkAdmissionThresholdInternal($cccd, $majorCode, $majorDetails, $thptResult['total'], '100', $thptResult['total_raw'], $skipThptCondition, $thptResult['details']);
                         
                         $isBetter = false;
@@ -1244,6 +1246,54 @@ class ScoreCalculationService {
             if ($scoreToCompare > 0 && $scoreToCompare < $nguongDiemHocBa) {
                 $result['passed'] = false;
                 $result['errors'][] = "ĐTB học bạ 3 môn tổ hợp chưa quy đổi (" . number_format($scoreToCompare, 2) . ") thấp hơn ngưỡng " . number_format($nguongDiemHocBa, 2);
+            }
+        }
+        
+        // 4. Kiểm tra điều kiện bổ sung đối với các ngành sư phạm năng khiếu (TT06/2026)
+        $isTalentPedagogy = in_array((string)$ma_nganh, ['7140201', '7140206', '7140221', '7140222']);
+        if ($isTalentPedagogy && is_array($details)) {
+            $comboCode = $details['combo_code'] ?? null;
+            $culturalRaw = 0;
+            $hasAptitude = false;
+            
+            // Duyệt qua 3 môn của tổ hợp
+            for ($i = 1; $i <= 3; $i++) {
+                $monInfo = $details['mon_' . $i] ?? null;
+                if ($monInfo) {
+                    $monId = $monInfo['mon_id'] ?? null;
+                    if ($monId !== null && isset($this->cachedAptitudeSubjectIds[$monId])) {
+                        $hasAptitude = true;
+                    } else {
+                        // Lấy điểm thô (raw) trước khi quy đổi hệ số học bạ (0.95) để so với sàn Bộ
+                        $culturalRaw += $monInfo['raw'];
+                    }
+                }
+            }
+            
+            if ($hasAptitude) {
+                // Điểm ưu tiên gốc (scale 30)
+                $priorityRaw = $details['priority_raw'] ?? 0;
+                
+                // Quy đổi điểm ưu tiên sang thang điểm 20: UT_qd = UT * 2/3
+                $priorityScaled = $priorityRaw * 2.0 / 3.0;
+                
+                $culturalWithPriority = $culturalRaw + $priorityScaled;
+                
+                // Xác định ngưỡng tối thiểu cho tổng 2 môn văn hóa
+                $requiredCultural = ((string)$ma_nganh === '7140201') ? 13.33 : 12.67;
+                $requiredTotal = ((string)$ma_nganh === '7140201') ? 20.0 : 19.0;
+                
+                // a. Kiểm tra ngưỡng 2 môn văn hóa + ưu tiên * 2/3
+                if (round($culturalWithPriority, 3) < $requiredCultural) {
+                    $result['passed'] = false;
+                    $result['errors'][] = "Tổng điểm 2 môn văn hóa tổ hợp " . ($comboCode ?: '') . " (" . number_format($culturalRaw, 2) . " + điểm UT quy đổi " . number_format($priorityScaled, 2) . " = " . number_format($culturalWithPriority, 2) . ") dưới ngưỡng tối thiểu " . number_format($requiredCultural, 2) . " (Yêu cầu Bộ GD&ĐT)";
+                }
+                
+                // b. Kiểm tra tổng điểm xét tuyển (Đã quy đổi, bao gồm cả điểm ưu tiên) phải đạt điểm sàn của trường
+                if ($bestScore > 0 && $bestScore < $requiredTotal) {
+                    $result['passed'] = false;
+                    $result['errors'][] = "Tổng điểm xét tuyển tổ hợp " . ($comboCode ?: '') . " (" . number_format($bestScore, 3) . ") dưới điểm sàn quy định " . number_format($requiredTotal, 2);
+                }
             }
         }
         
