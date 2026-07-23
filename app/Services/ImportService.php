@@ -189,7 +189,17 @@ class ImportService {
 
                 $maTinh = $this->nullIfEmpty(trim($row[14] ?? ''));
                 $maXa = $this->nullIfEmpty(trim($row[18] ?? ''));
-                $maDT = $this->nullIfEmpty(trim($row[6] ?? ''));
+                
+                // Chuẩn hóa đối tượng ưu tiên (VD: 05a, 05b, 05c -> 05; 6a -> 06; 1 -> 01)
+                $rawDT = trim($row[6] ?? '');
+                $maDT = null;
+                if ($rawDT !== '') {
+                    $digits = preg_replace('/[^0-9]/', '', $rawDT);
+                    if ($digits !== '') {
+                        $maDT = strlen($digits) === 1 ? '0' . $digits : $digits;
+                    }
+                }
+                
                 $maKV = $this->nullIfEmpty(trim($row[7] ?? ''));
 
                 if ($maTinh && !isset($validProvinces[$maTinh])) $maTinh = null;
