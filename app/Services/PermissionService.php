@@ -150,6 +150,10 @@ class PermissionService {
                 'dashboard'       => 'Xem Dashboard',
                 'stats'           => 'Xem Báo cáo Thống kê',
             ],
+            'Lọc ảo & Nhập học' => [
+                'admission.view'  => 'Xem Tổng quan Lọc ảo & Thống kê Nhập học',
+                'admission.edit'  => 'Thao tác Xét tuyển Lọc ảo & Nhập học',
+            ],
             'Thí sinh' => [
                 'candidate.view'  => 'Xem danh sách thí sinh',
                 'candidate.edit'  => 'Chỉnh sửa thông tin thí sinh',
