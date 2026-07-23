@@ -1127,7 +1127,7 @@ class ScoreCalculationService {
             }
 
             if ($namTN !== null && $namTN !== '' && (int)$namTN >= 2026) {
-                if (!$this->checkThptExamSourceThreshold($cccd)) {
+                if (!$this->checkThptExamSourceThreshold($cccd, $majorDetails)) {
                     $result['passed'] = false;
                     $result['errors'][] = "Vi phạm nguồn tuyển: Tổng điểm 3 môn thi tốt nghiệp THPT năm " . $namTN . " dưới 15.00";
                 }
@@ -1255,7 +1255,7 @@ class ScoreCalculationService {
      * Tổng điểm 3 môn thi tốt nghiệp THPT đạt tối thiểu 15.00 điểm.
      * 3 môn này có thể là theo tổ hợp đăng ký xét tuyển HOẶC sử dụng Toán, Ngữ văn và một môn thi khác.
      */
-    protected function checkThptExamSourceThreshold($cccd) {
+    protected function checkThptExamSourceThreshold($cccd, $majorDetails = null) {
         $record = null;
         if ($this->bulkData) {
             $record = $this->bulkData['thpt'][$cccd] ?? null;
@@ -1302,7 +1302,12 @@ class ScoreCalculationService {
             }
         }
 
-        // 2. Kiểm tra THPT theo bất kỳ tổ hợp nào của trường
+        // 2. Kiểm tra THPT theo các tổ hợp hợp lệ của ngành đăng ký xét tuyển
+        $allowedCombos = [];
+        if ($majorDetails && !empty($majorDetails['khoi_xet_tuyen'])) {
+            $allowedCombos = array_map('trim', explode(',', $majorDetails['khoi_xet_tuyen']));
+        }
+
         $cKey = 'master_combos';
         $combos = \App\Services\CacheService::get($cKey);
         if ($combos === null) {
@@ -1338,6 +1343,11 @@ class ScoreCalculationService {
         }
 
         foreach ($combos as $combo) {
+            // Nếu có cấu hình khối xét tuyển cho ngành, chỉ xét các tổ hợp được phép tuyển của ngành đó
+            if (!empty($allowedCombos) && !in_array($combo['ma_to_hop'], $allowedCombos)) {
+                continue;
+            }
+
             $m1_code = $this->cachedSubjectIdToCode[$combo['mon_1_id']] ?? null;
             $m2_code = $this->cachedSubjectIdToCode[$combo['mon_2_id']] ?? null;
             $m3_code = $this->cachedSubjectIdToCode[$combo['mon_3_id']] ?? null;
