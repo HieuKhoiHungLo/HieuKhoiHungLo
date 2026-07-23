@@ -1207,7 +1207,7 @@ class ScoreCalculationService {
         
         // 2. Check Tổng điểm 3 môn THPT theo tổ hợp (dùng điểm THÔ, chưa cộng ưu tiên)
         // Quy chế Bộ GD&ĐT: "tổng điểm 03 môn thi tốt nghiệp THPT" = điểm gốc, không bao gồm ưu tiên
-        if ($nguongDiemTHPT && !$isTalentPedagogy) {
+        if ($bestMethod === '100' && $nguongDiemTHPT && !$isTalentPedagogy) {
             $diemSoSanh = $totalRaw > 0 ? $totalRaw : $bestScore; // Fallback cho backward compatibility
             
             if ($diemSoSanh > 0 && $diemSoSanh < $nguongDiemTHPT) {
