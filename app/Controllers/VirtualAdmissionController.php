@@ -589,7 +589,8 @@ class VirtualAdmissionController extends Controller {
                        nv.diem_uu_tien_goc, nv.diem_uu_tien_qd, nv.ten_nganh, nv.ghi_chu as nv_ghi_chu,
                        (SELECT string_agg(ma_to_hop, ', ' ORDER BY ma_to_hop) 
                         FROM dm_nganh_to_hop nth 
-                        WHERE nth.ma_nganh = nv.ma_nganh) as all_combos
+                        WHERE nth.ma_nganh = nv.ma_nganh) as all_combos,
+                       (SELECT dth.diem_xet_tot_nghiep FROM diem_thi_thpt dth WHERE dth.so_cccd = nv.so_cccd LIMIT 1) as diem_xtn
                 FROM nguyen_vong nv
                 JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                 LEFT JOIN dm_tinh p ON COALESCE(ts.ma_tinh_thuong_tru, ts.ma_tinh_ho_khau) = p.ma_tinh
@@ -728,6 +729,11 @@ class VirtualAdmissionController extends Controller {
                 }
             }
 
+            // Lấy thêm thông tin Năm TN, Học lực 12, Điểm tốt nghiệp
+            $namTN = $row['nam_tot_nghiep'] !== null && $row['nam_tot_nghiep'] !== '' ? $row['nam_tot_nghiep'] : '-';
+            $hocLuc12 = $academicMap[$cccd][12]['hoc_luc_ca_nam'] ?? '-';
+            $diemXTN = $row['diem_xtn'] !== null && $row['diem_xtn'] !== '' ? round((float)$row['diem_xtn'], 3) : '-';
+
             // Lấy danh sách tổ hợp cho thí sinh (đã sort)
             $comboNames = [];
             if (!empty($row['all_combos'])) {
@@ -819,7 +825,10 @@ class VirtualAdmissionController extends Controller {
                     'PT 200 TH1' => $pt200_vals[0],
                     'PT 200 TH2' => $pt200_vals[1],
                     'PT 200 TH3' => $pt200_vals[2],
-                    'PT 200 TH4' => $pt200_vals[3]
+                    'PT 200 TH4' => $pt200_vals[3],
+                    'Năm tốt nghiệp THPT' => $namTN,
+                    'Học lực lớp 12' => $hocLuc12,
+                    'Điểm xét tốt nghiệp' => $diemXTN
                 ];
                 continue;
             }
@@ -903,6 +912,9 @@ class VirtualAdmissionController extends Controller {
             $dataRow['PT 200 TH2'] = $pt200_vals[1];
             $dataRow['PT 200 TH3'] = $pt200_vals[2];
             $dataRow['PT 200 TH4'] = $pt200_vals[3];
+            $dataRow['Năm tốt nghiệp THPT'] = $namTN;
+            $dataRow['Học lực lớp 12'] = $hocLuc12;
+            $dataRow['Điểm xét tốt nghiệp'] = $diemXTN;
 
             $data[] = $dataRow;
         }
