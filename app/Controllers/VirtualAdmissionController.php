@@ -151,7 +151,7 @@ class VirtualAdmissionController extends Controller {
                     ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien,
                     nv.ma_nganh, nv.thu_tu_nguyen_vong,
                     cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu,
-                    cs.chi_tiet_diem, cs.trang_thai_trung_tuyen,
+                    cs.chi_tiet_diem, cs.trang_thai_trung_tuyen, cs.trang_thai_do,
                     cs.diem_mon_1, cs.diem_mon_2, cs.diem_mon_3,
                     cs.ket_qua_bo_gd, cs.bi_loai_truong_khac, cs.ma_truong_trung_tuyen_bo,
                     bgd.ttnv_do as ttnv_do_bo, bgd.ma_truong_trung_tuyen as ma_truong_trung_tuyen_bgd,
@@ -175,7 +175,8 @@ class VirtualAdmissionController extends Controller {
                             'total_raw' => $p['total_raw'] ?? 0,
                             'priority_raw' => $p['priority_raw'] ?? 0,
                             'priority_converted' => $p['priority_converted'] ?? 0,
-                            'threshold_note' => $p['threshold_note'] ?? ''
+                            'threshold_note' => $p['threshold_note'] ?? '',
+                            'trang_thai_do' => isset($row['trang_thai_do']) ? (bool)$row['trang_thai_do'] : false
                         ];
                         // Truyền các môn học (có chứa base_scaled) xuống UI
                         $subjects = [];

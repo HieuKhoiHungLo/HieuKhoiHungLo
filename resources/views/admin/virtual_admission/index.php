@@ -1039,6 +1039,9 @@ if (!empty($combinations)) {
                             if(note.indexOf('HỌC LỰC') !== -1) {
                                 return `<span class="text-red-600 font-bold" title="${p.threshold_note}">K.ĐẠT</span>`;
                             }
+                            if (!p.combo_code) {
+                                return `<span class="text-red-600 font-bold" title="Không có tổ hợp môn xét tuyển hợp lệ">K.ĐẠT</span>`;
+                            }
                             return '<span class="text-green-600 font-bold">ĐẠT</span>';
                         } catch(e) { return '-'; }
                     }
@@ -1052,8 +1055,14 @@ if (!empty($combinations)) {
                         try {
                             let p = JSON.parse(data);
                             let note = (p.threshold_note || "").toUpperCase();
-                            if(note.indexOf('NGƯỠNG') !== -1) {
+                            if (note.indexOf('NGƯỠNG') !== -1 || note.indexOf('THẤP HƠN') !== -1 || note.indexOf('DƯỚI ĐIỂM SÀN') !== -1) {
                                 return `<span class="text-red-600 font-bold" title="${p.threshold_note}">K.ĐẠT</span>`;
+                            }
+                            if (p.trang_thai_do === false || p.trang_thai_do === 0) {
+                                return `<span class="text-red-600 font-bold" title="${p.threshold_note || 'Không đạt ngưỡng tuyển sinh'}">K.ĐẠT</span>`;
+                            }
+                            if (!p.combo_code) {
+                                return `<span class="text-red-600 font-bold" title="Không có tổ hợp môn xét tuyển hợp lệ">K.ĐẠT</span>`;
                             }
                             return '<span class="text-green-600 font-bold">ĐẠT</span>';
                         } catch(e) { return '-'; }
