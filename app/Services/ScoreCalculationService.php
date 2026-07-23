@@ -905,28 +905,33 @@ class ScoreCalculationService {
         if (!$record) return [];
 
         $scores = [];
-        $fieldMap = [
-            'toan' => 'toan', 'van' => 'van', 'tieng_anh' => 'ngoai_ngu', 
-            'ly' => 'ly', 'hoa' => 'hoa', 'sinh' => 'sinh', 
-            'su' => 'su', 'dia' => 'dia', 'gdcd' => 'gdcd', 
-            'ktpl' => 'ktpl',
-            'tin_hoc' => 'tin_hoc'
-        ];
-        
-        $aliases = $this->getSubjectAliases();
         $codeToId = $this->cachedSubjectCodeToId;
 
-        foreach ($fieldMap as $dbCol => $logicalCol) {
-            if (!isset($record[$dbCol]) || $record[$dbCol] === null || $record[$dbCol] === '') continue;
-            
-            $possibleCodes = $aliases[$logicalCol] ?? [];
-            foreach ($possibleCodes as $code) {
-                if (isset($codeToId[$code])) {
-                    $scores[$codeToId[$code]] = (float)$record[$dbCol];
-                    break;
+        $directMap = [
+            'toan' => 'TO',
+            'van' => 'VA',
+            'tieng_anh' => 'N1',
+            'tieng_trung' => 'N4',
+            'ly' => 'LI',
+            'hoa' => 'HO',
+            'sinh' => 'SI',
+            'su' => 'SU',
+            'dia' => 'DI',
+            'gdcd' => 'GDCD',
+            'ktpl' => 'GDKTPL',
+            'tin_hoc' => 'TH',
+            'cnnn' => 'CN',
+            'cong_nghe' => 'CN'
+        ];
+
+        foreach ($directMap as $dbCol => $subjectCode) {
+            if (isset($record[$dbCol]) && $record[$dbCol] !== null && $record[$dbCol] !== '') {
+                if (isset($codeToId[$subjectCode])) {
+                    $scores[$codeToId[$subjectCode]] = (float)$record[$dbCol];
                 }
             }
         }
+
         return $scores;
     }
 
