@@ -747,6 +747,7 @@ class VirtualAdmissionController extends Controller {
             $pt200_vals = ['-', '-', '-', '-'];
 
             $combs = $chiTietRaw['all_combinations'] ?? [];
+            $prioRaw = isset($chiTietRaw['priority_raw']) ? (float)$chiTietRaw['priority_raw'] : 0.0;
 
             for ($i = 0; $i < 4; $i++) {
                 if (isset($comboNames[$i])) {
@@ -755,13 +756,23 @@ class VirtualAdmissionController extends Controller {
                     // PT100 (THPT)
                     $val100 = $combs['THPT_' . $targetCombo] ?? null;
                     if ($val100 !== null && $val100 !== '') {
-                        $pt100_vals[$i] = round((float)$val100, 3);
+                        $r = (float)$val100;
+                        $convertedP = $prioRaw;
+                        if ($r >= 22.5) {
+                            $convertedP = ((30 - $r) / 7.5) * $prioRaw;
+                        }
+                        $pt100_vals[$i] = round($r + $convertedP, 3);
                     }
                     
                     // PT200 (HB)
                     $val200 = $combs['HB_' . $targetCombo] ?? null;
                     if ($val200 !== null && $val200 !== '') {
-                        $pt200_vals[$i] = round((float)$val200, 3);
+                        $r = (float)$val200;
+                        $convertedP = $prioRaw;
+                        if ($r >= 22.5) {
+                            $convertedP = ((30 - $r) / 7.5) * $prioRaw;
+                        }
+                        $pt200_vals[$i] = round($r + $convertedP, 3);
                     }
                 }
             }

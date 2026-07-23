@@ -923,31 +923,45 @@ if (!empty($combinations)) {
                                 let p = JSON.parse(row.chi_tiet_diem);
                                 let combs = p.all_combinations || {};
                                 let val = combs['THPT_' + targetCombo];
-                                return val !== undefined && val !== null ? parseFloat(val).toFixed(3) : '-';
+                                if (val === undefined || val === null) return '-';
+                                let r = parseFloat(val);
+                                let prioRaw = parseFloat(p.priority_raw) || 0;
+                                let convertedP = prioRaw;
+                                if (r >= 22.5) {
+                                    convertedP = ((30 - r) / 7.5) * prioRaw;
+                                }
+                                return (r + convertedP).toFixed(3);
                             } catch(e) { return '-'; }
                         }
                     });
                 });
 
-                // PT200 TH1-TH4
-                [0,1,2,3].forEach(i => {
-                    columns.push({
-                        data: null,
-                        className: 'text-center',
-                        render: function(data, type, row) {
-                            let names = getComboNames(row);
-                            if (names.length <= i) return '-';
-                            let targetCombo = names[i];
-                            
-                            try {
-                                let p = JSON.parse(row.chi_tiet_diem);
-                                let combs = p.all_combinations || {};
-                                let val = combs['HB_' + targetCombo];
-                                return val !== undefined && val !== null ? parseFloat(val).toFixed(3) : '-';
-                            } catch(e) { return '-'; }
-                        }
-                    });
-                });
+                 // PT200 TH1-TH4
+                 [0,1,2,3].forEach(i => {
+                     columns.push({
+                         data: null,
+                         className: 'text-center',
+                         render: function(data, type, row) {
+                             let names = getComboNames(row);
+                             if (names.length <= i) return '-';
+                             let targetCombo = names[i];
+                             
+                             try {
+                                 let p = JSON.parse(row.chi_tiet_diem);
+                                 let combs = p.all_combinations || {};
+                                 let val = combs['HB_' + targetCombo];
+                                 if (val === undefined || val === null) return '-';
+                                 let r = parseFloat(val);
+                                 let prioRaw = parseFloat(p.priority_raw) || 0;
+                                 let convertedP = prioRaw;
+                                 if (r >= 22.5) {
+                                     convertedP = ((30 - r) / 7.5) * prioRaw;
+                                 }
+                                 return (r + convertedP).toFixed(3);
+                             } catch(e) { return '-'; }
+                         }
+                     });
+                 });
 
                 // To Hop Max, PT Max
                 columns.push({ 
