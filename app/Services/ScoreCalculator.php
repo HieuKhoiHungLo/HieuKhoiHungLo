@@ -195,6 +195,7 @@ class ScoreCalculator {
 
             // --- Method 200: HOC_BA (Avg Grade 12) ---
             $hbSum = 0;
+            $hbRawSum = 0;
             $hbDetails = [];
             $hbValid = true;
 
@@ -209,7 +210,16 @@ class ScoreCalculator {
                  }
 
                 if ($rawScore <= 0) $hbValid = false;
-                $hbSum += $rawScore;
+                
+                // Môn năng khiếu không nhân hệ số 0.95, môn văn hóa và chứng chỉ nhân hệ số 0.95
+                $isAptitude = ($subMeta && $subMeta['loai_mon'] === 'nang_khieu');
+                $finalSubjectScore = $rawScore;
+                if (!$isAptitude) {
+                    $finalSubjectScore = round($rawScore * $weightRatio, 3);
+                }
+                
+                $hbSum += $finalSubjectScore;
+                $hbRawSum += $rawScore;
                 $hbDetails[$subMeta['ma_mon'] ?? $sId] = $rawScore;
             }
             
@@ -229,13 +239,13 @@ class ScoreCalculator {
 
             // Case B: Transcript (Apply Weight)
             if ($hbValid) {
-                $weightedHB = round($hbSum * $weightRatio, 3);
+                $weightedHB = round($hbSum, 3);
                 
                 if ($weightedHB > $bestResult['final_score']) {
                     $bestResult = [
-                        'total' => $hbSum, 
+                        'total' => $hbRawSum, 
                         'thpt_total' => 0,
-                        'transcript_total' => $hbSum,
+                        'transcript_total' => $hbRawSum,
                         'final_score' => $weightedHB, 
                         'method_code' => '200',
                         'combination' => $code,
