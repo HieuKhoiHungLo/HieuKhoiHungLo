@@ -176,7 +176,8 @@ class VirtualAdmissionController extends Controller {
                             'priority_raw' => $p['priority_raw'] ?? 0,
                             'priority_converted' => $p['priority_converted'] ?? 0,
                             'threshold_note' => $p['threshold_note'] ?? '',
-                            'trang_thai_do' => isset($row['trang_thai_do']) ? (bool)$row['trang_thai_do'] : false
+                            'trang_thai_do' => isset($row['trang_thai_do']) ? (bool)$row['trang_thai_do'] : false,
+                            'combo_code' => $p['combo_code'] ?? null
                         ];
                         // Truyền các môn học (có chứa base_scaled) xuống UI
                         $subjects = [];
