@@ -986,7 +986,7 @@ class ExportService {
                     
                     $lowerKey = mb_strtolower($key, 'UTF-8');
                     $isTextCol = false;
-                    foreach (['cccd', 'ddcn', 'mã ngành', 'ma_nganh', 'mã xét tuyển', 'ma_xet_tuyen', 'sbd', 'sđt', 'điện thoại', 'mã trường', 'ma_truong', 'thứ tự', 'thu_tu'] as $kw) {
+                    foreach (['cccd', 'ddcn', 'mã', 'ma', 'sbd', 'sđt', 'điện thoại', 'thứ tự', 'thu_tu', 'đối tượng', 'doi_tuong', 'khu vực', 'khu_vuc', 'năm', 'nam', 'ngành', 'nganh', 'stt'] as $kw) {
                         if (strpos($lowerKey, $kw) !== false) {
                             $isTextCol = true;
                             break;
