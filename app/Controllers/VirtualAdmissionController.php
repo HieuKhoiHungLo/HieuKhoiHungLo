@@ -1169,7 +1169,7 @@ class VirtualAdmissionController extends Controller {
                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
                          ORDER BY n.ma_nganh";
             $stmt = $this->db->prepare($majorSql);
-            $stmt->execute([$sessionId, $sessionId]);
+            $stmt->execute([$sessionId]);
             $majorRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // 2. Thống kê Nguyện vọng
