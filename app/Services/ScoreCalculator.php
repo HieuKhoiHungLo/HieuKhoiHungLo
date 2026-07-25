@@ -381,22 +381,34 @@ class ScoreCalculator {
         if ($nguongHocLuc) {
             $grade12 = $this->academicModel->getGrade12Summary($cccd);
             $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
+            $diemTb12 = $grade12['diem_tb_ca_nam'] ?? null;
+            
+            if (empty($hocLuc12) && !empty($diemTb12)) {
+                $dtb = floatval($diemTb12);
+                if ($dtb >= 8.0) $hocLuc12 = 'Giỏi';
+                elseif ($dtb >= 6.5) $hocLuc12 = 'Khá';
+                elseif ($dtb >= 5.0) $hocLuc12 = 'Trung bình';
+                else $hocLuc12 = 'Yếu';
+            }
             
             if ($hocLuc12) {
-                // Thang xếp loại theo Thông tư 22/2021/TT-BGDĐT
                 $hocLucRank = [
-                    'TỐT'        => 4,
-                    'KHÁ'        => 3,
-                    'ĐẠT'        => 2,
-                    'TRUNG BÌNH' => 1,
-                    'CHƯA ĐẠT'  => 0,
+                    'tốt' => 4, 'tot' => 4, 'giỏi' => 4, 'gioi' => 4,
+                    'khá' => 3, 'kha' => 3,
+                    'đạt' => 2, 'dat' => 2,
+                    'trung bình' => 1, 'trungbinh' => 1, 'tb' => 1,
+                    'chưa đạt' => 0, 'chua dat' => 0, 'yếu' => 0, 'yeu' => 0, 'kém' => 0, 'kem' => 0
                 ];
-                $requiredRank = $hocLucRank[$nguongHocLuc] ?? 0;
-                $actualRank = $hocLucRank[$hocLuc12] ?? 0;
+                
+                $searchRank = mb_strtolower(trim($hocLuc12), 'UTF-8');
+                $searchRequired = mb_strtolower(trim($nguongHocLuc), 'UTF-8');
+                
+                $requiredRank = $hocLucRank[$searchRequired] ?? 0;
+                $actualRank = $hocLucRank[$searchRank] ?? 0;
                 
                 if ($actualRank < $requiredRank) {
                     $result['passed'] = false;
-                    $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu'];
+                    $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt'];
                     $result['errors'][] = "Học lực lớp 12 phải đạt loại " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) 
                         . " trở lên (hiện tại: " . ($labels[$hocLuc12] ?? $hocLuc12) . ")";
                 }

@@ -1267,18 +1267,29 @@ class ScoreCalculationService {
         // 1. Check Học lực lớp 12
         if ($nguongHocLuc) {
              $hocLuc12 = null;
+             $diemTb12 = null;
             
             // Extract from bulkData if available to avoid DB hit (Fix N+1 query)
             if ($this->bulkData && isset($this->bulkData['transcripts'][$cccd])) {
                 foreach ($this->bulkData['transcripts'][$cccd] as $tr) {
                     if ($tr['lop'] == 12) {
                         $hocLuc12 = $tr['hoc_luc_ca_nam'] ?? null;
+                        $diemTb12 = $tr['diem_tb_ca_nam'] ?? null;
                         break;
                     }
                 }
             } else {
                 $grade12 = $this->academicModel->getGrade12Summary($cccd);
                 $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
+                $diemTb12 = $grade12['diem_tb_ca_nam'] ?? null;
+            }
+
+            if (empty($hocLuc12) && !empty($diemTb12)) {
+                $dtb = floatval($diemTb12);
+                if ($dtb >= 8.0) $hocLuc12 = 'Gioi';
+                elseif ($dtb >= 6.5) $hocLuc12 = 'Kha';
+                elseif ($dtb >= 5.0) $hocLuc12 = 'TrungBinh';
+                else $hocLuc12 = 'Yeu';
             }
             
             if ($hocLuc12) {
