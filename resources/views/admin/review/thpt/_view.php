@@ -34,7 +34,7 @@
                                 $thptSubjects = [
                                     'toan'=>'Toán học', 'van'=>'Ngữ văn', 'ly'=>'Vật lý', 'hoa'=>'Hóa học', 
                                     'sinh'=>'Sinh học', 'su'=>'Lịch sử', 'dia'=>'Địa lý', 'gdcd'=>'GDCD',
-                                    'tieng_anh'=>'Tiếng Anh', 'tieng_trung'=>'Tiếng Trung', 'ktpl'=>'KTPL',
+                                    'tieng_anh'=>'Tiếng Anh (N1)', 'tieng_trung'=>'Tiếng Trung (N4)', 'ktpl'=>'KTPL',
                                     'tin_hoc'=>'Tin học', 'cnnn'=>'CN-NN'
                                 ];
                                 $rowIdx = 1;

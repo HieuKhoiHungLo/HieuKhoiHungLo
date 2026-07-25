@@ -181,12 +181,7 @@ class ScoreCalculationService {
         $aptitudeData = "";
         $configData = "";
 
-        if ($this->cachedPriorityAreas === null) {
-            $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
-        }
-        if ($this->cachedPriorityObjects === null) {
-            $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
-        }
+        $this->loadPriorityCaches();
 
         if ($this->bulkData) {
             $transcriptData = json_encode($this->bulkData['transcripts'][$cccd] ?? []);
@@ -237,7 +232,7 @@ class ScoreCalculationService {
         }
 
         // Thêm hậu tố phiên bản để ép buộc tính lại toàn bộ khi công thức thay đổi (Cache Invalidation)
-        return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v8");
+        return md5($transcriptData . $thptData . $applicationData . $candidateData . $certsData . $aptitudeData . $configData . "v14");
     }
 
     public function calculate($cccd, $sessionId = null, $returnOnly = false, $force = false, $skipThptCondition = false) {
@@ -487,12 +482,10 @@ class ScoreCalculationService {
             $this->bulkData['aptitude'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
 
-        // Load Priority Areas/Objects (Quy chế: ưu tiên KV chỉ trong năm TN + 1 năm)
-        $stmtThiSinh = $this->db->prepare("SELECT so_cccd, khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd IN ($placeholders)");
+        // Load Priority Areas/Objects (Quy chế: ưu tiên KV áp dụng cho năm TN < 2023 hoặc năm TN + 1)
+        $stmtThiSinh = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
         $stmtThiSinh->execute($cccds);
-        
-        if ($this->cachedPriorityAreas === null) $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
-        if ($this->cachedPriorityObjects === null) $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
+        $this->loadPriorityCaches();
         
         // Lấy năm tuyển sinh từ session
         $currentYear = (int)date('Y');
@@ -505,18 +498,27 @@ class ScoreCalculationService {
         }
         $currentYear = $sessionYearsCache[$sessionId];
         
+        $isChinhThuc = $this->isChinhThucSession($sessionId);
         foreach ($stmtThiSinh->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['candidates_profile'][$row['so_cccd']] = $row;
-            $rawKV = $row['khu_vuc_uu_tien'] ?? '';
+            
+            // Đối với đợt chính thức, chỉ lấy khu vực ưu tiên theo import từ Bộ GD (thi_sinh.khu_vuc_uu_tien)
+            // Không tự động fall back về trường THPT
+            $rawKV = $row['khu_vuc_uu_tien'];
+            if (!$isChinhThuc && empty($rawKV)) {
+                $rawKV = $row['kv_truong'] ?? '';
+            }
+            
             $rawDT = $row['doi_tuong_uu_tien'] ?? '';
             $namTN = $row['nam_tot_nghiep'] ?? null;
             
             $maKV = $this->normalizePriorityCode($rawKV);
             $maDT = $this->normalizePriorityCode($rawDT);
             
-            // Ưu tiên Khu vực: chỉ áp dụng nếu có năm TN và trong hạn (năm TN + 1)
+            // Ưu tiên Khu vực: áp dụng nếu trong hạn (năm TN hoặc năm TN + 1)
             $diemKV = 0;
-            if ($namTN !== null && $namTN !== '' && ($currentYear - (int)$namTN) <= 1) {
+            $kvEligible = ($namTN === null || $namTN === '' || ($currentYear - (int)$namTN) <= 1);
+            if ($kvEligible) {
                 $diemKV = $this->cachedPriorityAreas[$maKV] ?? $this->cachedPriorityAreas[trim($rawKV)] ?? 0;
             }
             // Ưu tiên Đối tượng: luôn áp dụng
@@ -708,49 +710,86 @@ class ScoreCalculationService {
             $this->bulkData['aptitude'][$row['so_cccd']][$row['mon_id']] = (float)$row['diem'];
         }
 
-        // 7. Bulk load Priority (Quy chế: ưu tiên KV chỉ trong năm TN + 1 năm)
-        $stmt = $this->db->prepare("SELECT so_cccd, khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd IN ($placeholders)");
+        // 7. Bulk load Priority (Quy chế: ưu tiên KV áp dụng cho năm TN < 2023 hoặc năm TN + 1)
+        $stmt = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
         $stmt->execute($candidates);
-        $prioAreas = $this->masterDataRepo->getPriorityAreas();
-        $prioObjects = $this->masterDataRepo->getPriorityObjects();
+        $this->loadPriorityCaches();
         
         $currentYear = (int)date('Y');
-        
-        $this->cachedPriorityAreas = $prioAreas;
-        $this->cachedPriorityObjects = $prioObjects;
+        // Lấy năm tuyển sinh thực tế từ dot_tuyen_sinh
+        $stmtYear = $this->db->prepare("SELECT nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+        $stmtYear->execute([$sessionId]);
+        $y = $stmtYear->fetchColumn();
+        if ($y) {
+            $currentYear = (int)$y;
+        }
 
+        $isChinhThuc = $this->isChinhThucSession($sessionId);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $this->bulkData['candidates_profile'][$row['so_cccd']] = $row;
-            $rawKV = $row['khu_vuc_uu_tien'] ?? '';
+            
+            // Đối với đợt chính thức, chỉ lấy khu vực ưu tiên theo import từ Bộ GD (thi_sinh.khu_vuc_uu_tien)
+            // Không tự động fall back về trường THPT
+            $rawKV = $row['khu_vuc_uu_tien'];
+            if (!$isChinhThuc && empty($rawKV)) {
+                $rawKV = $row['kv_truong'] ?? '';
+            }
+            
             $rawDT = $row['doi_tuong_uu_tien'] ?? '';
             $namTN = $row['nam_tot_nghiep'] ?? null;
             
             $maKV = $this->normalizePriorityCode($rawKV);
             $maDT = $this->normalizePriorityCode($rawDT);
             
-            // Ưu tiên Khu vực: chỉ áp dụng nếu có năm TN và trong hạn (năm TN + 1)
+            // Ưu tiên Khu vực: áp dụng nếu trong hạn (năm TN hoặc năm TN + 1)
             $diemKV = 0;
-            if ($namTN !== null && $namTN !== '' && ($currentYear - (int)$namTN) <= 1) {
-                $diemKV = $prioAreas[$maKV] ?? $prioAreas[trim($rawKV)] ?? 0;
+            $kvEligible = ($namTN === null || $namTN === '' || ($currentYear - (int)$namTN) <= 1);
+            if ($kvEligible) {
+                $diemKV = $this->cachedPriorityAreas[$maKV] ?? $this->cachedPriorityAreas[trim($rawKV)] ?? 0;
             }
             // Ưu tiên Đối tượng: luôn áp dụng
-            $diemDT = $prioObjects[$maDT] ?? $prioObjects[trim($rawDT)] ?? 0;
+            $diemDT = $this->cachedPriorityObjects[$maDT] ?? $this->cachedPriorityObjects[trim($rawDT)] ?? 0;
             
             $this->bulkData['priority'][$row['so_cccd']] = $diemKV + $diemDT;
         }
     }
-    
+    protected function loadPriorityCaches() {
+        if ($this->cachedPriorityAreas === null) {
+            $areas = $this->masterDataRepo->getPriorityAreas();
+            $this->cachedPriorityAreas = [];
+            foreach ($areas as $k => $v) {
+                $this->cachedPriorityAreas[strtolower(trim($k))] = $v;
+            }
+        }
+        if ($this->cachedPriorityObjects === null) {
+            $objects = $this->masterDataRepo->getPriorityObjects();
+            $this->cachedPriorityObjects = [];
+            foreach ($objects as $k => $v) {
+                $this->cachedPriorityObjects[strtolower(trim($k))] = $v;
+            }
+        }
+    }
+
     protected function normalizePriorityCode($code) {
         if (!$code) return '';
-        $s = strtoupper(trim((string)$code));
-        // Loại bỏ tiền tố KV, DT và các ký tự đặc biệt như dấu gạch ngang và gạch dưới
-        $s = preg_replace('/^(KV|DT)/', '', $s);
+        $s = strtolower(trim((string)$code));
+        // Loại bỏ tiền tố KV, DT (VD: KV2 -> 2, KV2-NT -> 2nt)
+        $s = preg_replace('/^(kv|dt)/i', '', $s);
         $s = str_replace(['-', '_'], '', $s);
-        // Nếu là số đơn lẻ (1, 2, 3), chuẩn hóa về dạng 1 chữ số (ví dụ 01 -> 1)
-        if (is_numeric($s)) {
-            $s = (string)(int)$s;
-        }
+        // Giữ nguyên dạng gốc: '04' → '04', '04b' → '04b', '2' → '2', '2nt' → '2nt'
         return $s;
+    }
+
+    protected function isChinhThucSession($sessionId) {
+        if (!$sessionId) return false;
+        static $sessionTypes = [];
+        if (!isset($sessionTypes[$sessionId])) {
+            $stmt = $this->db->prepare("SELECT loai_xet_tuyen FROM dot_tuyen_sinh WHERE id = ?");
+            $stmt->execute([$sessionId]);
+            $val = $stmt->fetchColumn();
+            $sessionTypes[$sessionId] = ($val === 'chinh_thuc');
+        }
+        return $sessionTypes[$sessionId];
     }
 
     protected function calculatePriorityPoints($cccd, $sessionId = null) {
@@ -759,7 +798,7 @@ class ScoreCalculationService {
         }
 
         // Fetch Candidate Priority Info + năm tốt nghiệp
-        $stmt = $this->db->prepare("SELECT khu_vuc_uu_tien, doi_tuong_uu_tien, nam_tot_nghiep FROM thi_sinh WHERE so_cccd = ?");
+        $stmt = $this->db->prepare("SELECT ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd = ?");
         $stmt->execute([$cccd]);
         $candidate = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -768,14 +807,9 @@ class ScoreCalculationService {
         $diemKhuVuc = 0;
         $diemDoiTuong = 0;
         
-        if ($this->cachedPriorityAreas === null) {
-            $this->cachedPriorityAreas = $this->masterDataRepo->getPriorityAreas();
-        }
-        if ($this->cachedPriorityObjects === null) {
-            $this->cachedPriorityObjects = $this->masterDataRepo->getPriorityObjects();
-        }
+        $this->loadPriorityCaches();
 
-        // Quy chế: Ưu tiên KV chỉ trong năm tốt nghiệp + 1 năm kế tiếp
+        // Quy chế: Ưu tiên KV áp dụng nếu trong hạn (năm TN hoặc năm TN + 1)
         $namTN = $candidate['nam_tot_nghiep'] ?? null;
         
         $currentYear = (int)date('Y');
@@ -790,11 +824,17 @@ class ScoreCalculationService {
             $currentYear = $sessionYears[$sessionId];
         }
         
-        $kvEligible = ($namTN !== null && $namTN !== '' && ($currentYear - (int)$namTN) <= 1);
+        $kvEligible = ($namTN === null || $namTN === '' || ($currentYear - (int)$namTN) <= 1);
 
+        $isChinhThuc = $this->isChinhThucSession($sessionId);
         // Get Area Points (chỉ nếu còn trong hạn)
-        if ($kvEligible && !empty($candidate['khu_vuc_uu_tien'])) {
-            $rawKV = $candidate['khu_vuc_uu_tien'];
+        // Đối với đợt chính thức, chỉ lấy khu vực ưu tiên theo import từ Bộ GD (thi_sinh.khu_vuc_uu_tien)
+        // Không tự động fall back về trường THPT
+        $rawKV = $candidate['khu_vuc_uu_tien'];
+        if (!$isChinhThuc && empty($rawKV)) {
+            $rawKV = $candidate['kv_truong'] ?? '';
+        }
+        if ($kvEligible && !empty($rawKV)) {
             $maKV = $this->normalizePriorityCode($rawKV);
             if (isset($this->cachedPriorityAreas[$maKV])) {
                 $diemKhuVuc = $this->cachedPriorityAreas[$maKV];
@@ -866,7 +906,64 @@ class ScoreCalculationService {
                 $colPrefix = ($colKey == 'ngoai_ngu') ? "diem_ngoai_ngu" : "diem_{$colKey}";
                 // Hỗ trợ cả điểm trung bình bộ môn cả năm nếu có
                 $valCn = isset($r["{$colPrefix}_cn"]) && $r["{$colPrefix}_cn"] !== '' ? (float)$r["{$colPrefix}_cn"] : null;
-                
+
+                // Đối với Ngoại ngữ, xử lý chính xác theo mã môn ngoại ngữ 1 và ngoại ngữ 2
+                if ($colKey === 'ngoai_ngu') {
+                    // Extract language codes
+                    $maNn1 = 'N1';
+                    $maNn2 = '';
+                    if (!empty($r['ghi_chu'])) {
+                        if (preg_match('/ma_nn1:([^;]*)/', $r['ghi_chu'], $matches)) {
+                            $maNn1 = strtoupper(trim($matches[1]));
+                        }
+                        if (preg_match('/ma_nn2:([^;]*)/', $r['ghi_chu'], $matches)) {
+                            $maNn2 = strtoupper(trim($matches[1]));
+                        }
+                    } else {
+                        // Fallback check from diem_thi_thpt
+                        $dtRecord = null;
+                        if ($this->bulkData) {
+                            $dtRecord = $this->bulkData['thpt'][$cccd] ?? null;
+                        } else {
+                            $dtRecord = $this->diemThiModel->getByCCCD($cccd);
+                        }
+                        if ($dtRecord) {
+                            $hasAnh = isset($dtRecord['tieng_anh']) && $dtRecord['tieng_anh'] !== null && $dtRecord['tieng_anh'] !== '';
+                            $hasTrung = isset($dtRecord['tieng_trung']) && $dtRecord['tieng_trung'] !== null && $dtRecord['tieng_trung'] !== '';
+                            if ($hasTrung && !$hasAnh) {
+                                $maNn1 = 'N4';
+                            } elseif ($hasAnh && !$hasTrung) {
+                                $maNn1 = 'N1';
+                            }
+                        }
+                    }
+
+                    if (empty($maNn1)) $maNn1 = 'N1'; // Default fallback
+
+                    // Map primary foreign language score to its specific code if valid (N1/N4)
+                    $valNn1 = isset($r["diem_ngoai_ngu_cn"]) && $r["diem_ngoai_ngu_cn"] !== '' ? (float)$r["diem_ngoai_ngu_cn"] : null;
+                    if ($valNn1 !== null && in_array($maNn1, ['N1', 'N4'])) {
+                        $monId1 = $this->cachedSubjectCodeToId[$maNn1] ?? null;
+                        if ($monId1) {
+                            if (!isset($sums[$monId1])) { $sums[$monId1] = 0; $counts[$monId1] = 0; }
+                            $sums[$monId1] += $valNn1;
+                            $counts[$monId1]++;
+                        }
+                    }
+
+                    // Map secondary foreign language score to its specific code if valid (N1/N4)
+                    $valNn2 = isset($r["diem_ngoai_ngu_2_cn"]) && $r["diem_ngoai_ngu_2_cn"] !== '' ? (float)$r["diem_ngoai_ngu_2_cn"] : null;
+                    if ($valNn2 !== null && in_array($maNn2, ['N1', 'N4'])) {
+                        $monId2 = $this->cachedSubjectCodeToId[$maNn2] ?? null;
+                        if ($monId2) {
+                            if (!isset($sums[$monId2])) { $sums[$monId2] = 0; $counts[$monId2] = 0; }
+                            $sums[$monId2] += $valNn2;
+                            $counts[$monId2]++;
+                        }
+                    }
+                    continue;
+                }
+
                 // Fallback chéo giữa GDCD và GDKTPL
                 if ($colKey === 'gdcd' && $valCn === null) {
                     $valCn = isset($r["diem_ktpl_cn"]) && $r["diem_ktpl_cn"] !== '' ? (float)$r["diem_ktpl_cn"] : null;
@@ -1040,7 +1137,7 @@ class ScoreCalculationService {
                 $certScore = round($certScore * $this->cachedHeSoHocBa, 3);
             }
             $aptitudeScore = isset($aptitude[$monId]) ? $aptitude[$monId] : null;
-
+            
             // Nhận diện môn năng khiếu dựa trên ID đã cache (nhanh hơn so sánh chuỗi)
             $isAptitude = isset($this->cachedAptitudeSubjectIds[$monId]);
 

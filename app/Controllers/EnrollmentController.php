@@ -152,7 +152,7 @@ class EnrollmentController extends Controller {
             LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
             LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = ?
             WHERE kq.session_id = ? 
-              AND $whereClause
+              AND ($whereClause)
             ORDER BY kq.ho_ten ASC
             LIMIT 20
         ");

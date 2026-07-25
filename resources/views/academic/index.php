@@ -2,10 +2,55 @@
 $title = 'Nhập liệu Học bạ';
 include __DIR__ . '/../layouts/header.php';
 
+// Detect foreign language note dynamically
+$cccd = $_SESSION['cccd'] ?? '';
+$nnNote = 'Ngoại ngữ';
+if ($cccd) {
+    try {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        // 1. Check from diem_thi_thpt
+        $stmt = $db->prepare("SELECT tieng_anh, tieng_trung FROM diem_thi_thpt WHERE so_cccd = ?");
+        $stmt->execute([$cccd]);
+        $dt = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($dt) {
+            $hasAnh = isset($dt['tieng_anh']) && $dt['tieng_anh'] !== null && $dt['tieng_anh'] !== '';
+            $hasTrung = isset($dt['tieng_trung']) && $dt['tieng_trung'] !== null && $dt['tieng_trung'] !== '';
+            if ($hasAnh && !$hasTrung) {
+                $nnNote = 'Tiếng Anh - N1';
+            } elseif ($hasTrung && !$hasAnh) {
+                $nnNote = 'Tiếng Trung - N4';
+            } elseif ($hasAnh && $hasTrung) {
+                $nnNote = 'Tiếng Anh - N1 / Tiếng Trung - N4';
+            }
+        }
+        
+        // 2. If still generic, check from nguyen_vong
+        if ($nnNote === 'Ngoại ngữ') {
+            $stmt = $db->prepare("
+                SELECT DISTINCT m.ma_mon 
+                FROM nguyen_vong nv
+                JOIN dm_to_hop th ON nv.dm_to_hop_id = th.id
+                JOIN dm_mon m ON (th.mon_1_id = m.id OR th.mon_2_id = m.id OR th.mon_3_id = m.id)
+                WHERE nv.so_cccd = ? AND m.ma_mon IN ('N1', 'N4')
+            ");
+            $stmt->execute([$cccd]);
+            $codes = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            if (count($codes) === 1) {
+                if ($codes[0] === 'N1') $nnNote = 'Tiếng Anh - N1';
+                if ($codes[0] === 'N4') $nnNote = 'Tiếng Trung - N4';
+            } elseif (count($codes) > 1) {
+                $nnNote = 'Tiếng Anh - N1 / Tiếng Trung - N4';
+            }
+        }
+    } catch (\Exception $e) {
+        // Fallback
+    }
+}
+
 $subjects = [
     'toan' => 'Toán',
     'van' => 'Ngữ văn',
-    'ngoai' => 'Ngoại ngữ',
+    'ngoai' => $nnNote,
     'ly' => 'Vật lí',
     'hoa' => 'Hóa học',
     'sinh' => 'Sinh học',

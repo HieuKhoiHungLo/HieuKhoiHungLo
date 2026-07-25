@@ -122,8 +122,8 @@ include __DIR__ . '/../layouts/header.php';
                                     $subjects = [
                                         'toan' => 'Toán',
                                         'van' => 'Ngữ văn',
-                                        'tieng_anh' => 'Tiếng Anh',
-                                        'tieng_trung' => 'Tiếng Trung',
+                                        'tieng_anh' => 'Tiếng Anh (N1)',
+                                        'tieng_trung' => 'Tiếng Trung (N4)',
                                         'ly' => 'Vật lí',
                                         'hoa' => 'Hóa học',
                                         'sinh' => 'Sinh học',

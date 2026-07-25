@@ -238,11 +238,13 @@ if (!empty($combinations)) {
             <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
                 🚫 Bị loại: <span x-text="bgdStatus.bi_loai"></span> TS
             </span>
+            <?php if (!$isReadOnly): ?>
             <!-- Download report link -->
             <a href="<?= url('/admin/api/vf/download-bgd-report') ?>" 
                class="text-indigo-600 hover:text-indigo-800 underline ml-2 flex items-center gap-1 font-bold">
                 <i class="fas fa-file-download"></i> Tải báo cáo đối chiếu
             </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -569,11 +571,11 @@ if (!empty($combinations)) {
                                     <div class="flex items-center gap-2">
                                         <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div class="h-full rounded-full" 
-                                                 :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 100 ? 'bg-emerald-500' : ((ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 80 ? 'bg-indigo-500' : 'bg-amber-500')"
+                                                 :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) > 200 ? 'bg-rose-500' : 'bg-emerald-500'"
                                                  :style="'width: ' + Math.min(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0, 100) + '%'"></div>
                                         </div>
                                         <span class="text-[10px] font-black w-8 text-right" 
-                                              :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
+                                              :class="(ms.chi_tieu > 0 ? (ms.so_trung_tuyen / ms.chi_tieu) * 100 : 0) > 200 ? 'text-rose-600' : 'text-emerald-600'"
                                               x-text="ms.chi_tieu > 0 ? Math.round((ms.so_trung_tuyen / ms.chi_tieu) * 1000) / 10 + '%' : '0%'"></span>
                                     </div>
                                 </td>
@@ -582,10 +584,12 @@ if (!empty($combinations)) {
                                 <td class="bg-purple-50/10">
                                     <div class="flex items-center gap-2">
                                         <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                            <div class="h-full bg-purple-600 rounded-full" 
+                                            <div class="h-full rounded-full" 
+                                                 :class="(ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0) < 80 ? 'bg-amber-500' : ((ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0) <= 115 ? 'bg-emerald-500' : 'bg-rose-500')"
                                                  :style="'width: ' + Math.min(ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0, 100) + '%'"></div>
                                         </div>
-                                        <span class="text-[10px] font-black w-8 text-right text-purple-700" 
+                                        <span class="text-[10px] font-black w-8 text-right" 
+                                              :class="(ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0) < 80 ? 'text-amber-600' : ((ms.chi_tieu > 0 ? (ms.so_luong_do_bo / ms.chi_tieu) * 100 : 0) <= 115 ? 'text-emerald-600' : 'text-rose-600')"
                                               x-text="ms.chi_tieu > 0 ? Math.round((ms.so_luong_do_bo / ms.chi_tieu) * 1000) / 10 + '%' : '0%'"></span>
                                     </div>
                                 </td>
@@ -614,9 +618,13 @@ if (!empty($combinations)) {
                             <td>
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                        <div class="h-full bg-indigo-500 rounded-full" :style="'width: ' + Math.min(totalStatsSum().pct, 100) + '%'"></div>
+                                        <div class="h-full rounded-full" 
+                                             :class="totalStatsSum().pct > 200 ? 'bg-rose-500' : 'bg-emerald-500'"
+                                             :style="'width: ' + Math.min(totalStatsSum().pct, 100) + '%'"></div>
                                     </div>
-                                    <span class="text-[10px] font-black w-8 text-right text-indigo-600" x-text="totalStatsSum().pct + '%'"></span>
+                                    <span class="text-[10px] font-black w-8 text-right" 
+                                          :class="totalStatsSum().pct > 200 ? 'text-rose-600' : 'text-emerald-600'"
+                                          x-text="totalStatsSum().pct + '%'"></span>
                                 </div>
                             </td>
                             <!-- DỰ KIẾN SAU LỌC ẢO BỘ TOTALS -->
@@ -624,9 +632,13 @@ if (!empty($combinations)) {
                             <td class="bg-purple-50/20">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                        <div class="h-full bg-purple-600 rounded-full" :style="'width: ' + Math.min(totalStatsSum().pct_bo, 100) + '%'"></div>
+                                        <div class="h-full rounded-full" 
+                                             :class="totalStatsSum().pct_bo < 80 ? 'bg-amber-500' : (totalStatsSum().pct_bo <= 115 ? 'bg-emerald-500' : 'bg-rose-500')"
+                                             :style="'width: ' + Math.min(totalStatsSum().pct_bo, 100) + '%'"></div>
                                     </div>
-                                    <span class="text-[10px] font-black w-8 text-right text-purple-700" x-text="totalStatsSum().pct_bo + '%'"></span>
+                                    <span class="text-[10px] font-black w-8 text-right" 
+                                          :class="totalStatsSum().pct_bo < 80 ? 'text-amber-600' : (totalStatsSum().pct_bo <= 115 ? 'text-emerald-600' : 'text-rose-600')"
+                                          x-text="totalStatsSum().pct_bo + '%'"></span>
                                 </div>
                             </td>
                             <td></td>
@@ -1988,12 +2000,14 @@ if (!empty($combinations)) {
                             this.fetchBGDStatus();
                             if (this.dt) this.dt.ajax.reload(null, false);
 
-                            toast.success(`Import hoàn tất! Tải báo cáo đối chiếu sau giây lát...`);
-                            
-                            // Tự động kích hoạt download báo cáo Excel đối chiếu
-                            setTimeout(() => {
-                                window.location.href = '<?= url("/admin/api/vf/download-bgd-report") ?>';
-                            }, 1000);
+                            if (!this.isReadOnly) {
+                                toast.success(`Import hoàn tất! Tải báo cáo đối chiếu sau giây lát...`);
+                                setTimeout(() => {
+                                    window.location.href = '<?= url("/admin/api/vf/download-bgd-report") ?>';
+                                }, 1000);
+                            } else {
+                                toast.success(`Import hoàn tất!`);
+                            }
                         } else {
                             this.bgdStatus.lastMessage = '❌ Lỗi: ' + (parsed.message || 'Không rõ lỗi');
                             this.bgdStatus.lastMessageType = 'error';

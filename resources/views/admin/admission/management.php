@@ -279,7 +279,7 @@ function admissionManager() {
     return {
         selectedYear: '<?= $activeSession['nam_tuyen_sinh'] ?? '' ?>',
         selectedSession: '<?= $activeSession['id'] ?? '' ?>',
-        sessions: [],
+        sessions: <?= json_encode($initialSessions ?? []) ?>,
         data: [],
         searchQuery: '',
         selectedGroup: '',
@@ -412,10 +412,8 @@ function admissionManager() {
         },
 
         init() {
-            if (this.selectedYear) {
-                this.fetchSessions().then(() => {
-                    if (this.selectedSession) this.fetchData();
-                });
+            if (this.selectedSession) {
+                this.fetchData();
             }
         },
 

@@ -190,13 +190,18 @@ class ImportService {
                 $maTinh = $this->nullIfEmpty(trim($row[14] ?? ''));
                 $maXa = $this->nullIfEmpty(trim($row[18] ?? ''));
                 
-                // Chuẩn hóa đối tượng ưu tiên (VD: 05a, 05b, 05c -> 05; 6a -> 06; 1 -> 01)
+                // Chuẩn hóa đối tượng ưu tiên (VD: 05a, 05b, 05c -> 05; 6a -> 06; 1 -> 01, riêng 04b giữ 04b)
                 $rawDT = trim($row[6] ?? '');
                 $maDT = null;
                 if ($rawDT !== '') {
-                    $digits = preg_replace('/[^0-9]/', '', $rawDT);
-                    if ($digits !== '') {
-                        $maDT = strlen($digits) === 1 ? '0' . $digits : $digits;
+                    $sDT = strtolower($rawDT);
+                    if ($sDT === '04b' || $sDT === '4b') {
+                        $maDT = '04b';
+                    } else {
+                        $digits = preg_replace('/[^0-9]/', '', $rawDT);
+                        if ($digits !== '') {
+                            $maDT = strlen($digits) === 1 ? '0' . $digits : $digits;
+                        }
                     }
                 }
                 
@@ -261,7 +266,7 @@ class ImportService {
                 $val29 = trim($row[29] ?? '');
                 $val30 = trim($row[30] ?? '');
 
-                if (in_array(strtoupper($val30), ['N1', 'N2', 'N3', 'N4', 'N5', 'N6'])) {
+                if (in_array(strtoupper($val30), ['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7'])) {
                     // Style A: Column 29 is score, Column 30 is language code
                     $nnScore = $this->parseFloat($val29);
                     if ($val30 == 'N1') $scores['tieng_anh'] = $nnScore;
@@ -528,14 +533,16 @@ class ImportService {
                         $this->parseFloat($rowData[52] ?? ''), // Tin
                         $this->parseFloat($rowData[55] ?? ''), // Công nghệ
                         $this->parseFloat($rowData[68] ?? ''), // GDQP (QPAN)
-                        $this->parseFloat($rowData[61] ?? '')  // Ngoại ngữ
+                        in_array(strtoupper(trim($rowData[62] ?? '')), ['N1', 'N4']) ? $this->parseFloat($rowData[61] ?? '') : null,  // Ngoại ngữ (Chỉ nhận N1, N4)
+                        in_array(strtoupper(trim($rowData[75] ?? '')), ['N1', 'N4']) ? $this->parseFloat($rowData[74] ?? '') : null   // Ngoại ngữ 2 (Chỉ nhận N1, N4)
                     ],
                     'summaries' => [
                         'diem_tb_hk1' => $this->parseFloat($rowData[8] ?? ''),
                         'diem_tb_hk2' => $this->parseFloat($rowData[9] ?? ''),
                         'diem_tb_ca_nam' => $this->parseFloat($rowData[7] ?? ''),
                         'hoc_luc_ca_nam' => $this->normalizeTerm($rowData[19] ?? ''),
-                        'hanh_kiem_ca_nam' => $this->normalizeTerm($rowData[22] ?? '')
+                        'hanh_kiem_ca_nam' => $this->normalizeTerm($rowData[22] ?? ''),
+                        'ghi_chu' => "ma_nn1:" . strtoupper(trim($rowData[62] ?? '')) . ";ma_nn2:" . strtoupper(trim($rowData[75] ?? ''))
                     ]
                 ];
 
@@ -579,9 +586,9 @@ class ImportService {
                 so_cccd, lop, 
                 diem_toan_cn, diem_van_cn, diem_ly_cn, diem_hoa_cn, 
                 diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn, 
-                diem_ktpl_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_gdqp_cn, diem_ngoai_ngu_cn,
+                diem_ktpl_cn, diem_tin_hoc_cn, diem_cong_nghe_cn, diem_gdqp_cn, diem_ngoai_ngu_cn, diem_ngoai_ngu_2_cn,
                 diem_tb_hk1, diem_tb_hk2, diem_tb_ca_nam,
-                hoc_luc_ca_nam, hanh_kiem_ca_nam
+                hoc_luc_ca_nam, hanh_kiem_ca_nam, ghi_chu
             )
             SELECT 
                 elem->>'cccd',
@@ -599,11 +606,13 @@ class ImportService {
                 (elem->'scores'->>10)::numeric,
                 (elem->'scores'->>11)::numeric,
                 (elem->'scores'->>12)::numeric,
+                (elem->'scores'->>13)::numeric,
                 (elem->'summaries'->>'diem_tb_hk1')::numeric,
                 (elem->'summaries'->>'diem_tb_hk2')::numeric,
                 (elem->'summaries'->>'diem_tb_ca_nam')::numeric,
                 elem->'summaries'->>'hoc_luc_ca_nam',
-                elem->'summaries'->>'hanh_kiem_ca_nam'
+                elem->'summaries'->>'hanh_kiem_ca_nam',
+                elem->'summaries'->>'ghi_chu'
             FROM json_array_elements(?::json) AS elem
             ON CONFLICT (so_cccd, lop) DO UPDATE SET
                 diem_toan_cn = EXCLUDED.diem_toan_cn,
@@ -619,11 +628,13 @@ class ImportService {
                 diem_cong_nghe_cn = EXCLUDED.diem_cong_nghe_cn,
                 diem_gdqp_cn = EXCLUDED.diem_gdqp_cn,
                 diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
+                diem_ngoai_ngu_2_cn = EXCLUDED.diem_ngoai_ngu_2_cn,
                 diem_tb_hk1 = EXCLUDED.diem_tb_hk1,
                 diem_tb_hk2 = EXCLUDED.diem_tb_hk2,
                 diem_tb_ca_nam = EXCLUDED.diem_tb_ca_nam,
                 hoc_luc_ca_nam = EXCLUDED.hoc_luc_ca_nam,
-                hanh_kiem_ca_nam = EXCLUDED.hanh_kiem_ca_nam
+                hanh_kiem_ca_nam = EXCLUDED.hanh_kiem_ca_nam,
+                ghi_chu = EXCLUDED.ghi_chu
         ";
         $this->db->prepare($sql)->execute([$jsonParam]);
     }

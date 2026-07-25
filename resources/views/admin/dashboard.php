@@ -471,7 +471,8 @@
         </div>
     </div>
 </div> <!-- End x-data -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
     // Initialize global chart management
     window.lastStatsData = {};
@@ -534,6 +535,9 @@
                                 size: window.innerWidth < 768 ? 10 : 12
                             }
                         }
+                    },
+                    datalabels: {
+                        display: false
                     }
                 },
                 scales: {
@@ -571,6 +575,7 @@
 
         window.charts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
+            plugins: (typeof ChartDataLabels !== 'undefined') ? [ChartDataLabels] : [],
             data: {
                 labels: ['Đã duyệt', 'Chờ duyệt', 'Yêu cầu sửa'],
                 datasets: [{
@@ -590,6 +595,16 @@
                             font: {
                                 size: 10
                             }
+                        }
+                    },
+                    datalabels: {
+                        color: '#475569',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: function(value) {
+                            return value > 0 ? value : '';
                         }
                     }
                 },
@@ -615,6 +630,7 @@
 
         window.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
+            plugins: (typeof ChartDataLabels !== 'undefined') ? [ChartDataLabels] : [],
             data: {
                 labels: data.map(item => item[labelKey]),
                 datasets: [{
@@ -628,9 +644,27 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 indexAxis: isVertical ? 'x' : 'y',
+                layout: {
+                    padding: {
+                        right: isVertical ? 0 : 25,
+                        top: isVertical ? 25 : 0
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#475569',
+                        font: {
+                            weight: 'bold',
+                            size: 10
+                        },
+                        formatter: function(value) {
+                            return value > 0 ? value : '';
+                        }
                     }
                 },
                 scales: {
@@ -674,6 +708,7 @@
 
         window.charts[canvasId] = new Chart(ctx, {
             type: 'pie',
+            plugins: (typeof ChartDataLabels !== 'undefined') ? [ChartDataLabels] : [],
             data: {
                 labels: data.map(item => item.label),
                 datasets: [{
@@ -694,6 +729,16 @@
                             font: {
                                 size: 10
                             }
+                        }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: function(value) {
+                            return value > 0 ? value : '';
                         }
                     }
                 }

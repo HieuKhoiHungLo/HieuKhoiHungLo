@@ -273,12 +273,12 @@ class AptitudeScoreController extends Controller {
             for ($i = 1; $i < count($rows); $i++) {
                 $row = $rows[$i];
                 
-                $stt = isset($row['A']) ? trim((string)$row['A']) : '';
-                $cccd = isset($row['B']) ? trim((string)$row['B']) : '';
-                $hoTen = isset($row['C']) ? trim((string)$row['C']) : '';
-                $rawDob = isset($row['D']) ? trim((string)$row['D']) : '';
-                $maMon = isset($row['E']) ? trim((string)$row['E']) : '';
-                $scoreRaw = isset($row['F']) ? trim((string)$row['F']) : '';
+                 $stt = isset($row['A']) ? trim((string)$row['A']) : '';
+                 $cccd = isset($row['B']) ? trim((string)$row['B']) : '';
+                 $hoTen = isset($row['C']) ? trim((string)$row['C']) : '';
+                 $rawDob = isset($row['D']) ? trim((string)$row['D']) : '';
+                 $maMon = isset($row['E']) ? strtoupper(trim((string)$row['E'])) : '';
+                 $scoreRaw = isset($row['F']) ? trim((string)$row['F']) : '';
 
                 if (empty($cccd) && empty($hoTen) && empty($rawDob) && empty($scoreRaw)) {
                     continue;

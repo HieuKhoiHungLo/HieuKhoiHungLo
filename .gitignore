@@ -12,6 +12,7 @@ client_secret.json
 credentials.json
 token.json
 service_account.json
+opencode.json
 
 # Database scripts (one-time setup)
 /database/

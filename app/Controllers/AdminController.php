@@ -467,6 +467,36 @@ class AdminController extends Controller
         // Adjacent candidates
         $adjacent = $this->thiSinhRepo->getAdjacentCandidates($cccd, $sessionId);
 
+        // Detect foreign language note dynamically
+        $nnNote = 'Ngoại ngữ';
+        if (!empty($diemThi)) {
+            $hasAnh = isset($diemThi['tieng_anh']) && $diemThi['tieng_anh'] !== null && $diemThi['tieng_anh'] !== '';
+            $hasTrung = isset($diemThi['tieng_trung']) && $diemThi['tieng_trung'] !== null && $diemThi['tieng_trung'] !== '';
+            if ($hasAnh && !$hasTrung) {
+                $nnNote = 'Tiếng Anh - N1';
+            } elseif ($hasTrung && !$hasAnh) {
+                $nnNote = 'Tiếng Trung - N4';
+            } elseif ($hasAnh && $hasTrung) {
+                $nnNote = 'Tiếng Anh - N1 / Tiếng Trung - N4';
+            }
+        }
+        if ($nnNote === 'Ngoại ngữ' && !empty($choices)) {
+            $hasN1 = false;
+            $hasN4 = false;
+            foreach ($choices as $ch) {
+                $toHop = strtoupper($ch['ma_to_hop'] ?? '');
+                if ($toHop === 'D01') $hasN1 = true;
+                if ($toHop === 'D04') $hasN4 = true;
+            }
+            if ($hasN1 && !$hasN4) {
+                $nnNote = 'Tiếng Anh - N1';
+            } elseif ($hasN4 && !$hasN1) {
+                $nnNote = 'Tiếng Trung - N4';
+            } elseif ($hasN1 && $hasN4) {
+                $nnNote = 'Tiếng Anh - N1 / Tiếng Trung - N4';
+            }
+        }
+
         // Subject mapping (match student step 2 exactly)
         $subjects = [
             'van' => 'Ngữ văn',
@@ -479,7 +509,7 @@ class AdminController extends Controller
             'sinh' => 'Sinh học',
             'cong_nghe' => 'Công nghệ NN',
             'tin_hoc' => 'Tin học',
-            'ngoai_ngu' => 'Ngoại ngữ'
+            'ngoai_ngu' => $nnNote
         ];
 
         // Process certificates (Use existing data without adding new DB dependencies)

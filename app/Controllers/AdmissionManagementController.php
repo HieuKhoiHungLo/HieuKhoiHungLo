@@ -25,10 +25,19 @@ class AdmissionManagementController extends Controller {
         $years = $this->db->query("SELECT DISTINCT nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY nam_tuyen_sinh DESC")->fetchAll(PDO::FETCH_COLUMN);
         $activeSession = $this->sessionModel->getActiveSession() ?? $this->sessionModel->getLatestActiveSession();
         
+        $initialSessions = [];
+        $activeYear = $activeSession['nam_tuyen_sinh'] ?? null;
+        if ($activeYear) {
+            $stmt = $this->db->prepare("SELECT id, ten_dot, nam_tuyen_sinh, kich_hoat FROM dot_tuyen_sinh WHERE nam_tuyen_sinh = ? ORDER BY id DESC");
+            $stmt->execute([$activeYear]);
+            $initialSessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        
         $this->view('admin/admission/management', [
             'title' => 'Thiết lập Điểm chuẩn',
             'years' => $years,
-            'activeSession' => $activeSession
+            'activeSession' => $activeSession,
+            'initialSessions' => $initialSessions
         ]);
     }
 
