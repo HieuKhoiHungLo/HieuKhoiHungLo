@@ -288,6 +288,28 @@ class ImportService {
                 $scoresBatch[$cccd] = $scores;
                 $hoSoBatch[] = $cccd;
 
+                // Parse Grade 12 academic summary from File 1 (national exam list)
+                $gpa12 = $this->parseFloat($row[11] ?? ''); // L (index 11) is Grade 12 GPA
+                $hl12 = $this->normalizeTerm($row[9] ?? ''); // J (index 9) is Grade 12 Academic Performance
+                $hk12 = $this->normalizeTerm($row[10] ?? ''); // K (index 10) is Grade 12 Conduct
+                
+                // Only insert/update Grade 12 record if we have at least one of these values
+                if ($hl12 !== '' || $hk12 !== '' || $gpa12 !== null) {
+                    $academicBatch[] = [
+                        'cccd' => $cccd,
+                        'lop' => 12,
+                        'scores' => [null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+                        'summaries' => [
+                            'diem_tb_hk1' => null,
+                            'diem_tb_hk2' => null,
+                            'diem_tb_ca_nam' => $gpa12,
+                            'hoc_luc_ca_nam' => $hl12,
+                            'hanh_kiem_ca_nam' => $hk12,
+                            'ghi_chu' => ''
+                        ]
+                    ];
+                }
+
                 $success++;
 
                 if (count($candidateBatch) >= 5000) {
@@ -615,26 +637,29 @@ class ImportService {
                 elem->'summaries'->>'ghi_chu'
             FROM json_array_elements(?::json) AS elem
             ON CONFLICT (so_cccd, lop) DO UPDATE SET
-                diem_toan_cn = EXCLUDED.diem_toan_cn,
-                diem_van_cn = EXCLUDED.diem_van_cn,
-                diem_ly_cn = EXCLUDED.diem_ly_cn,
-                diem_hoa_cn = EXCLUDED.diem_hoa_cn,
-                diem_sinh_cn = EXCLUDED.diem_sinh_cn,
-                diem_su_cn = EXCLUDED.diem_su_cn,
-                diem_dia_cn = EXCLUDED.diem_dia_cn,
-                diem_gdcd_cn = EXCLUDED.diem_gdcd_cn,
-                diem_ktpl_cn = EXCLUDED.diem_ktpl_cn,
-                diem_tin_hoc_cn = EXCLUDED.diem_tin_hoc_cn,
-                diem_cong_nghe_cn = EXCLUDED.diem_cong_nghe_cn,
-                diem_gdqp_cn = EXCLUDED.diem_gdqp_cn,
-                diem_ngoai_ngu_cn = EXCLUDED.diem_ngoai_ngu_cn,
-                diem_ngoai_ngu_2_cn = EXCLUDED.diem_ngoai_ngu_2_cn,
-                diem_tb_hk1 = EXCLUDED.diem_tb_hk1,
-                diem_tb_hk2 = EXCLUDED.diem_tb_hk2,
-                diem_tb_ca_nam = EXCLUDED.diem_tb_ca_nam,
-                hoc_luc_ca_nam = EXCLUDED.hoc_luc_ca_nam,
-                hanh_kiem_ca_nam = EXCLUDED.hanh_kiem_ca_nam,
-                ghi_chu = EXCLUDED.ghi_chu
+                diem_toan_cn = COALESCE(EXCLUDED.diem_toan_cn, ket_qua_hoc_tap.diem_toan_cn),
+                diem_van_cn = COALESCE(EXCLUDED.diem_van_cn, ket_qua_hoc_tap.diem_van_cn),
+                diem_ly_cn = COALESCE(EXCLUDED.diem_ly_cn, ket_qua_hoc_tap.diem_ly_cn),
+                diem_hoa_cn = COALESCE(EXCLUDED.diem_hoa_cn, ket_qua_hoc_tap.diem_hoa_cn),
+                diem_sinh_cn = COALESCE(EXCLUDED.diem_sinh_cn, ket_qua_hoc_tap.diem_sinh_cn),
+                diem_su_cn = COALESCE(EXCLUDED.diem_su_cn, ket_qua_hoc_tap.diem_su_cn),
+                diem_dia_cn = COALESCE(EXCLUDED.diem_dia_cn, ket_qua_hoc_tap.diem_dia_cn),
+                diem_gdcd_cn = COALESCE(EXCLUDED.diem_gdcd_cn, ket_qua_hoc_tap.diem_gdcd_cn),
+                diem_ktpl_cn = COALESCE(EXCLUDED.diem_ktpl_cn, ket_qua_hoc_tap.diem_ktpl_cn),
+                diem_tin_hoc_cn = COALESCE(EXCLUDED.diem_tin_hoc_cn, ket_qua_hoc_tap.diem_tin_hoc_cn),
+                diem_cong_nghe_cn = COALESCE(EXCLUDED.diem_cong_nghe_cn, ket_qua_hoc_tap.diem_cong_nghe_cn),
+                diem_gdqp_cn = COALESCE(EXCLUDED.diem_gdqp_cn, ket_qua_hoc_tap.diem_gdqp_cn),
+                diem_ngoai_ngu_cn = COALESCE(EXCLUDED.diem_ngoai_ngu_cn, ket_qua_hoc_tap.diem_ngoai_ngu_cn),
+                diem_ngoai_ngu_2_cn = COALESCE(EXCLUDED.diem_ngoai_ngu_2_cn, ket_qua_hoc_tap.diem_ngoai_ngu_2_cn),
+                diem_tb_hk1 = COALESCE(EXCLUDED.diem_tb_hk1, ket_qua_hoc_tap.diem_tb_hk1),
+                diem_tb_hk2 = COALESCE(EXCLUDED.diem_tb_hk2, ket_qua_hoc_tap.diem_tb_hk2),
+                diem_tb_ca_nam = COALESCE(EXCLUDED.diem_tb_ca_nam, ket_qua_hoc_tap.diem_tb_ca_nam),
+                hoc_luc_ca_nam = COALESCE(EXCLUDED.hoc_luc_ca_nam, ket_qua_hoc_tap.hoc_luc_ca_nam),
+                hanh_kiem_ca_nam = COALESCE(EXCLUDED.hanh_kiem_ca_nam, ket_qua_hoc_tap.hanh_kiem_ca_nam),
+                ghi_chu = CASE 
+                    WHEN EXCLUDED.ghi_chu = '' OR EXCLUDED.ghi_chu IS NULL THEN ket_qua_hoc_tap.ghi_chu 
+                    ELSE EXCLUDED.ghi_chu 
+                END
         ";
         $this->db->prepare($sql)->execute([$jsonParam]);
     }
