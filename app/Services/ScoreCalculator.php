@@ -391,6 +391,21 @@ class ScoreCalculator {
                 else $hocLuc12 = 'Yếu';
             }
             
+            // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng tốt nghiệp tương ứng (ví dụ: SP: 8.0/8.5, Y: 6.5)
+            $passedByGraduationScore = false;
+            $diemXTN = null;
+            if ($nguongDiemXTN) {
+                $db = \App\Core\Database::getInstance()->getConnection();
+                $stmt = $db->prepare("SELECT diem_xet_tot_nghiep FROM diem_thi_thpt WHERE so_cccd = ? LIMIT 1");
+                $stmt->execute([$cccd]);
+                $diemXTN = $stmt->fetchColumn();
+                $diemXTN = ($diemXTN !== null && $diemXTN !== false && $diemXTN !== '') ? (float)$diemXTN : null;
+                
+                if ($diemXTN !== null && $diemXTN >= $nguongDiemXTN) {
+                    $passedByGraduationScore = true;
+                }
+            }
+
             if ($hocLuc12) {
                 $hocLucRank = [
                     'tốt' => 4, 'tot' => 4, 'giỏi' => 4, 'gioi' => 4,
@@ -406,15 +421,25 @@ class ScoreCalculator {
                 $requiredRank = $hocLucRank[$searchRequired] ?? 0;
                 $actualRank = $hocLucRank[$searchRank] ?? 0;
                 
-                if ($actualRank < $requiredRank) {
+                if ($actualRank < $requiredRank && !$passedByGraduationScore) {
                     $result['passed'] = false;
                     $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt'];
-                    $result['errors'][] = "Học lực lớp 12 phải đạt loại " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) 
+                    $err = "Học lực lớp 12 phải đạt loại " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) 
                         . " trở lên (hiện tại: " . ($labels[$hocLuc12] ?? $hocLuc12) . ")";
+                    if ($nguongDiemXTN) {
+                        $err .= " HOẶC Điểm xét tốt nghiệp THPT >= " . number_format($nguongDiemXTN, 2) . " (hiện tại: " . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ")";
+                    }
+                    $result['errors'][] = $err;
                 }
             } else {
-                $result['passed'] = false;
-                $result['errors'][] = "Chưa có thông tin Học lực lớp 12 (cần cập nhật Bước 2 - Học bạ)";
+                if (!$passedByGraduationScore) {
+                    $result['passed'] = false;
+                    $err = "Chưa có thông tin Học lực lớp 12 (cần cập nhật Bước 2 - Học bạ)";
+                    if ($nguongDiemXTN) {
+                        $err .= " HOẶC Điểm xét tốt nghiệp THPT >= " . number_format($nguongDiemXTN, 2) . " (hiện tại: " . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ")";
+                    }
+                    $result['errors'][] = $err;
+                }
             }
         }
         

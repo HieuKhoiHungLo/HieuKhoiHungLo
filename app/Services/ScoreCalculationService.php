@@ -1292,6 +1292,16 @@ class ScoreCalculationService {
                 else $hocLuc12 = 'Yeu';
             }
             
+            // Kiểm tra điều kiện OR: Điểm xét tốt nghiệp THPT >= ngưỡng tốt nghiệp tương ứng (ví dụ: SP: 8.0/8.5, Y: 6.5)
+            $passedByGraduationScore = false;
+            $diemXTN = null;
+            if ($nguongDiemXTN) {
+                $diemXTN = $this->getDiemXetTotNghiep($cccd);
+                if ($diemXTN !== null && $diemXTN >= $nguongDiemXTN) {
+                    $passedByGraduationScore = true;
+                }
+            }
+
             if ($hocLuc12) {
                 // Chuyển tất cả về chữ thường và cắt khoảng trắng để so sánh chính xác tuyệt đối
                 $hocLucRank = [
@@ -1308,14 +1318,24 @@ class ScoreCalculationService {
                 $requiredRank = $hocLucRank[$searchRequired] ?? 0;
                 $actualRank = $hocLucRank[$searchRank] ?? 0;
                 
-                if ($actualRank < $requiredRank) {
+                if ($actualRank < $requiredRank && !$passedByGraduationScore) {
                     $result['passed'] = false;
-                    $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu'];
-                    $result['errors'][] = "Học lực lớp 12 đạt " . ($labels[$hocLuc12] ?? $hocLuc12) . " (Yêu cầu: " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) . ")";
+                    $labels = ['Gioi' => 'Giỏi', 'Kha' => 'Khá', 'TrungBinh' => 'Trung bình', 'Yeu' => 'Yếu', 'Tot' => 'Tốt'];
+                    $err = "Học lực lớp 12 đạt " . ($labels[$hocLuc12] ?? $hocLuc12) . " (Yêu cầu: " . ($labels[$nguongHocLuc] ?? $nguongHocLuc) . ")";
+                    if ($nguongDiemXTN) {
+                        $err .= " HOẶC Điểm xét tốt nghiệp THPT >= " . number_format($nguongDiemXTN, 2) . " (hiện tại: " . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ")";
+                    }
+                    $result['errors'][] = $err;
                 }
             } else {
-                $result['passed'] = false;
-                $result['errors'][] = "Thiếu thông tin Học lực lớp 12";
+                if (!$passedByGraduationScore) {
+                    $result['passed'] = false;
+                    $err = "Thiếu thông tin Học lực lớp 12";
+                    if ($nguongDiemXTN) {
+                        $err .= " HOẶC Điểm xét tốt nghiệp THPT >= " . number_format($nguongDiemXTN, 2) . " (hiện tại: " . ($diemXTN !== null ? number_format($diemXTN, 2) : 'N/A') . ")";
+                    }
+                    $result['errors'][] = $err;
+                }
             }
         }
         
