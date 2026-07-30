@@ -220,6 +220,14 @@ class BackupService
         $hasFatalError = false;
         $fatalErrorMsg = '';
         foreach ($output as $line) {
+            // Skip non-fatal permission/owner issues on system schemas, extensions, or roles on Supabase/cloud DBs
+            if (stripos($line, 'schema extensions') !== false || 
+                stripos($line, 'owner of extension') !== false ||
+                stripos($line, 'must be member of role') !== false ||
+                stripos($line, 'must be superuser') !== false) {
+                continue;
+            }
+            
             if (preg_match('/(FATAL:|error:|could not connect|authentication failed|permission denied|not found|not recognized|no such file)/i', $line)) {
                 $hasFatalError = true;
                 $fatalErrorMsg = $line;
