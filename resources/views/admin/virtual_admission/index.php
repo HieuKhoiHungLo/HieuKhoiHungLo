@@ -158,6 +158,15 @@ if (!empty($combinations)) {
                     </div>
                 </a>
 
+                <a @click="exportOpen = false; exportMoetFormat()"
+                   class="flex items-center gap-3 px-4 py-2.5 text-sm text-sky-700 hover:bg-sky-50 cursor-pointer">
+                    <i class="fas fa-file-invoice text-sky-500 w-4"></i>
+                    <div>
+                        <div class="font-medium text-sky-700">Kết quả XT Bộ GD&ĐT</div>
+                        <div class="text-xs text-sky-500/70">Mẫu báo cáo gửi Bộ GD&ĐT (13 cột, đỗ/trượt)</div>
+                    </div>
+                </a>
+
                 <a @click="exportOpen = false; exportFailed()"
                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50 cursor-pointer">
                     <i class="fas fa-times-circle text-rose-500 w-4"></i>
@@ -1873,6 +1882,11 @@ if (!empty($combinations)) {
                 window.location.href = '<?= url("/admin/api/vf/export-virtual-filter") ?>?session_id=' + this.selectedSession;
             },
 
+            exportMoetFormat() {
+                if (!this.selectedSession) return;
+                window.location.href = '<?= url("/admin/api/vf/export-moet-format") ?>?session_id=' + this.selectedSession;
+            },
+
             exportFailed() {
                 if (!this.selectedSession) return;
                 window.location.href = '<?= url("/admin/api/vf/export-failed") ?>?session_id=' + this.selectedSession;
@@ -1881,6 +1895,42 @@ if (!empty($combinations)) {
             exportAcademicFail() {
                 if (!this.selectedSession) return;
                 window.location.href = '<?= url("/admin/api/vf/export-academic-fail") ?>?session_id=' + this.selectedSession;
+            },
+
+            syncNotebookLM() {
+                if (!this.selectedSession) return;
+                
+                this.isLoading = true;
+                toast.info('Đang đồng bộ dữ liệu lên NotebookLM...');
+
+                $.ajax({
+                    url: '<?= url("/admin/api/vf/sync-notebooklm") ?>',
+                    type: 'POST',
+                    data: { 
+                        session_id: this.selectedSession,
+                        _csrf_token: '<?= csrf_token() ?>'
+                    },
+                    success: (res) => {
+                        this.isLoading = false;
+                        let parsed = typeof res === 'string' ? JSON.parse(res) : res;
+                        if (parsed.success) {
+                            toast.success(parsed.message);
+                            if (parsed.file_url) {
+                                console.log("Bản sao dự phòng báo cáo lưu tại:", window.location.origin + parsed.file_url);
+                            }
+                        } else {
+                            toast.error(parsed.message);
+                        }
+                    },
+                    error: (xhr, status, error) => {
+                        this.isLoading = false;
+                        let errorMsg = 'Không thể kết nối đến máy chủ hoặc dịch vụ NotebookLM chưa hoạt động.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                        toast.error(errorMsg);
+                    }
+                });
             },
 
             // =====================================================

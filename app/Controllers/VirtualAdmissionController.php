@@ -851,13 +851,23 @@ class VirtualAdmissionController extends Controller {
             $diemUt = isset($detail['priority_raw']) ? (float)$detail['priority_raw'] : '-';
             $thresholdNote = isset($detail['threshold_note']) ? (string)$detail['threshold_note'] : '';
 
+            $upperNote = mb_strtoupper($thresholdNote, 'UTF-8');
+            
             $dkHocLuc = 'Đạt';
-            if (mb_strpos(mb_strtoupper($thresholdNote, 'UTF-8'), 'HỌC LỰC') !== false) {
+            if (mb_strpos($upperNote, 'HỌC LỰC') !== false || empty($detail['combo_code'])) {
                 $dkHocLuc = 'K.Đạt';
             }
 
             $dkNguong = 'Đạt';
-            if (mb_strpos(mb_strtoupper($thresholdNote, 'UTF-8'), 'NGƯỠNG') !== false) {
+            $trangThaiDo = isset($detail['trang_thai_do']) ? $detail['trang_thai_do'] : null;
+            if (
+                mb_strpos($upperNote, 'NGƯỠNG') !== false || 
+                mb_strpos($upperNote, 'THẤP HƠN') !== false || 
+                mb_strpos($upperNote, 'DƯỚI ĐIỂM SÀN') !== false ||
+                $trangThaiDo === false || 
+                $trangThaiDo === 0 || 
+                empty($detail['combo_code'])
+            ) {
                 $dkNguong = 'K.Đạt';
             }
 
@@ -1446,6 +1456,272 @@ class VirtualAdmissionController extends Controller {
         $filename = 'xuat_ket_qua_loc_ao_' . $sessionId . '.xls';
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, $filename);
+    }
+
+    public function exportMoetFormat() {
+        $sessionId = $_GET['session_id'] ?? null;
+        if (!$sessionId) die("Chưa chọn đợt xét tuyển.");
+
+        $sql = "SELECT ts.so_cccd, ts.ho_va_ten, ts.so_bao_danh,
+                       nv.id as nv_id, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, nv.ma_nganh, nv.ma_phuong_thuc, nv.to_hop_mon, nv.ma_truong,
+                       cs.diem_xet_tuyen, cs.to_hop_toi_uu, cs.phuong_thuc_toi_uu, cs.trang_thai_trung_tuyen, cs.bi_loai_truong_khac,
+                       m.co_xet_chung_chi, m.co_diem_nangkhieu_thpt, m.co_diem_nangkhieu_hochba,
+                       EXISTS (SELECT 1 FROM diem_chung_chi d WHERE d.so_cccd = nv.so_cccd AND d.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id) AS co_chung_chi_chuan
+                FROM thi_sinh ts
+                JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd
+                LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                LEFT JOIN dm_nganh m ON nv.ma_nganh = m.ma_nganh
+                WHERE nv.dot_tuyen_sinh_id = ? AND nv.deleted_at IS NULL
+                ORDER BY ts.so_cccd ASC, nv.thu_tu_nguyen_vong ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Group wishes by candidate CCCD
+        $candidates = [];
+        foreach ($rows as $row) {
+            $cccd = $row['so_cccd'];
+            if (!isset($candidates[$cccd])) {
+                $candidates[$cccd] = [
+                    'so_cccd' => $cccd,
+                    'ho_va_ten' => $row['ho_va_ten'],
+                    'so_bao_danh' => $row['so_bao_danh'],
+                    'wishes' => [],
+                    'admitted_wish' => null
+                ];
+            }
+            $candidates[$cccd]['wishes'][] = $row;
+            
+            // A candidate is officially admitted only if they are internally admitted AND not eliminated by MoET
+            $isAdmitted = ($row['trang_thai_trung_tuyen'] == 1 && ($row['bi_loai_truong_khac'] == 0 || $row['bi_loai_truong_khac'] === null || $row['bi_loai_truong_khac'] === false));
+            if ($isAdmitted && $candidates[$cccd]['admitted_wish'] === null) {
+                $candidates[$cccd]['admitted_wish'] = $row;
+            }
+        }
+
+        $admittedList = [];
+        $failedList = [];
+
+        foreach ($candidates as $cccd => $c) {
+            if ($c['admitted_wish'] !== null) {
+                // Admitted Candidate (Đỗ)
+                $w = $c['admitted_wish'];
+                $maTho = $w['phuong_thuc_toi_uu'] ?? $w['ma_phuong_thuc'] ?? '';
+                $ptxt = '';
+                if ($maTho) {
+                    $ptxt = \App\Helpers\AdmissionMethodHelper::resolvePhuongThuc($maTho, [
+                        'co_xet_chung_chi' => $w['co_xet_chung_chi'],
+                        'co_diem_nangkhieu_thpt' => $w['co_diem_nangkhieu_thpt'],
+                        'co_diem_nangkhieu_hochba' => $w['co_diem_nangkhieu_hochba']
+                    ], !empty($w['co_chung_chi_chuan']));
+                }
+
+                $combo = $w['to_hop_toi_uu'] ?? $w['to_hop_mon'] ?? '';
+
+                // All admitted candidates display Họ tên, Điểm xét tuyển, Thang điểm.
+                // Column M (Thông tin bổ sung) contains the original method code ($ptxt).
+                $admittedList[] = [
+                    'SBD' => $c['so_bao_danh'] ?? '',
+                    'ĐDCN' => $cccd,
+                    'Họ Tên' => $c['ho_va_ten'] ?? '',
+                    'Mã trường' => $w['ma_truong'] ?: 'THV',
+                    'Mã xét tuyển' => $w['ma_nganh'] ?? '',
+                    'Mã PTXT' => $ptxt,
+                    'Mã tổ hợp' => $combo,
+                    'Thứ tự NV' => (string)($w['thu_tu_nv_bo'] ?? $w['thu_tu_nguyen_vong'] ?? ''),
+                    'Kết quả XT' => '1',
+                    'Điểm xét tuyển' => (float)($w['diem_xet_tuyen'] ?? 0.0),
+                    'Thang điểm' => '30',
+                    'Thông tin bổ sung' => ''
+                ];
+            } else {
+                // Failed Candidate (Trượt tất cả): fill B, C, D, E, J. Empty: F, G, H, I, K, L, M.
+                $firstWish = $c['wishes'][0] ?? null;
+                $maTruong = $firstWish ? ($firstWish['ma_truong'] ?: 'THV') : 'THV';
+
+                $failedList[] = [
+                    'SBD' => $c['so_bao_danh'] ?? '',
+                    'ĐDCN' => $cccd,
+                    'Họ Tên' => $c['ho_va_ten'] ?? '',
+                    'Mã trường' => $maTruong,
+                    'Mã xét tuyển' => '',
+                    'Mã PTXT' => '',
+                    'Mã tổ hợp' => '',
+                    'Thứ tự NV' => '',
+                    'Kết quả XT' => '0',
+                    'Điểm xét tuyển' => '',
+                    'Thang điểm' => '',
+                    'Thông tin bổ sung' => ''
+                ];
+            }
+        }
+
+        // Sort Admitted List: by Mã xét tuyển (Mã ngành) ASC, then Điểm xét tuyển DESC
+        usort($admittedList, function($a, $b) {
+            $cmp = strcmp($a['Mã xét tuyển'], $b['Mã xét tuyển']);
+            if ($cmp !== 0) return $cmp;
+            $scoreA = ($a['Điểm xét tuyển'] !== '') ? (float)$a['Điểm xét tuyển'] : 0.0;
+            $scoreB = ($b['Điểm xét tuyển'] !== '') ? (float)$b['Điểm xét tuyển'] : 0.0;
+            if ($scoreA < $scoreB) return 1;
+            if ($scoreA > $scoreB) return -1;
+            return 0;
+        });
+
+        // Merge admitted first, then failed
+        $mergedList = array_merge($admittedList, $failedList);
+
+        // Build final list with STT (sequence number)
+        $finalData = [];
+        $stt = 1;
+        foreach ($mergedList as $item) {
+            $finalData[] = [
+                'STT' => (string)$stt++,
+                'SBD' => $item['SBD'],
+                'ĐDCN' => $item['ĐDCN'],
+                'Họ Tên' => $item['Họ Tên'],
+                'Mã trường' => $item['Mã trường'],
+                'Mã xét tuyển' => $item['Mã xét tuyển'],
+                'Mã PTXT' => $item['Mã PTXT'],
+                'Mã tổ hợp' => $item['Mã tổ hợp'],
+                'Thứ tự NV' => $item['Thứ tự NV'],
+                'Kết quả XT' => $item['Kết quả XT'],
+                'Điểm xét tuyển' => $item['Điểm xét tuyển'],
+                'Thang điểm' => $item['Thang điểm'],
+                'Thông tin bổ sung' => $item['Thông tin bổ sung']
+            ];
+        }
+
+        $filename = 'ket_qua_xet_tuyen_bo_gd_' . $sessionId . '.xls';
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($finalData, $filename, false);
+    }
+
+    public function syncNotebookLM() {
+        header('Content-Type: application/json');
+        $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? null;
+        if (!$sessionId) {
+            echo json_encode(['success' => false, 'message' => 'Chưa chọn đợt xét tuyển.']);
+            return;
+        }
+
+        try {
+            // Retrieve session name
+            $stmtSession = $this->db->prepare("SELECT ten_dot FROM dot_tuyen_sinh WHERE id = ?");
+            $stmtSession->execute([$sessionId]);
+            $sessionName = $stmtSession->fetchColumn() ?: "Đợt tuyển sinh #{$sessionId}";
+
+            // Check if Ministry of Education virtual filter result is imported
+            $stmtCheck = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM v_calc_summary cs 
+                JOIN nguyen_vong nv ON cs.nguyen_vong_id = nv.id 
+                WHERE nv.dot_tuyen_sinh_id = ? AND cs.ket_qua_bo_gd = 'Đỗ'
+            ");
+            $stmtCheck->execute([$sessionId]);
+            $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
+
+            $admitCond = $hasBgd 
+                ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+                : "cs.trang_thai_trung_tuyen = TRUE";
+
+            $intSessionId = (int)$sessionId;
+
+            // 1. Global Stats
+            $statsSqlA = "SELECT 
+                            COUNT(DISTINCT so_cccd) as total_candidates,
+                            COUNT(id) as total_wishes
+                         FROM public.nguyen_vong 
+                         WHERE dot_tuyen_sinh_id = $intSessionId";
+            $statsStmtA = $this->db->query($statsSqlA);
+            $statsA = $statsStmtA->fetch(\PDO::FETCH_ASSOC) ?: ['total_candidates' => 0, 'total_wishes' => 0];
+
+            $statsSqlB = "SELECT 
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as total_admitted,
+                            COUNT(CASE WHEN $admitCond THEN 1 END) as total_do_bo
+                         FROM public.nguyen_vong nv
+                         JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                         WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId";
+            $statsStmtB = $this->db->query($statsSqlB);
+            $statsB = $statsStmtB->fetch(\PDO::FETCH_ASSOC) ?: ['total_admitted' => 0, 'total_do_bo' => 0];
+
+            $stats = array_merge($statsA, $statsB);
+
+            // 2. Per-major stats
+            $doBoExpr = $hasBgd 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+
+            $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
+                                COALESCE(ab.diem_chuan, 0) as diem_chuan,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                                $doBoExpr as so_luong_do_bo,
+                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                              FROM public.dm_nganh n
+                              LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = $intSessionId
+                              LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = $intSessionId
+                              LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
+                              GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, ab.diem_chuan
+                              ORDER BY n.ma_nganh";
+            $majorStatsStmt = $this->db->query($majorStatsSql);
+            $majorStats = $majorStatsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build Markdown
+            $md = "# Báo cáo Lọc ảo Tuyển sinh - " . $sessionName . "\n";
+            $md .= "*Thời gian đồng bộ hệ thống: " . date('Y-m-d H:i:s') . "*\n\n";
+
+            $md .= "## 1. Số liệu thống kê chung\n";
+            $md .= "* **Tổng số thí sinh đăng ký xét tuyển:** " . number_format($stats['total_candidates']) . " thí sinh\n";
+            $md .= "* **Tổng số nguyện vọng đăng ký:** " . number_format($stats['total_wishes']) . " nguyện vọng\n";
+            $md .= "* **Tổng số thí sinh đủ điều kiện trúng tuyển (Nội bộ):** " . number_format($stats['total_admitted']) . " thí sinh\n";
+            $md .= "* **Tổng số thí sinh đỗ chính thức sau lọc ảo của Bộ GD&ĐT:** " . number_format($stats['total_do_bo']) . " thí sinh\n\n";
+
+            $md .= "## 2. Số liệu thống kê chi tiết theo ngành tuyển sinh\n\n";
+            $md .= "| STT | Mã ngành | Tên ngành | Chỉ tiêu | Điểm chuẩn | Đỗ nội bộ | Đỗ Bộ GD&ĐT | Điểm cao nhất | Điểm thấp nhất |\n";
+            $md .= "|---|---|---|---|---|---|---|---|---|\n";
+            $stt = 1;
+            foreach ($majorStats as $m) {
+                $highScore = $m['diem_cao_nhat'] !== null ? number_format($m['diem_cao_nhat'], 3, '.', '') : '-';
+                $lowScore = $m['diem_thap_nhat'] !== null ? number_format($m['diem_thap_nhat'], 3, '.', '') : '-';
+                $md .= sprintf(
+                    "| %d | %s | %s | %d | %s | %d | %d | %s | %s |\n",
+                    $stt++,
+                    $m['ma_nganh'],
+                    $m['ten_nganh'],
+                    $m['chi_tieu'],
+                    number_format($m['diem_chuan'], 3, '.', ''),
+                    $m['so_trung_tuyen'],
+                    $m['so_luong_do_bo'],
+                    $highScore,
+                    $lowScore
+                );
+            }
+
+            // Sync to NotebookLM
+            $service = new \App\Services\NotebookLMService();
+            $title = "Báo cáo Lọc ảo: " . $sessionName . " - " . date('d/m/Y H:i');
+            
+            // Save a local copy in both public folder and root folder for reliability
+            $localPublicPath = __DIR__ . '/../../public/Bao_cao_Loc_ao.md';
+            $localRootPath = __DIR__ . '/../../Bao_cao_Loc_ao.md';
+            file_put_contents($localPublicPath, $md);
+            file_put_contents($localRootPath, $md);
+
+            $service->addTextSource($title, $md);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Đồng bộ báo cáo lên Google NotebookLM thành công! (Đã lưu bản sao dự phòng tại thư mục public và root)',
+                'file_url' => '/TS/public/Bao_cao_Loc_ao.md'
+            ]);
+
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Lỗi đồng bộ: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function getStats() {

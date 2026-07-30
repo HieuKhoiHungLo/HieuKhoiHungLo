@@ -269,6 +269,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/results/sync-virtual', 'AdmissionController@syncFromVirtualFilter');
     $router->get('/admin/admission/results/get-template', 'AdmissionController@getTemplate');
     $router->post('/admin/admission/results/save-template', 'AdmissionController@saveTemplate');
+    $router->get('/admin/admission/results/download-sample', 'AdmissionController@downloadSampleExcel');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 
@@ -293,7 +294,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/api/vf/export-failed',       'VirtualAdmissionController@exportFailed');
     $router->get('/admin/api/vf/export-academic-fail','VirtualAdmissionController@exportAcademicFail');
     $router->get('/admin/api/vf/export-virtual-filter', 'VirtualAdmissionController@exportVirtualFilterAdmitted');
+    $router->get('/admin/api/vf/export-moet-format',    'VirtualAdmissionController@exportMoetFormat');
     $router->get('/admin/api/vf/stats', 'VirtualAdmissionController@getStats');
+    $router->post('/admin/api/vf/sync-notebooklm',      'VirtualAdmissionController@syncNotebookLM');
     $router->get('/admin/api/vf/session-type', 'VirtualAdmissionController@getSessionType');
     $router->post('/admin/api/vf/run', 'VirtualFilterController@runFiltering');
     $router->get('/admin/api/vf/batch-load', 'VirtualFilterController@loadBatchData');

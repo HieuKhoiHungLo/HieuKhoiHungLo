@@ -75,6 +75,12 @@ class AdmissionResultService {
                 'sodienthoai' => 'sdt',
                 'ghichu' => 'ghichu',
                 'phuongthuc' => 'phuongthuc',
+                // Các cột phục vụ in Giấy báo nhập học
+                'sogiaybao' => 'sogiaybao',
+                'thoigiannhap' => 'thoigiannhap',
+                'kinhphi' => 'kinhphi',
+                'khoahoc' => 'khoahoc',
+                'linkanh' => 'linkanh',
             ];
             if (isset($fieldMap[$h])) $colMap[$fieldMap[$h]] = $col;
         }
@@ -141,20 +147,27 @@ class AdmissionResultService {
                 $email,
                 trim(isset($colMap['sdt']) ? ($rowData[$colMap['sdt']] ?? '') : ''),
                 trim(isset($colMap['ghichu']) ? ($rowData[$colMap['ghichu']] ?? '') : ''),
+                // Các cột in giấy báo nhập học
+                trim(isset($colMap['sogiaybao']) ? ($rowData[$colMap['sogiaybao']] ?? '') : ''),
+                trim(isset($colMap['thoigiannhap']) ? ($rowData[$colMap['thoigiannhap']] ?? '') : ''),
+                trim(isset($colMap['kinhphi']) ? ($rowData[$colMap['kinhphi']] ?? '') : ''),
+                trim(isset($colMap['khoahoc']) ? ($rowData[$colMap['khoahoc']] ?? '') : ''),
+                trim(isset($colMap['linkanh']) ? ($rowData[$colMap['linkanh']] ?? '') : ''),
             ];
         }
 
         // ── 5. BATCH INSERT — mỗi lần 500 dòng ──────────────────────────────────
         $imported   = 0;
         $batchSize  = 500;
-        $colCount   = 25;
+        $colCount   = 30;
 
         $baseSql = "INSERT INTO ket_qua_trung_tuyen (
             session_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
             diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
             diem_xt, ma_nganh, ten_nganh, phuong_thuc,
             so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
-            email, sdt, ghi_chu
+            email, sdt, ghi_chu,
+            so_giay_bao, thoi_gian_nhap, kinh_phi, khoa_hoc, link_anh
         ) VALUES ";
 
         $chunks = array_chunk($rows, $batchSize);

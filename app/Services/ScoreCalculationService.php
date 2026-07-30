@@ -1501,13 +1501,16 @@ class ScoreCalculationService {
             }
         }
 
-        // A. Kiểm tra điều kiện tốt nghiệp (Nếu đạt thì được miễn điều kiện thi 3 môn)
+        // A. Kiểm tra điều kiện tốt nghiệp (Nếu đạt thì được giảm ngưỡng điểm sàn THPT cần đạt xuống sàn tối thiểu 15.00 điểm)
+        $passedGraduationScoreExemption = false;
         if ($requiredXTN !== null) {
             $diemXTN = $this->getDiemXetTotNghiep($cccd);
             if ($diemXTN !== null && $diemXTN >= $requiredXTN) {
-                return true;
+                $passedGraduationScoreExemption = true;
             }
         }
+
+        $activeRequiredThpt = $passedGraduationScoreExemption ? 15.00 : $requiredThpt;
 
         if (count($scores) < 3) {
             $errorMessage = "Thiếu thông tin điểm thi (yêu cầu tối thiểu 3 môn)";
@@ -1528,7 +1531,7 @@ class ScoreCalculationService {
                     }
                 }
             }
-            if ($maxOther >= 0 && ($toanVal + $vanVal + $maxOther) >= $requiredThpt) {
+            if ($maxOther >= 0 && ($toanVal + $vanVal + $maxOther) >= $activeRequiredThpt) {
                 $passedToanVan = true;
             }
         }
@@ -1589,14 +1592,14 @@ class ScoreCalculationService {
             if ($m1_code && $m2_code && $m3_code) {
                 if (isset($scoresByCode[$m1_code]) && isset($scoresByCode[$m2_code]) && isset($scoresByCode[$m3_code])) {
                     $sum = $scoresByCode[$m1_code] + $scoresByCode[$m2_code] + $scoresByCode[$m3_code];
-                    if ($sum >= $requiredThpt) {
+                    if ($sum >= $activeRequiredThpt) {
                         return true;
                     }
                 }
             }
         }
 
-        $errorMessage = "Tổng điểm 3 môn thi tốt nghiệp THPT theo tổ hợp xét tuyển dưới " . number_format($requiredThpt, 2);
+        $errorMessage = "Tổng điểm 3 môn thi tốt nghiệp THPT theo tổ hợp xét tuyển dưới " . number_format($activeRequiredThpt, 2);
         if ($requiredXTN !== null) {
             $errorMessage .= " và điểm xét tốt nghiệp dưới " . number_format($requiredXTN, 2);
         }

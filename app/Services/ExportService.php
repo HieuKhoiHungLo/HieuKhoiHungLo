@@ -930,7 +930,7 @@ class ExportService {
         return $data;
     }
 
-    public function toExcel($data, $filename) {
+    public function toExcel($data, $filename, $forceText = false) {
         // Ensure .xls extension for simple browser handling
         $filename = str_replace(['.csv', '.xlsx', '.xls'], '', $filename) . '.xls';
 
@@ -993,7 +993,7 @@ class ExportService {
                         }
                     }
 
-                    if ($trimmedStr !== '' && is_numeric($trimmedStr) && strpos($trimmedStr, ',') === false && !$isTextCol && !in_array($key, [
+                    if (!$forceText && $trimmedStr !== '' && is_numeric($trimmedStr) && strpos($trimmedStr, ',') === false && !$isTextCol && !in_array($key, [
                         'Số CCCD', 'Số ĐDCN', 'CCCD', 'Số_ĐDCN', 'Điện thoại', 'Đối tượng', 'Đối tượng ƯT', 'Khu vực ƯT',
                         'stt', 'ddcn', 'dtu', 'kvu', 'nam_tn_thpt', 
                         'ma_tinh_tt', 'ma_huyen_tt', 'ma_xa_tt', 'ma_tinh_lop12', 'ma_truong_lop12',
@@ -1005,7 +1005,8 @@ class ExportService {
                         'Mã Trường', 'Mã trường', 'Mã Tỉnh', 'Mã tỉnh', 
                         'Mã Huyện', 'Mã huyện', 'Mã Xã', 'Mã xã',
                         'Mã Huyện/Quận', 'Mã Xã/Phường', 'Mã Tỉnh/Thành', 'Mã Tỉnh/Thành phố',
-                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực', 'CMND', 'SBD', 'Sbd', 'so_bao_danh'
+                        'Ngành', 'NV', 'KV', 'DOITUONG', 'SDT', 'MANGANH', 'Khu vực', 'CMND', 'SBD', 'Sbd', 'so_bao_danh',
+                        'Kết quả XT', 'Kết_quả_XT', 'Kết quả'
                     ])) {
                         $type = 'Number';
                         $style = 'sNum';

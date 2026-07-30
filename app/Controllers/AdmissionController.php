@@ -912,4 +912,143 @@ class AdmissionController extends Controller {
             exit;
         }
     }
+
+    /**
+     * Tải xuống file Excel mẫu để nhập kết quả trúng tuyển
+     * Bao gồm đầy đủ các cột cần thiết để in Giấy báo nhập học
+     */
+    public function downloadSampleExcel() {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('DS_Trung_Tuyen_Mau');
+
+        // Định nghĩa các cột tiêu đề (đúng với fieldMap trong AdmissionResultService)
+        $headers = [
+            'A' => ['header' => 'CCCD',         'note' => 'Bắt buộc. Số CCCD/CMND của thí sinh'],
+            'B' => ['header' => 'HoTen',         'note' => 'Họ và tên đầy đủ'],
+            'C' => ['header' => 'NgaySinh',      'note' => 'Ngày sinh, ví dụ: 01/01/2006'],
+            'D' => ['header' => 'SBD',           'note' => 'Số báo danh thi THPT'],
+            'E' => ['header' => 'KV',            'note' => 'Khu vực ưu tiên: KV1, KV2, KV2-NT, KV3'],
+            'F' => ['header' => 'DoiTuong',      'note' => 'Đối tượng ưu tiên: 01..08 hoặc để trống'],
+            'G' => ['header' => 'ToHop',         'note' => 'Tổ hợp môn: A00, A01, D01...'],
+            'H' => ['header' => 'DM1',           'note' => 'Điểm môn 1'],
+            'I' => ['header' => 'DM2',           'note' => 'Điểm môn 2'],
+            'J' => ['header' => 'DM3',           'note' => 'Điểm môn 3'],
+            'K' => ['header' => 'DiemToHop',     'note' => 'Tổng điểm 3 môn'],
+            'L' => ['header' => 'DiemUT',        'note' => 'Điểm ưu tiên gốc'],
+            'M' => ['header' => 'UTQ',           'note' => 'Điểm ưu tiên quy đổi'],
+            'N' => ['header' => 'DiemXT',        'note' => 'Điểm xét tuyển cuối cùng'],
+            'O' => ['header' => 'MaNganh',       'note' => 'Mã ngành theo danh mục Bộ GD&ĐT, VD: 7480201'],
+            'P' => ['header' => 'Nganh',         'note' => 'Tên ngành đào tạo'],
+            'Q' => ['header' => 'PhuongThuc',    'note' => 'Phương thức xét tuyển: TS01, TS02...'],
+            'R' => ['header' => 'SOTK',          'note' => 'Số tài khoản ngân hàng nhận học phí'],
+            'S' => ['header' => 'NGANHANG',      'note' => 'Tên ngân hàng, ví dụ: Vietcombank'],
+            'T' => ['header' => 'SOTIEN',        'note' => 'Số tiền học phí (đồng), ví dụ: 5000000'],
+            'U' => ['header' => 'NOIDUNG',       'note' => 'Nội dung chuyển khoản học phí'],
+            'V' => ['header' => 'SOGIAYBAO',     'note' => 'Số giấy báo nhập học (để in giấy báo)'],
+            'W' => ['header' => 'THOIGIANNHAP',  'note' => 'Thời gian nhập học, ví dụ: 05/09/2026'],
+            'X' => ['header' => 'KINHPHI',       'note' => 'Thông tin kinh phí bổ sung (để in giấy báo)'],
+            'Y' => ['header' => 'KHOAHOC',       'note' => 'Khóa học, ví dụ: Khóa 2026-2030'],
+            'Z' => ['header' => 'LINKANH',       'note' => 'Link ảnh chân dung thí sinh (URL)'],
+            'AA'=> ['header' => 'Email',         'note' => 'Bắt buộc. Email gửi Giấy báo trúng tuyển'],
+            'AB'=> ['header' => 'SDT',           'note' => 'Số điện thoại liên lạc'],
+            'AC'=> ['header' => 'GhiChu',        'note' => 'Ghi chú thêm (xếp hạng, ghi chú đặc biệt...)'],
+        ];
+
+        // Dữ liệu mẫu 1 dòng
+        $sampleRow = [
+            'A' => '012345678912',
+            'B' => 'Nguyễn Văn An',
+            'C' => '01/01/2006',
+            'D' => '24B123456',
+            'E' => 'KV1',
+            'F' => '01',
+            'G' => 'A00',
+            'H' => 8.5,
+            'I' => 9.0,
+            'J' => 8.75,
+            'K' => 26.25,
+            'L' => 2.0,
+            'M' => 1.5,
+            'N' => 27.75,
+            'O' => '7480201',
+            'P' => 'Công nghệ thông tin',
+            'Q' => 'TS01',
+            'R' => '1903123456789',
+            'S' => 'Vietcombank',
+            'T' => 5000000,
+            'U' => 'Nguyen Van An nop hoc phi K2026',
+            'V' => 'GB-2026-001',
+            'W' => '05/09/2026',
+            'X' => '5.000.000đ/năm',
+            'Y' => 'Khóa 2026-2030',
+            'Z' => 'https://example.com/anh/012345678912.jpg',
+            'AA'=> 'nguyenvanan@email.com',
+            'AB'=> '0987654321',
+            'AC'=> 'Thứ hạng 5/120 toàn ngành',
+        ];
+
+        // Style cho header row
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1e3a5f']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'wrapText' => true],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'AAAAAA']]],
+        ];
+        $noteStyle = [
+            'font' => ['italic' => true, 'color' => ['rgb' => '555555'], 'size' => 9],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F0F4F8']],
+            'alignment' => ['wrapText' => true],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'DDDDDD']]],
+        ];
+        $dataStyle = [
+            'font' => ['size' => 10],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
+        ];
+
+        // Hàng 1: tiêu đề cột
+        foreach ($headers as $col => $info) {
+            $cell = $col . '1';
+            $sheet->setCellValue($cell, $info['header']);
+            $sheet->getStyle($cell)->applyFromArray($headerStyle);
+            $sheet->getColumnDimension($col)->setWidth(18);
+        }
+        $sheet->getRowDimension(1)->setRowHeight(22);
+
+        // Hàng 2: ghi chú mô tả từng cột
+        foreach ($headers as $col => $info) {
+            $cell = $col . '2';
+            $sheet->setCellValue($cell, $info['note']);
+            $sheet->getStyle($cell)->applyFromArray($noteStyle);
+        }
+        $sheet->getRowDimension(2)->setRowHeight(32);
+
+        // Hàng 3: dữ liệu mẫu
+        foreach ($sampleRow as $col => $val) {
+            $cell = $col . '3';
+            $sheet->setCellValue($cell, $val);
+            $sheet->getStyle($cell)->applyFromArray($dataStyle);
+        }
+        $sheet->getRowDimension(3)->setRowHeight(18);
+
+        // Freeze pane tại hàng 3 (cố định 2 hàng tiêu đề)
+        $sheet->freezePane('A3');
+
+        // Đánh dấu 2 cột bắt buộc bằng màu nền vàng trên hàng 1
+        foreach (['A', 'AA'] as $reqCol) {
+            $sheet->getStyle($reqCol . '1')->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('c0392b');
+        }
+
+        // Output
+        $filename = 'File_Mau_Nhap_KQ_Trung_Tuyen_' . date('Ymd') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
 }

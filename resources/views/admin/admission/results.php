@@ -116,16 +116,11 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 </button>
             </form>
 
-            <!-- 3. Upload Results Excel Form Button -->
-            <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" class="flex items-center gap-2" id="importForm">
-                <?= csrf_field() ?>
-                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <label class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
-                    <i class="fas fa-file-import"></i>
-                    <span>Upload Kết Quả (Excel)</span>
-                    <input type="file" name="excel_file" class="hidden" accept=".xls,.xlsx" onchange="document.getElementById('importForm').submit();">
-                </label>
-            </form>
+            <!-- 3. Upload Results Excel Button -> Opens Modal -->
+            <button type="button" onclick="openUploadExcelModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-file-import"></i>
+                <span>Upload Kết Quả (Excel)</span>
+            </button>
 
             <!-- 4. Nút Công bố / Hủy công bố -->
             <form action="<?= url('/admin/admission/results/toggle-publish') ?>" method="POST" class="flex items-center">
@@ -1096,6 +1091,41 @@ function saveTemplate() {
     })
     .catch(err => alert('Lỗi kết nối: ' + err.message));
 }
+
+function openUploadExcelModal() {
+    const modal = document.getElementById('upload-excel-modal');
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+    modal.classList.remove('hidden');
+}
+
+function handleFileSelect(input) {
+    const btn = document.getElementById('btnSubmitImport');
+    const statusText = document.getElementById('upload-status-text');
+    const fileInfo = document.getElementById('upload-file-info');
+    
+    if (input.files && input.files.length > 0) {
+        const file = input.files[0];
+        statusText.innerText = "Đã chọn file Excel:";
+        statusText.classList.add('text-blue-600');
+        fileInfo.innerText = file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
+        btn.disabled = false;
+    } else {
+        statusText.innerText = "Kéo thả hoặc click để chọn file Excel";
+        statusText.classList.remove('text-blue-600');
+        fileInfo.innerText = "Chấp nhận định dạng .xlsx, .xls";
+        btn.disabled = true;
+    }
+}
+
+function submitModalImport() {
+    const form = document.getElementById('modalImportForm');
+    const btn = document.getElementById('btnSubmitImport');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải lên...';
+    btn.disabled = true;
+    form.submit();
+}
 </script>
 
 <!-- Template Editor Modal -->
@@ -1157,6 +1187,87 @@ function saveTemplate() {
     </div>
 </div>
 
+<!-- Upload Excel Modal -->
+<div id="upload-excel-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('upload-excel-modal')"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-10 animate-fade-in-up">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-file-excel text-green-600"></i> Nhập Kết Quả Xét Tuyển (Excel)
+            </h3>
+            <button type="button" onclick="closeModal('upload-excel-modal')" class="text-slate-400 hover:text-slate-600 transition-colors bg-white rounded-full p-1.5 shadow-sm hover:shadow">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6">
+            <!-- Download sample template section -->
+            <div class="mb-6 p-4 bg-emerald-50/80 border border-emerald-100 rounded-xl flex items-start gap-3">
+                <div class="p-2 bg-emerald-500 text-white rounded-lg mt-0.5">
+                    <i class="fas fa-download text-sm"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-emerald-800 mb-0.5">File Excel Mẫu Chuẩn</h4>
+                    <p class="text-xs text-emerald-600/90 leading-relaxed mb-2.5">
+                        Tải xuống file Excel mẫu chuẩn được thiết lập sẵn các cột bắt buộc và các cột bổ sung dùng để in giấy báo nhập học.
+                    </p>
+                    <a href="<?= url('/admin/admission/results/download-sample') ?>" 
+                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm hover:shadow transition-colors">
+                        <i class="fas fa-file-download"></i>
+                        Tải File Excel Mẫu
+                    </a>
+                </div>
+            </div>
+
+            <!-- List of columns instruction -->
+            <div class="mb-6">
+                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Các trường thông tin hỗ trợ</h5>
+                <div class="bg-slate-50 border border-slate-200/60 rounded-xl p-3 max-h-[140px] overflow-y-auto custom-scrollbar text-xs space-y-1.5">
+                    <p class="text-slate-600"><span class="font-bold text-red-600">* CCCD, Email:</span> Trường dữ liệu bắt buộc để liên kết hồ sơ và gửi thông báo.</p>
+                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin cá nhân:</span> HoTen, NgaySinh, SBD, KV, DoiTuong, SDT, GhiChu.</p>
+                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin điểm & nguyện vọng:</span> ToHop, DM1, DM2, DM3, DiemToHop, DiemUT, UTQ, DiemXT, MaNganh, Nganh, PhuongThuc.</p>
+                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin học phí (VietQR):</span> SOTK, NGANHANG, SOTIEN, NOIDUNG.</p>
+                    <p class="text-slate-600"><span class="font-bold text-indigo-700">Thông tin Giấy báo nhập học:</span> SOGIAYBAO, THOIGIANNHAP, KINHPHI, KHOAhoc, Linkanh.</p>
+                </div>
+            </div>
+
+            <!-- Upload form -->
+            <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" id="modalImportForm">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                
+                <div class="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer transition-all hover:bg-blue-50/10 group relative"
+                     onclick="document.getElementById('modal-excel-file').click();">
+                    <input type="file" name="excel_file" id="modal-excel-file" class="hidden" accept=".xls,.xlsx" 
+                           onchange="handleFileSelect(this)">
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-cloud-upload-alt text-xl"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-700 mb-1" id="upload-status-text">Kéo thả hoặc click để chọn file Excel</p>
+                        <p class="text-xs text-slate-400" id="upload-file-info">Chấp nhận định dạng .xlsx, .xls</p>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 rounded-b-2xl">
+            <button type="button" onclick="closeModal('upload-excel-modal')" class="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-sm">
+                Đóng
+            </button>
+            <button type="button" onclick="submitModalImport()" id="btnSubmitImport" disabled class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none rounded-xl shadow-sm shadow-blue-600/20 transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-file-import"></i>
+                <span>Tải lên dữ liệu</span>
+            </button>
+        </div>
+    </div>
+</div>
 
 <style>
 .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
