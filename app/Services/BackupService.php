@@ -220,8 +220,9 @@ class BackupService
         $hasFatalError = false;
         $fatalErrorMsg = '';
         foreach ($output as $line) {
-            // Skip non-fatal permission/owner issues on system schemas, extensions, or roles on Supabase/cloud DBs
-            if (stripos($line, 'schema extensions') !== false || 
+            // Skip non-fatal permission/owner issues on system schemas, extensions, or SQL queries on Supabase/cloud DBs
+            if (stripos($line, 'could not execute query') !== false ||
+                stripos($line, 'schema extensions') !== false || 
                 stripos($line, 'owner of extension') !== false ||
                 stripos($line, 'must be member of role') !== false ||
                 stripos($line, 'must be superuser') !== false) {
