@@ -568,6 +568,30 @@ class CertificateScoreController extends Controller {
                     return;
                 }
             }
+
+            // 3. Xóa tất cả bản ghi thuộc đợt tuyển sinh đang được chọn
+            $deleteAll = $_POST['delete_all'] ?? false;
+            if ($deleteAll) {
+                $sessionId = $_POST['session_id'] ?? $_SESSION['admin_selected_session_id'] ?? null;
+                if (!$sessionId) {
+                    $sessionModel = new \App\Models\AdmissionSession();
+                    $activeSession = $sessionModel->getActiveSession() ?? $sessionModel->getLatestSession();
+                    $sessionId = $activeSession ? $activeSession['id'] : null;
+                }
+                
+                if ($sessionId) {
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id = ?");
+                    $success = $stmt->execute([$sessionId]);
+                } else {
+                    $stmt = $this->model->getDb()->prepare("DELETE FROM diem_chung_chi WHERE dot_tuyen_sinh_id IS NULL");
+                    $success = $stmt->execute([]);
+                }
+                
+                if ($success) {
+                    $this->json(['success' => true]);
+                    return;
+                }
+            }
         }
         $this->json(['success' => false]);
     }
