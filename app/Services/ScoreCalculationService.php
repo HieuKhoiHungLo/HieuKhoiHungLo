@@ -483,7 +483,7 @@ class ScoreCalculationService {
         }
 
         // Load Priority Areas/Objects (Quy chế: ưu tiên KV áp dụng cho năm TN < 2023 hoặc năm TN + 1)
-        $stmtThiSinh = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
+        $stmtThiSinh = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, ts.is_dac_cach, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
         $stmtThiSinh->execute($cccds);
         $this->loadPriorityCaches();
         
@@ -711,7 +711,7 @@ class ScoreCalculationService {
         }
 
         // 7. Bulk load Priority (Quy chế: ưu tiên KV áp dụng cho năm TN < 2023 hoặc năm TN + 1)
-        $stmt = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
+        $stmt = $this->db->prepare("SELECT ts.so_cccd, ts.khu_vuc_uu_tien, ts.doi_tuong_uu_tien, ts.nam_tot_nghiep, ts.ma_tinh_lop_12, ts.ma_truong_lop_12, ts.is_dac_cach, t.khu_vuc as kv_truong FROM thi_sinh ts LEFT JOIN dm_truong_thpt t ON ts.ma_truong_lop_12 = t.ma_truong WHERE ts.so_cccd IN ($placeholders)");
         $stmt->execute($candidates);
         $this->loadPriorityCaches();
         
@@ -1443,6 +1443,21 @@ class ScoreCalculationService {
      *   + Các ngành khác: Sàn THPT từ 15.00 điểm.
      */
     protected function checkThptExamSourceThreshold($cccd, $majorDetails = null, $bestMethod = null, &$errorMessage = '') {
+        $isDacCach = false;
+        if ($this->bulkData && isset($this->bulkData['candidates_profile'][$cccd])) {
+            $isDacCach = !empty($this->bulkData['candidates_profile'][$cccd]['is_dac_cach']);
+        } else {
+            try {
+                $stmt = $this->db->prepare("SELECT is_dac_cach FROM thi_sinh WHERE so_cccd = ?");
+                $stmt->execute([$cccd]);
+                $isDacCach = (bool)$stmt->fetchColumn();
+            } catch (\Exception $e) {}
+        }
+
+        if ($isDacCach) {
+            return true;
+        }
+
         $record = null;
         if ($this->bulkData) {
             $record = $this->bulkData['thpt'][$cccd] ?? null;
