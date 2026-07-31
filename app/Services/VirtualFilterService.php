@@ -222,7 +222,7 @@ class VirtualFilterService {
                 UPDATE nguyen_vong
                 SET dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
                 FROM ho_so_xet_tuyen hs
-                WHERE nguyen_vong.so_cccd = hs.so_cccd
+                WHERE nguyen_vong.ho_so_id = hs.id
                 AND hs.dot_tuyen_sinh_id = ?
                 AND (nguyen_vong.dot_tuyen_sinh_id IS NULL OR nguyen_vong.dot_tuyen_sinh_id <> hs.dot_tuyen_sinh_id)
             ";
@@ -242,7 +242,7 @@ class VirtualFilterService {
                 SET trang_thai = 'DaDuyet'
                 FROM ho_so_xet_tuyen hs
                 WHERE nv.dot_tuyen_sinh_id = ?
-                AND nv.so_cccd = hs.so_cccd 
+                AND nv.ho_so_id = hs.id 
                 AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
                 AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 AND (nv.trang_thai IS NULL OR nv.trang_thai <> 'DaDuyet')
@@ -257,7 +257,7 @@ class VirtualFilterService {
                 AND (trang_thai IS NULL OR trang_thai <> 'ChoDuyet')
                 AND NOT EXISTS (
                     SELECT 1 FROM ho_so_xet_tuyen hs 
-                    WHERE hs.so_cccd = nv.so_cccd AND hs.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
+                    WHERE hs.id = nv.ho_so_id AND hs.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
                     AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 )
             ";
