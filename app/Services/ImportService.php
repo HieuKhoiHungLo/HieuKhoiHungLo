@@ -212,6 +212,17 @@ class ImportService {
                 if ($maDT && !isset($validObjects[$maDT])) $maDT = null;
                 if ($maKV && !isset($validAreas[$maKV])) $maKV = null;
 
+                $isDacCach = 0;
+                $val50 = trim($row[50] ?? '');
+                $val55 = trim($row[55] ?? '');
+                
+                if ($val50 !== '' && (strtoupper($val50) === 'X' || mb_strtolower($val50, 'UTF-8') === 'đặc cách' || $val50 == 1)) {
+                    $isDacCach = 1;
+                }
+                if ($val55 !== '' && (strtoupper($val55) === 'X' || mb_strtolower($val55, 'UTF-8') === 'đặc cách' || mb_strtolower($val55, 'UTF-8') === 'miễn thi tn' || $val55 == 1)) {
+                    $isDacCach = 1;
+                }
+
                 $profileData = [
                     'so_cccd' => $cccd,
                     'so_bao_danh' => $sbd,
@@ -226,7 +237,7 @@ class ImportService {
                     'ma_tinh_ho_khau' => $maTinh,
                     'ma_huyen_ho_khau' => $this->nullIfEmpty(trim($row[16] ?? '')),
                     'ma_xa_ho_khau' => $maXa,
-                    'is_dac_cach' => (!empty($row[55]) && (strtoupper(trim($row[55])) === 'X' || mb_strtolower(trim($row[55]), 'UTF-8') === 'đặc cách' || mb_strtolower(trim($row[55]), 'UTF-8') === 'miễn thi tn' || $row[55] == 1)) ? 1 : 0,
+                    'is_dac_cach' => $isDacCach,
                 ];
 
                 $maTinhLop12 = $this->nullIfEmpty(trim($row[18] ?? ''));
