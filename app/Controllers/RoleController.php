@@ -58,6 +58,46 @@ class RoleController extends Controller
     }
 
     /**
+     * Create new role
+     */
+    public function store()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(url('/admin/roles'));
+        }
+
+        if (!$this->permissionService->can('role.edit')) {
+            die('Không có quyền tạo vai trò.');
+        }
+
+        $displayName = trim($_POST['display_name'] ?? '');
+        $name = trim($_POST['name'] ?? '');
+        $permissions = $_POST['permissions'] ?? [];
+
+        if (empty($displayName)) {
+            $this->redirect(url('/admin/roles?error=' . urlencode('Tên hiển thị không được để trống')));
+        }
+
+        if (empty($name)) {
+            // Auto generate slug/key name
+            $name = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '_', $displayName));
+        }
+        $name = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '_', $name));
+
+        if ($this->permissionService->createRole($name, $displayName, $permissions)) {
+            $this->auditService->log('CREATE_ROLE', 'roles', null, null, [
+                'name' => $name,
+                'display_name' => $displayName,
+                'permissions' => $permissions
+            ]);
+
+            $this->redirect(url('/admin/roles?msg=created'));
+        } else {
+            $this->redirect(url('/admin/roles?error=' . urlencode('Lỗi tạo vai trò mới (có thể Mã vai trò đã tồn tại)')));
+        }
+    }
+
+    /**
      * Update role data
      */
     public function update()
@@ -82,8 +122,8 @@ class RoleController extends Controller
         if ($this->permissionService->updateRole($id, $displayName, $permissions)) {
             // Log action
             $this->auditService->log('UPDATE_ROLE', 'roles', $id, [
-                'display_name' => $oldRole['display_name'],
-                'permissions' => json_decode($oldRole['permissions'], true)
+                'display_name' => $oldRole['display_name'] ?? '',
+                'permissions' => isset($oldRole['permissions']) ? json_decode($oldRole['permissions'], true) : []
             ], [
                 'display_name' => $displayName,
                 'permissions' => $permissions
@@ -92,6 +132,33 @@ class RoleController extends Controller
             $this->redirect(url('/admin/roles?msg=updated'));
         } else {
             $this->redirect(url('/admin/roles/edit?id=' . $id . '&error=' . urlencode('Lỗi cập nhật vai trò')));
+        }
+    }
+
+    /**
+     * Delete role
+     */
+    public function delete()
+    {
+        if (!$this->permissionService->can('role.edit')) {
+            die('Không có quyền xóa vai trò.');
+        }
+
+        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        if (!$id || $id == 1) {
+            $this->redirect(url('/admin/roles?error=' . urlencode('Không thể xóa vai trò mặc định')));
+        }
+
+        $oldRole = $this->permissionService->getRole($id);
+        if ($oldRole && $this->permissionService->deleteRole($id)) {
+            $this->auditService->log('DELETE_ROLE', 'roles', $id, [
+                'display_name' => $oldRole['display_name'],
+                'name' => $oldRole['name']
+            ], null);
+
+            $this->redirect(url('/admin/roles?msg=deleted'));
+        } else {
+            $this->redirect(url('/admin/roles?error=' . urlencode('Lỗi không thể xóa vai trò')));
         }
     }
 }

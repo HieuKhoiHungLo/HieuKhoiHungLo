@@ -30,11 +30,15 @@
 
         <form method="POST" action="<?= url('/login') ?>">
             <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
+            <?php if (!empty($_REQUEST['redirect'])): ?>
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($_REQUEST['redirect']) ?>">
+            <?php endif; ?>
             <div class="mb-5">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-id-card text-hvu-red mr-2"></i> Số CCCD/CMND
                 </label>
-                <input type="text" name="cccd" value="<?= htmlspecialchars($old['cccd'] ?? '') ?>" required class="hvu-input" placeholder="Nhập số CCCD của bạn">
+                <input type="text" name="cccd" value="<?= htmlspecialchars($old['cccd'] ?? ($_SESSION['prefill_cccd'] ?? ($_GET['cccd'] ?? ''))) ?>" required class="hvu-input" placeholder="Nhập số CCCD của bạn">
+                <?php unset($_SESSION['prefill_cccd']); ?>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">

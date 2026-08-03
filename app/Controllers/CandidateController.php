@@ -2037,11 +2037,10 @@ class CandidateController extends Controller
                 $reader->setReadDataOnly(true);
                 $spreadsheet = $reader->load($filePath);
                 $sheet = $spreadsheet->getActiveSheet();
-                $rows = array_values($sheet->toArray(null, true, true, true));
-                array_shift($rows);
-            } else {
-                array_shift($rows);
+                $rows = array_values($sheet->toArray(null, true, true, false));
             }
+            $originalRows = $rows;
+            array_shift($rows);
 
             $updateProgress(0, 100, 'Đang truy vấn đối chiếu thí sinh & học bạ...');
 
@@ -2533,36 +2532,48 @@ class CandidateController extends Controller
             $updateProgress($totalRows, $totalRows, "Đang hoàn tất quá trình cập nhật...");
 
             $errorFileUrl = '';
-            if (!empty($logDetails)) {
-                $resultFileName = 'Lich_Su_Cap_Nhat_Hoc_Ba_' . date('Ymd_His') . '.csv';
+            if (!empty($logDetails) && !empty($originalRows)) {
+                $resultFileName = 'Lich_Su_Cap_Nhat_Hoc_Ba_' . date('Ymd_His') . '.xlsx';
                 $exportPath = dirname(__DIR__, 2) . '/public/uploads/imports/' . $resultFileName;
                 if (!is_dir(dirname($exportPath))) {
                     mkdir(dirname($exportPath), 0777, true);
                 }
 
-                $fp = fopen($exportPath, 'w');
-                if ($fp) {
-                    // Write UTF-8 BOM to ensure Excel opens it with correct Vietnamese character encoding
-                    fwrite($fp, "\xEF\xBB\xBF");
+                // Convert associative to indexed if needed (in case SimpleXLSX returned something weird, though it shouldn't)
+                $originalRows[0] = array_values($originalRows[0]);
+                $originalRows[0][] = 'Tình trạng cập nhật';
+                $originalRows[0][] = 'Lý do (Kết quả)';
 
-                    // Force Excel to use comma as the delimiter regardless of Windows regional settings
-                    fwrite($fp, "sep=,\r\n");
-
-                    // Write headers (manually to avoid fputcsv double quote escaping of formulas)
-                    fwrite($fp, "Dòng trong file gốc,Số CCCD,Lớp,Kết quả xử lý\r\n");
-
-                    // Write data rows
-                    foreach ($logDetails as $w) {
-                        // Formatting CCCD as ="012345678901" tells Excel to treat it as string and preserve leading zeros
-                        $cccdVal = $w['cccd'] !== '' ? '="' . $w['cccd'] . '"' : '';
-                        // Escape double quotes in message and wrap in double quotes
-                        $msgVal = '"' . str_replace('"', '""', $w['msg']) . '"';
-                        
-                        fwrite($fp, $w['line'] . ',' . $cccdVal . ',' . $w['lop'] . ',' . $msgVal . "\r\n");
-                    }
-                    fclose($fp);
-                    $errorFileUrl = url('/uploads/imports/' . $resultFileName);
+                $logMap = [];
+                foreach ($logDetails as $d) {
+                    $logMap[$d['line']] = $d;
                 }
+
+                foreach ($originalRows as $i => &$r) {
+                    if ($i === 0) continue;
+                    $r = array_values($r); // Ensure indexed array
+                    $lineNum = $i + 1;
+                    if (isset($logMap[$lineNum])) {
+                        $msg = $logMap[$lineNum]['msg'];
+                        $status = (strpos($msg, 'SUCCESS') !== false || strpos($msg, 'Cập nhật:') !== false) ? 'Thành công' : ((strpos($msg, 'Bỏ qua') !== false || strpos($msg, 'Không thay đổi') !== false) ? 'Bỏ qua' : 'Thất bại');
+                        $r[] = $status;
+                        $r[] = $msg;
+                    } else {
+                        $r[] = '';
+                        $r[] = '';
+                    }
+                }
+
+                $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->fromArray($originalRows, null, 'A1');
+                
+                $highestColumn = $sheet->getHighestDataColumn();
+                $sheet->getStyle('A1:' . $highestColumn . '1')->getFont()->setBold(true);
+                
+                $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+                $writer->save($exportPath);
+                $errorFileUrl = url('/uploads/imports/' . $resultFileName);
             }
 
             // Clear progress file

@@ -157,10 +157,24 @@ class MasterData extends Model {
         // Clear existing
         $this->db->prepare("DELETE FROM dm_nganh_to_hop WHERE ma_nganh = ?")->execute([$ma_nganh]);
         
-        // Insert new
+        if (empty($combinations)) {
+            return;
+        }
+
+        // Fetch valid combination codes from dm_to_hop
+        $validCombos = $this->db->query("SELECT ma_to_hop FROM dm_to_hop")->fetchAll(\PDO::FETCH_COLUMN);
+        $validMap = array_flip(array_map('strtoupper', $validCombos));
+
         $stmt = $this->db->prepare("INSERT INTO dm_nganh_to_hop (ma_nganh, ma_to_hop) VALUES (?, ?)");
         foreach ($combinations as $ma_to_hop) {
-            $stmt->execute([$ma_nganh, $ma_to_hop]);
+            $code = strtoupper(trim($ma_to_hop));
+            if (!empty($code) && isset($validMap[$code])) {
+                try {
+                    $stmt->execute([$ma_nganh, $code]);
+                } catch (\Exception $e) {
+                    // Ignore duplicate key or invalid foreign key
+                }
+            }
         }
     }
 

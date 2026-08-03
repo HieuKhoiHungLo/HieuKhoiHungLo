@@ -211,59 +211,193 @@ class MajorController extends Controller {
 
     private function import() {
         if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-            throw new \Exception("Vui lòng chọn file hợp lệ");
+            throw new \Exception("Vui lòng chọn file hợp lệ.");
         }
         
-        $file = $_FILES['file']['tmp_name'];
-        $handle = fopen($file, "r");
+        $filePath = $_FILES['file']['tmp_name'];
+        $fileName = $_FILES['file']['name'];
+
+        $rows = $this->parseUploadedFile($filePath, $fileName);
+
+        if (empty($rows)) {
+            throw new \Exception("File trống hoặc không thể đọc được dữ liệu.");
+        }
         
-        // Skip BOM
+        // Find header row and map column indices
+        $headerRowIdx = -1;
+        $colMap = [
+            'ma' => 0,
+            'ten' => 1,
+            'chitieu' => 2,
+            'diem' => 3,
+            'khoi' => 4,
+            'ghichu' => 5
+        ];
+
+        foreach ($rows as $rIdx => $row) {
+            if (!is_array($row) || empty($row)) continue;
+            
+            $rowStr = mb_strtolower(implode(' ', array_map('strval', $row)), 'UTF-8');
+            if (strpos($rowStr, 'mã') !== false || strpos($rowStr, 'ma_nganh') !== false || strpos($rowStr, 'tên ngành') !== false || strpos($rowStr, 'ten_nganh') !== false) {
+                $headerRowIdx = $rIdx;
+                // Dynamically map columns if matching text found
+                foreach ($row as $cIdx => $cellVal) {
+                    $cellStr = mb_strtolower(trim((string)$cellVal), 'UTF-8');
+                    if (strpos($cellStr, 'mã') !== false) $colMap['ma'] = $cIdx;
+                    elseif (strpos($cellStr, 'tên') !== false) $colMap['ten'] = $cIdx;
+                    elseif (strpos($cellStr, 'tiêu') !== false || strpos($cellStr, 'chi_tieu') !== false) $colMap['chitieu'] = $cIdx;
+                    elseif (strpos($cellStr, 'điểm') !== false || strpos($cellStr, 'diem') !== false) $colMap['diem'] = $cIdx;
+                    elseif (strpos($cellStr, 'khối') !== false || strpos($cellStr, 'tổ hợp') !== false || strpos($cellStr, 'to_hop') !== false) $colMap['khoi'] = $cIdx;
+                    elseif (strpos($cellStr, 'ghi chú') !== false || strpos($cellStr, 'ghi_chu') !== false) $colMap['ghichu'] = $cIdx;
+                }
+                break;
+            }
+        }
+
+        $startIdx = ($headerRowIdx >= 0) ? $headerRowIdx + 1 : 0;
+        $count = 0;
+        $errors = [];
+        
+        for ($i = $startIdx; $i < count($rows); $i++) {
+            $data = $rows[$i];
+            if (!is_array($data) || count($data) < 2) continue;
+            
+            $ma = trim((string)($data[$colMap['ma']] ?? ''));
+            $ten = trim((string)($data[$colMap['ten']] ?? ''));
+            $chitieu = trim((string)($data[$colMap['chitieu']] ?? ''));
+            $diem = trim((string)($data[$colMap['diem']] ?? ''));
+            $khoi = trim((string)($data[$colMap['khoi']] ?? ''));
+            $ghichu = trim((string)($data[$colMap['ghichu']] ?? ''));
+            
+            // Ignore header repeated or empty row
+            if (!$ma || !$ten || mb_strtolower($ma) === 'mã ngành' || mb_strtolower($ma) === 'mã') continue;
+            
+            // Normalize numeric values
+            $chiTieuVal = ($chitieu !== '' && is_numeric(str_replace(',', '', $chitieu))) ? (int)str_replace(',', '', $chitieu) : null;
+            $diemVal = ($diem !== '' && is_numeric(str_replace(',', '.', $diem))) ? (float)str_replace(',', '.', $diem) : null;
+
+            try {
+                $exists = $this->masterData->find('dm_nganh', $ma, 'ma_nganh');
+                $payload = [
+                    'ma_nganh' => $ma,
+                    'ten_nganh' => $ten,
+                    'chi_tieu' => $chiTieuVal,
+                    'diem_nam_truoc' => $diemVal,
+                    'khoi_xet_tuyen' => $khoi ?: null,
+                    'ghi_chu' => $ghichu
+                ];
+
+                if ($exists) {
+                    $this->masterData->update('dm_nganh', $ma, $payload, 'ma_nganh');
+                } else {
+                    $this->masterData->create('dm_nganh', $payload);
+                }
+
+                // Handle combinations
+                if ($khoi) {
+                    $comboCodes = array_map('trim', preg_split('/[,;\s]+/', $khoi));
+                    $comboCodes = array_filter($comboCodes);
+                    $this->masterData->saveMajorCombinations($ma, $comboCodes);
+                }
+                
+                $count++;
+            } catch (\Exception $e) {
+                $errors[] = "Dòng " . ($i + 1) . " ($ma): " . $e->getMessage();
+            }
+        }
+
+        $this->clearMajorCaches();
+        
+        if ($count > 0) {
+            $_SESSION['success'] = "Đã nhập thành công $count ngành từ file " . htmlspecialchars($fileName) . ".";
+        } else {
+            $_SESSION['error'] = "Không nhập được dữ liệu từ file. Vui lòng kiểm tra lại cấu trúc file (" . implode(', ', array_slice($errors, 0, 3)) . ")";
+        }
+    }
+
+    private function parseUploadedFile($filePath, $fileName) {
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $rows = [];
+
+        if ($extension === 'xlsx') {
+            $xlsxFile = __DIR__ . '/../Services/SimpleXLSX.php';
+            if (file_exists($xlsxFile)) {
+                require_once $xlsxFile;
+                if ($xlsx = \Shuchkin\SimpleXLSX::parse($filePath)) {
+                    $rows = $xlsx->rows();
+                    unset($xlsx);
+                    return $rows;
+                }
+            }
+        }
+
+        if ($extension === 'xls') {
+            $xlsFile = __DIR__ . '/../Services/SimpleXLS.php';
+            if (file_exists($xlsFile)) {
+                require_once $xlsFile;
+                if ($xls = \Shuchkin\SimpleXLS::parse($filePath)) {
+                    $rows = $xls->rows();
+                    unset($xls);
+                    return $rows;
+                }
+            }
+        }
+
+        // PhpOffice\PhpSpreadsheet fallback
+        if (class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rows = $worksheet->toArray();
+                unset($spreadsheet);
+                if (!empty($rows)) {
+                    return $rows;
+                }
+            } catch (\Exception $e) {
+                // Fallback below
+            }
+        }
+
+        // CSV or HTML-table fallback
+        $content = file_get_contents($filePath);
+        if (strpos($content, '<table') !== false) {
+            $dom = new \DOMDocument();
+            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $content);
+            $trList = $dom->getElementsByTagName('tr');
+            foreach ($trList as $tr) {
+                $row = [];
+                $tdList = $tr->getElementsByTagName('td');
+                if ($tdList->length === 0) {
+                    $tdList = $tr->getElementsByTagName('th');
+                }
+                foreach ($tdList as $td) {
+                    $row[] = trim($td->textContent);
+                }
+                if (!empty($row)) {
+                    $rows[] = $row;
+                }
+            }
+            return $rows;
+        }
+
+        // CSV parsing with auto delimiter detection
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $content));
+        $delimiter = ",";
+        if (isset($lines[0])) {
+            if (substr_count($lines[0], "\t") > substr_count($lines[0], ",")) $delimiter = "\t";
+            elseif (substr_count($lines[0], ";") > substr_count($lines[0], ",")) $delimiter = ";";
+        }
+
+        $handle = fopen($filePath, "r");
         $bom = fread($handle, 3);
         if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) rewind($handle);
-        
-        fgetcsv($handle); // Skip header
-        
-        $count = 0;
-        
-        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            if (count($data) < 2) continue;
-            
-            $ma = trim($data[0]);
-            $ten = trim($data[1]);
-            $chitieu = trim($data[2] ?? '');
-            $diem = trim($data[3] ?? '');
-            $khoi = trim($data[4] ?? ''); // e.g., "A00, D01"
-            $ghichu = trim($data[5] ?? '');
-            
-            if (!$ma || !$ten) continue;
-            
-            // Check exist
-            $exists = $this->masterData->find('dm_nganh', $ma, 'ma_nganh');
-            $payload = [
-                'ma_nganh' => $ma,
-                'ten_nganh' => $ten,
-                'chi_tieu' => $chitieu ?: null,
-                'diem_nam_truoc' => $diem ?: null,
-                'ghi_chu' => $ghichu
-            ];
 
-            if ($exists) {
-                $this->masterData->update('dm_nganh', $ma, $payload, 'ma_nganh');
-            } else {
-                $this->masterData->create('dm_nganh', $payload);
-            }
-
-            // Handle combinations
-            if ($khoi) {
-                $comboCodes = array_map('trim', explode(',', $khoi));
-                $this->masterData->saveMajorCombinations($ma, $comboCodes);
-            }
-            $this->clearMajorCaches();
-            
-            $count++;
+        while (($data = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
+            $rows[] = $data;
         }
         fclose($handle);
-        $_SESSION['success'] = "Đã nhập thành công $count ngành.";
+
+        return $rows;
     }
 
     private function clearMajorCaches() {

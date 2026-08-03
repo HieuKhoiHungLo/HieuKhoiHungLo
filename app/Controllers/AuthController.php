@@ -24,6 +24,13 @@ class AuthController extends Controller
 
     public function login(): void
     {
+        $redirectUrl = !empty($_REQUEST['redirect']) ? $_REQUEST['redirect'] : url('/application/results');
+
+        if (!empty($_SESSION['user_id'])) {
+            $this->redirect($redirectUrl);
+            return;
+        }
+
         $masterDataModel = new \App\Models\MasterData();
         if ($masterDataModel->getSetting('redirect_external_enable') == '1') {
             $externalUrl = $masterDataModel->getSetting('redirect_external_url');
@@ -96,7 +103,7 @@ class AuthController extends Controller
                 // Log successful login
                 $this->auditService->logLogin($cccd, true);
 
-                $this->redirect(url('/'));
+                $this->redirect($redirectUrl);
             } else {
                 // Record failed attempt in session
                 $this->auditService->recordFailedAttempt();
@@ -180,6 +187,8 @@ class AuthController extends Controller
                 $redirectUrl = url('/admin/dashboard');
                 if (($_SESSION['admin_role_id'] ?? 1) == 2) {
                     $redirectUrl = url('/admin/review-management');
+                } elseif (\App\Models\QuanTriVien::hasPermission($admin, 'enrollment.process') && !\App\Models\QuanTriVien::hasPermission($admin, 'dashboard') && !\App\Models\QuanTriVien::hasPermission($admin, 'stats')) {
+                    $redirectUrl = url('/admin/enrollment/process');
                 }
                 $this->redirect($redirectUrl);
             } else {

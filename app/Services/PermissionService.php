@@ -129,6 +129,32 @@ class PermissionService {
     }
 
     /**
+     * Create a new role
+     */
+    public function createRole($name, $displayName, array $permissions = []) {
+        $sql = "INSERT INTO roles (name, display_name, permissions) VALUES (?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$name, $displayName, json_encode(array_values($permissions))]);
+    }
+
+    /**
+     * Delete a role (cannot delete ID 1 super_admin)
+     */
+    public function deleteRole($id) {
+        $id = (int)$id;
+        if ($id === 1) {
+            return false; // Protect super admin
+        }
+        $sessionKey = '_role_perms_' . $id;
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION[$sessionKey])) {
+            unset($_SESSION[$sessionKey]);
+        }
+        $sql = "DELETE FROM roles WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$id]);
+    }
+
+    /**
      * Update role permissions
      */
     public function updateRole($id, $displayName, $permissions) {
@@ -147,47 +173,48 @@ class PermissionService {
     public static function getAvailablePermissions() {
         return [
             'Tổng quan' => [
-                'dashboard'       => 'Xem Dashboard',
-                'stats'           => 'Xem Báo cáo Thống kê',
+                'dashboard'          => 'Xem Dashboard',
+                'stats'              => 'Xem Báo cáo Thống kê',
             ],
             'Lọc ảo & Nhập học' => [
-                'admission.view'  => 'Xem Tổng quan Lọc ảo & Thống kê Nhập học',
-                'admission.edit'  => 'Thao tác Xét tuyển Lọc ảo & Nhập học',
+                'admission.view'     => 'Xem Tổng quan Lọc ảo & Thống kê Nhập học',
+                'admission.edit'     => 'Thao tác Xét tuyển Lọc ảo',
+                'enrollment.process' => 'Thực hiện & Xử lý Nhập học',
             ],
             'Thí sinh' => [
-                'candidate.view'  => 'Xem danh sách thí sinh',
-                'candidate.edit'  => 'Chỉnh sửa thông tin thí sinh',
-                'candidate.delete'=> 'Xóa thí sinh',
-                'candidate.bulk'  => 'Thao tác hàng loạt',
+                'candidate.view'     => 'Xem danh sách thí sinh',
+                'candidate.edit'     => 'Chỉnh sửa thông tin thí sinh',
+                'candidate.delete'   => 'Xóa thí sinh',
+                'candidate.bulk'     => 'Thao tác hàng loạt',
             ],
             'Báo cáo' => [
-                'report.view'     => 'Xem báo cáo',
-                'report.export'   => 'Xuất báo cáo',
+                'report.view'        => 'Xem báo cáo',
+                'report.export'      => 'Xuất báo cáo',
             ],
             'Điểm Năng khiếu' => [
-                'aptitude.view'   => 'Xem/Nhập điểm năng khiếu',
+                'aptitude.view'      => 'Xem/Nhập điểm năng khiếu',
             ],
             'Ngành đào tạo' => [
-                'major.view'      => 'Xem danh mục ngành',
-                'major.edit'      => 'Chỉnh sửa danh mục',
-                'major.delete'    => 'Xóa danh mục',
+                'major.view'         => 'Xem danh mục ngành',
+                'major.edit'         => 'Chỉnh sửa danh mục',
+                'major.delete'       => 'Xóa danh mục',
             ],
             'Bài viết' => [
-                'posts.view'      => 'Xem danh sách bài viết',
-                'posts.edit'      => 'Chỉnh sửa bài viết',
-                'posts.delete'    => 'Xóa bài viết',
-                'posts.category'  => 'Quản lý chuyên mục',
+                'posts.view'         => 'Xem danh sách bài viết',
+                'posts.edit'         => 'Chỉnh sửa bài viết',
+                'posts.delete'       => 'Xóa bài viết',
+                'posts.category'     => 'Quản lý chuyên mục',
             ],
             'Cài đặt' => [
-                'settings.view'   => 'Xem cài đặt hệ thống',
-                'settings.edit'   => 'Sửa cài đặt hệ thống',
+                'settings.view'      => 'Xem cài đặt hệ thống',
+                'settings.edit'      => 'Sửa cài đặt hệ thống',
             ],
             'Nhật ký' => [
-                'audit.view'      => 'Xem nhật ký hoạt động',
+                'audit.view'         => 'Xem nhật ký hoạt động',
             ],
             'Vai trò' => [
-                'role.view'       => 'Xem vai trò',
-                'role.edit'       => 'Chỉnh sửa vai trò',
+                'role.view'          => 'Xem vai trò',
+                'role.edit'          => 'Chỉnh sửa vai trò',
             ],
         ];
     }

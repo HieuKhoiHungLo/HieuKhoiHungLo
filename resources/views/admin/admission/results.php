@@ -29,10 +29,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
 ?>
 
 <!-- Assets -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 <style>
     .premium-table {
@@ -42,7 +39,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         table-layout: auto;
     }
     .premium-table th, .premium-table td {
-        padding: 0.75rem 1rem;
+        padding: 0.35rem 0.65rem !important;
         border: none !important;
         border-bottom: 1px solid #e2e8f0 !important;
         border-right: 1px solid #e2e8f0 !important;
@@ -55,8 +52,8 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         background-color: #f8fafc !important;
         color: #475569 !important;
         font-weight: 700 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
+        text-transform: none !important;
+        letter-spacing: 0.01em;
         text-align: left;
     }
     .premium-table th:first-child, .premium-table td:first-child { border-left: 1px solid #e2e8f0 !important; }
@@ -67,7 +64,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     .premium-table tbody tr:last-child td:last-child { border-bottom-right-radius: 1rem; }
 </style>
 
-<div class="h-full flex flex-col p-4 lg:p-6 bg-slate-50/50" id="resultsApp" x-data="{ activeTab: 'list', initCharts() { setTimeout(() => { renderAdmissionCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
+<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="resultsApp" x-data="{ activeTab: 'list', initCharts() { setTimeout(() => { renderAdmissionCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
 
     <!-- Header Row (Title & Filters) -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -95,65 +92,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         </div>
     </div>
 
-    <!-- Action Toolbar (clean design like virtual filter) -->
-    <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
-        <!-- Left: Action buttons -->
-        <div class="flex flex-wrap items-center gap-3">
-            <!-- 1. Send Bulk Email Button -->
-            <button onclick="bulkEmailSelected()" 
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                <i class="fas fa-paper-plane"></i>
-                <span>Gửi Email Đã Chọn</span>
-            </button>
 
-            <!-- 2. Sync from Virtual Filter Button -->
-            <form action="<?= url('/admin/admission/results/sync-virtual') ?>" method="POST" class="flex items-center" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA kết quả hiện tại và ĐỒNG BỘ lại toàn bộ từ Lọc Ảo đợt này? Hành động này không thể hoàn tác.');">
-                <?= csrf_field() ?>
-                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Đồng bộ từ Lọc Ảo</span>
-                </button>
-            </form>
-
-            <!-- 3. Upload Results Excel Button -> Opens Modal -->
-            <button type="button" onclick="openUploadExcelModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                <i class="fas fa-file-import"></i>
-                <span>Upload Kết Quả (Excel)</span>
-            </button>
-
-            <!-- 4. Nút Công bố / Hủy công bố -->
-            <form action="<?= url('/admin/admission/results/toggle-publish') ?>" method="POST" class="flex items-center">
-                <?= csrf_field() ?>
-                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <input type="hidden" name="status" value="<?= empty($activeSession['is_published_results']) ? '1' : '0' ?>">
-                <button type="submit" class="<?= empty($activeSession['is_published_results']) ? 'bg-teal-600 hover:bg-teal-700 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200' ?> px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả xét tuyển đợt này lên cổng thông tin cho thí sinh tra cứu không?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này không?' ?>');">
-                    <i class="fas <?= empty($activeSession['is_published_results']) ? 'fa-bullhorn' : 'fa-eye-slash' ?>"></i>
-                    <span>
-                        <?= empty($activeSession['is_published_results']) ? 'Công bố kết quả' : 'Hủy công bố' ?>
-                    </span>
-                </button>
-            </form>
-            
-            <!-- 5. Soạn Giấy Báo Trúng Tuyển -->
-            <button type="button" onclick="openTemplateModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                <i class="fas fa-edit"></i>
-                <span>Mẫu Giấy Báo</span>
-            </button>
-        </div>
-
-        <!-- Right: Destructive clear action -->
-        <div>
-            <form action="<?= url('/admin/admission/results/clear') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ kết quả của đợt này?');">
-                <?= csrf_field() ?>
-                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
-                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2">
-                    <i class="fas fa-trash-alt"></i>
-                    <span>Xóa Đợt Này</span>
-                </button>
-            </form>
-        </div>
-    </div>
 
     <?php if (!$isSessionActive && $sessionId > 0): ?>
     <!-- Session Status Banner -->
@@ -185,49 +124,52 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         </button>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+    <!-- Compact Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
         <!-- Card 1: Total Candidates -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
-            <div class="absolute -right-3 -top-3 w-16 h-16 bg-blue-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Thí sinh</p>
-            <h3 class="text-2xl font-black text-slate-800"><?= number_format($totalCandidates) ?></h3>
-            <span class="text-[10px] text-blue-500 font-bold"><?= number_format($totalWishes) ?> nguyện vọng</span>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Thí sinh</p>
+                <span class="text-[10px] text-blue-500 font-bold"><?= number_format($totalWishes) ?> NV</span>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 leading-tight"><?= number_format($totalCandidates) ?></h3>
         </div>
 
         <!-- Card 2: Admitted -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 relative overflow-hidden group">
-            <div class="absolute -right-3 -top-3 w-16 h-16 bg-emerald-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">Trúng tuyển</p>
-            <h3 class="text-2xl font-black text-emerald-700"><?= number_format($totalAdmitted) ?></h3>
-            <span class="text-[10px] text-emerald-500 font-bold"><?= $admitRate ?>% tỉ lệ đạt</span>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-emerald-100 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Trúng tuyển</p>
+                <span class="text-[10px] text-emerald-500 font-bold"><?= $admitRate ?>% đạt</span>
+            </div>
+            <h3 class="text-lg font-black text-emerald-700 leading-tight"><?= number_format($totalAdmitted) ?></h3>
         </div>
 
         <!-- Card 3: NV1 -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
-            <div class="absolute -right-3 -top-3 w-16 h-16 bg-indigo-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            <p class="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">NV1</p>
-            <h3 class="text-2xl font-black text-indigo-700"><?= number_format($nv1) ?></h3>
-            <span class="text-[10px] text-slate-400 font-bold">NV2: <?= $nv2 ?> · NV3: <?= $nv3 ?></span>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-indigo-600 uppercase tracking-wider">NV1</p>
+                <span class="text-[10px] text-slate-400 font-bold">NV2: <?= $nv2 ?> · NV3: <?= $nv3 ?></span>
+            </div>
+            <h3 class="text-lg font-black text-indigo-700 leading-tight"><?= number_format($nv1) ?></h3>
         </div>
 
         <!-- Card 4: Quota Progress -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
-            <div class="absolute -right-3 -top-3 w-16 h-16 bg-amber-50 rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            <p class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">Chỉ tiêu</p>
-            <h3 class="text-2xl font-black text-amber-700"><?= number_format($totalSoTrungTuyen) ?><span class="text-sm text-slate-400">/<?= number_format($totalChiTieu) ?></span></h3>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
             <?php $quotaPct = $totalChiTieu > 0 ? round(($totalSoTrungTuyen / $totalChiTieu) * 100) : 0; ?>
-            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1.5">
-                <div class="bg-amber-500 h-1.5 rounded-full transition-all" style="width: <?= min($quotaPct, 100) ?>%"></div>
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-amber-600 uppercase tracking-wider">Chỉ tiêu</p>
+                <span class="text-[10px] text-amber-600 font-bold"><?= $quotaPct ?>%</span>
             </div>
+            <h3 class="text-lg font-black text-amber-700 leading-tight"><?= number_format($totalSoTrungTuyen) ?><span class="text-xs text-slate-400 font-medium">/<?= number_format($totalChiTieu) ?></span></h3>
         </div>
 
         <!-- Card 5: Under Quota Warning -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border <?= $underQuota > 0 ? 'border-rose-200' : 'border-slate-200' ?> relative overflow-hidden group">
-            <div class="absolute -right-3 -top-3 w-16 h-16 <?= $underQuota > 0 ? 'bg-rose-50' : 'bg-slate-50' ?> rounded-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            <p class="text-[9px] font-black <?= $underQuota > 0 ? 'text-rose-600' : 'text-slate-400' ?> uppercase tracking-widest mb-2">Chưa đủ CT</p>
-            <h3 class="text-2xl font-black <?= $underQuota > 0 ? 'text-rose-700' : 'text-slate-800' ?>"><?= $underQuota ?></h3>
-            <span class="text-[10px] <?= $underQuota > 0 ? 'text-rose-500' : 'text-slate-400' ?> font-bold"><?= $underQuota > 0 ? 'ngành cần bổ sung' : 'Đủ chỉ tiêu ✓' ?></span>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border <?= $underQuota > 0 ? 'border-rose-200' : 'border-slate-200' ?> relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black <?= $underQuota > 0 ? 'text-rose-600' : 'text-slate-400' ?> uppercase tracking-wider">Chưa đủ CT</p>
+                <span class="text-[10px] <?= $underQuota > 0 ? 'text-rose-500' : 'text-slate-400' ?> font-bold"><?= $underQuota > 0 ? 'cần bổ sung' : 'Đủ ✓' ?></span>
+            </div>
+            <h3 class="text-lg font-black <?= $underQuota > 0 ? 'text-rose-700' : 'text-slate-800' ?> leading-tight"><?= $underQuota ?> <span class="text-xs font-normal text-slate-400">ngành</span></h3>
         </div>
     </div>
 
@@ -239,13 +181,13 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         <!-- Search -->
         <div class="relative flex-grow w-full lg:w-auto">
             <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-search text-xs"></i></div>
-            <input type="text" id="searchInput" placeholder="Tìm CCCD, họ tên, mã ngành, tên ngành..."
+            <input type="text" id="searchInput" aria-label="Tìm kiếm theo CCCD, họ tên, mã ngành, tên ngành" placeholder="Tìm CCCD, họ tên, mã ngành, tên ngành..."
                 class="w-full bg-slate-50 border-none rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400 placeholder:text-slate-300">
         </div>
 
         <!-- Major Filter -->
         <div class="relative w-full lg:w-56">
-            <select id="majorFilter" onchange="reloadTable()"
+            <select id="majorFilter" aria-label="Lọc theo ngành" onchange="reloadTable()"
                 class="w-full bg-slate-50 border-none rounded-xl pl-3 pr-8 py-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400 appearance-none">
                 <option value="">Tất cả ngành</option>
                 <?php foreach ($majors as $m): ?>
@@ -257,30 +199,29 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[9px] pointer-events-none"></i>
         </div>
 
-        <!-- Status Filter -->
-        <div class="relative w-full lg:w-44">
-            <select id="statusFilter" onchange="reloadTable()"
-                class="w-full bg-slate-50 border-none rounded-xl pl-3 pr-8 py-3 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400 appearance-none">
-                <option value="" <?= ($filterStatus == '') ? 'selected' : '' ?>>Chỉ trúng tuyển</option>
-                <option value="Trung tuyen" <?= ($filterStatus == 'Trung tuyen') ? 'selected' : '' ?>>Trúng tuyển</option>
-                <option value="Truot" <?= ($filterStatus == 'Truot') ? 'selected' : '' ?>>Không đạt</option>
-            </select>
-            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[9px] pointer-events-none"></i>
+        <!-- Column Configuration Dropdown (Alpine context) -->
+        <div class="relative" x-data="{ openConfig: false }">
+            <button type="button" @click="openConfig = !openConfig" 
+                class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fas fa-columns text-indigo-600"></i> Cấu hình bảng
+            </button>
+            <div x-show="openConfig" @click.away="openConfig = false" x-cloak 
+                class="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scrollbar">
+                <div class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2 pb-1 border-b border-slate-100 flex justify-between items-center">
+                    <span>Hiển thị cột</span>
+                    <button type="button" onclick="resetColumnConfig()" class="text-indigo-600 hover:underline normal-case font-bold text-[11px]">Mặc định</button>
+                </div>
+                <div class="space-y-1" id="colConfigList">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </div>
         </div>
 
-        <!-- Show All -->
-        <label class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none whitespace-nowrap">
-            <input type="checkbox" id="showAllCheck" <?= $showAll ? 'checked' : '' ?> onchange="reloadTable()"
-                class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-            <span class="text-[10px] font-black text-slate-500 uppercase">Hiện tất cả</span>
-        </label>
-
-        <!-- Select All for Bulk -->
-        <label class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none whitespace-nowrap border-l border-slate-100">
-            <input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll(this.checked)"
-                class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-            <span class="text-[10px] font-black text-slate-500 uppercase">Chọn tất cả</span>
-        </label>
+        <!-- Export Excel Button -->
+        <button type="button" onclick="exportResultsExcel()" 
+            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fas fa-file-excel text-sm"></i> Xuất Excel
+        </button>
     </div>
 
     <!-- Table -->
@@ -296,30 +237,101 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         <div class="overflow-x-auto flex-1">
             <table class="premium-table min-w-full text-left whitespace-nowrap" id="resultsTable">
                 <thead>
+                    <!-- Header Titles: Ordered STT, CCCD, Họ tên, Mã ngành, Tên ngành, Điểm XT... -->
                     <tr>
-                        <th class="text-center w-8">
-                            <input type="checkbox" id="selectAllInline" onchange="toggleSelectAll(this.checked)" class="w-3.5 h-3.5">
+                        <th class="text-center w-8" data-col="cb">
+                            <input type="checkbox" id="selectAllInline" aria-label="Chọn tất cả" onchange="toggleSelectAll(this.checked)" class="w-3.5 h-3.5">
                         </th>
-                        <th class="text-center w-10">STT</th>
-                        <th>Mã ngành</th>
-                        <th>Tên ngành</th>
-                        <th>CCCD</th>
-                        <th>Họ và Tên</th>
-                        <th class="text-center">KV</th>
-                        <th class="text-center">ĐT UT</th>
-                        <th>Tổ hợp</th>
-                        <th>Phương thức</th>
-                        <th class="text-center">M1</th>
-                        <th class="text-center">M2</th>
-                        <th class="text-center">M3</th>
-                        <th class="text-center">UTQ</th>
-                        <th class="text-center">Điểm XT</th>
-                        <th class="text-center w-20">Kết quả</th>
-                        <th>Ghi chú</th>
+                        <th class="text-center w-10" data-col="stt">STT</th>
+                        <th data-col="cccd">CCCD</th>
+                        <th data-col="ho_ten">Họ và Tên</th>
+                        <th data-col="ma_nganh">Mã ngành</th>
+                        <th data-col="ten_nganh">Tên ngành</th>
+                        <th class="text-center" data-col="diem_xt">Điểm XT</th>
+                        <th class="text-center" data-col="gioi_tinh">Giới tính</th>
+                        <th class="text-center" data-col="dan_toc">Dân tộc</th>
+                        <th data-col="ten_truong_thpt">Trường THPT</th>
+                        <th data-col="ten_tinh">Tỉnh/Thành</th>
+                        <th class="text-center" data-col="nam_tot_nghiep">Năm TN</th>
+                        <th class="text-center" data-col="hoc_luc_12">Học lực 12</th>
+                        <th class="text-center" data-col="hanh_kiem_12">Hạnh kiểm 12</th>
+                        <th class="text-center" data-col="diem_tb_12">ĐTB 12</th>
+                        <th data-col="dia_chi_chi_tiet">Địa chỉ</th>
+                        <th class="text-center" data-col="so_giay_bao">Số GB</th>
+                        <th class="text-center" data-col="file_giay_bao">File Giấy Báo</th>
+                        <th class="text-center" data-col="thoi_gian_nhap">T/g Nhập học</th>
+                        <th data-col="nganh_tt">Ngành in GB</th>
+                        <th data-col="ten_khoa">Khoa</th>
+                        <th class="text-center w-12" data-col="anh_the">Ảnh thẻ</th>
+                        <th class="text-center" data-col="xn_bo">XN Bộ</th>
+                        <th class="text-center" data-col="xn_truong">XN Trường</th>
+                        <th class="text-center" data-col="khu_vuc">KV</th>
+                        <th class="text-center" data-col="doi_tuong">ĐT UT</th>
+                        <th data-col="to_hop">Tổ hợp</th>
+                        <th data-col="phuong_thuc">Phương thức</th>
+                        <th class="text-center" data-col="mon1">M1</th>
+                        <th class="text-center" data-col="mon2">M2</th>
+                        <th class="text-center" data-col="mon3">M3</th>
+                        <th class="text-center" data-col="diem_ut">UT Thô</th>
+                        <th class="text-center" data-col="ut_quy_doi">UTQĐ</th>
+                        <th data-col="kinh_phi">Nội dung Kinh phí</th>
+                        <th class="text-center w-20" data-col="ket_qua">Kết quả</th>
+                        <th data-col="ghi_chu">Ghi chú</th>
+                    </tr>
+                    <!-- Sub-Header Row: Per-column Quick Search & Filter Inputs -->
+                    <tr class="bg-slate-50/90 border-t border-slate-200">
+                        <td data-col="cb"></td>
+                        <td data-col="stt"></td>
+                        <td data-col="cccd" class="p-1"><input type="text" id="col_filter_cccd" aria-label="Lọc theo CCCD" placeholder="Tìm CCCD..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="ho_ten" class="p-1"><input type="text" id="col_filter_name" aria-label="Lọc theo họ tên" placeholder="Tìm Tên..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="ma_nganh" class="p-1"><input type="text" id="col_filter_ma" aria-label="Lọc theo mã ngành" placeholder="Mã..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="ten_nganh" class="p-1"><input type="text" id="col_filter_ten_nganh" aria-label="Lọc theo tên ngành" placeholder="Tên ngành..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="diem_xt" class="p-1"><input type="text" id="col_filter_diem" aria-label="Lọc theo điểm" placeholder="Điểm..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="gioi_tinh"></td>
+                        <td data-col="dan_toc"></td>
+                        <td data-col="ten_truong_thpt"></td>
+                        <td data-col="ten_tinh"></td>
+                        <td data-col="nam_tot_nghiep"></td>
+                        <td data-col="hoc_luc_12"></td>
+                        <td data-col="hanh_kiem_12"></td>
+                        <td data-col="diem_tb_12"></td>
+                        <td data-col="dia_chi_chi_tiet"></td>
+                        <td data-col="so_giay_bao" class="p-1"><input type="text" id="col_filter_gb" aria-label="Lọc theo số giấy báo" placeholder="Số GB..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="file_giay_bao"></td>
+                        <td data-col="thoi_gian_nhap"></td>
+                        <td data-col="nganh_tt"></td>
+                        <td data-col="ten_khoa"></td>
+                        <td data-col="anh_the"></td>
+                        <td data-col="xn_bo" class="p-1">
+                            <select id="col_filter_xn_bo" onchange="reloadTable()" class="col-filter-select">
+                                <option value="">Tất cả</option>
+                                <option value="1">Đã XN</option>
+                                <option value="0">Chưa XN</option>
+                            </select>
+                        </td>
+                        <td data-col="xn_truong" class="p-1">
+                            <select id="col_filter_xn_truong" onchange="reloadTable()" class="col-filter-select">
+                                <option value="">Tất cả</option>
+                                <option value="1">Đã XN</option>
+                                <option value="0">Chưa XN</option>
+                            </select>
+                        </td>
+                        <td data-col="khu_vuc"></td>
+                        <td data-col="doi_tuong"></td>
+                        <td data-col="to_hop"></td>
+                        <td data-col="phuong_thuc"></td>
+                        <td data-col="mon1"></td>
+                        <td data-col="mon2"></td>
+                        <td data-col="mon3"></td>
+                        <td data-col="diem_ut"></td>
+                        <td data-col="ut_quy_doi"></td>
+                        <td data-col="kinh_phi"></td>
+                        <td data-col="ket_qua"></td>
+                        <td data-col="ghi_chu" class="p-1"><input type="text" id="col_filter_note" aria-label="Lọc theo ghi chú" placeholder="Ghi chú..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
                     </tr>
                 </thead>
                 <tbody id="tableBody" class="text-[11px]">
-                    <tr><td colspan="19" class="py-16 text-center border-b border-slate-100"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
+                    <tr><td colspan="26" class="py-16 text-center border-b border-slate-100"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
                 </tbody>
             </table>
         </div>
@@ -451,20 +463,23 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng số lượt truy cập</span>
                     <span class="text-3xl font-black text-blue-600"><?= number_format($visitStats['total_visits'] ?? 0) ?></span>
                 </div>
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Số lượt trong tuần</span>
-                    <span class="text-3xl font-black text-indigo-600"><?= number_format($visitStats['weekly_visits'] ?? 0) ?></span>
-                </div>
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Số lượt trong ngày</span>
-                    <span class="text-3xl font-black text-emerald-600"><?= number_format($visitStats['daily_visits'] ?? 0) ?></span>
-                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Major Fill Chart -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                Biểu đồ tỷ lệ lấp đầy chuyên ngành (Đầy đủ các ngành xét tuyển)
+            </h3>
+            <div class="relative h-96">
+                <canvas id="majorFillChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Row 2: Four statistics charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             <!-- Chart: Tỷ lệ theo nguyện vọng -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1 border-t-4 border-t-indigo-500">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-indigo-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
                     Phân bố trúng tuyển theo NV
                 </h3>
@@ -473,20 +488,8 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                 </div>
             </div>
 
-            <!-- Chart: Top Ngành Trúng Tuyển -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 border-t-4 border-t-emerald-500">
-                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Biểu đồ tỷ lệ lấp đầy chuyên ngành (Top 15)
-                </h3>
-                <div class="relative h-64">
-                    <canvas id="majorFillChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             <!-- Chart: Giới tính -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-pink-500">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
                     Phân bố Giới tính
                 </h3>
@@ -496,7 +499,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </div>
 
             <!-- Chart: Khu vực ưu tiên -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-sky-500">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
                     Khu vực ưu tiên
                 </h3>
@@ -506,7 +509,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </div>
 
             <!-- Chart: Đối tượng ưu tiên -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-amber-500">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
                     Đối tượng ưu tiên
                 </h3>
@@ -516,28 +519,125 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <!-- Chart: Theo tỉnh (Top 10) -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-purple-500">
+        <div class="grid grid-cols-1 gap-6 mt-6">
+            <!-- Chart: Theo tỉnh -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Tỉnh / Thành phố (Top 10)
+                    Tỉnh / Thành phố
                 </h3>
                 <div class="relative h-64">
                     <canvas id="provinceChart"></canvas>
                 </div>
             </div>
 
-            <!-- Chart: Trường THPT (Top 10) -->
-            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-rose-500">
-                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                    Trường THPT (Top 10)
-                </h3>
+            <!-- Chart: Trường THPT tại Phú Thọ -->
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-rose-500">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs">
+                        Trường THPT tại Phú Thọ
+                    </h3>
+                    <button type="button" onclick="toggleShowAllSchools()" 
+                            class="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded text-[10px] font-bold transition cursor-pointer">
+                        <span id="btnToggleSchoolsText">Xem thêm</span>
+                    </button>
+                </div>
                 <div class="relative h-64">
                     <canvas id="schoolChart"></canvas>
                 </div>
             </div>
         </div>
     </div> <!-- END TAB CHARTS -->
+
+    <!-- Action Bar: Fixed sticky bottom, respects sidebar width (Exact Review Page Button Style) -->
+    <style>
+        #results-action-bar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            border-top: 1px solid #e2e8f0 !important;
+            padding: 16px 32px !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 12px !important;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
+            transition: left 0.3s ease !important;
+        }
+        @media (min-width: 1024px) {
+            #results-action-bar {
+                left: 280px !important;
+            }
+            .main-content.expanded #results-action-bar,
+            body.sidebar-collapsed #results-action-bar {
+                left: 70px !important;
+            }
+        }
+    </style>
+
+    <div id="results-action-bar">
+        <!-- Selected Count Badge if any -->
+        <span id="selectedCountBadge" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 hidden">
+            <span id="selectedCountText">0</span> đã chọn
+        </span>
+
+        <!-- 1. Gửi Email -->
+        <button type="button" onclick="bulkEmailSelected()" class="px-6 py-3.5 bg-[#0066FF] text-white font-medium text-sm rounded-xl shadow-md hover:bg-blue-700 transition-all whitespace-nowrap active:scale-95">
+            Gửi email
+        </button>
+
+        <!-- 2. Đồng bộ Lọc Ảo -->
+        <form action="<?= url('/admin/admission/results/sync-virtual') ?>" method="POST" class="inline-flex" onsubmit="return confirm('Bạn có chắc chắn muốn ĐỒNG BỘ lại toàn bộ từ Lọc Ảo đợt này?');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+            <button type="submit" class="px-6 py-3.5 bg-amber-500 text-white font-medium text-sm rounded-xl shadow-md hover:bg-amber-600 transition-all whitespace-nowrap active:scale-95">
+                Đồng bộ Lọc Ảo
+            </button>
+        </form>
+
+        <!-- 3. Upload Excel -->
+        <button type="button" onclick="openUploadExcelModal()" class="px-6 py-3.5 bg-[#0066FF] text-white font-medium text-sm rounded-xl shadow-md hover:bg-blue-700 transition-all whitespace-nowrap active:scale-95">
+            Upload Excel
+        </button>
+
+        <!-- 4. Import Ảnh Thẻ -->
+        <button type="button" onclick="openUploadAvatarModal()" class="px-6 py-3.5 bg-[#0066FF] text-white font-medium text-sm rounded-xl shadow-md hover:bg-blue-700 transition-all whitespace-nowrap active:scale-95">
+            Import ảnh thẻ
+        </button>
+
+        <!-- 5. Mẫu Thông Báo Trúng Tuyển -->
+        <button type="button" onclick="openTemplateModal()" class="px-6 py-3.5 bg-[#0066FF] text-white font-medium text-sm rounded-xl shadow-md hover:bg-blue-700 transition-all whitespace-nowrap active:scale-95">
+            Mẫu thông báo
+        </button>
+
+        <!-- 6. In Giấy Báo -->
+        <button type="button" onclick="openPrintGiayBaoWordModal()" class="px-6 py-3.5 bg-emerald-600 text-white font-medium text-sm rounded-xl shadow-md hover:bg-emerald-700 transition-all whitespace-nowrap active:scale-95">
+            In giấy báo
+        </button>
+
+        <!-- 7. Công bố / Hủy công bố -->
+        <form action="<?= url('/admin/admission/results/toggle-publish') ?>" method="POST" class="inline-flex">
+            <?= csrf_field() ?>
+            <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+            <input type="hidden" name="status" value="<?= empty($activeSession['is_published_results']) ? '1' : '0' ?>">
+            <button type="submit" class="px-6 py-3.5 <?= empty($activeSession['is_published_results']) ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600' ?> text-white font-medium text-sm rounded-xl shadow-md transition-all whitespace-nowrap active:scale-95" onclick="return confirm('<?= empty($activeSession['is_published_results']) ? 'Bạn có chắc chắn muốn CÔNG BỐ kết quả đợt này?' : 'Bạn có chắc chắn muốn HỦY CÔNG BỐ kết quả đợt này?' ?>');">
+                <?= empty($activeSession['is_published_results']) ? 'Công bố' : 'Hủy công bố' ?>
+            </button>
+        </form>
+
+        <!-- 8. Xóa Đợt -->
+        <form action="<?= url('/admin/admission/results/clear') ?>" method="POST" class="inline-flex" onsubmit="return confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ kết quả đợt này?');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+            <button type="submit" class="px-6 py-3.5 bg-rose-600 text-white font-medium text-sm rounded-xl shadow-md hover:bg-rose-700 transition-all whitespace-nowrap active:scale-95">
+                Xóa đợt
+            </button>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -554,22 +654,137 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     };
 
     let chartsRendered = false;
-    let nvChartInst = null;
-    let majorFillChartInst = null;
+    let chartInstances = {};
+    let showAllSchoolsState = false;
+
+    function toggleShowAllSchools() {
+        showAllSchoolsState = !showAllSchoolsState;
+        const btnText = document.getElementById('btnToggleSchoolsText');
+        if (btnText) btnText.textContent = showAllSchoolsState ? 'Thu gọn' : 'Xem thêm';
+        chartsRendered = false;
+        renderAdmissionCharts();
+    }
 
     function renderAdmissionCharts() {
         if (chartsRendered || typeof Chart === 'undefined') return;
         
+        // Destroy existing chart instances
+        Object.values(chartInstances).forEach(inst => { if (inst) inst.destroy(); });
+        chartInstances = {};
+
+        // Custom inline plugin for pie/doughnut datalabels
+        const customDatalabelsPlugin = {
+            id: 'customDatalabels',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (meta.hidden) return;
+                    
+                    const total = dataset.data.reduce((sum, val) => sum + parseFloat(val || 0), 0);
+                    if (total === 0) return;
+
+                    meta.data.forEach((element, index) => {
+                        const value = dataset.data[index];
+                        if (!value || value <= 0) return;
+                        
+                        const percent = Math.round((value / total) * 100);
+                        const midAngle = element.startAngle + (element.endAngle - element.startAngle) / 2;
+                        const radius = element.innerRadius + (element.outerRadius - element.innerRadius) / 2;
+                        
+                        const x = element.x + Math.cos(midAngle) * radius;
+                        const y = element.y + Math.sin(midAngle) * radius;
+                        
+                        ctx.save();
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                        ctx.shadowBlur = 3;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        
+                        const angle = element.endAngle - element.startAngle;
+                        if (angle > 0.15) {
+                            ctx.fillText(`${value}`, x, y - 5);
+                            ctx.fillText(`${percent}%`, x, y + 5);
+                        }
+                        ctx.restore();
+                    });
+                });
+            }
+        };
+
+        // Custom plugin for major fill bar values
+        const majorDatalabelsPlugin = {
+            id: 'majorDatalabels',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                const dataset = chart.data.datasets[0];
+                if (!dataset) return;
+
+                const meta = chart.getDatasetMeta(0);
+                if (meta.hidden) return;
+
+                meta.data.forEach((element, index) => {
+                    const value = dataset.data[index];
+                    if (value === undefined || value === null || value <= 0) return;
+
+                    ctx.save();
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = 'bold 9px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(value, element.x, element.y - 3);
+                    ctx.restore();
+                });
+            }
+        };
+
+        // Custom plugin for horizontal/vertical bar values
+        const barDatalabelsPlugin = {
+            id: 'barDatalabels',
+            afterDraw: (chart) => {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (meta.hidden) return;
+
+                    meta.data.forEach((element, index) => {
+                        const value = dataset.data[index];
+                        if (value === undefined || value === null || value <= 0) return;
+                        
+                        ctx.save();
+                        ctx.fillStyle = '#475569';
+                        ctx.font = 'bold 9px sans-serif';
+                        
+                        if (chart.options.indexAxis === 'y') {
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(` ${value}`, element.x + 3, element.y);
+                        } else {
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            ctx.fillText(`${value}`, element.x, element.y - 3);
+                        }
+                        ctx.restore();
+                    });
+                });
+            }
+        };
+
         // 1. NGUYEN VONG CHART
         const ctxNv = document.getElementById('nvChart');
         if (ctxNv) {
-            nvChartInst = new Chart(ctxNv.getContext('2d'), {
+            let nv1 = chartData.nv.nv1;
+            let nv2 = chartData.nv.nv2;
+            let other = Math.max(0, chartData.nv.other);
+            chartInstances.nv = new Chart(ctxNv.getContext('2d'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['NV1', 'NV2', 'NV3', 'Khác'],
+                    labels: ['NV1', 'NV2', 'NV còn lại'],
                     datasets: [{
-                        data: [chartData.nv.nv1, chartData.nv.nv2, chartData.nv.nv3, chartData.nv.other],
-                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#94a3b8'],
+                        data: [nv1, nv2, other],
+                        backgroundColor: ['#4f46e5', '#10b981', '#94a3b8'],
                         borderWidth: 0,
                     }]
                 },
@@ -580,38 +795,31 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     plugins: {
                         legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
                     }
-                }
+                },
+                plugins: [customDatalabelsPlugin]
             });
         }
 
-        // 2. MAJOR FILL CHART
+        // 2. MAJOR FILL CHART (Tất cả các ngành)
         const ctxMajor = document.getElementById('majorFillChart');
-        if (ctxMajor) {
-            // Sort to get top filled
-            const sortedMajors = [...chartData.majors].sort((a,b) => {
-                const aPct = (a.chi_tieu > 0) ? (a.so_trung_tuyen / a.chi_tieu) : 0;
-                const bPct = (b.chi_tieu > 0) ? (b.so_trung_tuyen / b.chi_tieu) : 0;
-                return bPct - aPct;
-            }).slice(0, 15); // limit 15
-            
-            majorFillChartInst = new Chart(ctxMajor.getContext('2d'), {
+        if (ctxMajor && chartData.majors && chartData.majors.length) {
+            const sortedMajors = [...chartData.majors].sort((a,b) => a.ma_nganh.localeCompare(b.ma_nganh));
+            chartInstances.major = new Chart(ctxMajor.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: sortedMajors.map(m => m.ma_nganh),
                     datasets: [
                         {
-                            label: 'Số Trúng tuyển',
+                            label: 'Trúng tuyển (Dự kiến)',
                             data: sortedMajors.map(m => m.so_trung_tuyen),
-                            backgroundColor: '#4f46e5',
-                            borderRadius: 4,
-                            yAxisID: 'y'
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
                         },
                         {
                             label: 'Chỉ tiêu',
                             data: sortedMajors.map(m => m.chi_tieu),
-                            backgroundColor: '#cbd5e1',
-                            borderRadius: 4,
-                            yAxisID: 'y'
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 4
                         }
                     ]
                 },
@@ -631,17 +839,18 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } },
-                        y: { beginAtZero: true }
+                        y: { beginAtZero: true, grace: '5%' }
                     }
-                }
+                },
+                plugins: [majorDatalabelsPlugin]
             });
         }
         
         // 3. GENDER CHART
         const ctxGender = document.getElementById('genderChart');
-        if (ctxGender && chartData.demo.gender) {
-            new Chart(ctxGender.getContext('2d'), {
-                type: 'pie',
+        if (ctxGender && chartData.demo && chartData.demo.gender) {
+            chartInstances.gender = new Chart(ctxGender.getContext('2d'), {
+                type: 'doughnut',
                 data: {
                     labels: Object.keys(chartData.demo.gender),
                     datasets: [{
@@ -650,51 +859,76 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         borderWidth: 0,
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '65%',
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                    } 
+                },
+                plugins: [customDatalabelsPlugin]
             });
         }
 
         // 4. AREA CHART
         const ctxArea = document.getElementById('areaChart');
-        if (ctxArea && chartData.demo.area) {
-            new Chart(ctxArea.getContext('2d'), {
+        if (ctxArea && chartData.demo && chartData.demo.area) {
+            chartInstances.area = new Chart(ctxArea.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(chartData.demo.area),
                     datasets: [{
                         data: Object.values(chartData.demo.area),
-                        backgroundColor: ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'],
+                        backgroundColor: ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#64748b', '#ec4899', '#14b8a6'],
                         borderWidth: 0,
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '65%', 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                    } 
+                },
+                plugins: [customDatalabelsPlugin]
             });
         }
 
         // 5. OBJECT CHART
         const ctxObject = document.getElementById('objectChart');
-        if (ctxObject && chartData.demo.object) {
-            new Chart(ctxObject.getContext('2d'), {
-                type: 'bar',
+        if (ctxObject && chartData.demo && chartData.demo.object) {
+            chartInstances.object = new Chart(ctxObject.getContext('2d'), {
+                type: 'doughnut',
                 data: {
                     labels: Object.keys(chartData.demo.object),
                     datasets: [{
-                        label: 'Số lượng',
                         data: Object.values(chartData.demo.object),
-                        backgroundColor: '#f59e0b',
-                        borderRadius: 4,
+                        backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'],
+                        borderWidth: 0,
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '65%',
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } 
+                    } 
+                },
+                plugins: [customDatalabelsPlugin]
             });
         }
 
         // 6. PROVINCE CHART
         const ctxProv = document.getElementById('provinceChart');
-        if (ctxProv && chartData.demo.province) {
-            const topProvKeys = Object.keys(chartData.demo.province).slice(0, 10);
-            const topProvVals = Object.values(chartData.demo.province).slice(0, 10);
-            new Chart(ctxProv.getContext('2d'), {
+        if (ctxProv && chartData.demo && chartData.demo.province) {
+            const provEntries = Object.entries(chartData.demo.province).sort((a, b) => b[1] - a[1]);
+            const topProvKeys = provEntries.map(e => e[0]).slice(0, 20);
+            const topProvVals = provEntries.map(e => e[1]).slice(0, 20);
+            
+            chartInstances.province = new Chart(ctxProv.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: topProvKeys,
@@ -705,16 +939,53 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         borderRadius: 4,
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } } }, y: { beginAtZero: true } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return topProvKeys[context[0].dataIndex];
+                                }
+                            }
+                        }
+                    }, 
+                    scales: { 
+                        x: { 
+                            ticks: { 
+                                maxRotation: 45, 
+                                minRotation: 45, 
+                                font: { size: 9 },
+                                callback: function(value, index) {
+                                    const label = topProvKeys[index];
+                                    if (!label) return '';
+                                    return label.length > 15 ? label.substring(0, 15) + '...' : label;
+                                }
+                            } 
+                        }, 
+                        y: { beginAtZero: true, grace: '5%' } 
+                    } 
+                },
+                plugins: [barDatalabelsPlugin]
             });
         }
 
         // 7. SCHOOL CHART
         const ctxSchool = document.getElementById('schoolChart');
-        if (ctxSchool && chartData.demo.school) {
-            const topSchKeys = Object.keys(chartData.demo.school).slice(0, 10);
-            const topSchVals = Object.values(chartData.demo.school).slice(0, 10);
-            new Chart(ctxSchool.getContext('2d'), {
+        if (ctxSchool && chartData.demo && chartData.demo.school) {
+            const schEntries = Object.entries(chartData.demo.school).sort((a, b) => b[1] - a[1]);
+            const allSchoolsKeys = schEntries.map(e => e[0]);
+            const allSchoolsVals = schEntries.map(e => e[1]);
+            
+            const topSchKeys = showAllSchoolsState ? allSchoolsKeys : allSchoolsKeys.slice(0, 20);
+            const topSchVals = showAllSchoolsState ? allSchoolsVals : allSchoolsVals.slice(0, 20);
+
+            const container = ctxSchool.parentElement;
+            if (container) container.style.height = Math.max(256, (topSchKeys.length * 22 + 50)) + 'px';
+
+            chartInstances.school = new Chart(ctxSchool.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: topSchKeys,
@@ -748,46 +1019,142 @@ const REVIEW_URL = '<?= url("/admin/review") ?>';
 const BULK_EMAIL_URL = '<?= url("/admin/admission/results/bulk-email") ?>';
 const CSRF_TOKEN = '<?= csrf_token() ?>';
 
-// Init
-document.addEventListener('DOMContentLoaded', function() {
-    reloadTable();
-    document.getElementById('searchInput').addEventListener('input', function() {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => { currentPage = 0; reloadTable(); }, 350);
+function toTitleCase(str) {
+    if (!str) return '';
+    return str.toLowerCase().replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+}
+
+// Column Configuration Registry
+const allCols = [
+    { key: 'cb', label: 'Chọn', fixed: true },
+    { key: 'stt', label: 'STT', fixed: true },
+    { key: 'cccd', label: 'CCCD', fixed: true },
+    { key: 'ho_ten', label: 'Họ và Tên', fixed: true },
+    { key: 'ma_nganh', label: 'Mã ngành', fixed: true },
+    { key: 'ten_nganh', label: 'Tên ngành', fixed: true },
+    { key: 'diem_xt', label: 'Điểm XT', fixed: true },
+    { key: 'gioi_tinh', label: 'Giới tính' },
+    { key: 'dan_toc', label: 'Dân tộc' },
+    { key: 'ten_truong_thpt', label: 'Trường THPT' },
+    { key: 'ten_tinh', label: 'Tỉnh / Thành' },
+    { key: 'nam_tot_nghiep', label: 'Năm TN' },
+    { key: 'hoc_luc_12', label: 'Học lực 12' },
+    { key: 'hanh_kiem_12', label: 'Hạnh kiểm 12' },
+    { key: 'diem_tb_12', label: 'ĐTB Lớp 12' },
+    { key: 'dia_chi_chi_tiet', label: 'Địa chỉ' },
+    { key: 'so_giay_bao', label: 'Số GB' },
+    { key: 'file_giay_bao', label: 'File Giấy Báo' },
+    { key: 'thoi_gian_nhap', label: 'T/g Nhập học' },
+    { key: 'nganh_tt', label: 'Ngành in GB' },
+    { key: 'ten_khoa', label: 'Khoa' },
+    { key: 'anh_the', label: 'Ảnh thẻ' },
+    { key: 'xn_bo', label: 'Xác nhận Bộ' },
+    { key: 'xn_truong', label: 'Xác nhận Trường' },
+    { key: 'khu_vuc', label: 'Khu vực' },
+    { key: 'doi_tuong', label: 'Đối tượng UT' },
+    { key: 'to_hop', label: 'Tổ hợp' },
+    { key: 'phuong_thuc', label: 'Phương thức' },
+    { key: 'mon1', label: 'Môn 1' },
+    { key: 'mon2', label: 'Môn 2' },
+    { key: 'mon3', label: 'Môn 3' },
+    { key: 'diem_ut', label: 'Điểm UT (Thô)' },
+    { key: 'ut_quy_doi', label: 'Điểm UT Quy đổi' },
+    { key: 'kinh_phi', label: 'Nội dung Kinh phí' },
+    { key: 'ket_qua', label: 'Kết quả' },
+    { key: 'ghi_chu', label: 'Ghi chú' }
+];
+
+let colsConfig = JSON.parse(localStorage.getItem('results_cols_config_v3') || '{}');
+
+function isColVisible(key) {
+    if (colsConfig[key] !== undefined) return colsConfig[key];
+    // Default hidden optional columns
+    const defaultHidden = ['nganh_tt', 'ten_khoa', 'phuong_thuc', 'mon1', 'mon2', 'mon3', 'diem_ut', 'ut_quy_doi', 'kinh_phi', 'gioi_tinh', 'dan_toc', 'ten_truong_thpt', 'ten_tinh', 'nam_tot_nghiep', 'hoc_luc_12', 'hanh_kiem_12', 'diem_tb_12', 'dia_chi_chi_tiet'];
+    return !defaultHidden.includes(key);
+}
+
+function toggleCol(key) {
+    colsConfig[key] = !isColVisible(key);
+    localStorage.setItem('results_cols_config_v3', JSON.stringify(colsConfig));
+    applyColumnVisibility();
+    renderColConfigUI();
+}
+
+function resetColumnConfig() {
+    colsConfig = {};
+    localStorage.removeItem('results_cols_config_v3');
+    applyColumnVisibility();
+    renderColConfigUI();
+}
+
+function renderColConfigUI() {
+    const container = document.getElementById('colConfigList');
+    if (!container) return;
+    let html = '';
+    allCols.forEach(c => {
+        const checked = isColVisible(c.key) ? 'checked' : '';
+        const disabled = c.fixed ? 'disabled' : '';
+        html += `<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer select-none">
+            <input type="checkbox" ${checked} ${disabled} onchange="toggleCol('${c.key}')" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
+            <span class="text-xs font-semibold ${c.fixed ? 'text-slate-400' : 'text-slate-700'}">${c.label} ${c.fixed ? '(Cố định)' : ''}</span>
+        </label>`;
     });
-});
-
-function changeSession(sessionId) {
-    window.location.href = '<?= $baseUrl ?>?session_id=' + sessionId;
+    container.innerHTML = html;
 }
 
-function filterByMajor(code) {
-    document.getElementById('majorFilter').value = code;
-    currentPage = 0;
-    reloadTable();
-    // Scroll to table
-    document.getElementById('resultsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+function applyColumnVisibility() {
+    allCols.forEach(c => {
+        const visible = isColVisible(c.key);
+        document.querySelectorAll(`[data-col="${c.key}"]`).forEach(el => {
+            if (visible) {
+                el.style.removeProperty('display');
+            } else {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+    });
 }
 
-function toggleMajorStats() {
-    const panel = document.getElementById('majorStatsPanel');
-    const icon = document.getElementById('majorStatsIcon');
-    panel.classList.toggle('hidden');
-    icon.style.transform = panel.classList.contains('hidden') ? '' : 'rotate(180deg)';
+// Debounce helper for column search
+let colSearchTimer = null;
+function debouncedReloadTable() {
+    clearTimeout(colSearchTimer);
+    colSearchTimer = setTimeout(() => {
+        currentPage = 0;
+        reloadTable();
+    }, 300);
 }
 
 function reloadTable() {
     drawCounter++;
     pageLength = parseInt(document.getElementById('pageLengthSelect').value) || 10;
-    const search = document.getElementById('searchInput').value;
-    const major = document.getElementById('majorFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const showAll = document.getElementById('showAllCheck').checked ? '1' : '0';
+    const search = document.getElementById('searchInput')?.value || '';
+    const major = document.getElementById('majorFilter')?.value || '';
     const start = currentPage * pageLength;
+
+    // Column search filters
+    const colCccd = document.getElementById('col_filter_cccd')?.value || '';
+    const colName = document.getElementById('col_filter_name')?.value || '';
+    const colMa = document.getElementById('col_filter_ma')?.value || '';
+    const colTenNganh = document.getElementById('col_filter_ten_nganh')?.value || '';
+    const colDiem = document.getElementById('col_filter_diem')?.value || '';
+    const colGb = document.getElementById('col_filter_gb')?.value || '';
+    const colNote = document.getElementById('col_filter_note')?.value || '';
+    const colXnBo = document.getElementById('col_filter_xn_bo')?.value || '';
+    const colXnTruong = document.getElementById('col_filter_xn_truong')?.value || '';
 
     const params = new URLSearchParams({
         draw: drawCounter, start, length: pageLength, search,
-        session_id: SESSION_ID, major, status, show_all: showAll
+        session_id: SESSION_ID, major,
+        col_cccd: colCccd,
+        col_name: colName,
+        col_ma_nganh: colMa,
+        col_ten_nganh: colTenNganh,
+        col_diem: colDiem,
+        col_gb: colGb,
+        col_note: colNote,
+        col_xn_bo: colXnBo,
+        col_xn_truong: colXnTruong
     });
 
     document.getElementById('tableInfo').textContent = 'Đang tải...';
@@ -800,16 +1167,17 @@ function reloadTable() {
             renderTable(data.data, start);
             renderPagination();
             updateTableInfo(start);
+            applyColumnVisibility();
         })
         .catch(err => {
-            document.getElementById('tableBody').innerHTML = `<tr><td colspan="13" class="py-20 text-center text-rose-400 font-bold">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
+            document.getElementById('tableBody').innerHTML = `<tr><td colspan="36" class="py-20 text-center text-rose-400 font-bold">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
         });
 }
 
 function renderTable(rows, startIndex) {
     const tbody = document.getElementById('tableBody');
     if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="19" class="py-16 text-center border-b border-slate-100 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="36" class="py-16 text-center border-b border-slate-100 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
         return;
     }
 
@@ -819,36 +1187,78 @@ function renderTable(rows, startIndex) {
         const details = row.chi_tiet_diem || {};
         const checked = selectedIds.has(row.id) ? 'checked' : '';
         const rowBg = isPass ? '' : 'bg-slate-50/50 text-slate-400';
+        
+        let avatarHtml = '<div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-300 text-[10px] font-bold mx-auto" title="Chưa có ảnh"><i class="fas fa-user"></i></div>';
+        if (row.linkanh) {
+            let imgUrl = row.linkanh.startsWith('http') ? row.linkanh : ('<?= url('/') ?>/' + (row.linkanh.startsWith('/') ? row.linkanh.substring(1) : row.linkanh));
+            avatarHtml = `<a href="${imgUrl}" target="_blank" title="Click xem ảnh thẻ" class="block w-7 h-7 rounded-full overflow-hidden border border-slate-200 shadow-sm mx-auto group relative hover:scale-125 transition-transform bg-slate-100">
+                <img src="${imgUrl}" class="w-full h-full object-cover" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-[9px]\\'><i class=\\'fas fa-user-slash\\'></i></div>';">
+            </a>`;
+        }
 
-        html += `<tr class="${rowBg} hover:bg-slate-50 transition-colors">
-            <td class="text-center">
-                <input type="checkbox" class="rowCheck w-3.5 h-3.5"
-                    data-id="${row.id}" ${checked} onchange="toggleRowSelect(${row.id}, this.checked)">
+        let fileGiayBaoHtml = '<span class="text-slate-300 text-[10px]">-</span>';
+        if (row.file_giay_bao) {
+            let fileUrl = row.file_giay_bao.startsWith('http') ? row.file_giay_bao : ('<?= url('/') ?>/' + (row.file_giay_bao.startsWith('/') ? row.file_giay_bao.substring(1) : row.file_giay_bao));
+            fileGiayBaoHtml = `<a href="${fileUrl}" target="_blank" title="Xem file Giấy báo trúng tuyển" class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                <i class="fas fa-file-pdf"></i> Xem File
+            </a>`;
+        }
+
+        const xnBoText = (row.xac_nhan_bo == 1 || row.xac_nhan_bo === true || row.xac_nhan_bo === 'true' || row.xac_nhan_nhap_hoc == 1 || row.is_confirm) ? 'Đã XN' : 'Chưa';
+        const xnTruongText = (row.xac_nhan_truong == 1 || row.xac_nhan_truong === true || row.xac_nhan_truong === 'true') ? 'Đã XN' : 'Chưa';
+
+        // UNIFIED ORDER: cb, stt, cccd, ho_ten, ma_nganh, ten_nganh, diem_xt, gioi_tinh, dan_toc, ten_truong_thpt, ten_tinh, nam_tot_nghiep, hoc_luc_12, hanh_kiem_12, diem_tb_12, dia_chi_chi_tiet, so_giay_bao, file_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, anh_the, xn_bo, xn_truong, khu_vuc, doi_tuong, to_hop, phuong_thuc, mon1, mon2, mon3, diem_ut, ut_quy_doi, kinh_phi, ket_qua, ghi_chu
+        html += `<tr class="${rowBg} hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+            <td class="text-center" data-col="cb">
+                <input type="checkbox" class="rowCheck w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" data-id="${row.id}" ${checked} onchange="toggleRowSelect(${row.id}, this.checked)">
             </td>
-            <td class="text-center text-slate-400">${startIndex + i + 1}</td>
-            <td class="font-mono font-bold">${row.ma_nganh}</td>
-            <td class="max-w-[180px]">
-                <span class="truncate block font-semibold text-slate-700" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
+            <td class="text-center text-slate-600 font-normal" data-col="stt">${startIndex + i + 1}</td>
+            <td class="text-slate-600 font-normal text-center" data-col="cccd">${escHtml(row.so_cccd)}</td>
+            <td class="text-slate-700 font-normal" data-col="ho_ten">${escHtml(toTitleCase(row.ho_ten))}</td>
+            <td class="text-slate-600 font-normal text-center" data-col="ma_nganh">${escHtml(row.ma_nganh)}</td>
+            <td class="max-w-[160px] text-slate-600 font-normal" data-col="ten_nganh">
+                <span class="truncate block" title="${escHtml(row.ten_nganh)}">${escHtml(row.ten_nganh)}</span>
             </td>
-            <td class="font-mono text-slate-500">${row.so_cccd}</td>
-            <td class="font-bold text-slate-800">${escHtml(row.ho_ten)}</td>
-            <td class="text-center">${row.khu_vuc || '-'}</td>
-            <td class="text-center">${row.doi_tuong || '-'}</td>
-            <td>${escHtml(row.to_hop || '-')}</td>
-            <td class="max-w-[120px]">
-                <span class="truncate block text-slate-500 text-[10px]" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
+            <td class="text-center text-slate-700 font-normal" data-col="diem_xt">${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="gioi_tinh">${escHtml(row.gioi_tinh || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="dan_toc">${escHtml(row.dan_toc || '-')}</td>
+            <td class="max-w-[160px] text-slate-600 font-normal" data-col="ten_truong_thpt">
+                <span class="truncate block" title="${escHtml(row.ten_truong_thpt || row.ma_truong_lop_12 || '')}">${escHtml(row.ten_truong_thpt || row.ma_truong_lop_12 || '-')}</span>
             </td>
-            <td class="text-center">${fmt3(row.diem_mon_1)}</td>
-            <td class="text-center">${fmt3(row.diem_mon_2)}</td>
-            <td class="text-center">${fmt3(row.diem_mon_3)}</td>
-            <td class="text-center font-medium">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
-            <td class="text-center font-black text-emerald-600 bg-emerald-50/20">${row.diem_xt != null ? parseFloat(row.diem_xt).toFixed(2) : '-'}</td>
-            <td class="text-center">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">Đỗ</span>
+            <td class="max-w-[120px] text-slate-600 font-normal" data-col="ten_tinh">
+                <span class="truncate block" title="${escHtml(row.ten_tinh || row.ma_tinh_lop_12 || '')}">${escHtml(row.ten_tinh || row.ma_tinh_lop_12 || '-')}</span>
             </td>
-            <td>
-                ${escHtml(row.ghi_chu || '')}
+            <td class="text-center text-slate-600 font-normal" data-col="nam_tot_nghiep">${escHtml(row.nam_tot_nghiep || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="hoc_luc_12">${escHtml(row.hoc_luc_12 || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="hanh_kiem_12">${escHtml(row.hanh_kiem_12 || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="diem_tb_12">${row.diem_tb_12 != null ? parseFloat(row.diem_tb_12).toFixed(2) : '-'}</td>
+            <td class="max-w-[180px] text-slate-600 font-normal" data-col="dia_chi_chi_tiet">
+                <span class="truncate block" title="${escHtml(row.dia_chi_chi_tiet || '')}">${escHtml(row.dia_chi_chi_tiet || '-')}</span>
             </td>
+            <td class="text-slate-600 font-normal text-center" data-col="so_giay_bao">${escHtml(row.so_giay_bao || '-')}</td>
+            <td class="text-center" data-col="file_giay_bao">${fileGiayBaoHtml}</td>
+            <td class="text-slate-600 font-normal text-center" data-col="thoi_gian_nhap">${escHtml(row.thoi_gian_nhap || '-')}</td>
+            <td class="max-w-[140px] text-slate-600 font-normal" data-col="nganh_tt">
+                <span class="truncate block" title="${escHtml(row.nganh_tt || '')}">${escHtml(row.nganh_tt || '-')}</span>
+            </td>
+            <td class="text-slate-600 font-normal" data-col="ten_khoa">${escHtml(row.ten_khoa || '-')}</td>
+            <td class="text-center" data-col="anh_the">${avatarHtml}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="xn_bo">${xnBoText}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="xn_truong">${xnTruongText}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="khu_vuc">${escHtml(row.khu_vuc || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="doi_tuong">${escHtml(row.doi_tuong || '-')}</td>
+            <td class="text-slate-600 font-normal text-center" data-col="to_hop">${escHtml(row.to_hop || '-')}</td>
+            <td class="max-w-[120px] text-slate-600 font-normal" data-col="phuong_thuc">
+                <span class="truncate block" title="${escHtml(row.phuong_thuc || '')}">${escHtml(row.phuong_thuc || '-')}</span>
+            </td>
+            <td class="text-center text-slate-600 font-normal" data-col="mon1">${fmt3(row.diem_mon_1)}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="mon2">${fmt3(row.diem_mon_2)}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="mon3">${fmt3(row.diem_mon_3)}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="diem_ut">${row.diem_ut != null && parseFloat(row.diem_ut) > 0 ? '+' + parseFloat(row.diem_ut).toFixed(2) : '-'}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="ut_quy_doi">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
+            <td class="max-w-[150px] text-slate-600 font-normal truncate" data-col="kinh_phi" title="${escHtml(row.kinh_phi || '')}">${escHtml(row.kinh_phi || '-')}</td>
+            <td class="text-center text-slate-600 font-normal" data-col="ket_qua">${isPass ? 'Đỗ' : 'Trượt'}</td>
+            <td class="text-slate-600 font-normal max-w-[120px] truncate" data-col="ghi_chu">${escHtml(row.ghi_chu || '')}</td>
         </tr>`;
     });
     tbody.innerHTML = html;
@@ -914,12 +1324,31 @@ function toggleSelectAll(checked) {
 
 function updateSelectedCount() {
     const el = document.getElementById('selectedCount');
-    if (selectedIds.size > 0) {
-        el.textContent = `${selectedIds.size} đã chọn`;
-        el.classList.remove('hidden');
-    } else {
-        el.classList.add('hidden');
+    const badgeBottom = document.getElementById('selectedCountBadgeBottom');
+    const textBottom = document.getElementById('selectedCountTextBottom');
+
+    const count = selectedIds.size;
+    if (el) {
+        if (count > 0) {
+            el.textContent = `${count} đã chọn`;
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
     }
+    if (badgeBottom && textBottom) {
+        textBottom.textContent = count;
+        if (count > 0) {
+            badgeBottom.classList.remove('hidden');
+        } else {
+            badgeBottom.classList.add('hidden');
+        }
+    }
+}
+
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('hidden');
 }
 
 function closeModal(id) {
@@ -1043,20 +1472,56 @@ function openTemplateModal() {
         setTimeout(initEditor, 100);
     }
     
-    // Fetch template
-        fetch('<?= url("/admin/admission/results/get-template") ?>?session_id=' + SESSION_ID)
-        .then(r => r.json())
-        .then(data => {
-            if (data.success && data.template) {
+    // Fetch template & Library
+    fetch('<?= url("/admin/admission/results/get-template") ?>?session_id=' + SESSION_ID)
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Populate library select dropdown
+            if (data.all_templates && Array.isArray(data.all_templates)) {
+                libraryTemplates = data.all_templates;
+                const sel = document.getElementById('template-library-select');
+                if (sel) {
+                    let html = '<option value="">-- Nạp từ Thư viện Mẫu có sẵn (Click để chọn) --</option>';
+                    data.all_templates.forEach(t => {
+                        const activeMark = (data.template && data.template.id == t.id) ? ' (Đang dùng)' : '';
+                        html += `<option value="${t.id}">${t.subject || t.code}${activeMark}</option>`;
+                    });
+                    sel.innerHTML = html;
+                }
+            }
+
+            if (data.template) {
                 document.getElementById('template-subject').value = data.template.subject || '';
+                if (data.template.id) {
+                    const sel = document.getElementById('template-library-select');
+                    if (sel) sel.value = data.template.id;
+                }
                 if (editorInstance) {
                     editorInstance.setData(data.template.body || '');
                 } else {
                     document.getElementById('template-editor').value = data.template.body || '';
                 }
             }
-        })
-        .catch(err => console.error(err));
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+let libraryTemplates = [];
+
+function loadLibraryTemplate(tplId) {
+    if (!tplId) return;
+    const found = libraryTemplates.find(t => t.id == tplId);
+    if (found) {
+        document.getElementById('template-subject').value = found.subject || '';
+        const editor = (typeof CKEDITOR !== 'undefined') ? CKEDITOR.instances['template-editor'] : editorInstance;
+        if (editor) {
+            editor.setData(found.body || '');
+        } else {
+            document.getElementById('template-editor').value = found.body || '';
+        }
+    }
 }
 
 function insertTemplateVar(variable) {
@@ -1138,7 +1603,7 @@ function submitModalImport() {
         <!-- Header -->
         <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
             <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <i class="fas fa-file-signature text-purple-500"></i> Mẫu Giấy Báo Trúng Tuyển
+                <i class="fas fa-file-alt text-purple-600"></i> Mẫu Thông Báo / Giấy Báo Trúng Tuyển (Công Bố & Tra Cứu)
             </h3>
             <button type="button" onclick="closeModal('template-modal')" class="text-slate-400 hover:text-slate-600 transition-colors bg-white rounded-full p-1.5 shadow-sm hover:shadow">
                 <i class="fas fa-times text-lg"></i>
@@ -1147,23 +1612,62 @@ function submitModalImport() {
         
         <!-- Body -->
         <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div class="mb-4 p-3 bg-purple-50/80 border border-purple-100 rounded-xl text-xs text-purple-900 space-y-1">
+                <p class="font-bold flex items-center gap-1.5"><i class="fas fa-bullhorn text-purple-600"></i> Mẫu thông tin dùng cho Công bố Trúng tuyển đợt này</p>
+                <p class="text-purple-800 leading-relaxed">
+                    Mẫu thông tin (giao diện, nội dung HTML) này được liên kết riêng với <b>Đợt tuyển sinh đang chọn</b> để hiển thị khi thí sinh tra cứu trúng tuyển trực tuyến và gửi thông báo.
+                </p>
+            </div>
+
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Tiêu đề (Email / Thông báo)</label>
+                <label class="block text-sm font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span><i class="fas fa-layer-group text-purple-600 mr-1"></i> Chọn mẫu sẵn có từ Thư viện Mẫu</span>
+                    <a href="<?= url('/admin/settings/email-templates') ?>" target="_blank" class="text-xs font-bold text-purple-600 hover:text-purple-800 hover:underline flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                        <i class="fas fa-external-link-alt text-[10px]"></i> Quản lý Thư viện Mẫu
+                    </a>
+                </label>
+                <select id="template-library-select" onchange="loadLibraryTemplate(this.value)" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-purple-500 focus:ring-purple-500 text-xs py-2 bg-slate-50 font-medium">
+                    <option value="">-- Đang nạp danh sách mẫu... --</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="template-subject" class="block text-sm font-semibold text-slate-700 mb-1">Tiêu đề Giấy Báo / Thông báo</label>
                 <input type="text" id="template-subject" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-purple-500 focus:ring-purple-500">
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Các biến (Click để chèn)</label>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" onclick="insertTemplateVar('{{HOTEN}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Họ tên</button>
-                    <button type="button" onclick="insertTemplateVar('{{CCCD}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">CCCD</button>
-                    <button type="button" onclick="insertTemplateVar('{{NGAYSINH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Ngày sinh</button>
-                    <button type="button" onclick="insertTemplateVar('{{SBD}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">SBD</button>
-                    <button type="button" onclick="insertTemplateVar('{{NGANH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Ngành trúng tuyển</button>
-                    <button type="button" onclick="insertTemplateVar('{{MANGANH}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Mã ngành</button>
-                    <button type="button" onclick="insertTemplateVar('{{DIEMXT}}')" class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-xs hover:bg-slate-200">Điểm xét tuyển</button>
-                    <button type="button" onclick="insertTemplateVar('{{QR_ThanhToan}}')" class="px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded text-xs hover:bg-blue-100"><i class="fas fa-qrcode"></i> Mã QR Thanh Toán</button>
-                    <button type="button" onclick="insertTemplateVar('{{QR_CCCD}}')" class="px-2 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded text-xs hover:bg-purple-100"><i class="fas fa-qrcode"></i> Mã QR CCCD</button>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Các biến động (Click để chèn vào vị trí con trỏ)</label>
+                <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs">
+                    <div>
+                        <span class="font-bold text-slate-700 mr-2">👤 Cá nhân:</span>
+                        <button type="button" onclick="insertTemplateVar('{{HOTEN}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">Họ tên {{HOTEN}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{CCCD}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">CCCD {{CCCD}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{NGAYSINH}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">Ngày sinh {{NGAYSINH}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{SBD}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">SBD {{SBD}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{EMAIL}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">Email {{EMAIL}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{SDT}}')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-purple-50 hover:text-purple-700 font-mono">SĐT {{SDT}}</button>
+                    </div>
+                    <div>
+                        <span class="font-bold text-amber-800 mr-2">📜 Giấy Báo:</span>
+                        <button type="button" onclick="insertTemplateVar('{{SOGIAYBAO}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">Số Giấy báo {{SOGIAYBAO}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{THOIGIANNHAP}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">T/g Nhập học {{THOIGIANNHAP}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{NGANH_TT}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">Ngành trúng tuyển {{NGANH_TT}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{KHOA}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">Khoa {{KHOA}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{KINHPHI}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">Nội dung thu {{KINHPHI}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{LINKGIAYBAO}}')" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 rounded hover:bg-amber-100 font-mono">Link Ảnh Giấy báo {{LINKGIAYBAO}}</button>
+                    </div>
+                    <div>
+                        <span class="font-bold text-blue-800 mr-2">💳 Học phí & QR:</span>
+                        <button type="button" onclick="insertTemplateVar('{{SOTK}}')" class="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded hover:bg-blue-100 font-mono">Số TK {{SOTK}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{NGANHANG}}')" class="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded hover:bg-blue-100 font-mono">Ngân hàng {{NGANHANG}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{SOTIEN}}')" class="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded hover:bg-blue-100 font-mono">Số tiền {{SOTIEN}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{NOIDUNG}}')" class="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-800 rounded hover:bg-blue-100 font-mono">Cú pháp CK {{NOIDUNG}}</button>
+                        <button type="button" onclick="insertTemplateVar('{{QR_ThanhToan}}')" class="px-2 py-0.5 bg-blue-100 border border-blue-300 text-blue-900 font-bold rounded hover:bg-blue-200"><i class="fas fa-qrcode"></i> QR Thanh Toán</button>
+                    <div>
+                        <span class="font-bold text-emerald-800 mr-2">🚀 Tiến Trình 6 Bước:</span>
+                        <button type="button" onclick="insertTemplateVar('{{THANH_TIEN_DO_6_BUOC}}')" class="px-2.5 py-0.5 bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold rounded hover:bg-emerald-200"><i class="fas fa-route"></i> Thanh Tiến Độ 6 Bước {{THANH_TIEN_DO_6_BUOC}}</button>
+                    </div>
                 </div>
             </div>
             
@@ -1224,26 +1728,15 @@ function submitModalImport() {
                 </div>
             </div>
 
-            <!-- List of columns instruction -->
-            <div class="mb-6">
-                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Các trường thông tin hỗ trợ</h5>
-                <div class="bg-slate-50 border border-slate-200/60 rounded-xl p-3 max-h-[140px] overflow-y-auto custom-scrollbar text-xs space-y-1.5">
-                    <p class="text-slate-600"><span class="font-bold text-red-600">* CCCD, Email:</span> Trường dữ liệu bắt buộc để liên kết hồ sơ và gửi thông báo.</p>
-                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin cá nhân:</span> HoTen, NgaySinh, SBD, KV, DoiTuong, SDT, GhiChu.</p>
-                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin điểm & nguyện vọng:</span> ToHop, DM1, DM2, DM3, DiemToHop, DiemUT, UTQ, DiemXT, MaNganh, Nganh, PhuongThuc.</p>
-                    <p class="text-slate-600"><span class="font-bold text-slate-700">Thông tin học phí (VietQR):</span> SOTK, NGANHANG, SOTIEN, NOIDUNG.</p>
-                    <p class="text-slate-600"><span class="font-bold text-indigo-700">Thông tin Giấy báo nhập học:</span> SOGIAYBAO, THOIGIANNHAP, KINHPHI, KHOAhoc, Linkanh.</p>
-                </div>
-            </div>
-
             <!-- Upload form -->
             <form action="<?= url('/admin/admission/results/import') ?>" method="POST" enctype="multipart/form-data" id="modalImportForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                <input type="hidden" name="update_existing" value="1">
                 
                 <div class="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer transition-all hover:bg-blue-50/10 group relative"
                      onclick="document.getElementById('modal-excel-file').click();">
-                    <input type="file" name="excel_file" id="modal-excel-file" class="hidden" accept=".xls,.xlsx" 
+                    <input type="file" name="excel_file" id="modal-excel-file" aria-label="Chọn file Excel để nhập kết quả" class="hidden" accept=".xls,.xlsx" 
                            onchange="handleFileSelect(this)">
                     <div class="flex flex-col items-center justify-center">
                         <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -1269,10 +1762,316 @@ function submitModalImport() {
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- MODAL: IMPORT & ĐỒNG BỘ ẢNH THẺ (ZIP / DRIVE) -->
+<!-- ========================================================================= -->
+<div id="upload-avatar-modal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('upload-avatar-modal')"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl relative z-10 animate-fade-in-up overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-images text-violet-600"></i> Import & Đồng Bộ Ảnh Thẻ Thí Sinh
+            </h3>
+            <button type="button" onclick="closeModal('upload-avatar-modal')" class="text-slate-400 hover:text-slate-600 transition-colors bg-white rounded-full p-1.5 shadow-sm hover:shadow">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-5">
+            <div class="p-3.5 bg-violet-50/80 border border-violet-100 rounded-xl text-xs text-violet-800 space-y-1">
+                <p class="font-bold flex items-center gap-1.5"><i class="fas fa-info-circle"></i> Cơ chế đồng bộ Thư mục Google Drive của Thí sinh</p>
+                <p class="text-violet-700/90 leading-relaxed">
+                    Hệ thống giải nén file ZIP, tự động tối ưu hóa kích thước ảnh (3x4), lưu vào đúng <b>Thư mục Google Drive cá nhân của từng thí sinh</b> (<code class="bg-white px-1 py-0.5 rounded font-mono font-bold text-violet-900">&lt;Root&gt;/&lt;Đợt&gt;/&lt;CCCD&gt;/</code>) và cập nhật đường dẫn đồng bộ sang Hồ sơ thí sinh & Tài khoản đăng nhập.
+                </p>
+            </div>
+
+            <!-- ZIP Upload Form -->
+            <form action="<?= url('/admin/admission/results/import-avatars') ?>" method="POST" enctype="multipart/form-data" id="modalAvatarZipForm" onsubmit="document.getElementById('btnSubmitAvatarZip').disabled=true; document.getElementById('btnSubmitAvatarZip').innerHTML='<i class=\\'fas fa-spinner fa-spin\\'></i> Đang xử lý...';">
+                <?= csrf_field() ?>
+                <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                
+                <div class="mb-3">
+                    <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" name="overwrite" value="1" checked class="rounded border-slate-300 text-violet-600 focus:ring-violet-400">
+                        <span>Ghi đè nếu thí sinh đã có ảnh thẻ trong hệ thống</span>
+                    </label>
+                </div>
+
+                <div class="border-2 border-dashed border-slate-200 hover:border-violet-500 rounded-2xl p-5 text-center cursor-pointer transition-all hover:bg-violet-50/10 group relative mb-4"
+                     onclick="document.getElementById('modal-zip-file').click();">
+                    <input type="file" name="zip_file" id="modal-zip-file" aria-label="Chọn file ZIP ảnh thẻ" class="hidden" accept=".zip" 
+                           onchange="handleAvatarZipSelect(this)">
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="w-10 h-10 bg-violet-50 text-violet-500 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-file-archive text-lg"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-700 mb-1" id="zip-status-text">Kéo thả hoặc click để chọn file .ZIP ảnh thẻ từ Bộ</p>
+                        <p class="text-[11px] text-slate-400" id="zip-file-info">Tên ảnh dạng &lt;CCCD&gt;.jpg (Chấp nhận định dạng .zip)</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('upload-avatar-modal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors">
+                        Đóng
+                    </button>
+                    <button type="submit" id="btnSubmitAvatarZip" disabled class="px-5 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:pointer-events-none rounded-xl shadow-sm shadow-violet-600/20 transition-all active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Import Ảnh Thẻ ZIP</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Drive Sync Form -->
+            <div class="pt-4 border-t border-slate-100">
+                <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                    <div>
+                        <h5 class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                            <i class="fab fa-google-drive text-indigo-600"></i> Quét Tự Động Thư Mục Google Drive
+                        </h5>
+                        <p class="text-[11px] text-indigo-700/80 leading-tight mt-0.5">Tự động tìm file ảnh trong các thư mục hồ sơ thí sinh đã có sẵn trên Google Drive để quét và đồng bộ.</p>
+                    </div>
+                    <form action="<?= url('/admin/admission/results/sync-drive-avatars') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét và đồng bộ tự động từ thư mục Google Drive của từng thí sinh không?');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                        <button type="submit" class="px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-1.5">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Quét & Đồng Bộ</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: IN GIẤY BÁO TRÚNG TUYỂN WORD -->
+<!-- ========================================================================= -->
+<div id="modal-print-giay-bao-word" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                <i class="fas fa-file-word text-emerald-600 text-lg"></i>
+                <span>In Giấy Báo Trúng Tuyển (Word)</span>
+            </h3>
+            <button onclick="closeModal('modal-print-giay-bao-word')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <!-- Selected Info -->
+            <div id="print-word-selected-info" class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-700 font-medium flex items-center gap-2">
+                <i class="fas fa-info-circle text-indigo-500"></i>
+                <span id="print-word-selected-text">Chưa chọn thí sinh nào trong danh sách.</span>
+            </div>
+
+            <!-- Template selection -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Chọn mẫu file Word (.docx) *</label>
+                <select id="select-giay-bao-template" class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                    <option value="">-- Đang tải danh sách mẫu... --</option>
+                </select>
+                <div class="mt-1 text-right">
+                    <a href="<?= url('/admin/phieu/templates') ?>" target="_blank" class="text-xs text-emerald-600 hover:underline">Quản lý mẫu Word →</a>
+                </div>
+            </div>
+
+            <!-- Option if no checkboxes selected -->
+            <div id="print-word-scope-option" class="space-y-2">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Phạm vi in *</label>
+                <div class="space-y-1.5 text-sm">
+                    <label class="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                        <input type="radio" name="print_scope" value="selected" id="radio-scope-selected" class="text-emerald-600">
+                        <span>Chỉ thí sinh được tích chọn (<strong id="count-selected-scope">0</strong>)</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                        <input type="radio" name="print_scope" value="page" id="radio-scope-page" checked class="text-emerald-600">
+                        <span>Tất cả thí sinh đang hiển thị trang này</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+            <button type="button" onclick="closeModal('modal-print-giay-bao-word')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50">
+                Hủy
+            </button>
+            <button type="button" onclick="submitPrintGiayBaoWord()" class="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm shadow-emerald-600/20 flex items-center gap-2">
+                <i class="fas fa-download"></i>
+                <span>Xuất File Word</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function openPrintGiayBaoWordModal() {
+    const modal = document.getElementById('modal-print-giay-bao-word');
+    modal.classList.remove('hidden');
+
+    const selectedCount = selectedIds ? selectedIds.size : 0;
+    const infoText = document.getElementById('print-word-selected-text');
+    const radioSelected = document.getElementById('radio-scope-selected');
+    const radioPage = document.getElementById('radio-scope-page');
+    document.getElementById('count-selected-scope').textContent = selectedCount;
+
+    if (selectedCount > 0) {
+        infoText.innerHTML = `Đã chọn <strong>${selectedCount}</strong> thí sinh từ bảng.`;
+        radioSelected.checked = true;
+    } else {
+        infoText.innerHTML = `Chưa tích chọn thí sinh nào. Sẽ in cho danh sách trang hiện tại.`;
+        radioPage.checked = true;
+    }
+
+    // Load templates
+    const select = document.getElementById('select-giay-bao-template');
+    select.innerHTML = '<option value="">-- Đang tải danh sách mẫu... --</option>';
+    try {
+        const res = await fetch('<?= url("/admin/phieu/list") ?>?loai=giay_bao_trung_tuyen');
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+            select.innerHTML = data.data.map(t => `<option value="${t.id}">${t.ten_mau}</option>`).join('');
+        } else {
+            select.innerHTML = '<option value="">(Chưa có mẫu Giấy Báo Trúng Tuyển nào)</option>';
+        }
+    } catch (e) {
+        select.innerHTML = '<option value="">Lỗi tải danh sách mẫu</option>';
+    }
+}
+
+function submitPrintGiayBaoWord() {
+    const templateId = document.getElementById('select-giay-bao-template').value;
+    if (!templateId) {
+        alert('Vui lòng chọn mẫu file Word!');
+        return;
+    }
+
+    let ids = [];
+    const scope = document.querySelector('input[name="print_scope"]:checked')?.value || 'page';
+
+    if (scope === 'selected' && selectedIds && selectedIds.size > 0) {
+        ids = Array.from(selectedIds);
+    } else {
+        // Collect current table page row IDs
+        const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            if (cb.value) ids.push(parseInt(cb.value));
+        });
+    }
+
+    if (ids.length === 0) {
+        alert('Không có thí sinh nào để in!');
+        return;
+    }
+
+    const downloadUrl = `<?= url("/admin/phieu/download") ?>?type=giay_bao&ids=${ids.join(',')}&template_id=${templateId}`;
+    window.open(downloadUrl, '_blank');
+    closeModal('modal-print-giay-bao-word');
+}
+
+
+function openUploadAvatarModal() {
+    const modal = document.getElementById('upload-avatar-modal');
+    if (modal) {
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        modal.classList.remove('hidden');
+    }
+}
+
+function handleAvatarZipSelect(input) {
+    const btn = document.getElementById('btnSubmitAvatarZip');
+    const statusText = document.getElementById('zip-status-text');
+    const fileInfo = document.getElementById('zip-file-info');
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        if (statusText) statusText.textContent = `Đã chọn: ${file.name}`;
+        if (fileInfo) fileInfo.textContent = `Dung lượng file ZIP: ${sizeMb} MB`;
+        if (btn) btn.disabled = false;
+    } else {
+        if (statusText) statusText.textContent = 'Kéo thả hoặc click để chọn file .ZIP ảnh thẻ từ Bộ';
+        if (fileInfo) fileInfo.textContent = 'Tên ảnh dạng <CCCD>.jpg (Chấp nhận định dạng .zip)';
+        if (btn) btn.disabled = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderColConfigUI();
+    applyColumnVisibility();
+    reloadTable();
+    document.getElementById('searchInput')?.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { currentPage = 0; reloadTable(); }, 350);
+    });
+    
+    // Auto download import result file if requested
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('download_result') === '1') {
+        setTimeout(() => {
+            window.location.href = '<?= url('/admin/admission/results/download-result-file') ?>';
+        }, 800);
+    }
+});
+
+function exportResultsExcel() {
+    const sessionId = document.getElementById('sessionSelector')?.value || '<?= $sessionId ?>';
+    const major = document.getElementById('majorFilter')?.value || '';
+    const search = document.getElementById('searchInput')?.value || '';
+
+    const colCccd = document.getElementById('col_filter_cccd')?.value || '';
+    const colName = document.getElementById('col_filter_name')?.value || '';
+    const colMa = document.getElementById('col_filter_ma')?.value || '';
+    const colTenNganh = document.getElementById('col_filter_ten_nganh')?.value || '';
+    const colDiem = document.getElementById('col_filter_diem')?.value || '';
+    const colGb = document.getElementById('col_filter_gb')?.value || '';
+    const colNote = document.getElementById('col_filter_note')?.value || '';
+    const colXnBo = document.getElementById('col_filter_xn_bo')?.value || '';
+    const colXnTruong = document.getElementById('col_filter_xn_truong')?.value || '';
+    
+    let exportUrl = '<?= url('/admin/admission/results/export') ?>?session_id=' + encodeURIComponent(sessionId);
+    if (major) exportUrl += '&major=' + encodeURIComponent(major);
+    if (search) exportUrl += '&search=' + encodeURIComponent(search);
+    if (colCccd) exportUrl += '&col_cccd=' + encodeURIComponent(colCccd);
+    if (colName) exportUrl += '&col_name=' + encodeURIComponent(colName);
+    if (colMa) exportUrl += '&col_ma_nganh=' + encodeURIComponent(colMa);
+    if (colTenNganh) exportUrl += '&col_ten_nganh=' + encodeURIComponent(colTenNganh);
+    if (colDiem) exportUrl += '&col_diem=' + encodeURIComponent(colDiem);
+    if (colGb) exportUrl += '&col_gb=' + encodeURIComponent(colGb);
+    if (colNote) exportUrl += '&col_note=' + encodeURIComponent(colNote);
+    if (colXnBo !== '') exportUrl += '&col_xn_bo=' + encodeURIComponent(colXnBo);
+    if (colXnTruong !== '') exportUrl += '&col_xn_truong=' + encodeURIComponent(colXnTruong);
+    
+    window.location.href = exportUrl;
+}
+</script>
+
 <style>
 .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .font-black { font-weight: 900 !important; }
+.col-filter-input, .col-filter-select {
+    width: 100%;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 6px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    color: #334155;
+}
+.col-filter-input:focus, .col-filter-select:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
 </style>
 
 <?php

@@ -851,6 +851,11 @@ ob_start();
                             <i class="fas fa-print"></i> In phiếu
                         </button>
                     </template>
+                    <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
+                        <button class="ep-btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" @click="openPrintWordModal()" id="btn-print-word">
+                            <i class="fas fa-file-word"></i> In Word
+                        </button>
+                    </template>
                 </div>
             </div>
 
@@ -1118,6 +1123,34 @@ document.addEventListener('alpine:init', () => {
             window.open(`<?= url("/admin/enrollment/print") ?>?id=${this.selectedCandidate.nhap_hoc_id}`, '_blank');
         },
 
+        // ── In Word ──────────────────────────────────────────────
+        phieuTemplates: [],
+        selectedTemplateId: '',
+        isLoadingTemplates: false,
+        showPrintWordModal: false,
+
+        async openPrintWordModal() {
+            if (!this.selectedCandidate?.nhap_hoc_id) return;
+            this.showPrintWordModal = true;
+            this.isLoadingTemplates = true;
+            try {
+                const res = await fetch('<?= url("/admin/phieu/list") ?>?loai=phieu_nhap_hoc');
+                const data = await res.json();
+                this.phieuTemplates = data.success ? data.data : [];
+                if (this.phieuTemplates.length > 0) this.selectedTemplateId = this.phieuTemplates[0].id;
+            } catch { this.phieuTemplates = []; }
+            finally { this.isLoadingTemplates = false; }
+        },
+
+        closePrintWordModal() { this.showPrintWordModal = false; },
+
+        downloadPhieuWord() {
+            if (!this.selectedTemplateId) { this.showToast('Vui lòng chọn mẫu phiếu', 'error'); return; }
+            const url = `<?= url("/admin/phieu/download") ?>?type=nhap_hoc&ids=${this.selectedCandidate.nhap_hoc_id}&template_id=${this.selectedTemplateId}`;
+            window.open(url, '_blank');
+            this.closePrintWordModal();
+        },
+
         showToast(message, type = 'info') {
             const container = document.getElementById('ep-toast-container');
             if (!container) return;
@@ -1136,6 +1169,43 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 </script>
+
+<!-- ── Modal Chọn Mẫu In Word ────────────────────────────────── -->
+<div x-data="enrollmentProcess()" x-cloak>
+  <template x-if="showPrintWordModal">
+    <div class="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4" @click.self="closePrintWordModal()">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">🖨️ In Phiếu Nhập Học (Word)</h3>
+        <p class="text-sm text-gray-500 mb-4">Chọn mẫu phiếu để xuất file .docx</p>
+        <template x-if="isLoadingTemplates">
+          <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải danh sách mẫu...</div>
+        </template>
+        <template x-if="!isLoadingTemplates && phieuTemplates.length === 0">
+          <div class="text-center py-6">
+            <p class="text-gray-500 text-sm mb-3">Chưa có mẫu nào. Hãy upload mẫu trước.</p>
+            <a href="<?= url('/admin/phieu/templates') ?>" target="_blank" class="text-blue-600 underline text-sm">Quản lý mẫu phiếu →</a>
+          </div>
+        </template>
+        <template x-if="!isLoadingTemplates && phieuTemplates.length > 0">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Chọn mẫu phiếu</label>
+            <select x-model="selectedTemplateId" class="w-full border rounded-lg px-3 py-2 text-sm mb-4">
+              <template x-for="t in phieuTemplates" :key="t.id">
+                <option :value="t.id" x-text="t.ten_mau"></option>
+              </template>
+            </select>
+            <div class="flex gap-2">
+              <button @click="closePrintWordModal()" class="flex-1 px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Hủy</button>
+              <button @click="downloadPhieuWord()" class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold">
+                <i class="fas fa-download mr-1"></i> Tải xuống
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>
 
 <?php
 $content = ob_get_clean();

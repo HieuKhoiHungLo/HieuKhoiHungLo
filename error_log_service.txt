@@ -1,0 +1,5 @@
+2026-07-31 11:00:17 - recalculateBatch Error: There is already an active transaction
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(537): PDO->beginTransaction()
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(401): App\Services\ScoreCalculationService->saveScoresBulk(9, Array)
+#2 D:\xampp\htdocs\TS\scratch\test_special_exemption.php(44): App\Services\ScoreCalculationService->recalculateBatch(9, Array, true, false)
+#3 {main}

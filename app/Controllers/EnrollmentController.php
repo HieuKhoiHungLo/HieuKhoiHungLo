@@ -24,7 +24,9 @@ class EnrollmentController extends Controller {
         }
 
         // Validate permissions
-        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view')) {
+        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view') &&
+            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
+            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
             $this->redirect(url('/admin/dashboard'));
         }
 
@@ -217,7 +219,8 @@ class EnrollmentController extends Controller {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json');
         
-        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit')) {
+        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
+            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
             echo json_encode(['success' => false, 'message' => 'Không có quyền thực hiện.'], JSON_UNESCAPED_UNICODE);
             return;
         }

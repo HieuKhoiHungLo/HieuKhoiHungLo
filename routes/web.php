@@ -95,6 +95,7 @@ $router->group(['middleware' => 'rate_limit:30,1'], function ($router) {
 // Admission Letter Public Lookup (không cần đăng nhập — dùng khi email bị chặn)
 $router->get('/tra-cuu-trung-tuyen', 'AdmissionLookupController@index');
 $router->post('/tra-cuu-trung-tuyen/search', 'AdmissionLookupController@search');
+$router->post('/tra-cuu-trung-tuyen/xac-nhan-hvu', 'AdmissionLookupController@confirmHvuAdmission');
 
 // Talent Test Public Lookup
 $router->get('/tra-cuu-nang-khieu', 'TalentTestPublicController@index');
@@ -106,6 +107,12 @@ $router->group(['middleware' => 'auth'], function ($router) {
         $redirectUrl = url('/admin/dashboard');
         if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 2) {
             $redirectUrl = url('/admin/review-management');
+        } else if (!empty($_SESSION['admin_id'])) {
+            $adminModel = new \App\Models\QuanTriVien();
+            $user = $adminModel->find($_SESSION['admin_id']);
+            if ($user && \App\Models\QuanTriVien::hasPermission($user, 'enrollment.process') && !\App\Models\QuanTriVien::hasPermission($user, 'dashboard') && !\App\Models\QuanTriVien::hasPermission($user, 'stats')) {
+                $redirectUrl = url('/admin/enrollment/process');
+            }
         }
         header('Location: ' . $redirectUrl);
         exit;
@@ -261,8 +268,11 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/process', 'AdmissionController@process');
     $router->get('/admin/admission/results', 'AdmissionController@results');
     $router->get('/admin/admission/results/api', 'AdmissionController@resultsApi');
+    $router->get('/admin/admission/results/export', 'AdmissionController@exportResults');
     $router->post('/admin/admission/results/bulk-email', 'AdmissionController@bulkEmail');
     $router->post('/admin/admission/results/import', 'AdmissionController@import');
+    $router->post('/admin/admission/results/import-avatars', 'AdmissionController@importAvatarsZip');
+    $router->post('/admin/admission/results/sync-drive-avatars', 'AdmissionController@syncDriveAvatars');
     $router->post('/admin/admission/results/clear', 'AdmissionController@clearBatch');
     $router->post('/admin/admission/results/set-template', 'AdmissionController@setSessionTemplate');
     $router->post('/admin/admission/results/toggle-publish', 'AdmissionController@togglePublish');
@@ -270,6 +280,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/admission/results/get-template', 'AdmissionController@getTemplate');
     $router->post('/admin/admission/results/save-template', 'AdmissionController@saveTemplate');
     $router->get('/admin/admission/results/download-sample', 'AdmissionController@downloadSampleExcel');
+    $router->get('/admin/admission/results/download-result-file', 'AdmissionController@downloadResultFile');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 
@@ -433,9 +444,13 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     // Roles & Reports
     $router->get('/admin/roles', 'RoleController@index');
+    $router->get('/admin/roles/create', 'RoleController@index');
+    $router->post('/admin/roles/store', 'RoleController@store');
     $router->get('/admin/roles/edit', 'RoleController@edit');
     $router->post('/admin/roles/edit', 'RoleController@update');
     $router->post('/admin/roles/update', 'RoleController@update');
+    $router->get('/admin/roles/delete', 'RoleController@delete');
+    $router->post('/admin/roles/delete', 'RoleController@delete');
 
     $router->get('/admin/reports', 'ReportController@index');
     $router->get('/admin/reports/export-candidates', 'ReportController@exportCandidates');
@@ -504,6 +519,13 @@ $router->group(['middleware' => 'auth'], function ($router) {
     // New Dashboard APIs
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
     $router->get('/admin/enrollment/api/list', 'EnrollmentController@apiListEnrolled');
+
+    // ─── Phiếu In (Word Template) ────────────────────────────────────────────
+    $router->get('/admin/phieu/templates',          'PhieuController@templates');
+    $router->post('/admin/phieu/templates/upload',  'PhieuController@uploadTemplate');
+    $router->post('/admin/phieu/templates/delete',  'PhieuController@deleteTemplate');
+    $router->get('/admin/phieu/list',               'PhieuController@listTemplates');
+    $router->get('/admin/phieu/download',           'PhieuController@download');
 
     // Email Queue Management
     $router->get('/admin/email-queue', 'EmailQueueController@index');

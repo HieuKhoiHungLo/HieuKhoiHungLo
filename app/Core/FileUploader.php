@@ -304,6 +304,34 @@ class FileUploader
         }
     }
 
+    public function findFilesByQuery($query)
+    {
+        if (!$this->googleService) return [];
+
+        try {
+            $files = $this->googleService->files->listFiles([
+                'q' => $query,
+                'fields' => 'files(id, name, mimeType, size)',
+                'supportsAllDrives' => true,
+                'includeItemsFromAllDrives' => true
+            ]);
+            $result = [];
+            foreach ($files->getFiles() as $f) {
+                $result[] = [
+                    'id' => $f->id,
+                    'name' => $f->name,
+                    'mimeType' => $f->mimeType,
+                    'size' => $f->size
+                ];
+            }
+            return $result;
+        } catch (\Exception $e) {
+            $this->errors[] = "Lỗi tìm file: " . $e->getMessage();
+            return [];
+        }
+    }
+
+
     public function deleteFile($fileId)
     {
         if (!$this->googleService) return false;

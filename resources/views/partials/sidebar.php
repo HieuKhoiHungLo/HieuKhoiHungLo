@@ -23,6 +23,7 @@
             ['url' => '/admin/review', 'icon' => 'fa-user-graduate', 'label' => 'Xét duyệt Hồ sơ'],
             ['url' => '/admin/admission/benchmarks', 'icon' => 'fa-sliders-h', 'label' => 'Thiết lập Điểm chuẩn'],
             ['url' => '/admin/admission/results', 'icon' => 'fa-list-ol', 'label' => 'Kết quả Trúng tuyển'],
+            ['url' => '/admin/phieu/templates', 'icon' => 'fa-file-word', 'label' => 'Mẫu Phiếu In (Word)'],
             // ['url' => '/admin/candidates', 'icon' => 'fa-users', 'label' => 'Danh sách Thí sinh'],
             
             ['section' => 'QUẢN TRỊ HỆ THỐNG'],

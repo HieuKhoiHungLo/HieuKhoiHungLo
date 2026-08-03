@@ -298,56 +298,111 @@ class AdmissionController extends Controller {
         $length = intval($_GET['length'] ?? 50);
         $search = trim($_GET['search'] ?? '');
         $filterMajor = $_GET['major'] ?? '';
-        $filterStatus = $_GET['status'] ?? '';
-        $showAll = ($_GET['show_all'] ?? '0') === '1';
+
+        // Column-level quick search filters
+        $colCccd    = trim($_GET['col_cccd'] ?? '');
+        $colName    = trim($_GET['col_name'] ?? '');
+        $colMaNganh = trim($_GET['col_ma_nganh'] ?? '');
+        $colTenNganh= trim($_GET['col_ten_nganh'] ?? '');
+        $colDiem    = trim($_GET['col_diem'] ?? '');
+        $colGb      = trim($_GET['col_gb'] ?? '');
+        $colNote    = trim($_GET['col_note'] ?? '');
+        $colXnBo    = trim($_GET['col_xn_bo'] ?? '');
+        $colXnTruong= trim($_GET['col_xn_truong'] ?? '');
 
         if ($length < 1) $length = 50;
         if ($length > 200) $length = 200;
 
         // Base query
-        $baseFrom = "FROM ket_qua_trung_tuyen
-                     WHERE session_id = ?";
+        $baseFrom = "FROM ket_qua_trung_tuyen k
+                     LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
+                     LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
+                     LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND ts.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE)
+                     LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
+                     LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
+                     WHERE k.session_id = ?";
         $params = [$sessionId];
-
-        // Status filter (all uploaded rows in ket_qua_trung_tuyen are 'Trúng tuyển')
-        // We can just omit filtering by status unless there's a reason.
 
         // Major filter  
         if ($filterMajor) {
-            $baseFrom .= " AND ma_nganh = ?";
+            $baseFrom .= " AND k.ma_nganh = ?";
             $params[] = $filterMajor;
         }
 
-        // Search filter
-        $searchSql = "";
+        // Global search filter
         if (!empty($search)) {
-            $searchSql = " AND (ho_ten ILIKE ? OR so_cccd ILIKE ? OR ma_nganh ILIKE ? OR ten_nganh ILIKE ?)";
+            $baseFrom .= " AND (k.ho_ten ILIKE ? OR k.so_cccd ILIKE ? OR k.ma_nganh ILIKE ? OR k.ten_nganh ILIKE ? OR dthpt.ten_truong ILIKE ?)";
             $searchParam = "%{$search}%";
             $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
+            $params[] = $searchParam;
         }
 
-        // Count total (without search)
-        $paramsNoSearch = array_slice($params, 0, count($params) - ($search ? 4 : 0));
-        $stmtTotal = $db->prepare("SELECT COUNT(*) $baseFrom");
-        $stmtTotal->execute($paramsNoSearch);
+        // Column-specific filters
+        if (!empty($colCccd)) {
+            $baseFrom .= " AND k.so_cccd ILIKE ?";
+            $params[] = "%{$colCccd}%";
+        }
+        if (!empty($colName)) {
+            $baseFrom .= " AND k.ho_ten ILIKE ?";
+            $params[] = "%{$colName}%";
+        }
+        if (!empty($colMaNganh)) {
+            $baseFrom .= " AND k.ma_nganh ILIKE ?";
+            $params[] = "%{$colMaNganh}%";
+        }
+        if (!empty($colTenNganh)) {
+            $baseFrom .= " AND k.ten_nganh ILIKE ?";
+            $params[] = "%{$colTenNganh}%";
+        }
+        if (!empty($colDiem)) {
+            $baseFrom .= " AND CAST(k.diem_xt AS TEXT) ILIKE ?";
+            $params[] = "%{$colDiem}%";
+        }
+        if (!empty($colGb)) {
+            $baseFrom .= " AND k.so_giay_bao ILIKE ?";
+            $params[] = "%{$colGb}%";
+        }
+        if (!empty($colNote)) {
+            $baseFrom .= " AND k.ghi_chu ILIKE ?";
+            $params[] = "%{$colNote}%";
+        }
+        if ($colXnBo !== '') {
+            if ($colXnBo === '1') {
+                $baseFrom .= " AND (k.xac_nhan_bo = 1 OR k.xac_nhan_nhap_hoc = 1 OR k.is_confirm = true)";
+            } else {
+                $baseFrom .= " AND (COALESCE(k.xac_nhan_bo, 0) = 0 AND COALESCE(k.xac_nhan_nhap_hoc, 0) = 0 AND COALESCE(k.is_confirm, false) = false)";
+            }
+        }
+        if ($colXnTruong !== '') {
+            if ($colXnTruong === '1') {
+                $baseFrom .= " AND k.xac_nhan_truong = 1";
+            } else {
+                $baseFrom .= " AND COALESCE(k.xac_nhan_truong, 0) = 0";
+            }
+        }
+
+        // Count total (without extra filters)
+        $stmtTotal = $db->prepare("SELECT COUNT(*) FROM ket_qua_trung_tuyen WHERE session_id = ?");
+        $stmtTotal->execute([$sessionId]);
         $recordsTotal = $stmtTotal->fetchColumn() ?: 0;
 
-        // Count filtered (with search)
-        if (!empty($search)) {
-            $stmtFiltered = $db->prepare("SELECT COUNT(*) $baseFrom $searchSql");
-            $stmtFiltered->execute($params);
-            $recordsFiltered = $stmtFiltered->fetchColumn() ?: 0;
-        } else {
-            $recordsFiltered = $recordsTotal;
-        }
+        // Count filtered
+        $stmtFiltered = $db->prepare("SELECT COUNT(*) $baseFrom");
+        $stmtFiltered->execute($params);
+        $recordsFiltered = $stmtFiltered->fetchColumn() ?: 0;
 
         // Data query
-        $dataSql = "SELECT *
-                    $baseFrom $searchSql
-                    ORDER BY ma_nganh, diem_xt DESC NULLS LAST
+        $dataSql = "SELECT k.*, 
+                           ts.gioi_tinh, ts.dan_toc, ts.nam_tot_nghiep, ts.dia_chi_chi_tiet, ts.ma_tinh_lop_12, ts.ma_truong_lop_12,
+                           dt.ten_tinh, dthpt.ten_truong as ten_truong_thpt,
+                           kqht.hoc_luc_ca_nam as hoc_luc_12, kqht.hanh_kiem_ca_nam as hanh_kiem_12, kqht.diem_tb_ca_nam as diem_tb_12,
+                           nh.trang_thai as nh_trang_thai, nh.ngay_nhap_hoc as nh_ngay_nhap_hoc,
+                           nh.da_nop_tien as nh_da_nop_tien, nh.so_tien_da_nop as nh_so_tien_da_nop
+                    $baseFrom
+                    ORDER BY k.ma_nganh, k.diem_xt DESC NULLS LAST
                     LIMIT $length OFFSET $start";
         
         $stmt = $db->prepare($dataSql);
@@ -356,8 +411,23 @@ class AdmissionController extends Controller {
 
         // Process rows
         foreach ($rows as &$row) {
-            $row['is_pass'] = true; // Everyone in this table is admitted
+            $row['is_pass'] = true;
             $row['chi_tiet_diem'] = null;
+            if (!empty($row['ho_ten'])) {
+                $row['ho_ten'] = mb_convert_case($row['ho_ten'], MB_CASE_TITLE, 'UTF-8');
+            }
+            if ($row['diem_ut'] === null || $row['ut_quy_doi'] === null) {
+                $prio = self::calcPriorityPoints(
+                    $row['khu_vuc'] ?? $row['khu_vuc_uu_tien'] ?? '',
+                    $row['doi_tuong'] ?? $row['doi_tuong_uu_tien'] ?? '',
+                    $row['diem_mon_1'] ?? null,
+                    $row['diem_mon_2'] ?? null,
+                    $row['diem_mon_3'] ?? null,
+                    $row['diem_to_hop'] ?? null
+                );
+                if ($row['diem_ut'] === null) $row['diem_ut'] = $prio['diem_ut'];
+                if ($row['ut_quy_doi'] === null) $row['ut_quy_doi'] = $prio['ut_quy_doi'];
+            }
         }
 
         header('Content-Type: application/json; charset=utf-8');
@@ -370,8 +440,230 @@ class AdmissionController extends Controller {
         exit;
     }
 
+    public static function calcPriorityPoints($khuVuc, $doiTuong, $m1, $m2, $m3, $diemToHop = null) {
+        $kv = strtoupper(trim((string)$khuVuc));
+        $diemKv = 0.0;
+        if (in_array($kv, ['1', 'KV1', '01'])) {
+            $diemKv = 0.75;
+        } elseif (in_array($kv, ['2-NT', 'KV2-NT', '2NT', '02-NT', '02NT'])) {
+            $diemKv = 0.5;
+        } elseif (in_array($kv, ['2', 'KV2', '02'])) {
+            $diemKv = 0.25;
+        }
+
+        $dt = strtoupper(trim((string)$doiTuong));
+        $diemDt = 0.0;
+        if (in_array($dt, ['01', '1', '02', '2', '03', '3', '04', '4', '04B', '4B'])) {
+            $diemDt = 2.0;
+        } elseif (in_array($dt, ['05', '5', '06', '6', '07', '7'])) {
+            $diemDt = 1.0;
+        }
+
+        $diemUtRaw = $diemKv + $diemDt;
+
+        $sum3M = 0.0;
+        if ($m1 !== null && $m2 !== null && $m3 !== null && ($m1 > 0 || $m2 > 0 || $m3 > 0)) {
+            $sum3M = (float)$m1 + (float)$m2 + (float)$m3;
+        } elseif ($diemToHop !== null) {
+            $sum3M = (float)$diemToHop;
+        }
+
+        if ($diemUtRaw <= 0) {
+            return ['diem_ut' => 0.0, 'ut_quy_doi' => 0.0];
+        }
+
+        if ($sum3M >= 22.5) {
+            $utQuyDoi = round(((30.0 - $sum3M) / 7.5) * $diemUtRaw, 3);
+            if ($utQuyDoi < 0) $utQuyDoi = 0.0;
+        } else {
+            $utQuyDoi = $diemUtRaw;
+        }
+
+        return [
+            'diem_ut' => round($diemUtRaw, 3),
+            'ut_quy_doi' => round($utQuyDoi, 3)
+        ];
+    }
+
+    public function exportResults() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $sessionId = $_GET['session_id'] ?? 0;
+        $filterMajor = $_GET['major'] ?? '';
+        $search = trim($_GET['search'] ?? '');
+
+        // Column-level quick search filters
+        $colCccd    = trim($_GET['col_cccd'] ?? '');
+        $colName    = trim($_GET['col_name'] ?? '');
+        $colMaNganh = trim($_GET['col_ma_nganh'] ?? '');
+        $colTenNganh= trim($_GET['col_ten_nganh'] ?? '');
+        $colDiem    = trim($_GET['col_diem'] ?? '');
+        $colGb      = trim($_GET['col_gb'] ?? '');
+        $colNote    = trim($_GET['col_note'] ?? '');
+        $colXnBo    = trim($_GET['col_xn_bo'] ?? '');
+        $colXnTruong= trim($_GET['col_xn_truong'] ?? '');
+
+        // Fetch session info
+        $sessionStmt = $db->prepare("SELECT ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+        $sessionStmt->execute([$sessionId]);
+        $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+        $sessionName = $sessionInfo['ten_dot'] ?? "Dot_$sessionId";
+
+        $sql = "SELECT k.*, 
+                       ts.gioi_tinh, ts.dan_toc, ts.nam_tot_nghiep, ts.dia_chi_chi_tiet, ts.ma_tinh_lop_12, ts.ma_truong_lop_12,
+                       ts.ngay_sinh, ts.dien_thoai, ts.email as thi_sinh_email,
+                       dt.ten_tinh, dthpt.ten_truong as ten_truong_thpt,
+                       kqht.hoc_luc_ca_nam as hoc_luc_12, kqht.hanh_kiem_ca_nam as hanh_kiem_12, kqht.diem_tb_ca_nam as diem_tb_12,
+                       nh.trang_thai as nh_trang_thai, nh.ngay_nhap_hoc as nh_ngay_nhap_hoc, 
+                       nh.da_nop_tien as nh_da_nop_tien, nh.so_tien_da_nop as nh_so_tien_da_nop
+                FROM ket_qua_trung_tuyen k
+                LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
+                LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
+                LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND ts.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE)
+                LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
+                LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
+                WHERE k.session_id = ?";
+        $params = [$sessionId];
+
+        if ($filterMajor) {
+            $sql .= " AND k.ma_nganh = ?";
+            $params[] = $filterMajor;
+        }
+
+        if (!empty($search)) {
+            $sql .= " AND (k.ho_ten ILIKE ? OR k.so_cccd ILIKE ? OR k.ma_nganh ILIKE ? OR k.ten_nganh ILIKE ? OR dthpt.ten_truong ILIKE ?)";
+            $searchParam = "%{$search}%";
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+        }
+
+        if (!empty($colCccd)) {
+            $sql .= " AND k.so_cccd ILIKE ?";
+            $params[] = "%{$colCccd}%";
+        }
+        if (!empty($colName)) {
+            $sql .= " AND k.ho_ten ILIKE ?";
+            $params[] = "%{$colName}%";
+        }
+        if (!empty($colMaNganh)) {
+            $sql .= " AND k.ma_nganh ILIKE ?";
+            $params[] = "%{$colMaNganh}%";
+        }
+        if (!empty($colTenNganh)) {
+            $sql .= " AND k.ten_nganh ILIKE ?";
+            $params[] = "%{$colTenNganh}%";
+        }
+        if (!empty($colDiem)) {
+            $sql .= " AND CAST(k.diem_xt AS TEXT) ILIKE ?";
+            $params[] = "%{$colDiem}%";
+        }
+        if (!empty($colGb)) {
+            $sql .= " AND k.so_giay_bao ILIKE ?";
+            $params[] = "%{$colGb}%";
+        }
+        if (!empty($colNote)) {
+            $sql .= " AND k.ghi_chu ILIKE ?";
+            $params[] = "%{$colNote}%";
+        }
+        if ($colXnBo !== '') {
+            if ($colXnBo === '1') {
+                $sql .= " AND (k.xac_nhan_bo = 1 OR k.xac_nhan_nhap_hoc = 1 OR k.is_confirm = true)";
+            } else {
+                $sql .= " AND (COALESCE(k.xac_nhan_bo, 0) = 0 AND COALESCE(k.xac_nhan_nhap_hoc, 0) = 0 AND COALESCE(k.is_confirm, false) = false)";
+            }
+        }
+        if ($colXnTruong !== '') {
+            if ($colXnTruong === '1') {
+                $sql .= " AND k.xac_nhan_truong = 1";
+            } else {
+                $sql .= " AND COALESCE(k.xac_nhan_truong, 0) = 0";
+            }
+        }
+
+        $sql .= " ORDER BY k.ma_nganh ASC, k.diem_xt DESC NULLS LAST";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $exportData = [];
+        foreach ($rows as $i => $r) {
+            if ($r['diem_ut'] === null || $r['ut_quy_doi'] === null) {
+                $prio = self::calcPriorityPoints(
+                    $r['khu_vuc'] ?? $r['khu_vuc_uu_tien'] ?? '',
+                    $r['doi_tuong'] ?? $r['doi_tuong_uu_tien'] ?? '',
+                    $r['diem_mon_1'] ?? null,
+                    $r['diem_mon_2'] ?? null,
+                    $r['diem_mon_3'] ?? null,
+                    $r['diem_to_hop'] ?? null
+                );
+                if ($r['diem_ut'] === null) $r['diem_ut'] = $prio['diem_ut'];
+                if ($r['ut_quy_doi'] === null) $r['ut_quy_doi'] = $prio['ut_quy_doi'];
+            }
+
+            $exportData[] = [
+                'STT' => $i + 1,
+                'Số CCCD' => $r['so_cccd'] ?? '',
+                'Họ và Tên' => $r['ho_ten'] ?? '',
+                'Giới tính' => $r['gioi_tinh'] ?? '',
+                'Ngày sinh' => $r['ngay_sinh'] ?? '',
+                'Dân tộc' => $r['dan_toc'] ?? '',
+                'Điện thoại' => $r['sdt'] ?? ($r['dien_thoai'] ?? ''),
+                'Email' => $r['email'] ?? ($r['thi_sinh_email'] ?? ''),
+                'Trường THPT' => $r['ten_truong_thpt'] ?? ($r['ma_truong_lop_12'] ?? ''),
+                'Tỉnh / Thành' => $r['ten_tinh'] ?? ($r['ma_tinh_lop_12'] ?? ''),
+                'Năm tốt nghiệp' => $r['nam_tot_nghiep'] ?? '',
+                'Học lực Lớp 12' => $r['hoc_luc_12'] ?? '',
+                'Hạnh kiểm Lớp 12' => $r['hanh_kiem_12'] ?? '',
+                'ĐTB Lớp 12' => $r['diem_tb_12'] ?? '',
+                'Địa chỉ chi tiết' => $r['dia_chi_chi_tiet'] ?? '',
+                'Mã Ngành' => $r['ma_nganh'] ?? '',
+                'Tên Ngành' => $r['ten_nganh'] ?? '',
+                'KHOA' => $r['ten_khoa'] ?? '',
+                'Điểm Xét Tuyển' => $r['diem_xt'] ?? '',
+                'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
+                'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
+                'SBD thi THPT' => $r['sbd'] ?? '',
+                'Khu Vực' => $r['khu_vuc'] ?? '',
+                'Đối Tượng' => $r['doi_tuong'] ?? '',
+                'Tổ Hợp' => $r['to_hop'] ?? '',
+                'Phương Thức' => $r['phuong_thuc'] ?? '',
+                'Điểm Môn 1' => $r['diem_mon_1'] ?? '',
+                'Điểm Môn 2' => $r['diem_mon_2'] ?? '',
+                'Điểm Môn 3' => $r['diem_mon_3'] ?? '',
+                'Điểm UT (Thô)' => $r['diem_ut'] ?? '',
+                'Điểm UT Quy Đổi' => $r['ut_quy_doi'] ?? '',
+                'NV Đạt' => $r['thu_tu_nv'] ?? '',
+                'SOTK' => $r['so_tai_khoan'] ?? '',
+                'NGANHANG' => $r['ngan_hang'] ?? '',
+                'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
+                'SOTIEN' => $r['so_tien'] ?? '',
+                'NOIDUNG' => $r['noi_dung_ck'] ?? '',
+                'XACNHANBO' => (!empty($r['xac_nhan_bo']) || !empty($r['xac_nhan_nhap_hoc']) || !empty($r['is_confirm'])) ? 'Đã XN' : 'Chưa XN',
+                'XACNHANTRUONG' => !empty($r['xac_nhan_truong']) ? 'Đã XN' : 'Chưa XN',
+                'NHAPHOC' => (!empty($r['nh_trang_thai']) || !empty($r['is_nhap_hoc']) || !empty($r['nh_ngay_nhap_hoc'])) ? 'Đã nhập học' : 'Chưa nhập học',
+                'NOPKINHPHI' => (!empty($r['nh_da_nop_tien']) || !empty($r['da_nop_tien'])) ? 'Đã nộp' : 'Chưa nộp',
+                'SOTIENNOP' => $r['nh_so_tien_da_nop'] ?? ($r['so_tien_da_nop'] ?? ''),
+                'Thời Gian Nhập Học' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
+                'Ghi Chú' => $r['ghi_chu'] ?? ''
+            ];
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $safeFileName = 'ds_trung_tuyen_' . date('Y-m-d') . '.xls';
+        $exportService->toExcel($exportData, $safeFileName, true);
+        exit;
+    }
+
     public function import() {
+        // Allow unlimited time and enough memory for large Excel files
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+
         
         $sessionId = $_POST['session_id'] ?? '';
         if (empty($sessionId)) {
@@ -392,18 +684,152 @@ class AdmissionController extends Controller {
 
         try {
             $service = new \App\Services\AdmissionResultService();
-            $result = $service->importFromExcel($fileTmpPath, $sessionId);
+            $updateExisting = isset($_POST['update_existing']) && $_POST['update_existing'] == '1';
+            $result = $service->importFromExcel($fileTmpPath, $sessionId, $updateExisting);
+
+            if (!empty($result['result_file'])) {
+                $_SESSION['last_import_result_file'] = $result['result_file'];
+            }
+
+            $msg = "Đã xử lý xong: Thêm mới {$result['imported']} thí sinh";
+            if (!empty($result['updated']) && $result['updated'] > 0) {
+                $msg .= ", Cập nhật/Bổ sung dữ liệu cho {$result['updated']} thí sinh";
+            }
+            if (!empty($result['ignored']) && $result['ignored'] > 0) {
+                $msg .= " (Bỏ qua {$result['ignored']} dòng không hợp lệ hoặc trùng).";
+            } else {
+                $msg .= ".";
+            }
+            
+            $redirectUrl = url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg));
+            if (!empty($result['result_file'])) {
+                $redirectUrl .= '&download_result=1';
+            }
+            $this->redirect($redirectUrl);
+        } catch (\Exception $e) {
+            $redirectUrl = url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Đã xảy ra lỗi: ' . $e->getMessage()));
+            if (!empty($_SESSION['last_import_result_file'])) {
+                $redirectUrl .= '&download_result=1';
+            }
+            $this->redirect($redirectUrl);
+        }
+    }
+
+    /**
+     * Tải xuống file Excel kết quả import ghi nhận chi tiết lỗi/thành công của từng dòng
+     */
+    public function downloadResultFile() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $filePathRelative = $_SESSION['last_import_result_file'] ?? '';
+        if (empty($filePathRelative)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Không tìm thấy file kết quả import.')));
+        }
+
+        $absolutePath = __DIR__ . '/../../public/' . $filePathRelative;
+        if (!file_exists($absolutePath)) {
+            $absolutePath = __DIR__ . '/../../' . $filePathRelative; // fallback
+        }
+
+        if (!file_exists($absolutePath)) {
+            unset($_SESSION['last_import_result_file']);
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('File kết quả không tồn tại trên hệ thống.')));
+        }
+
+        // Send headers to force download
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="ket_qua_import_' . date('Ymd_His') . '.xlsx"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($absolutePath));
+        
+        // Clean output buffer to prevent corrupted file
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        readfile($absolutePath);
+        
+        // Delete the temporary file and clear session
+        @unlink($absolutePath);
+        unset($_SESSION['last_import_result_file']);
+        exit;
+    }
+
+    /**
+     * Import ảnh thẻ từ file ZIP và đẩy lên Google Drive tương ứng theo từng thí sinh
+     */
+    public function importAvatarsZip() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? '';
+        $overwrite = isset($_POST['overwrite']) && $_POST['overwrite'] == '1';
+
+        if (empty($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+        }
+
+        if (!isset($_FILES['zip_file']) || $_FILES['zip_file']['error'] !== UPLOAD_ERR_OK) {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Vui lòng chọn file ZIP ảnh thẻ hợp lệ.')));
+        }
+
+        $fileTmpPath = $_FILES['zip_file']['tmp_name'];
+        $fileName = $_FILES['zip_file']['name'];
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        if ($fileExtension !== 'zip') {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Chỉ hỗ trợ file nén (.zip).')));
+        }
+
+        try {
+            $service = new \App\Services\AvatarDriveImportService();
+            $result = $service->importFromZip($fileTmpPath, $sessionId, $overwrite);
 
             if ($result['status']) {
-                $msg = "Đã tải lên thành công {$result['inserted']} thí sinh.";
+                $unmatchedCount = count($result['unmatched']);
+                $msg = "Đã xử lý {$result['total']} file ảnh. Đã cập nhật thành công ảnh thẻ cho {$result['inserted']} thí sinh trúng tuyển.";
+                if ($unmatchedCount > 0) {
+                    $msg .= " (Có $unmatchedCount file ảnh không tìm thấy CCCD tương ứng trong danh sách trúng tuyển).";
+                }
                 $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg)));
             } else {
-                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode($result['message'])));
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Đã xảy ra lỗi khi import ảnh.')));
             }
         } catch (\Exception $e) {
             $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Đã xảy ra lỗi: ' . $e->getMessage())));
         }
     }
+
+    /**
+     * Quét tự động thư mục Google Drive của từng thí sinh để đồng bộ link ảnh thẻ
+     */
+    public function syncDriveAvatars() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? '';
+        if (empty($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+        }
+
+        try {
+            $service = new \App\Services\AvatarDriveImportService();
+            $result = $service->scanAndSyncFromDrive($sessionId);
+
+            if ($result['status']) {
+                $msg = "Đã quét {$result['total']} thí sinh đợt này. Đã đồng bộ thành công ảnh thẻ Google Drive cho {$result['inserted']} thí sinh.";
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg)));
+            } else {
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Có lỗi xảy ra khi quét Google Drive.')));
+            }
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Lỗi quét Google Drive: ' . $e->getMessage())));
+        }
+    }
+
 
     public function clearBatch() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
@@ -843,8 +1269,16 @@ class AdmissionController extends Controller {
             $template = $tplStmt->fetch(\PDO::FETCH_ASSOC);
         }
         
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'template' => $template]);
+        // Lấy danh sách toàn bộ Mẫu trong Thư viện để lựa chọn
+        $allTplsStmt = $db->query("SELECT id, code, subject, body FROM email_templates ORDER BY id ASC");
+        $allTemplates = $allTplsStmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => true, 
+            'template' => $template,
+            'all_templates' => $allTemplates
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -945,14 +1379,17 @@ class AdmissionController extends Controller {
             'S' => ['header' => 'NGANHANG',      'note' => 'Tên ngân hàng, ví dụ: Vietcombank'],
             'T' => ['header' => 'SOTIEN',        'note' => 'Số tiền học phí (đồng), ví dụ: 5000000'],
             'U' => ['header' => 'NOIDUNG',       'note' => 'Nội dung chuyển khoản học phí'],
-            'V' => ['header' => 'SOGIAYBAO',     'note' => 'Số giấy báo nhập học (để in giấy báo)'],
-            'W' => ['header' => 'THOIGIANNHAP',  'note' => 'Thời gian nhập học, ví dụ: 05/09/2026'],
-            'X' => ['header' => 'KINHPHI',       'note' => 'Thông tin kinh phí bổ sung (để in giấy báo)'],
-            'Y' => ['header' => 'KHOAHOC',       'note' => 'Khóa học, ví dụ: Khóa 2026-2030'],
-            'Z' => ['header' => 'LINKANH',       'note' => 'Link ảnh chân dung thí sinh (URL)'],
-            'AA'=> ['header' => 'Email',         'note' => 'Bắt buộc. Email gửi Giấy báo trúng tuyển'],
-            'AB'=> ['header' => 'SDT',           'note' => 'Số điện thoại liên lạc'],
-            'AC'=> ['header' => 'GhiChu',        'note' => 'Ghi chú thêm (xếp hạng, ghi chú đặc biệt...)'],
+            'V' => ['header' => 'SoGB',           'note' => 'Số giấy báo trúng tuyển'],
+            'W' => ['header' => 'THOIGIANNHAP',  'note' => 'Thời gian tập trung nhập học, ví dụ: 05/09/2026'],
+            'X' => ['header' => 'NGANH_TT',      'note' => 'Tên ngành in trên giấy báo trúng tuyển'],
+            'Y' => ['header' => 'KHOA',          'note' => 'Tên Khoa quản lý'],
+            'Z' => ['header' => 'KINHPHI',       'note' => 'Nội dung kinh phí thu (học phí, lệ phí...)'],
+            'AA'=> ['header' => 'XACNHANBO',     'note' => 'Xác nhận nhập học Bộ GD&ĐT (1: Đã XN, 0: Chưa)'],
+            'AB'=> ['header' => 'XACNHANTRUONG', 'note' => 'Xác nhận nhập học Hệ thống Trường (1: Đã XN, 0: Chưa)'],
+            'AC'=> ['header' => 'FILEGIAYBAO',   'note' => 'Đường dẫn/URL file ảnh Giấy báo trúng tuyển'],
+            'AD'=> ['header' => 'Email',         'note' => 'Bắt buộc. Email gửi Giấy báo trúng tuyển'],
+            'AE'=> ['header' => 'SDT',           'note' => 'Số điện thoại liên lạc'],
+            'AF'=> ['header' => 'GhiChu',        'note' => 'Ghi chú thêm (xếp hạng, ghi chú đặc biệt...)'],
         ];
 
         // Dữ liệu mẫu 1 dòng
@@ -980,12 +1417,15 @@ class AdmissionController extends Controller {
             'U' => 'Nguyen Van An nop hoc phi K2026',
             'V' => 'GB-2026-001',
             'W' => '05/09/2026',
-            'X' => '5.000.000đ/năm',
-            'Y' => 'Khóa 2026-2030',
-            'Z' => 'https://example.com/anh/012345678912.jpg',
-            'AA'=> 'nguyenvanan@email.com',
-            'AB'=> '0987654321',
-            'AC'=> 'Thứ hạng 5/120 toàn ngành',
+            'X' => 'Công nghệ thông tin',
+            'Y' => 'Khoa Công nghệ thông tin',
+            'Z' => 'Học phí KĐ1: 5.000.000đ, Lệ phí: 200.000đ',
+            'AA'=> '1',
+            'AB'=> '1',
+            'AC'=> 'https://example.com/giay-bao/012345678912.pdf',
+            'AD'=> 'nguyenvanan@email.com',
+            'AE'=> '0987654321',
+            'AF'=> 'Thứ hạng 5/120 toàn ngành',
         ];
 
         // Style cho header row
@@ -1034,8 +1474,8 @@ class AdmissionController extends Controller {
         // Freeze pane tại hàng 3 (cố định 2 hàng tiêu đề)
         $sheet->freezePane('A3');
 
-        // Đánh dấu 2 cột bắt buộc bằng màu nền vàng trên hàng 1
-        foreach (['A', 'AA'] as $reqCol) {
+        // Đánh dấu 2 cột bắt buộc bằng màu nền đỏ trên hàng 1
+        foreach (['A', 'AD'] as $reqCol) {
             $sheet->getStyle($reqCol . '1')->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setRGB('c0392b');

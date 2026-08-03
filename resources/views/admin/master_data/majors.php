@@ -39,6 +39,28 @@
         </div>
     </header>
 
+    <?php if (isset($_SESSION['success'])): ?>
+        <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-check-circle text-emerald-600 text-xl"></i>
+                <span class="font-bold text-sm"><?= htmlspecialchars($_SESSION['success']) ?></span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
+        </div>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error'])): ?>
+        <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-rose-600 text-xl"></i>
+                <span class="font-bold text-sm"><?= htmlspecialchars($_SESSION['error']) ?></span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 font-bold">&times;</button>
+        </div>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <form action="<?= url('/admin/master-data/majors/actions') ?>" method="POST" id="bulk-delete-form">
             <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
@@ -324,17 +346,17 @@
             <input type="hidden" name="action" value="import">
 
             <div class="space-y-4">
-                <p class="text-sm text-gray-600 mb-4">Vui lòng tải lên file CSV (UTF-8) theo mẫu.</p>
+                <p class="text-sm text-gray-600 mb-4">Vui lòng tải lên file Excel (.xlsx, .xls) hoặc CSV theo mẫu.</p>
                 <div class="text-center">
                     <a href="<?= url('/admin/master-data/majors/template') ?>" class="text-[#0066FF] hover:underline text-sm font-bold flex justify-center items-center">
-                        <i class="fas fa-download mr-1"></i> Tải file mẫu
+                        <i class="fas fa-download mr-1"></i> Tải file mẫu (.xls)
                     </a>
                 </div>
 
                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer relative">
-                    <input type="file" name="file" required accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <input type="file" name="file" required accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                     <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                    <p class="text-sm font-bold text-gray-500">Kéo thả file hoặc click để chọn</p>
+                    <p class="text-sm font-bold text-gray-500">Kéo thả file Excel (.xlsx, .xls) hoặc CSV vào đây</p>
                 </div>
             </div>
 
