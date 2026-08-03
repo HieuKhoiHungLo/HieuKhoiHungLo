@@ -2347,6 +2347,15 @@ class CandidateController extends Controller
 
                 // In-memory lookup
                 $existing = $existingRecordsMap[$cccd . '_' . $lop] ?? null;
+                
+                // Fallback for different curriculum formats (GDPT 2018 vs older)
+                // If 7 (Điểm trung bình năm) is empty, use 10 (Điểm tổng kết CN)
+                if (trim($rowValues[7] ?? '') === '') $rowValues[7] = $rowValues[10] ?? '';
+                // If 19 (Kết quả học tập CN) is empty, use 13 (Học lực CN)
+                if (trim($rowValues[19] ?? '') === '') $rowValues[19] = $rowValues[13] ?? '';
+                // If 22 (Kết quả rèn luyện CN) is empty, use 16 (Hạnh kiểm CN)
+                if (trim($rowValues[22] ?? '') === '') $rowValues[22] = $rowValues[16] ?? '';
+                
                 $scoreData = [];
                 $changes = [];
                 $tempChanges = [];
