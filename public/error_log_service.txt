@@ -1,0 +1,9 @@
+2026-08-03 20:22:52 - recalculateBatch Error: There is already an active transaction
+#0 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(537): PDO->beginTransaction()
+#1 D:\xampp\htdocs\TS\app\Services\ScoreCalculationService.php(401): App\Services\ScoreCalculationService->saveScoresBulk('9', Array)
+#2 D:\xampp\htdocs\TS\app\Controllers\VirtualAdmissionController.php(241): App\Services\ScoreCalculationService->recalculateBatch('9', Array, true, false)
+#3 [internal function]: App\Controllers\VirtualAdmissionController->recalculateScores()
+#4 D:\xampp\htdocs\TS\app\Core\Router.php(133): call_user_func(Array)
+#5 D:\xampp\htdocs\TS\app\Core\App.php(97): App\Core\Router->resolve()
+#6 D:\xampp\htdocs\TS\public\index.php(129): App\Core\App->run()
+#7 {main}

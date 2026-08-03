@@ -226,7 +226,7 @@ class ImportService {
                     'ma_tinh_ho_khau' => $maTinh,
                     'ma_huyen_ho_khau' => $this->nullIfEmpty(trim($row[16] ?? '')),
                     'ma_xa_ho_khau' => $maXa,
-                    'is_dac_cach' => !empty($row[50]) && (strtoupper(trim($row[50])) === 'X' || mb_strtolower(trim($row[50]), 'UTF-8') === 'đặc cách'),
+                    'is_dac_cach' => (!empty($row[55]) && (strtoupper(trim($row[55])) === 'X' || mb_strtolower(trim($row[55]), 'UTF-8') === 'đặc cách' || mb_strtolower(trim($row[55]), 'UTF-8') === 'miễn thi tn' || $row[55] == 1)) ? 1 : 0,
                 ];
 
                 $maTinhLop12 = $this->nullIfEmpty(trim($row[18] ?? ''));
