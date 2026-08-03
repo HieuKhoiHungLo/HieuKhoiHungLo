@@ -214,6 +214,19 @@ class BackupService
              . "--clean --if-exists --no-owner --no-privileges -v "
              . escapeshellarg($filePath) . " 2>&1";
 
+        // Pre-clean database to prevent Duplicate Key errors if pg_restore's DROP TABLE fails
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+            $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            if (!empty($tables)) {
+                $tablesList = implode(', ', array_map(function($t) { return '"' . $t . '"'; }, $tables));
+                $db->exec("TRUNCATE TABLE $tablesList CASCADE");
+            }
+        } catch (\Exception $e) {
+            // Ignore TRUNCATE errors, let pg_restore try its best
+        }
+
         exec($cmd, $output, $returnCode);
 
         // Scan output for fatal errors (connection issues, authentication failures, missing binaries, etc.)
