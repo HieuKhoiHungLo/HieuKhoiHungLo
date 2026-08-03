@@ -232,15 +232,18 @@ class BackupService
             foreach ($fks as $fk) {
                 try {
                     $db->exec('ALTER TABLE "' . $fk['table_name'] . '" DROP CONSTRAINT "' . $fk['constraint_name'] . '"');
-                } catch (\Exception $e) {}
+                } catch (\Exception $e) {
+                    error_log("Failed to drop constraint {$fk['constraint_name']} on {$fk['table_name']}: " . $e->getMessage());
+                    file_put_contents(public_path('error_log_service.txt'), "FK Drop Failed: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
             }
 
-            // 2. Truncate all tables individually
-            $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+            // 2. Drop all tables individually (Better than Truncate, kills constraints completely)
+            $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename != 'spatial_ref_sys'");
             $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
             foreach ($tables as $t) {
                 try {
-                    $db->exec('TRUNCATE TABLE "' . $t . '" CASCADE');
+                    $db->exec('DROP TABLE IF EXISTS "' . $t . '" CASCADE');
                 } catch (\Exception $e) {}
             }
         } catch (\Exception $e) {
