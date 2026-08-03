@@ -217,9 +217,12 @@ class BackupService
 
         // Pre-clean database to prevent Duplicate Key errors and Foreign Key violations
         try {
-            $db = \App\Core\Database::getInstance()->getConnection();
+            $dsn = "pgsql:host={$this->restoreConfig['host']};port={$this->restoreConfig['port']};dbname={$targetDb}";
+            $db = new \PDO($dsn, $this->restoreConfig['username'], $this->restoreConfig['password'], [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            ]);
             
-            // 1. Drop all foreign keys
+            // 1. Drop all foreign keys individually
             $sql = "
                 SELECT table_name, constraint_name
                 FROM information_schema.table_constraints
@@ -227,18 +230,22 @@ class BackupService
             ";
             $fks = $db->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
             foreach ($fks as $fk) {
-                $db->exec('ALTER TABLE "' . $fk['table_name'] . '" DROP CONSTRAINT "' . $fk['constraint_name'] . '"');
+                try {
+                    $db->exec('ALTER TABLE "' . $fk['table_name'] . '" DROP CONSTRAINT "' . $fk['constraint_name'] . '"');
+                } catch (\Exception $e) {}
             }
 
-            // 2. Truncate all tables
+            // 2. Truncate all tables individually
             $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
             $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-            if (!empty($tables)) {
-                $tablesList = implode(', ', array_map(function($t) { return '"' . $t . '"'; }, $tables));
-                $db->exec("TRUNCATE TABLE $tablesList CASCADE");
+            foreach ($tables as $t) {
+                try {
+                    $db->exec('TRUNCATE TABLE "' . $t . '" CASCADE');
+                } catch (\Exception $e) {}
             }
         } catch (\Exception $e) {
-            // Ignore pre-clean errors, let pg_restore try its best
+            error_log("Pre-clean connection failed: " . $e->getMessage());
+            file_put_contents(public_path('error_log_service.txt'), "Pre-clean failed: " . $e->getMessage() . "\n", FILE_APPEND);
         }
 
         exec($cmd, $output, $returnCode);
