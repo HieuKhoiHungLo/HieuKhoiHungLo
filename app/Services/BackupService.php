@@ -238,13 +238,28 @@ class BackupService
                 }
             }
 
-            // 2. Drop all tables individually (Better than Truncate, kills constraints completely)
-            $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename != 'spatial_ref_sys'");
+            // 2. Safely clean tables: TRUNCATE core Laravel tables (to prevent HTTP 500 crashes), DROP others (to kill FK constraints)
+            $coreTables = [
+                'users', 'sessions', 'migrations', 'personal_access_tokens', 
+                'password_resets', 'password_reset_tokens', 'failed_jobs', 'jobs', 
+                'cache', 'cache_locks', 'spatial_ref_sys'
+            ];
+            
+            $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
             $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            
             foreach ($tables as $t) {
                 try {
-                    $db->exec('DROP TABLE IF EXISTS "' . $t . '" CASCADE');
-                } catch (\Exception $e) {}
+                    if (in_array($t, $coreTables)) {
+                        if ($t !== 'spatial_ref_sys') {
+                            $db->exec('TRUNCATE TABLE "' . $t . '" CASCADE');
+                        }
+                    } else {
+                        $db->exec('DROP TABLE IF EXISTS "' . $t . '" CASCADE');
+                    }
+                } catch (\Exception $e) {
+                    error_log("Clean failed for {$t}: " . $e->getMessage());
+                }
             }
         } catch (\Exception $e) {
             error_log("Pre-clean connection failed: " . $e->getMessage());
