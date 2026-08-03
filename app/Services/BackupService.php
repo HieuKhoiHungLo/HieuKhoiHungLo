@@ -201,8 +201,9 @@ class BackupService
             throw new \Exception("Không tìm thấy pg_restore. Hãy cấu hình PG_BIN_PATH trong file .env");
         }
 
-        $jobs = (int)($_ENV['DB_RESTORE_JOBS'] ?? '4');
-        $jobsOption = $jobs > 1 ? "-j {$jobs} " : "";
+        // Force single-threaded restore to prevent foreign key constraint violations
+        // when tables cannot be dropped (e.g. Supabase permission issues) and constraints remain active.
+        $jobsOption = ""; 
 
         $cmd = escapeshellarg($pgRestore)
              . " -h " . escapeshellarg($this->restoreConfig['host'])
