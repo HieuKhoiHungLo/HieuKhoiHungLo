@@ -215,9 +215,22 @@ class BackupService
              . "--clean --if-exists --no-owner --no-privileges -v "
              . escapeshellarg($filePath) . " 2>&1";
 
-        // Pre-clean database to prevent Duplicate Key errors if pg_restore's DROP TABLE fails
+        // Pre-clean database to prevent Duplicate Key errors and Foreign Key violations
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
+            
+            // 1. Drop all foreign keys
+            $sql = "
+                SELECT table_name, constraint_name
+                FROM information_schema.table_constraints
+                WHERE constraint_type = 'FOREIGN KEY' AND table_schema = 'public'
+            ";
+            $fks = $db->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($fks as $fk) {
+                $db->exec('ALTER TABLE "' . $fk['table_name'] . '" DROP CONSTRAINT "' . $fk['constraint_name'] . '"');
+            }
+
+            // 2. Truncate all tables
             $stmt = $db->query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
             $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
             if (!empty($tables)) {
@@ -225,7 +238,7 @@ class BackupService
                 $db->exec("TRUNCATE TABLE $tablesList CASCADE");
             }
         } catch (\Exception $e) {
-            // Ignore TRUNCATE errors, let pg_restore try its best
+            // Ignore pre-clean errors, let pg_restore try its best
         }
 
         exec($cmd, $output, $returnCode);
