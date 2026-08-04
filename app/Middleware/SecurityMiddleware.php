@@ -170,7 +170,7 @@ class SecurityMiddleware {
         header("Referrer-Policy: strict-origin-when-cross-origin");
         
         // Permissions Policy
-        header("Permissions-Policy: geolocation=(), microphone=(), camera=()");
+        header("Permissions-Policy: geolocation=(), microphone=(), camera=(self)");
 
         // HSTS (Strict-Transport-Security) - Force HTTPS for 1 year
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {

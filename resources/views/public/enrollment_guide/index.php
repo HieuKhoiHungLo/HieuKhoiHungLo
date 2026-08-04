@@ -46,9 +46,16 @@
             border: 1px solid #fecdd3;
         }
 
+        #qr-reader { border: none !important; }
         #qr-reader video {
             border-radius: 12px;
             object-fit: cover;
+            max-height: 280px; /* Giới hạn chiều cao để vừa 100vh */
+            width: 100%;
+        }
+        #qr-reader__dashboard_section_csr span, #qr-reader__dashboard_section_swaplink {
+            color: #fff !important;
+            font-size: 12px;
         }
 
         @keyframes pulse-ring {
@@ -59,51 +66,54 @@
         .pulse-subtle { animation: pulse-ring 3s infinite ease-in-out; }
     </style>
 </head>
-<body class="py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-center min-h-screen">
+<body class="py-2 px-2 sm:px-4 flex items-center justify-center min-h-[100dvh]">
 
-    <div class="w-full max-w-2xl mx-auto">
+    <div class="w-full max-w-lg mx-auto flex flex-col max-h-[100dvh]">
         <!-- Header logo -->
-        <div class="text-center mb-6">
+        <div class="text-center mb-3 shrink-0 mt-2">
             <a href="<?= url('/') ?>" class="inline-flex items-center gap-3 group">
-                <img src="<?= url('/assets/img/Logo.png') ?>" alt="Logo HVU" class="h-16 w-auto drop-shadow-md group-hover:scale-105 transition-transform duration-300">
+                <img src="<?= url('/assets/img/Logo.png') ?>" alt="Logo HVU" class="h-12 sm:h-14 w-auto drop-shadow-md group-hover:scale-105 transition-transform duration-300">
                 <div class="text-left">
-                    <span class="block text-xs font-bold uppercase tracking-wider text-red-300">Trường Đại học Hùng Vương</span>
-                    <span class="block text-lg font-black text-white">HƯỚNG DẪN NHẬP HỌC</span>
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-red-300">Trường Đại học Hùng Vương</span>
+                    <span class="block text-base sm:text-lg font-black text-white">HƯỚNG DẪN NHẬP HỌC</span>
                 </div>
             </a>
         </div>
 
         <!-- Main Card Container -->
-        <div class="glass-panel rounded-3xl p-6 sm:p-8">
+        <div class="glass-panel rounded-3xl p-4 sm:p-5 flex-1 overflow-y-auto mb-2 custom-scrollbar">
             
             <!-- SEARCH / SCAN SECTION -->
             <div id="search-section">
-                <div class="text-center mb-6">
-                    <h1 class="text-2xl sm:text-3xl font-black text-gray-900 mb-2">Tra cứu Chỉ dẫn Nhập học</h1>
-                    <p class="text-sm text-gray-600">Quét mã QR trên Căn cước công dân hoặc nhập Số CCCD để tìm bàn thủ tục và vị trí hội trường</p>
+                <div class="text-center mb-4">
+                    <h1 class="text-xl sm:text-2xl font-black text-gray-900 mb-1">Tra cứu Chỉ dẫn Nhập học</h1>
+                    <p class="text-[13px] text-gray-600">Quét mã QR <b>mặt trước</b> CCCD hoặc nhập Số CCCD</p>
                 </div>
 
                 <!-- Tabs: Scan QR vs Manual Input -->
-                <div class="flex p-1.5 bg-gray-100/80 rounded-2xl mb-6">
-                    <button type="button" id="tab-scan" onclick="switchTab('scan')" class="flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 bg-white text-red-600 shadow-sm flex items-center justify-center gap-2">
+                <div class="flex p-1 bg-gray-100/80 rounded-2xl mb-4">
+                    <button type="button" id="tab-scan" onclick="switchTab('scan')" class="flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all duration-200 bg-white text-red-600 shadow-sm flex items-center justify-center gap-2">
                         <i class="fa-solid fa-qrcode text-base"></i>
-                        Quét QR CCCD
+                        Quét QR
                     </button>
-                    <button type="button" id="tab-manual" onclick="switchTab('manual')" class="flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 text-gray-600 hover:text-gray-900 flex items-center justify-center gap-2">
+                    <button type="button" id="tab-manual" onclick="switchTab('manual')" class="flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all duration-200 text-gray-600 hover:text-gray-900 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-keyboard text-base"></i>
-                        Nhập tay CCCD
+                        Nhập tay
                     </button>
                 </div>
 
                 <!-- Tab 1: QR Scanner View -->
-                <div id="view-scan" class="space-y-4">
-                    <div class="relative bg-black rounded-2xl overflow-hidden min-h-[260px] flex items-center justify-center border-2 border-dashed border-red-300">
+                <div id="view-scan" class="space-y-3">
+                    <div class="relative bg-black rounded-2xl overflow-hidden min-h-[200px] flex items-center justify-center border-2 border-dashed border-red-300/80 shadow-inner">
                         <div id="qr-reader" class="w-full"></div>
-                        <div id="qr-placeholder" class="text-center p-6 text-white">
-                            <div class="w-16 h-16 bg-red-600/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-3 pulse-subtle">
-                                <i class="fa-solid fa-camera text-2xl"></i>
+                        <div id="qr-placeholder" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-black/40 backdrop-blur-[2px] transition-opacity">
+                            <div class="w-12 h-12 bg-red-600/80 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_15px_rgba(220,38,38,0.6)] pulse-subtle">
+                                <i class="fa-solid fa-camera text-xl"></i>
                             </div>
-                            <p class="text-sm font-semibold text-gray-200">Nhấn nút bên dưới để bật Camera hoặc tải ảnh QR CCCD</p>
+                            <p class="text-xs font-medium text-white max-w-[200px] leading-relaxed">
+                                Hướng <b>MẶT TRƯỚC</b> thẻ CCCD<br/>
+                                (vùng có mã QR góc trên phải)<br/>vào giữa khung hình
+                            </p>
                         </div>
                     </div>
 
@@ -114,13 +124,13 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="w-full py-3.5 px-4 rounded-2xl btn-gradient text-white font-bold text-sm flex items-center justify-center gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="w-full py-3 px-3 rounded-xl btn-gradient text-white font-bold text-[13px] flex items-center justify-center gap-2 shadow-sm">
                             <i class="fa-solid fa-camera"></i>
-                            <span id="cam-btn-text">Mở Camera Quét QR</span>
+                            <span id="cam-btn-text">Mở Camera</span>
                         </button>
 
-                        <label class="w-full py-3.5 px-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer text-center">
+                        <label class="w-full py-3 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-[13px] transition-colors flex items-center justify-center gap-2 cursor-pointer text-center shadow-sm">
                             <i class="fa-solid fa-image text-red-600"></i>
                             <span>Tải ảnh QR CCCD</span>
                             <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleFileScan(event)">
@@ -129,16 +139,16 @@
                 </div>
 
                 <!-- Tab 2: Manual Input View -->
-                <div id="view-manual" class="space-y-4 hidden">
+                <div id="view-manual" class="space-y-3 hidden">
                     <form onsubmit="handleManualSubmit(event)">
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                                <i class="fa-solid fa-id-card text-lg"></i>
+                                <i class="fa-solid fa-id-card text-base"></i>
                             </div>
-                            <input type="text" id="input-cccd" placeholder="Nhập số CCCD (12 chữ số) hoặc SBD..." 
-                                   class="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-100 text-lg font-bold text-gray-800 placeholder-gray-400 transition-all outline-none">
+                            <input type="text" id="input-cccd" placeholder="Nhập số CCCD (12 số) hoặc SBD" 
+                                   class="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-base font-bold text-gray-800 placeholder-gray-400 transition-all outline-none">
                         </div>
-                        <button type="submit" class="w-full mt-4 py-3.5 px-6 rounded-2xl btn-gradient text-white font-bold text-sm flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full mt-3 py-3 px-4 rounded-xl btn-gradient text-white font-bold text-[13px] flex items-center justify-center gap-2 shadow-sm">
                             <i class="fa-solid fa-magnifying-glass"></i>
                             Tra cứu vị trí nhập học
                         </button>
@@ -306,45 +316,23 @@
 
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-            const doStart = (camConfig) => {
-                html5QrCode.start(camConfig, config, onScanSuccess, onScanError)
-                    .then(() => {
-                        isCamScanning = true;
-                        document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                    })
-                    .catch(err => {
-                        console.error("Lỗi khi mở camera:", err);
-                        handleCamError(err);
-                    });
-            };
-
-            Html5Qrcode.getCameras().then(devices => {
-                const selectEl = document.getElementById('camera-select');
-                const selectContainer = document.getElementById('camera-select-container');
-
-                if (devices && devices.length > 0) {
-                    if (selectEl) {
-                        selectEl.innerHTML = '';
-                        devices.forEach((dev, idx) => {
-                            const opt = document.createElement('option');
-                            opt.value = dev.id;
-                            opt.text = dev.label || `Camera ${idx + 1}`;
-                            selectEl.appendChild(opt);
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanError)
+                .then(() => {
+                    isCamScanning = true;
+                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                })
+                .catch(err => {
+                    console.warn("Không thể mở camera sau, thử camera trước:", err);
+                    html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanError)
+                        .then(() => {
+                            isCamScanning = true;
+                            document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                        })
+                        .catch(err2 => {
+                            console.error("Lỗi khi mở camera:", err2);
+                            handleCamError(err2);
                         });
-                        if (devices.length > 1) {
-                            selectContainer.classList.remove('hidden');
-                        }
-                    }
-
-                    const selectedId = selectEl && selectEl.value ? selectEl.value : devices[0].id;
-                    doStart(selectedId);
-                } else {
-                    doStart({ facingMode: "user" });
-                }
-            }).catch(err => {
-                console.warn("Lỗi getCameras, thử bằng facingMode:", err);
-                doStart({ facingMode: "user" });
-            });
+                });
         }
 
         function onCameraSelectChange() {
@@ -456,6 +444,7 @@
 
             const formData = new FormData();
             formData.append('keyword', keyword);
+            formData.append('csrf_token', '<?= csrf_token() ?? '' ?>');
 
             fetch('<?= url('/huong-dan-nhap-hoc/search') ?>', {
                 method: 'POST',
