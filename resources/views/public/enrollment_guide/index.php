@@ -294,15 +294,15 @@
             document.getElementById('qr-placeholder').classList.add('hidden');
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showError("Trình duyệt của bạn không hỗ trợ Camera qua HTTP. Vui lòng chuyển sang tab 'Nhập tay CCCD' hoặc sử dụng kết nối bảo mật.");
+                showError("Trình duyệt không hỗ trợ truy cập Camera (yêu cầu kết nối bảo mật HTTPS hoặc truy cập từ localhost). Vui lòng dùng tab 'Nhập tay CCCD' hoặc 'Tải ảnh QR'.");
                 document.getElementById('qr-placeholder').classList.remove('hidden');
                 return;
             }
 
-            // Ép Chrome kích hoạt popup xin quyền Camera bằng getUserMedia trực tiếp
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            // Dùng thuộc tính chuẩn video: true để xin quyền truy cập Camera trên Chrome/Edge
+            navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
-                    // Dừng stream tạm thời để nhường cho Html5Qrcode
+                    // Giải phóng stream xin quyền tạm thời
                     stream.getTracks().forEach(track => track.stop());
 
                     if (!html5QrCode) {
@@ -311,43 +311,65 @@
 
                     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-                    Html5Qrcode.getCameras().then(devices => {
-                        let selectedCam = (devices && devices.length > 0) ? devices[0].id : { facingMode: "user" };
-                        for (let dev of devices || []) {
-                            const label = (dev.label || '').toLowerCase();
-                            if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
-                                selectedCam = dev.id;
-                                break;
-                            }
-                        }
+                    const startWithCam = (camConstraint) => {
+                        html5QrCode.start(camConstraint, config, onScanSuccess, onScanError)
+                            .then(() => {
+                                isCamScanning = true;
+                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                            })
+                            .catch(err => {
+                                console.error("Lỗi khởi tạo Html5Qrcode:", err);
+                                // Thử fallback lần cuối sang camera mặc định
+                                if (typeof camConstraint === 'string') {
+                                    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanError)
+                                        .then(() => {
+                                            isCamScanning = true;
+                                            document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                                        })
+                                        .catch(handleCamError);
+                                } else {
+                                    handleCamError(err);
+                                }
+                            });
+                    };
 
-                        html5QrCode.start(selectedCam, config, onScanSuccess, onScanError)
-                            .then(() => {
-                                isCamScanning = true;
-                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                            })
-                            .catch(handleCamError);
-                    }).catch(() => {
-                        html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanError)
-                            .then(() => {
-                                isCamScanning = true;
-                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                            })
-                            .catch(handleCamError);
+                    Html5Qrcode.getCameras().then(devices => {
+                        if (devices && devices.length > 0) {
+                            let selectedCam = devices[0].id;
+                            for (let dev of devices) {
+                                const label = (dev.label || '').toLowerCase();
+                                if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
+                                    selectedCam = dev.id;
+                                    break;
+                                }
+                            }
+                            startWithCam(selectedCam);
+                        } else {
+                            startWithCam({ facingMode: "environment" });
+                        }
+                    }).catch(err => {
+                        console.warn("Lỗi getCameras, thử bằng facingMode:", err);
+                        startWithCam({ facingMode: "environment" });
                     });
                 })
-                .catch(handleCamError);
+                .catch(err => {
+                    console.error("Lỗi getUserMedia:", err);
+                    handleCamError(err);
+                });
         }
 
         function handleCamError(err) {
             document.getElementById('qr-placeholder').classList.remove('hidden');
-            const errStr = String(err.message || err);
-            if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
+            const errStr = String(err ? (err.message || err.name || err) : '');
+            
+            if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied') || errStr.includes('PermissionDeniedError')) {
                 showPermissionHelp();
             } else if (errStr.includes('NotFoundError') || errStr.includes('DevicesNotFoundError')) {
                 showError("Thiết bị của bạn không tìm thấy Camera. Vui lòng chọn tab 'Nhập tay CCCD' hoặc tải ảnh QR.");
+            } else if (errStr.includes('NotReadableError') || errStr.includes('TrackStartError')) {
+                showError("Camera đang được sử dụng bởi ứng dụng khác (Zoom, Teams, Zalo...). Vui lòng đóng ứng dụng đó và thử lại.");
             } else {
-                showError("Không thể mở Camera: " + errStr);
+                showError("Không thể bật Camera: " + errStr + ". Bạn có thể chọn tab 'Nhập tay CCCD' để tra cứu.");
             }
         }
 
