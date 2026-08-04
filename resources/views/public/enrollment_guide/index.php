@@ -293,52 +293,50 @@
             hideError();
             document.getElementById('qr-placeholder').classList.add('hidden');
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader");
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError("Trình duyệt của bạn không hỗ trợ Camera qua HTTP. Vui lòng chuyển sang tab 'Nhập tay CCCD' hoặc sử dụng kết nối bảo mật.");
+                document.getElementById('qr-placeholder').classList.remove('hidden');
+                return;
             }
 
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            // Ép Chrome kích hoạt popup xin quyền Camera bằng getUserMedia trực tiếp
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    // Dừng stream tạm thời để nhường cho Html5Qrcode
+                    stream.getTracks().forEach(track => track.stop());
 
-            // Tự động dò danh sách Camera khả dụng trên thiết bị (Laptop hoặc Điện thoại)
-            Html5Qrcode.getCameras().then(devices => {
-                if (!devices || devices.length === 0) {
-                    showError("Không tìm thấy thiết bị Camera nào trên máy của bạn. Vui lòng chuyển sang tab 'Nhập tay CCCD' hoặc Tải ảnh QR.");
-                    document.getElementById('qr-placeholder').classList.remove('hidden');
-                    return;
-                }
-
-                // Ưu tiên chọn Camera sau (trên Điện thoại) hoặc lấy Webcam đầu tiên (trên Laptop)
-                let selectedCameraId = devices[0].id;
-                for (let dev of devices) {
-                    const label = (dev.label || '').toLowerCase();
-                    if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
-                        selectedCameraId = dev.id;
-                        break;
+                    if (!html5QrCode) {
+                        html5QrCode = new Html5Qrcode("qr-reader");
                     }
-                }
 
-                html5QrCode.start(
-                    selectedCameraId,
-                    config,
-                    onScanSuccess,
-                    onScanError
-                ).then(() => {
-                    isCamScanning = true;
-                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                }).catch(handleCamError);
+                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-            }).catch(err => {
-                // Thử fallback trực tiếp với facingMode nếu getCameras bị chặn
-                html5QrCode.start(
-                    { facingMode: "user" },
-                    config,
-                    onScanSuccess,
-                    onScanError
-                ).then(() => {
-                    isCamScanning = true;
-                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                }).catch(handleCamError);
-            });
+                    Html5Qrcode.getCameras().then(devices => {
+                        let selectedCam = (devices && devices.length > 0) ? devices[0].id : { facingMode: "user" };
+                        for (let dev of devices || []) {
+                            const label = (dev.label || '').toLowerCase();
+                            if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
+                                selectedCam = dev.id;
+                                break;
+                            }
+                        }
+
+                        html5QrCode.start(selectedCam, config, onScanSuccess, onScanError)
+                            .then(() => {
+                                isCamScanning = true;
+                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                            })
+                            .catch(handleCamError);
+                    }).catch(() => {
+                        html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanError)
+                            .then(() => {
+                                isCamScanning = true;
+                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                            })
+                            .catch(handleCamError);
+                    });
+                })
+                .catch(handleCamError);
         }
 
         function handleCamError(err) {
@@ -377,9 +375,12 @@
             const errMsg = document.getElementById('error-message');
             errMsg.innerHTML = `
                 <div class="space-y-2">
-                    <p class="font-bold text-base text-red-800">Trình duyệt đang chặn quyền truy cập Camera!</p>
+                    <p class="font-bold text-base text-red-800">Trình duyệt Chrome đang chặn Camera cho trang localhost này!</p>
                     <p class="text-xs text-red-700 leading-relaxed">
-                        <b>Cách sửa:</b> Bấm vào <b>biểu tượng ổ khóa/camera 🔒</b> ở đầu thanh địa chỉ trình duyệt → Chọn <b>Cho phép (Allow) Camera</b> → Tải lại trang (F5).
+                        <b>Cách sửa nhanh trong 3 giây:</b><br/>
+                        1. Bấm vào <b>biểu tượng (i) ℹ️</b> ở đầu thanh địa chỉ trình duyệt (ngay trước chữ <i>localhost/TS/...</i>).<br/>
+                        2. Chọn <b>Quyền của trang web (Site settings)</b> ➔ Tìm mục <b>Camera</b> ➔ Chọn <b>Cho phép (Allow)</b>.<br/>
+                        3. Tải lại trang (F5) và bấm lại nút Mở Camera.
                     </p>
                     <div class="pt-2 flex flex-wrap gap-2">
                         <button type="button" onclick="switchTab('manual')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow">
