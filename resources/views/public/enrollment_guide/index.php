@@ -103,13 +103,22 @@
                             <div class="w-16 h-16 bg-red-600/20 text-red-400 rounded-full flex items-center justify-center mx-auto mb-3 pulse-subtle">
                                 <i class="fa-solid fa-camera text-2xl"></i>
                             </div>
-                            <p class="text-sm font-semibold text-gray-200">Nhấn nút bên dưới để bật Camera quét mã QR trên CCCD</p>
+                            <p class="text-sm font-semibold text-gray-200">Nhấn nút bên dưới để bật Camera hoặc tải ảnh QR CCCD</p>
                         </div>
                     </div>
-                    <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="w-full py-3.5 px-6 rounded-2xl btn-gradient text-white font-bold text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-camera"></i>
-                        <span id="cam-btn-text">Mở Camera Quét Mã QR</span>
-                    </button>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="w-full py-3.5 px-4 rounded-2xl btn-gradient text-white font-bold text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-camera"></i>
+                            <span id="cam-btn-text">Mở Camera Quét QR</span>
+                        </button>
+
+                        <label class="w-full py-3.5 px-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer text-center">
+                            <i class="fa-solid fa-image text-red-600"></i>
+                            <span>Tải ảnh QR CCCD</span>
+                            <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleFileScan(event)">
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Tab 2: Manual Input View -->
@@ -299,9 +308,55 @@
                 isCamScanning = true;
                 document.getElementById('cam-btn-text').innerText = "Tắt Camera";
             }).catch(err => {
-                showError("Không thể mở Camera: " + (err.message || err));
                 document.getElementById('qr-placeholder').classList.remove('hidden');
+                
+                const errStr = String(err.message || err);
+                if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
+                    showPermissionHelp();
+                } else if (errStr.includes('NotFoundError') || errStr.includes('DevicesNotFoundError')) {
+                    showError("Thiết bị của bạn không tìm thấy Camera. Vui lòng chọn tab 'Nhập tay CCCD' hoặc tải ảnh QR.");
+                } else {
+                    showError("Không thể mở Camera: " + errStr);
+                }
             });
+        }
+
+        function handleFileScan(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            hideError();
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+
+            html5QrCode.scanFile(file, true)
+                .then(decodedText => {
+                    onScanSuccess(decodedText);
+                })
+                .catch(err => {
+                    showError("Không tìm thấy mã QR trong hình ảnh đã chọn. Vui lòng chọn ảnh chụp rõ nét mã QR trên CCCD hoặc nhập tay CCCD.");
+                });
+        }
+
+        function showPermissionHelp() {
+            const errBox = document.getElementById('error-alert');
+            const errMsg = document.getElementById('error-message');
+            errMsg.innerHTML = `
+                <div class="space-y-2">
+                    <p class="font-bold text-base text-red-800">Trình duyệt đang chặn quyền truy cập Camera!</p>
+                    <p class="text-xs text-red-700 leading-relaxed">
+                        <b>Cách sửa:</b> Bấm vào <b>biểu tượng ổ khóa/camera 🔒</b> ở đầu thanh địa chỉ trình duyệt → Chọn <b>Cho phép (Allow) Camera</b> → Tải lại trang (F5).
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-2">
+                        <button type="button" onclick="switchTab('manual')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow">
+                            <i class="fa-solid fa-keyboard mr-1"></i> Chuyển sang Nhập tay CCCD
+                        </button>
+                    </div>
+                </div>
+            `;
+            errBox.classList.remove('hidden');
         }
 
         function stopCamera() {
