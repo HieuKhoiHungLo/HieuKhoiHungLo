@@ -299,26 +299,58 @@
 
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onScanSuccess,
-                onScanError
-            ).then(() => {
-                isCamScanning = true;
-                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-            }).catch(err => {
-                document.getElementById('qr-placeholder').classList.remove('hidden');
-                
-                const errStr = String(err.message || err);
-                if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
-                    showPermissionHelp();
-                } else if (errStr.includes('NotFoundError') || errStr.includes('DevicesNotFoundError')) {
-                    showError("Thiết bị của bạn không tìm thấy Camera. Vui lòng chọn tab 'Nhập tay CCCD' hoặc tải ảnh QR.");
-                } else {
-                    showError("Không thể mở Camera: " + errStr);
+            // Tự động dò danh sách Camera khả dụng trên thiết bị (Laptop hoặc Điện thoại)
+            Html5Qrcode.getCameras().then(devices => {
+                if (!devices || devices.length === 0) {
+                    showError("Không tìm thấy thiết bị Camera nào trên máy của bạn. Vui lòng chuyển sang tab 'Nhập tay CCCD' hoặc Tải ảnh QR.");
+                    document.getElementById('qr-placeholder').classList.remove('hidden');
+                    return;
                 }
+
+                // Ưu tiên chọn Camera sau (trên Điện thoại) hoặc lấy Webcam đầu tiên (trên Laptop)
+                let selectedCameraId = devices[0].id;
+                for (let dev of devices) {
+                    const label = (dev.label || '').toLowerCase();
+                    if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
+                        selectedCameraId = dev.id;
+                        break;
+                    }
+                }
+
+                html5QrCode.start(
+                    selectedCameraId,
+                    config,
+                    onScanSuccess,
+                    onScanError
+                ).then(() => {
+                    isCamScanning = true;
+                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                }).catch(handleCamError);
+
+            }).catch(err => {
+                // Thử fallback trực tiếp với facingMode nếu getCameras bị chặn
+                html5QrCode.start(
+                    { facingMode: "user" },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                ).then(() => {
+                    isCamScanning = true;
+                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                }).catch(handleCamError);
             });
+        }
+
+        function handleCamError(err) {
+            document.getElementById('qr-placeholder').classList.remove('hidden');
+            const errStr = String(err.message || err);
+            if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
+                showPermissionHelp();
+            } else if (errStr.includes('NotFoundError') || errStr.includes('DevicesNotFoundError')) {
+                showError("Thiết bị của bạn không tìm thấy Camera. Vui lòng chọn tab 'Nhập tay CCCD' hoặc tải ảnh QR.");
+            } else {
+                showError("Không thể mở Camera: " + errStr);
+            }
         }
 
         function handleFileScan(e) {
