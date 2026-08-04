@@ -107,6 +107,13 @@
                         </div>
                     </div>
 
+                    <!-- Camera Select Dropdown (Hiện khi có nhiều Camera) -->
+                    <div id="camera-select-container" class="hidden">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Chọn thiết bị Camera:</label>
+                        <select id="camera-select" onchange="onCameraSelectChange()" class="w-full p-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="w-full py-3.5 px-4 rounded-2xl btn-gradient text-white font-bold text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-camera"></i>
@@ -293,69 +300,60 @@
             hideError();
             document.getElementById('qr-placeholder').classList.add('hidden');
 
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showError("Trình duyệt không hỗ trợ truy cập Camera (yêu cầu kết nối bảo mật HTTPS hoặc truy cập từ localhost). Vui lòng dùng tab 'Nhập tay CCCD' hoặc 'Tải ảnh QR'.");
-                document.getElementById('qr-placeholder').classList.remove('hidden');
-                return;
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
             }
 
-            // Dùng thuộc tính chuẩn video: true để xin quyền truy cập Camera trên Chrome/Edge
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    // Giải phóng stream xin quyền tạm thời
-                    stream.getTracks().forEach(track => track.stop());
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-                    if (!html5QrCode) {
-                        html5QrCode = new Html5Qrcode("qr-reader");
+            const doStart = (camConfig) => {
+                html5QrCode.start(camConfig, config, onScanSuccess, onScanError)
+                    .then(() => {
+                        isCamScanning = true;
+                        document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                    })
+                    .catch(err => {
+                        console.error("Lỗi khi mở camera:", err);
+                        handleCamError(err);
+                    });
+            };
+
+            Html5Qrcode.getCameras().then(devices => {
+                const selectEl = document.getElementById('camera-select');
+                const selectContainer = document.getElementById('camera-select-container');
+
+                if (devices && devices.length > 0) {
+                    if (selectEl) {
+                        selectEl.innerHTML = '';
+                        devices.forEach((dev, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = dev.id;
+                            opt.text = dev.label || `Camera ${idx + 1}`;
+                            selectEl.appendChild(opt);
+                        });
+                        if (devices.length > 1) {
+                            selectContainer.classList.remove('hidden');
+                        }
                     }
 
-                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                    const selectedId = selectEl && selectEl.value ? selectEl.value : devices[0].id;
+                    doStart(selectedId);
+                } else {
+                    doStart({ facingMode: "user" });
+                }
+            }).catch(err => {
+                console.warn("Lỗi getCameras, thử bằng facingMode:", err);
+                doStart({ facingMode: "user" });
+            });
+        }
 
-                    const startWithCam = (camConstraint) => {
-                        html5QrCode.start(camConstraint, config, onScanSuccess, onScanError)
-                            .then(() => {
-                                isCamScanning = true;
-                                document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                            })
-                            .catch(err => {
-                                console.error("Lỗi khởi tạo Html5Qrcode:", err);
-                                // Thử fallback lần cuối sang camera mặc định
-                                if (typeof camConstraint === 'string') {
-                                    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanError)
-                                        .then(() => {
-                                            isCamScanning = true;
-                                            document.getElementById('cam-btn-text').innerText = "Tắt Camera";
-                                        })
-                                        .catch(handleCamError);
-                                } else {
-                                    handleCamError(err);
-                                }
-                            });
-                    };
-
-                    Html5Qrcode.getCameras().then(devices => {
-                        if (devices && devices.length > 0) {
-                            let selectedCam = devices[0].id;
-                            for (let dev of devices) {
-                                const label = (dev.label || '').toLowerCase();
-                                if (label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment')) {
-                                    selectedCam = dev.id;
-                                    break;
-                                }
-                            }
-                            startWithCam(selectedCam);
-                        } else {
-                            startWithCam({ facingMode: "environment" });
-                        }
-                    }).catch(err => {
-                        console.warn("Lỗi getCameras, thử bằng facingMode:", err);
-                        startWithCam({ facingMode: "environment" });
-                    });
-                })
-                .catch(err => {
-                    console.error("Lỗi getUserMedia:", err);
-                    handleCamError(err);
-                });
+        function onCameraSelectChange() {
+            if (isCamScanning) {
+                stopCamera();
+                setTimeout(() => {
+                    startCamera();
+                }, 300);
+            }
         }
 
         function handleCamError(err) {
