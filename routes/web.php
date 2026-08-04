@@ -101,6 +101,10 @@ $router->post('/tra-cuu-trung-tuyen/xac-nhan-hvu', 'AdmissionLookupController@co
 $router->get('/tra-cuu-nang-khieu', 'TalentTestPublicController@index');
 $router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search');
 
+// Enrollment Guide Public Lookup (không cần đăng nhập - Quét QR/CCCD)
+$router->get('/huong-dan-nhap-hoc', 'EnrollmentGuideController@index');
+$router->post('/huong-dan-nhap-hoc/search', 'EnrollmentGuideController@search');
+
 // Nhóm các route bảo mật bằng AuthMiddleware
 $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin', function () {

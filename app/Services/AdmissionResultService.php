@@ -114,6 +114,18 @@ class AdmissionResultService {
                 'filegiaybao' => 'filegiaybao',
                 'linkgiaybao' => 'filegiaybao',
                 'anhgiaybao' => 'filegiaybao',
+                'bannhaphoc' => 'bannhaphoc',
+                'bannh' => 'bannhaphoc',
+                'vitri' => 'vitri',
+                'vitrinh' => 'vitri',
+                'vitrinhhoc' => 'vitri',
+                'linksd' => 'linksodo',
+                'linksodo' => 'linksodo',
+                'anhsodo' => 'linksodo',
+                'gvcn' => 'gvcn',
+                'tengvcn' => 'gvcn',
+                'giaoviencn' => 'gvcn',
+                'giaovienchuniem' => 'gvcn',
             ];
             if (isset($fieldMap[$h])) $colMap[$fieldMap[$h]] = $col;
         }
@@ -207,6 +219,10 @@ class AdmissionResultService {
                 'xacnhanbo'      => ($xBo = $parseBool(isset($colMap['xacnhanbo']) ? ($rowData[$colMap['xacnhanbo']] ?? null) : null)) !== null ? ($xBo ? 1 : 0) : null,
                 'xacnhantruong'  => ($xTr = $parseBool(isset($colMap['xacnhantruong']) ? ($rowData[$colMap['xacnhantruong']] ?? null) : null)) !== null ? ($xTr ? 1 : 0) : null,
                 'filegiaybao'    => trim(isset($colMap['filegiaybao']) ? ($rowData[$colMap['filegiaybao']] ?? '') : ''),
+                'bannhaphoc'     => trim(isset($colMap['bannhaphoc']) ? ($rowData[$colMap['bannhaphoc']] ?? '') : ''),
+                'vitri'          => trim(isset($colMap['vitri']) ? ($rowData[$colMap['vitri']] ?? '') : ''),
+                'linksodo'       => trim(isset($colMap['linksodo']) ? ($rowData[$colMap['linksodo']] ?? '') : ''),
+                'gvcn'           => trim(isset($colMap['gvcn']) ? ($rowData[$colMap['gvcn']] ?? '') : ''),
             ];
 
             // Capture enrollment status if present
@@ -253,14 +269,15 @@ class AdmissionResultService {
             // 5a. Insert thí sinh mới vào đợt
             if (!empty($insertRows)) {
                 $batchSize = 500;
-                $colCount  = 33;
+                $colCount  = 37;
                 $baseSql   = "INSERT INTO ket_qua_trung_tuyen (
                     session_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
                     diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
                     diem_xt, ma_nganh, ten_nganh, phuong_thuc,
                     so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
                     email, sdt, ghi_chu,
-                    so_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, kinh_phi, xac_nhan_bo, xac_nhan_truong, file_giay_bao
+                    so_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, kinh_phi, xac_nhan_bo, xac_nhan_truong, file_giay_bao,
+                    ban_nhap_hoc, vi_tri_nhap_hoc, link_so_do, gvcn
                 ) VALUES ";
 
                 $chunks = array_chunk($insertRows, $batchSize);
@@ -308,17 +325,21 @@ class AdmissionResultService {
                         ngay_sinh varchar,
                         phuong_thuc varchar,
                         xac_nhan_bo boolean,
-                        xac_nhan_truong boolean
+                        xac_nhan_truong boolean,
+                        ban_nhap_hoc varchar,
+                        vi_tri_nhap_hoc varchar,
+                        link_so_do text,
+                        gvcn varchar
                     ) ON COMMIT DROP
                 ");
 
                 // Insert update rows into temp table in chunks
                 $updateChunkSize = 500;
-                $updateColCount = 19;
+                $updateColCount = 23;
                 $updateBaseSql = "INSERT INTO temp_update_results (
                     so_cccd, so_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, kinh_phi, file_giay_bao,
                     so_tai_khoan, ngan_hang, so_tien, noi_dung_ck, email, sdt, ghi_chu, ho_ten, ngay_sinh,
-                    phuong_thuc, xac_nhan_bo, xac_nhan_truong
+                    phuong_thuc, xac_nhan_bo, xac_nhan_truong, ban_nhap_hoc, vi_tri_nhap_hoc, link_so_do, gvcn
                 ) VALUES ";
 
                 $updateChunks = array_chunk($updateRows, $updateChunkSize);
@@ -351,6 +372,10 @@ class AdmissionResultService {
                             $r['phuongthuc'],
                             $r['xacnhanbo'] !== null ? ($r['xacnhanbo'] ? true : false) : null,
                             $r['xacnhantruong'] !== null ? ($r['xacnhantruong'] ? true : false) : null,
+                            $r['bannhaphoc'],
+                            $r['vitri'],
+                            $r['linksodo'],
+                            $r['gvcn'],
                         ];
                     }
                     $flat = array_merge(...$flatValues);
@@ -378,7 +403,11 @@ class AdmissionResultService {
                         ngay_sinh       = CASE WHEN tmp.ngay_sinh != '' THEN tmp.ngay_sinh ELSE k.ngay_sinh END,
                         phuong_thuc     = CASE WHEN tmp.phuong_thuc != '' THEN tmp.phuong_thuc ELSE k.phuong_thuc END,
                         xac_nhan_bo     = CASE WHEN tmp.xac_nhan_bo IS NOT NULL THEN tmp.xac_nhan_bo ELSE k.xac_nhan_bo END,
-                        xac_nhan_truong = CASE WHEN tmp.xac_nhan_truong IS NOT NULL THEN tmp.xac_nhan_truong ELSE k.xac_nhan_truong END
+                        xac_nhan_truong = CASE WHEN tmp.xac_nhan_truong IS NOT NULL THEN tmp.xac_nhan_truong ELSE k.xac_nhan_truong END,
+                        ban_nhap_hoc    = CASE WHEN tmp.ban_nhap_hoc != '' THEN tmp.ban_nhap_hoc ELSE k.ban_nhap_hoc END,
+                        vi_tri_nhap_hoc = CASE WHEN tmp.vi_tri_nhap_hoc != '' THEN tmp.vi_tri_nhap_hoc ELSE k.vi_tri_nhap_hoc END,
+                        link_so_do      = CASE WHEN tmp.link_so_do != '' THEN tmp.link_so_do ELSE k.link_so_do END,
+                        gvcn            = CASE WHEN tmp.gvcn != '' THEN tmp.gvcn ELSE k.gvcn END
                     FROM temp_update_results AS tmp
                     WHERE k.session_id = ? AND k.so_cccd = tmp.so_cccd
                 ";
