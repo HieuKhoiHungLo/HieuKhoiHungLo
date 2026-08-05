@@ -34,10 +34,10 @@ if (!empty($combinations)) {
 <script>
     // Alias for Toast functionality used in this file
     window.toast = {
-        success: (msg) => typeof showToast === 'function' ? showToast(msg, 'success') : alert(msg),
-        error: (msg) => typeof showToast === 'function' ? showToast(msg, 'error') : alert('Error: ' + msg),
-        warning: (msg) => typeof showToast === 'function' ? showToast(msg, 'warning') : alert('Warning: ' + msg),
-        info: (msg) => typeof showToast === 'function' ? showToast(msg, 'info') : alert(msg)
+        success: (msg) => typeof showToast === 'function' ? showToast(msg || 'Thao tác thành công', 'success') : alert(msg || 'Thao tác thành công'),
+        error: (msg) => typeof showToast === 'function' ? showToast(msg || 'Có lỗi xảy ra từ máy chủ', 'error') : alert('Error: ' + (msg || 'Có lỗi xảy ra')),
+        warning: (msg) => typeof showToast === 'function' ? showToast(msg || 'Cảnh báo', 'warning') : alert('Warning: ' + (msg || 'Cảnh báo')),
+        info: (msg) => typeof showToast === 'function' ? showToast(msg || 'Thông báo', 'info') : alert(msg || 'Thông báo')
     };
 </script>
 
@@ -1848,7 +1848,7 @@ if (!empty($combinations)) {
                             toast.success(msg);
                             this.loadData();
                         } else {
-                            toast.error(parsed.message || "Lỗi khi lọc ảo");
+                            toast.error(parsed.message || parsed.error || "Lỗi khi chạy lọc ảo");
                         }
                     },
                     error: (xhr) => {
@@ -1856,7 +1856,7 @@ if (!empty($combinations)) {
                         try {
                             if (xhr.responseText && xhr.responseText.includes('{')) {
                                 let err = JSON.parse(xhr.responseText);
-                                msg = err.message || msg;
+                                msg = err.message || err.error || msg;
                             }
                         } catch(e) {}
                         toast.error(msg);

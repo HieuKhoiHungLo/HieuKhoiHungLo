@@ -72,7 +72,8 @@ include __DIR__ . '/../layouts/header.php';
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="<?= url('/profile/step5?id=' . $applicationId) ?>" id="choicesForm">
+            <form method="POST" action="<?= url('/profile/step5?id=' . $applicationId) ?>
+    <?= csrf_field() ?>" id="choicesForm">
                 <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
                 
                 <?php if (!empty($isLocked) && (in_array($applicationStatus ?? '', ['Đã duyệt', 'approved', 'DaDuyet']))): ?>

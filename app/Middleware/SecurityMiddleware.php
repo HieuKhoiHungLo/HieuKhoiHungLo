@@ -153,12 +153,13 @@ class SecurityMiddleware {
         $csp .= "img-src 'self' data: https: blob:; ";
         $csp .= "connect-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com unpkg.com cdn.datatables.net; ";
         $csp .= "frame-src https://www.youtube.com https://www.youtube-nocookie.com; ";
-        $csp .= "frame-ancestors 'none';";
+        $csp .= "media-src 'self' data:; ";
+        $csp .= "frame-ancestors 'self';";
         
         header("Content-Security-Policy: " . $csp);
         
         // Prevent clickjacking
-        header("X-Frame-Options: DENY");
+        header("X-Frame-Options: SAMEORIGIN");
         
         // Prevent MIME sniffing
         header("X-Content-Type-Options: nosniff");

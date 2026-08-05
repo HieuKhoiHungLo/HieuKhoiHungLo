@@ -64,7 +64,7 @@ class EnrollmentGuideController extends Controller
                 kq.link_so_do,
                 kq.gvcn,
                 kq.kinh_phi,
-                ts.anh_the,
+                ts.anh_dai_dien,
                 ts.gioi_tinh,
                 ts.dien_thoai as sdt_ts,
                 ts.email as email_ts
@@ -92,7 +92,7 @@ class EnrollmentGuideController extends Controller
                 'ho_ten'         => $record['ho_ten'] ?? '',
                 'so_cccd'        => $record['so_cccd'] ?? '',
                 'sbd'            => $record['sbd'] ?? '',
-                'ngay_sinh'      => $record['ngay_sinh'] ?? '',
+                'ngay_sinh'      => !empty($record['ngay_sinh']) && strtotime($record['ngay_sinh']) ? date('d/m/Y', strtotime($record['ngay_sinh'])) : ($record['ngay_sinh'] ?? ''),
                 'ma_nganh'       => $record['ma_nganh'] ?? '',
                 'ten_nganh'      => !empty($record['nganh_tt']) ? $record['nganh_tt'] : ($record['ten_nganh'] ?? ''),
                 'ten_khoa'       => $record['ten_khoa'] ?? '',
@@ -103,7 +103,7 @@ class EnrollmentGuideController extends Controller
                 'link_so_do'     => $record['link_so_do'] ?? '',
                 'gvcn'           => $record['gvcn'] ?? '',
                 'kinh_phi'       => $record['kinh_phi'] ?? '',
-                'anh_the'        => $record['anh_the'] ?? '',
+                'anh_the'        => !empty($record['anh_dai_dien']) ? (strpos($record['anh_dai_dien'], 'http') === 0 ? $record['anh_dai_dien'] : url($record['anh_dai_dien'])) : '',
             ]
         ]);
     }

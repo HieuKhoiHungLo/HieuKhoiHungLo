@@ -46,7 +46,8 @@ include __DIR__ . '/../layouts/header.php';
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="<?= url('/profile/step4') ?>" id="scoresForm" enctype="multipart/form-data">
+            <form method="POST" action="<?= url('/profile/step4') ?>
+    <?= csrf_field() ?>" id="scoresForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <?php if (!empty($isLocked)): ?>

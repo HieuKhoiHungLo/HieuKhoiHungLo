@@ -111,6 +111,7 @@ ob_start();
 
     <!-- Hidden Bulk Form -->
     <form id="bulk-form" method="POST" action="">
+    <?= csrf_field() ?>
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
         <input type="hidden" name="action" id="bulk-action-input">
         <div id="bulk-candidates-ids"></div>

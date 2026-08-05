@@ -306,76 +306,7 @@ class VirtualAdmissionController extends Controller {
         ]);
     }
 
-    /**
-     * Tạm thời để tạo dữ liệu test 15.000 hồ sơ
-     */
-    public function runStressSeeder() {
-        set_time_limit(900); 
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $targetSessionId = 3; 
 
-        $totalCandidates = 15000;
-        $chunkSize = 500;
-
-        $majors = $db->query("SELECT ma_nganh FROM dm_nganh")->fetchAll(PDO::FETCH_COLUMN);
-
-        for ($i = 0; $i < $totalCandidates; $i += $chunkSize) {
-            $batchCccds = [];
-            for ($j = 0; $j < min($chunkSize, $totalCandidates - $i); $j++) {
-                $batchCccds[] = sprintf("%012d", $i + $j + 100000000000);
-            }
-
-            $db->beginTransaction();
-            try {
-                $tsValues = [];
-                foreach ($batchCccds as $cccd) {
-                    $tsValues[] = "('$cccd', 'Candidate $cccd', '2008-01-01', 'Nam', 'KV" . rand(1, 3) . "', '0" . rand(1, 7) . "')";
-                }
-                $db->exec("INSERT INTO thi_sinh (so_cccd, ho_va_ten, ngay_sinh, gioi_tinh, khu_vuc_uu_tien, doi_tuong_uu_tien) VALUES " . implode(',', $tsValues));
-
-                $hsValues = [];
-                foreach ($batchCccds as $cccd) {
-                    $hsValues[] = "('$cccd', $targetSessionId, 'Đã duyệt')";
-                }
-                $db->exec("INSERT INTO ho_so_xet_tuyen (so_cccd, dot_tuyen_sinh_id, trang_thai) VALUES " . implode(',', $hsValues));
-
-                $nvValues = [];
-                foreach ($batchCccds as $cccd) {
-                    $numNv = rand(1, 4);
-                    $randKeys = (array)array_rand($majors, $numNv);
-                    foreach ($randKeys as $idx => $key) {
-                        $m = $majors[$key];
-                        $nvValues[] = "('$cccd', $targetSessionId, '$m', " . ($idx + 1) . ", 'DaDuyet')";
-                    }
-                }
-                $db->exec("INSERT INTO nguyen_vong (so_cccd, dot_tuyen_sinh_id, ma_nganh, thu_tu_nguyen_vong, trang_thai) VALUES " . implode(',', $nvValues));
-
-                $kqhtValues = [];
-                foreach ($batchCccds as $cccd) {
-                    for ($lop = 10; $lop <= 12; $lop++) {
-                        $v = array_map(fn() => rand(50, 95) / 10, range(1, 9));
-                        $kqhtValues[] = "('$cccd', $lop, " . implode(',', $v) . ")";
-                    }
-                }
-                $db->exec("INSERT INTO ket_qua_hoc_tap (so_cccd, lop, diem_toan_cn, diem_van_cn, diem_ngoai_ngu_cn, diem_ly_cn, diem_hoa_cn, diem_sinh_cn, diem_su_cn, diem_dia_cn, diem_gdcd_cn) VALUES " . implode(',', $kqhtValues));
-
-                $thptValues = [];
-                foreach ($batchCccds as $cccd) {
-                    $v = array_map(fn() => rand(50, 95) / 10, range(1, 9));
-                    $thptValues[] = "('$cccd', " . implode(',', $v) . ")";
-                }
-                $db->exec("INSERT INTO diem_thi_thpt (so_cccd, toan, van, tieng_anh, ly, hoa, sinh, su, dia, gdcd) VALUES " . implode(',', $thptValues));
-
-                $db->commit();
-            } catch (\Exception $e) {
-                if ($db->inTransaction()) $db->rollBack();
-                echo "Error at $i: " . $e->getMessage();
-                exit;
-            }
-        }
-        echo "SUCCESS: Generated 15,000 records.";
-        exit;
-    }
 
     public function apiSync() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1065,7 +996,7 @@ class VirtualAdmissionController extends Controller {
             $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
 
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
                 : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
 
             $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
@@ -1162,12 +1093,12 @@ class VirtualAdmissionController extends Controller {
             $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
 
             $admitCond = $hasBgd 
-                ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+                ? "cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ'" 
                 : "cs.trang_thai_trung_tuyen = TRUE";
 
             // 1. Thống kê lấp đầy các ngành
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
                 : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
 
             $majorSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
@@ -1622,7 +1553,7 @@ class VirtualAdmissionController extends Controller {
             $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
 
             $admitCond = $hasBgd 
-                ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+                ? "cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ'" 
                 : "cs.trang_thai_trung_tuyen = TRUE";
 
             $intSessionId = (int)$sessionId;
@@ -1649,7 +1580,7 @@ class VirtualAdmissionController extends Controller {
 
             // 2. Per-major stats
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
                 : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
 
             $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
@@ -1737,7 +1668,7 @@ class VirtualAdmissionController extends Controller {
         $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
 
         $admitCond = $hasBgd 
-            ? "cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ'" 
+            ? "cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ'" 
             : "cs.trang_thai_trung_tuyen = TRUE";
 
         $intSessionId = (int)$sessionId;
@@ -1766,7 +1697,7 @@ class VirtualAdmissionController extends Controller {
 
         // 2. Per-major stats (admitted vs chi_tieu)  
         $doBoExpr = $hasBgd 
-            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND cs.ket_qua_bo_gd = 'Đỗ' THEN 1 END)" 
+            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
             : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
 
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,

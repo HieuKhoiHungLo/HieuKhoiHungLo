@@ -26,7 +26,8 @@ class VirtualFilterService {
             // Bước 1: Reset toàn bộ trang thái trúng tuyển trong bảng summary về FALSE
             $stmtReset = $this->db->prepare("
                 UPDATE v_calc_summary 
-                SET trang_thai_trung_tuyen = FALSE 
+                SET trang_thai_trung_tuyen = FALSE,
+                    ket_qua_bo_gd_du_kien = NULL 
                 WHERE nguyen_vong_id IN (SELECT id FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?)
             ");
             $stmtReset->execute([$batchId]);
@@ -60,6 +61,7 @@ class VirtualFilterService {
             // Bước 3: Thuật toán Trượt dây chuyền (Cascading Filter)
             $processedCandidates = []; 
             $successfulNvIds = [];   
+            $candidateAdmittedChoice = []; // cccd => choice array
 
             foreach ($allChoices as $choice) {
                 $cccd = $choice['so_cccd'];
@@ -85,6 +87,7 @@ class VirtualFilterService {
                         // ÉP ĐỖ: Bỏ qua kiểm tra điểm chuẩn và ngưỡng, đưa thẳng vào danh sách đỗ.
                         $processedCandidates[$cccd] = true;
                         $successfulNvIds[] = $nvId;
+                        $candidateAdmittedChoice[$cccd] = $choice;
                         continue;
                     }
                 }
@@ -98,6 +101,7 @@ class VirtualFilterService {
                 if ($score >= $benchmarkScore && $passedThreshold === 1) {
                     $processedCandidates[$cccd] = true;
                     $successfulNvIds[] = $nvId;
+                    $candidateAdmittedChoice[$cccd] = $choice;
                 }
             }
 
@@ -115,9 +119,105 @@ class VirtualFilterService {
                 if ($isHocBa) {
                     $this->db->exec("
                         UPDATE v_calc_summary 
-                        SET ket_qua_bo_gd = 'Đỗ', bi_loai_truong_khac = FALSE
+                        SET ket_qua_bo_gd = 'Đỗ', ket_qua_bo_gd_du_kien = 'Đỗ', bi_loai_truong_khac = FALSE
                         WHERE nguyen_vong_id IN ($idsList)
                     ");
+                } else {
+                    // Đợt Thi THPT: Thuật toán Tái tính toán "Dự kiến sau Lọc ảo Bộ" (Dynamic Ministry Prediction)
+                    // 1. Thí sinh đỗ tại Trường mình theo dữ liệu Bộ
+                    $stmtOur = $this->db->prepare("
+                        SELECT DISTINCT so_cccd 
+                        FROM ket_qua_loc_ao_bo_gd 
+                        WHERE dot_tuyen_sinh_id = ? AND ket_qua = 'Đỗ'
+                    ");
+                    $stmtOur->execute([$batchId]);
+                    $ourAdmittedCccds = array_fill_keys($stmtOur->fetchAll(PDO::FETCH_COLUMN), true);
+
+                    $stmtOurCs = $this->db->prepare("
+                        SELECT DISTINCT nv.so_cccd 
+                        FROM v_calc_summary cs
+                        JOIN nguyen_vong nv ON cs.nguyen_vong_id = nv.id
+                        WHERE nv.dot_tuyen_sinh_id = ? AND cs.ket_qua_bo_gd = 'Đỗ'
+                    ");
+                    $stmtOurCs->execute([$batchId]);
+                    foreach ($stmtOurCs->fetchAll(PDO::FETCH_COLUMN) as $c) {
+                        $ourAdmittedCccds[$c] = true;
+                    }
+
+                    // 2. Thí sinh đỗ tại Trường ngoài theo dữ liệu Bộ
+                    $stmtOutside = $this->db->prepare("
+                        SELECT so_cccd, MIN(ttnv_do) as min_nv_do
+                        FROM ket_qua_loc_ao_bo_gd 
+                        WHERE dot_tuyen_sinh_id = ? 
+                          AND ttnv_do > 0
+                          AND ma_truong_trung_tuyen IS NOT NULL AND TRIM(ma_truong_trung_tuyen) != '' 
+                          AND UPPER(TRIM(ma_truong_trung_tuyen)) NOT IN ('THV', 'HVU')
+                        GROUP BY so_cccd
+                    ");
+                    $stmtOutside->execute([$batchId]);
+                    $outsideRows = $stmtOutside->fetchAll(PDO::FETCH_ASSOC);
+
+                    $outsideAdmittedMinNv = [];
+                    foreach ($outsideRows as $r) {
+                        $outsideAdmittedMinNv[$r['so_cccd']] = (int) $r['min_nv_do'];
+                    }
+
+                    $stmtOutsideCs = $this->db->prepare("
+                        SELECT nv.so_cccd, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, cs.ma_truong_trung_tuyen_bo
+                        FROM v_calc_summary cs
+                        JOIN nguyen_vong nv ON cs.nguyen_vong_id = nv.id
+                        WHERE nv.dot_tuyen_sinh_id = ? AND (cs.bi_loai_truong_khac = TRUE OR (cs.ma_truong_trung_tuyen_bo IS NOT NULL AND cs.ma_truong_trung_tuyen_bo != '' AND UPPER(TRIM(cs.ma_truong_trung_tuyen_bo)) NOT IN ('THV', 'HVU')))
+                    ");
+                    $stmtOutsideCs->execute([$batchId]);
+                    foreach ($stmtOutsideCs->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                        $c = $r['so_cccd'];
+                        if (!isset($outsideAdmittedMinNv[$c])) {
+                            $nvOrd = (int) ($r['thu_tu_nv_bo'] ?? $r['thu_tu_nguyen_vong'] ?? 1);
+                            $outsideAdmittedMinNv[$c] = max(1, $nvOrd - 1);
+                        }
+                    }
+
+                    $doBoNvIds = [];
+                    $truotBoNvIds = [];
+
+                    foreach ($candidateAdmittedChoice as $cccd => $choice) {
+                        $nvId = (int)$choice['nv_id'];
+                        $currentNvOrder = (int)($choice['thu_tu_nv_bo'] ?? $choice['thu_tu_nguyen_vong'] ?? 999);
+
+                        // Trường hợp 2: Nếu thí sinh có NV đỗ trường ngoài có thứ tự ưu tiên cao hơn (min_nv_do < currentNvOrder)
+                        if (isset($outsideAdmittedMinNv[$cccd]) && $outsideAdmittedMinNv[$cccd] < $currentNvOrder) {
+                            $truotBoNvIds[] = $nvId;
+                        } 
+                        // Trường hợp 1: Thí sinh từng đỗ ở bất kỳ NV nào tại Trường mình (VD từ NV1 trượt xuống NV4)
+                        else if (isset($ourAdmittedCccds[$cccd])) {
+                            $doBoNvIds[] = $nvId;
+                        }
+                        // Trường hợp không bị trường ngoài có NV cao hơn hút mất
+                        else if (!isset($outsideAdmittedMinNv[$cccd]) || $outsideAdmittedMinNv[$cccd] >= $currentNvOrder) {
+                            $doBoNvIds[] = $nvId;
+                        }
+                        else {
+                            $truotBoNvIds[] = $nvId;
+                        }
+                    }
+
+                    if (!empty($doBoNvIds)) {
+                        $doList = implode(',', array_map('intval', $doBoNvIds));
+                        $this->db->exec("
+                            UPDATE v_calc_summary 
+                            SET ket_qua_bo_gd_du_kien = 'Đỗ' 
+                            WHERE nguyen_vong_id IN ($doList)
+                        ");
+                    }
+
+                    if (!empty($truotBoNvIds)) {
+                        $truotList = implode(',', array_map('intval', $truotBoNvIds));
+                        $this->db->exec("
+                            UPDATE v_calc_summary 
+                            SET ket_qua_bo_gd_du_kien = 'Trượt' 
+                            WHERE nguyen_vong_id IN ($truotList)
+                        ");
+                    }
                 }
             }
 

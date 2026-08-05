@@ -10,7 +10,8 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="<?= url('/register') ?>">
+        <form method="POST" action="<?= url('/register') ?>
+    <?= csrf_field() ?>">
             <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             
             <div class="mb-5">

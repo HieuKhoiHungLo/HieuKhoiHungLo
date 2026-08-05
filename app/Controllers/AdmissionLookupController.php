@@ -42,17 +42,31 @@ class AdmissionLookupController extends Controller
         $keyword = trim($_POST['keyword'] ?? '');
 
         if (empty($keyword)) {
-            $this->redirect(url('/tra-cuu-trung-tuyen?error=empty'));
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => false, 'message' => 'Vui lòng nhập thông tin tra cứu!']);
             return;
         }
 
-        // Rate limit đơn giản: chỉ cho phép tra cứu, không cần session phức tạp
+        // Rate Limiting: Max 5 requests per 1 minute per IP
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown_ip';
+        $rateLimitKey = 'search_admission_' . $ip;
+        
+        if (!\App\Core\RateLimiter::check($rateLimitKey, 5, 1)) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(429);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Bạn đã tra cứu quá nhiều lần. Vui lòng thử lại sau 1 phút.'
+            ]);
+            return;
+        }
+
         $db = Database::getInstance()->getConnection();
 
-        // Tìm kiếm theo CCCD, SBD hoặc Email trong bảng ket_qua_trung_tuyen (lấy 1 đợt mới nhất/kích hoạt nhất)
         $stmt = $db->prepare("
             SELECT t.*,
-                   ts.id as thi_sinh_id
+                   ts.id as thi_sinh_id,
+                   ts.anh_dai_dien
             FROM ket_qua_trung_tuyen t
             LEFT JOIN dot_tuyen_sinh d ON d.id = t.session_id
             LEFT JOIN thi_sinh ts ON ts.so_cccd = t.so_cccd
@@ -66,25 +80,31 @@ class AdmissionLookupController extends Controller
         $stmt->execute([$keyword, $keyword]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        header('Content-Type: application/json; charset=utf-8');
+        
         if (!$record) {
-            $this->redirect(url('/tra-cuu-trung-tuyen?error=not_found&q=' . urlencode($keyword)));
+            echo json_encode(['success' => false, 'message' => 'Không tìm thấy kết quả trúng tuyển. Kiểm tra lại CCCD hoặc SBD của bạn.']);
             return;
         }
 
         $targetUrl = url('/application/results');
-
-        // If candidate is already logged in, redirect directly to /application/results
-        if (!empty($_SESSION['user_id'])) {
-            $this->redirect($targetUrl);
-            return;
-        }
-
-        // If candidate is not logged in, prefill CCCD and redirect to login page with target redirect
         $cccdToPrefill = !empty($record['so_cccd']) ? $record['so_cccd'] : $keyword;
         $_SESSION['prefill_cccd'] = $cccdToPrefill;
 
         $loginUrl = url('/login?redirect=' . urlencode($targetUrl) . '&cccd=' . urlencode($cccdToPrefill));
-        $this->redirect($loginUrl);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'ho_ten' => $record['ho_ten'] ?? 'Thí sinh',
+                'so_cccd' => $record['so_cccd'] ?? '--',
+                'ngay_sinh' => $record['ngay_sinh'] ?? '',
+                'ma_nganh' => $record['ma_nganh'] ?? '',
+                'ten_nganh' => $record['ten_nganh'] ?? '',
+                'anh_the' => !empty($record['anh_dai_dien']) ? (strpos($record['anh_dai_dien'], 'http') === 0 ? $record['anh_dai_dien'] : url($record['anh_dai_dien'])) : '',
+                'login_url' => $loginUrl
+            ]
+        ]);
     }
 
     /**

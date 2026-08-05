@@ -16,7 +16,8 @@
             </div>
         <?php endif; ?>
         
-        <form method="POST" action="<?= url('/admin/settings/home') ?>">
+        <form method="POST" action="<?= url('/admin/settings/home') ?>
+    <?= csrf_field() ?>">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             
             <!-- Video Section -->

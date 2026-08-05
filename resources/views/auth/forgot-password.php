@@ -30,7 +30,8 @@
             </script>
         <?php endif; ?>
 
-        <form method="POST" action="<?= url('/forgot-password') ?>">
+        <form method="POST" action="<?= url('/forgot-password') ?>
+    <?= csrf_field() ?>">
             <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">

@@ -303,7 +303,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/api/vf/get-cccds', 'VirtualAdmissionController@apiGetCccds');
     $router->post('/admin/api/vf/recalculate', 'VirtualAdmissionController@recalculateScores');
     $router->post('/admin/api/vf/sync', 'VirtualAdmissionController@apiSync');
-    $router->get('/admin/api/vf/run-stress-seeder', 'VirtualAdmissionController@runStressSeeder');
+
     $router->get('/admin/api/vf/export', 'VirtualAdmissionController@exportExcel');
     $router->get('/admin/api/vf/export-admitted',     'VirtualAdmissionController@exportAdmitted');
     $router->get('/admin/api/vf/export-failed',       'VirtualAdmissionController@exportFailed');

@@ -138,7 +138,8 @@ $getVal = function ($grade, $sem, $field) use ($records) {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="<?= url('/academic') ?>" id="academicForm" enctype="multipart/form-data">
+            <form method="POST" action="<?= url('/academic') ?>
+    <?= csrf_field() ?>" id="academicForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
 
                 <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex items-center">

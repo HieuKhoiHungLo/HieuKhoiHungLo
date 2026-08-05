@@ -49,6 +49,7 @@ ob_start();
     border-right: 1px solid #e2e8f0;
     background: #f8fafc;
     overflow: hidden;
+    position: relative;
 }
 /* RIGHT PANEL */
 .ep-right {
@@ -58,26 +59,28 @@ ob_start();
     background: #fff;
     overflow: hidden;
 }
-/* SEARCH AREA */
-.ep-search-area {
+/* TOP SEARCH ZONE (HEADER INPUT AT TOP OF LEFT PANEL) */
+.ep-search-zone {
     flex-shrink: 0;
-    padding: 14px 16px 10px;
+    padding: 12px 16px;
     background: #fff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1.5px solid #e2e8f0;
+    position: relative;
+    z-index: 30;
 }
 .ep-search-input-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
     background: #f1f5f9;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid #cbd5e1;
     border-radius: 10px;
     padding: 0 12px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
 }
 .ep-search-input-wrap:focus-within {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
     background: #fff;
 }
 .ep-search-input-wrap input {
@@ -85,9 +88,10 @@ ob_start();
     border: none;
     background: transparent;
     outline: none;
-    padding: 10px 0;
-    font-size: 14px;
+    padding: 9px 0;
+    font-size: 13.5px;
     color: #1e293b;
+    font-weight: 500;
 }
 .ep-search-input-wrap input::placeholder { color: #94a3b8; }
 .ep-search-btn {
@@ -107,16 +111,64 @@ ob_start();
     box-shadow: 0 2px 6px rgba(37,99,235,0.3);
 }
 .ep-search-btn:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
-/* SEARCH RESULTS */
+
+/* SEARCH RESULTS DROPDOWN (POPS DOWN BELOW TOP SEARCH BAR) */
 .ep-search-results {
-    margin-top: 10px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    right: 16px;
+    margin-top: 6px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
     overflow: hidden;
-    max-height: 220px;
+    max-height: 320px;
     overflow-y: auto;
     background: #fff;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+    z-index: 100;
+}
+/* BOTTOM STICKY ACTION DOCK */
+.ep-action-dock {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    border-top: 1.5px solid #e2e8f0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    position: relative;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.04);
+    z-index: 20;
+}
+.ep-btn-enroll-hero {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    border: 1px solid #15803d;
+    color: #fff;
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.ep-btn-enroll-hero:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45);
+    background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+}
+.ep-btn-enroll-hero:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 .ep-result-item {
     display: flex;
@@ -495,27 +547,35 @@ ob_start();
         <!-- ===== LEFT PANEL ===== -->
         <div class="ep-left">
 
-            <!-- SEARCH AREA -->
-            <div class="ep-search-area">
-                <div class="ep-search-input-wrap">
-                    <i class="fas fa-search" style="color:#94a3b8;font-size:14px;flex-shrink:0;"></i>
-                    <input type="text" id="search-input"
-                        x-model="searchKeyword"
-                        @keydown.enter="searchCandidates()"
-                        placeholder="Tìm theo tên hoặc số CCCD/CMND..."
-                        autocomplete="off">
-                    <button class="ep-search-btn" @click="searchCandidates()" :disabled="isSearching">
-                        <template x-if="isSearching">
-                            <i class="fas fa-spinner fa-spin"></i>
-                        </template>
-                        <template x-if="!isSearching">
-                            <i class="fas fa-search"></i>
-                        </template>
-                        <span x-text="isSearching ? 'Đang tìm...' : 'Tìm kiếm'"></span>
+            <!-- SEARCH ZONE (HEADER INPUT AT TOP OF LEFT PANEL) -->
+            <div class="ep-search-zone">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="ep-search-input-wrap" style="flex:1;">
+                        <i class="fas fa-search" style="color:#94a3b8;font-size:14px;flex-shrink:0;"></i>
+                        <input type="text" id="search-input"
+                            x-model="searchKeyword"
+                            @keydown.enter="searchCandidates()"
+                            placeholder="Nhập số CCCD/CMND hoặc họ tên thí sinh..."
+                            autocomplete="off">
+                        <kbd style="display:inline-block;padding:2px 6px;font-size:10px;font-weight:700;color:#94a3b8;background:#e2e8f0;border-radius:4px;font-family:sans-serif;">Ctrl+K</kbd>
+                        <button class="ep-search-btn" @click="searchCandidates()" :disabled="isSearching">
+                            <template x-if="isSearching">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </template>
+                            <template x-if="!isSearching">
+                                <i class="fas fa-search"></i>
+                            </template>
+                            <span x-text="isSearching ? 'Đang tìm...' : 'Tìm kiếm'"></span>
+                        </button>
+                    </div>
+
+                    <button class="ep-btn ep-btn-ghost" @click="resetForm()" id="btn-reset" title="Làm mới form & tìm kiếm" style="padding:8px 12px;">
+                        <i class="fas fa-undo" style="font-size:12px;"></i>
+                        <span style="font-size:12px;">Làm mới</span>
                     </button>
                 </div>
 
-                <!-- SEARCH RESULTS -->
+                <!-- DROPDOWN SEARCH RESULTS -->
                 <div class="ep-search-results" x-show="searchResults.length > 0" x-cloak>
                     <template x-for="c in searchResults" :key="c.ket_qua_id">
                         <div class="ep-result-item"
@@ -829,23 +889,19 @@ ob_start();
                 </template>
             </div>
 
-            <!-- ACTION BAR -->
-            <div class="ep-action-bar" x-show="selectedCandidate">
-                <button class="ep-btn ep-btn-ghost" @click="resetForm()" id="btn-reset">
-                    <i class="fas fa-undo"></i> Làm mới
-                </button>
-                <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <!-- BOTTOM STICKY ACTION DOCK -->
+            <div class="ep-action-dock" x-show="selectedCandidate">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="ep-btn ep-btn-cancel" @click="submitEnrollment('huy')" :disabled="isSaving" id="btn-cancel-enroll">
+                        <i class="fas fa-ban"></i> Hủy nhập học
+                    </button>
                     <button class="ep-btn ep-btn-save" @click="submitEnrollment('luu_tam')" :disabled="isSaving" id="btn-save-draft">
                         <i class="far fa-save"></i>
                         <span x-text="isSaving ? 'Đang lưu...' : 'Lưu tạm'"></span>
                     </button>
-                    <button class="ep-btn ep-btn-enroll" @click="submitEnrollment('nhap_hoc')" :disabled="isSaving" id="btn-enroll">
-                        <i class="fas fa-check-circle"></i>
-                        <span x-text="isSaving ? 'Đang lưu...' : 'Xác nhận nhập học'"></span>
-                    </button>
-                    <button class="ep-btn ep-btn-cancel" @click="submitEnrollment('huy')" :disabled="isSaving" id="btn-cancel-enroll">
-                        <i class="fas fa-ban"></i> Hủy nhập học
-                    </button>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center;">
                     <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
                         <button class="ep-btn ep-btn-print" @click="printReceipt()" id="btn-print">
                             <i class="fas fa-print"></i> In phiếu
@@ -856,6 +912,11 @@ ob_start();
                             <i class="fas fa-file-word"></i> In Word
                         </button>
                     </template>
+
+                    <button class="ep-btn-enroll-hero" @click="submitEnrollment('nhap_hoc')" :disabled="isSaving" id="btn-enroll">
+                        <i class="fas fa-check-circle" style="font-size:15px;"></i>
+                        <span x-text="isSaving ? 'Đang xử lý...' : 'Xác nhận nhập học'"></span>
+                    </button>
                 </div>
             </div>
 
@@ -993,6 +1054,13 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             this.loadAllData();
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    document.getElementById('search-input')?.focus();
+                    document.getElementById('search-input')?.select();
+                }
+            });
         },
 
         loadAllData() {

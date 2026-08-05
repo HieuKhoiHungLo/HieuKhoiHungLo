@@ -107,6 +107,7 @@ ob_start();
                  @click.away="showModal = false">
                  
                 <form :action="isEdit ? '/admin/certificate-rules/update' : '/admin/certificate-rules/store'" method="POST">
+    <?= csrf_field() ?>
                     <input type="hidden" name="id" x-model="formData.id">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-slate-100">
                         <h3 class="text-lg leading-6 font-bold text-slate-900 mb-4" x-text="isEdit ? 'Cập nhật quy tắc' : 'Thêm quy tắc mới'"></h3>
