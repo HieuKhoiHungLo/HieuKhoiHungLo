@@ -136,6 +136,7 @@ ob_start();
     border-top: 1.5px solid #e2e8f0;
     padding: 12px 16px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
@@ -340,7 +341,7 @@ ob_start();
 .ep-doc-select {
     border: 1px solid #e2e8f0; border-radius: 6px;
     padding: 4px 8px; font-size: 12px; color: #374151;
-    background: #fff; outline: none; min-width: 100px;
+    background: #fff; outline: none; width: 180px;
 }
 .ep-doc-select:focus { border-color: #3b82f6; }
 /* QR CARD */
@@ -352,7 +353,7 @@ ob_start();
     text-align: center;
     display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
-.ep-qr-img { width: 160px; height: 160px; border-radius: 12px; border: 3px solid #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.ep-qr-img { width: 220px; height: 220px; border-radius: 12px; border: 3px solid #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
 .ep-qr-amount { font-size: 26px; font-weight: 800; color: #15803d; }
 /* ACTION BAR */
 .ep-action-bar {
@@ -636,27 +637,17 @@ ob_start();
                         <!-- PROFILE HEADER -->
                         <div class="ep-candidate-card">
                             <div class="ep-profile-header">
-                                <div class="ep-avatar">
-                                    <i class="fas fa-user"></i>
+                                <div class="ep-avatar" style="overflow:hidden;">
+                                    <template x-if="selectedCandidate.anh_dai_dien">
+                                        <img :src="selectedCandidate.anh_dai_dien" alt="Avatar" style="width:100%;height:100%;object-fit:cover;">
+                                    </template>
+                                    <template x-if="!selectedCandidate.anh_dai_dien">
+                                        <i class="fas fa-user"></i>
+                                    </template>
                                 </div>
                                 <div style="flex:1;min-width:0;">
                                     <div class="ep-profile-name" x-text="selectedCandidate.ho_ten"></div>
-                                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;">
-                                        <div class="ep-profile-code">
-                                            <i class="fas fa-hashtag" style="font-size:9px;"></i>
-                                            <span x-text="selectedCandidate.ma_phieu || 'Chưa cấp mã'"></span>
-                                        </div>
-                                        <span class="ep-profile-badge"
-                                            :class="{
-                                                'badge-enrolled': selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc',
-                                                'badge-pending':  selectedCandidate.trang_thai_nhap_hoc === 'cho_xet_duyet',
-                                                'badge-cancelled':selectedCandidate.trang_thai_nhap_hoc === 'da_huy',
-                                                'badge-new':      !selectedCandidate.trang_thai_nhap_hoc
-                                            }"
-                                            x-text="selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc' ? '✓ Đã nhập học' : (selectedCandidate.trang_thai_nhap_hoc === 'cho_xet_duyet' ? '⏳ Chờ xét duyệt' : (selectedCandidate.trang_thai_nhap_hoc === 'da_huy' ? '✕ Đã hủy' : '● Chưa nhập học'))">
-                                        </span>
-                                    </div>
-                                    <div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">
+                                    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;">
                                         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.8);">
                                             <i class="far fa-id-card"></i>
                                             <span x-text="selectedCandidate.so_cccd"></span>
@@ -666,21 +657,28 @@ ob_start();
                                             <span x-text="selectedCandidate.dien_thoai || 'N/A'"></span>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- SCORE BADGE -->
-                                <div style="text-align:right;flex-shrink:0;">
-                                    <div class="ep-score-badge">
-                                        <span class="score-num" x-text="selectedCandidate.diem_xet_tuyen"></span>
-                                        <span class="score-label">điểm</span>
+                                    <div style="margin-top:8px;font-size:13px;color:#fff;font-weight:700;">
+                                        <i class="fas fa-graduation-cap" style="opacity:0.8;margin-right:4px;"></i> <span x-text="selectedCandidate.ten_nganh"></span>
                                     </div>
-                                    <div style="font-size:10px;color:rgba(255,255,255,0.7);margin-top:4px;" x-text="selectedCandidate.to_hop"></div>
+                                </div>
+                                <!-- STATUS BADGE -->
+                                <div style="text-align:right;flex-shrink:0;align-self:center;">
+                                    <span class="ep-profile-badge" style="margin:0;padding:8px 14px;font-size:13px;"
+                                        :class="{
+                                            'badge-enrolled': selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc',
+                                            'badge-pending':  selectedCandidate.trang_thai_nhap_hoc === 'cho_xet_duyet',
+                                            'badge-cancelled':selectedCandidate.trang_thai_nhap_hoc === 'da_huy',
+                                            'badge-new':      !selectedCandidate.trang_thai_nhap_hoc
+                                        }"
+                                        x-text="selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc' ? '✓ Đã nhập học' : (selectedCandidate.trang_thai_nhap_hoc === 'cho_xet_duyet' ? '⏳ Chờ duyệt' : (selectedCandidate.trang_thai_nhap_hoc === 'da_huy' ? '✕ Đã hủy' : '● Chưa nhập học'))">
+                                    </span>
                                 </div>
                             </div>
 
                             <!-- TABS -->
                             <div class="ep-tabs">
                                 <button class="ep-tab" :class="activeTab === 'admission' ? 'active' : ''" @click="activeTab = 'admission'" id="tab-admission">
-                                    <i class="fas fa-folder-open"></i> Hồ sơ & Nhập học
+                                    <i class="fas fa-folder-open"></i> Thông tin nhập học
                                 </button>
                                 <button class="ep-tab" :class="activeTab === 'info' ? 'active' : ''" @click="activeTab = 'info'" id="tab-info">
                                     <i class="fas fa-user-circle"></i> Thông tin thí sinh
@@ -692,19 +690,17 @@ ob_start();
 
                             <!-- TAB: HỒ SƠ & NHẬP HỌC -->
                             <div class="ep-tab-pane" :class="activeTab === 'admission' ? 'active' : ''">
-                                <!-- Admission Info Quick View -->
-                                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                                    <div>
-                                        <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;">Ngành trúng tuyển</div>
-                                        <div style="font-size:12px;font-weight:700;color:#15803d;margin-top:2px;" x-text="selectedCandidate.ten_nganh"></div>
+
+                                <!-- Admission Info Quick View Replacement -->
+                                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;color:#334155;">
+                                    <div>Xác nhận hệ thống Bộ GD&ĐT: 
+                                        <span style="font-weight:700;" :class="selectedCandidate.xac_nhan_bo ? 'text-green-600' : 'text-red-600'" x-text="selectedCandidate.xac_nhan_bo ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
                                     </div>
-                                    <div>
-                                        <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;">Phương thức</div>
-                                        <div style="font-size:12px;font-weight:700;color:#15803d;margin-top:2px;" x-text="selectedCandidate.phuong_thuc || 'N/A'"></div>
+                                    <div>Xác nhận trên hệ thống trường: 
+                                        <span style="font-weight:700;" :class="selectedCandidate.xac_nhan_truong ? 'text-green-600' : 'text-red-600'" x-text="selectedCandidate.xac_nhan_truong ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
                                     </div>
-                                    <div>
-                                        <div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;">Khu vực / Đối tượng</div>
-                                        <div style="font-size:12px;font-weight:700;color:#15803d;margin-top:2px;" x-text="(selectedCandidate.khu_vuc_kq || 'N/A') + ' / ' + (selectedCandidate.doi_tuong_kq || 'Thí sinh tự do')"></div>
+                                    <div>Xác nhận nộp kinh phí: 
+                                        <span style="font-weight:700;" :class="selectedCandidate.da_nop_tien ? 'text-green-600' : 'text-red-600'" x-text="selectedCandidate.da_nop_tien ? 'Đã nộp' : 'Chưa nộp'"></span>
                                     </div>
                                 </div>
 
@@ -736,112 +732,30 @@ ob_start();
                                     </div>
                                 </template>
 
-                                <!-- Extra fields -->
-                                <div style="margin-top:14px;">
-                                    <div class="ep-section-title"><i class="fas fa-edit"></i> Thông tin bổ sung</div>
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                        <div class="ep-info-item">
-                                            <label>Ngày cấp CCCD</label>
-                                            <input type="date" x-model="selectedCandidate.extra_info.ngay_cap_cccd">
-                                        </div>
-                                        <div class="ep-info-item">
-                                            <label>Nơi cấp CCCD</label>
-                                            <input type="text" x-model="selectedCandidate.extra_info.noi_cap_cccd" placeholder="VD: Cục CSQLHC về TTXH">
-                                        </div>
-                                        <div class="ep-info-item">
-                                            <label>Lớp (học kỳ đầu)</label>
-                                            <input type="text" x-model="selectedCandidate.extra_info.lop" placeholder="VD: K20A1">
-                                        </div>
-                                        <div class="ep-info-item">
-                                            <label>Địa chỉ liên hệ</label>
-                                            <input type="text" x-model="selectedCandidate.extra_info.dia_chi_lien_he" placeholder="Địa chỉ hiện tại">
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Extra fields removed -->
                             </div>
 
                             <!-- TAB: THÔNG TIN THÍ SINH -->
                             <div class="ep-tab-pane" :class="activeTab === 'info' ? 'active' : ''">
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                                    <!-- CỘT TRÁI -->
-                                    <div>
-                                        <div class="ep-section-title"><i class="fas fa-user"></i> Thông tin cá nhân</div>
-                                        <div class="ep-info-grid">
-                                            <div class="ep-info-item" style="grid-column:1/-1;">
-                                                <label>Họ và tên</label>
-                                                <span x-text="selectedCandidate.ho_ten"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Ngày sinh</label>
-                                                <span x-text="selectedCandidate.ngay_sinh"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Giới tính</label>
-                                                <span x-text="selectedCandidate.gioi_tinh == '1' ? '👨 Nam' : '👩 Nữ'"></span>
-                                            </div>
-                                            <div class="ep-info-item" style="grid-column:1/-1;">
-                                                <label>Số CCCD/CMND</label>
-                                                <span style="font-family:monospace;" x-text="selectedCandidate.so_cccd"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Điện thoại</label>
-                                                <span x-text="selectedCandidate.dien_thoai || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Email</label>
-                                                <span x-text="selectedCandidate.email || 'N/A'" style="word-break:break-all;"></span>
-                                            </div>
-                                            <div class="ep-info-item" style="grid-column:1/-1;">
-                                                <label>Địa chỉ thường trú</label>
-                                                <span x-text="selectedCandidate.dia_chi_chi_tiet || 'Chưa cập nhật'"></span>
-                                            </div>
-                                        </div>
+                                    <!-- CỘT TRÁI: THÔNG TIN CÁ NHÂN -->
+                                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;font-size:13px;line-height:1.8;color:#334155;">
+                                        <div class="ep-section-title" style="margin-bottom:12px;color:#2563eb;"><i class="fas fa-user"></i> Thông tin cá nhân</div>
+                                        <div style="margin-bottom:6px;">Họ tên: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.ho_ten"></span></div>
+                                        <div style="margin-bottom:6px;">Ngày sinh: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.ngay_sinh ? (selectedCandidate.ngay_sinh.indexOf('-') !== -1 ? selectedCandidate.ngay_sinh.split('-').reverse().join('/') : selectedCandidate.ngay_sinh) : 'N/A'"></span></div>
+                                        <div style="margin-bottom:6px;">Giới tính: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.gioi_tinh == '1' ? 'Nam' : 'Nữ'"></span></div>
+                                        <div style="margin-bottom:6px;">Dân tộc: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.dan_toc || 'Kinh'"></span></div>
+                                        <div style="margin-bottom:6px;">Trường THPT: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.ten_truong_thpt || (selectedCandidate.extra_info && selectedCandidate.extra_info.truong_thpt) || 'N/A'"></span></div>
+                                        <div style="margin-bottom:6px;">KVUT: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.khu_vuc_kq || 'N/A'"></span> &nbsp;&nbsp;&nbsp;&nbsp; ĐTUT: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.doi_tuong_kq || 'Thí sinh tự do'"></span></div>
                                     </div>
-                                    <!-- CỘT PHẢI -->
-                                    <div>
-                                        <div class="ep-section-title"><i class="fas fa-graduation-cap"></i> Thông tin tuyển sinh</div>
-                                        <div class="ep-info-grid">
-                                            <div class="ep-info-item" style="grid-column:1/-1;">
-                                                <label>Ngành trúng tuyển</label>
-                                                <span style="color:#1d4ed8;font-weight:700;" x-text="selectedCandidate.ten_nganh"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Mã ngành</label>
-                                                <span x-text="selectedCandidate.ma_nganh"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Số báo danh</label>
-                                                <span x-text="selectedCandidate.so_bao_danh || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Phương thức xét</label>
-                                                <span x-text="selectedCandidate.phuong_thuc || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Tổ hợp môn</label>
-                                                <span style="font-weight:700;" x-text="selectedCandidate.to_hop || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Điểm xét tuyển</label>
-                                                <span style="font-size:16px;font-weight:800;color:#d97706;" x-text="selectedCandidate.diem_xet_tuyen"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Khu vực ưu tiên</label>
-                                                <span x-text="selectedCandidate.khu_vuc_kq || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Đối tượng ưu tiên</label>
-                                                <span x-text="selectedCandidate.doi_tuong_kq || 'Thí sinh tự do'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Năm tốt nghiệp</label>
-                                                <span x-text="selectedCandidate.nam_tot_nghiep || 'N/A'"></span>
-                                            </div>
-                                            <div class="ep-info-item">
-                                                <label>Trường THPT</label>
-                                                <span x-text="selectedCandidate.extra_info.truong_thpt || 'N/A'"></span>
-                                            </div>
-                                        </div>
+                                    <!-- CỘT PHẢI: NỘI DUNG XÉT TUYỂN -->
+                                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;font-size:13px;line-height:1.8;color:#334155;">
+                                        <div class="ep-section-title" style="margin-bottom:12px;color:#2563eb;"><i class="fas fa-graduation-cap"></i> Thông tin xét tuyển</div>
+                                        <div style="margin-bottom:6px;">Ngành: <span style="font-weight:700;color:#1d4ed8;" x-text="selectedCandidate.ten_nganh"></span></div>
+                                        <div style="margin-bottom:6px;">Mã ngành: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.ma_nganh"></span></div>
+                                        <div style="margin-bottom:6px;">Phương thức: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.phuong_thuc || 'N/A'"></span></div>
+                                        <div style="margin-bottom:6px;">Tổ hợp: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.to_hop + (selectedCandidate.m1 ? ' (' + selectedCandidate.m1 + '-' + selectedCandidate.m2 + '-' + selectedCandidate.m3 + ')' : '')"></span></div>
+                                        <div style="margin-bottom:6px;">Điểm xét tuyển: <span style="font-weight:700;color:#d97706;" x-text="selectedCandidate.diem_xet_tuyen"></span></div>
                                     </div>
                                 </div>
                             </div>
@@ -849,37 +763,19 @@ ob_start();
                             <!-- TAB: HỌC PHÍ -->
                             <div class="ep-tab-pane" :class="activeTab === 'payment' ? 'active' : ''">
                                 <div style="display:flex;gap:16px;flex-wrap:wrap;">
-                                    <div class="ep-qr-card" style="flex:1;min-width:220px;">
-                                        <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">Quét mã để thanh toán</div>
+                                    <div class="ep-qr-card" style="flex:1;min-width:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:1px solid #e2e8f0;padding:10px;border-radius:14px;">
+                                        <div style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Mã QR nộp tiền</div>
                                         <img class="ep-qr-img"
                                             :src="`https://img.vietqr.io/image/<?= $qrConfig['bank_id'] ?>-<?= $qrConfig['account_no'] ?>-compact.png?amount=<?= $qrConfig['amount'] ?>&addInfo=<?= urlencode($qrConfig['description_prefix']) ?>${selectedCandidate.so_cccd}`"
                                             alt="QR Code thanh toán">
-                                        <div class="ep-qr-amount"><?= number_format($qrConfig['amount'], 0, ',', '.') ?> VNĐ</div>
-                                        <div style="font-size:12px;font-weight:600;color:#374151;"><?= $qrConfig['bank_id'] ?> – <?= $qrConfig['account_no'] ?></div>
-                                        <div style="font-size:11px;color:#64748b;background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;max-width:280px;word-break:break-all;">
-                                            Nội dung: <?= $qrConfig['description_prefix'] ?><span x-text="selectedCandidate.so_cccd"></span> <span x-text="selectedCandidate.ho_ten ? selectedCandidate.ho_ten.replace(/\s+/g,'') : ''"></span>
-                                        </div>
                                     </div>
-                                    <div style="flex:1;min-width:200px;">
-                                        <div class="ep-section-title"><i class="fas fa-info-circle"></i> Thông tin chuyển khoản</div>
-                                        <div style="display:flex;flex-direction:column;gap:10px;">
-                                            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
-                                                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Ngân hàng</div>
-                                                <div style="font-size:14px;font-weight:700;color:#1e293b;"><?= $qrConfig['bank_id'] ?></div>
-                                            </div>
-                                            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
-                                                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Số tài khoản</div>
-                                                <div style="font-size:14px;font-weight:700;color:#1e293b;font-family:monospace;"><?= $qrConfig['account_no'] ?></div>
-                                            </div>
-                                            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
-                                                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Chủ tài khoản</div>
-                                                <div style="font-size:13px;font-weight:700;color:#1e293b;"><?= $qrConfig['account_name'] ?></div>
-                                            </div>
-                                            <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:12px;">
-                                                <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:3px;">Số tiền cần nộp</div>
-                                                <div style="font-size:18px;font-weight:800;color:#d97706;"><?= number_format($qrConfig['amount'], 0, ',', '.') ?> VNĐ</div>
-                                            </div>
-                                        </div>
+                                    <div style="flex:1.5;min-width:260px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;font-size:13px;line-height:1.8;color:#334155;display:flex;flex-direction:column;justify-content:center;">
+                                        <div class="ep-section-title" style="margin-bottom:12px;color:#2563eb;"><i class="fas fa-info-circle"></i> Thông tin chuyển khoản</div>
+                                        <div style="margin-bottom:8px;">Ngân hàng: <span style="font-weight:700;color:#0f172a;"><?= $qrConfig['bank_id'] ?></span></div>
+                                        <div style="margin-bottom:8px;">Số tài khoản: <span style="font-weight:700;color:#0f172a;font-family:monospace;"><?= $qrConfig['account_no'] ?></span></div>
+                                        <div style="margin-bottom:8px;">Chủ tài khoản: <span style="font-weight:700;color:#0f172a;font-size:11px;white-space:nowrap;"><?= $qrConfig['account_name'] ?></span></div>
+                                        <div style="margin-bottom:8px;">Số tiền cần nộp: <span style="font-weight:700;color:#d97706;"><?= number_format($qrConfig['amount'], 0, ',', '.') ?> VNĐ</span></div>
+                                        <div style="margin-bottom:8px;">Nội dung chuyển khoản:<br><span style="font-weight:700;color:#1d4ed8;word-break:break-all;font-family:monospace;display:inline-block;margin-top:4px;font-size:13.5px;"><?= $qrConfig['description_prefix'] ?><span x-text="selectedCandidate.so_cccd"></span> <span x-text="selectedCandidate.ho_ten ? selectedCandidate.ho_ten.replace(/\s+/g,'').toUpperCase() : ''"></span></span></div>
                                     </div>
                                 </div>
                             </div>
@@ -891,30 +787,28 @@ ob_start();
 
             <!-- BOTTOM STICKY ACTION DOCK -->
             <div class="ep-action-dock" x-show="selectedCandidate">
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
                     <button class="ep-btn ep-btn-cancel" @click="submitEnrollment('huy')" :disabled="isSaving" id="btn-cancel-enroll">
-                        <i class="fas fa-ban"></i> Hủy nhập học
+                        Hủy nhập học
                     </button>
                     <button class="ep-btn ep-btn-save" @click="submitEnrollment('luu_tam')" :disabled="isSaving" id="btn-save-draft">
-                        <i class="far fa-save"></i>
                         <span x-text="isSaving ? 'Đang lưu...' : 'Lưu tạm'"></span>
                     </button>
                 </div>
 
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
                     <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
                         <button class="ep-btn ep-btn-print" @click="printReceipt()" id="btn-print">
-                            <i class="fas fa-print"></i> In phiếu
+                            In phiếu
                         </button>
                     </template>
                     <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
                         <button class="ep-btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" @click="openPrintWordModal()" id="btn-print-word">
-                            <i class="fas fa-file-word"></i> In Word
+                            In Word
                         </button>
                     </template>
 
                     <button class="ep-btn-enroll-hero" @click="submitEnrollment('nhap_hoc')" :disabled="isSaving" id="btn-enroll">
-                        <i class="fas fa-check-circle" style="font-size:15px;"></i>
                         <span x-text="isSaving ? 'Đang xử lý...' : 'Xác nhận nhập học'"></span>
                     </button>
                 </div>

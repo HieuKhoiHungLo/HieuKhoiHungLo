@@ -573,7 +573,7 @@ if (!empty($combinations)) {
                                 <td class="text-center font-mono text-slate-500 font-bold" x-text="ms.ma_nganh"></td>
                                 <td class="font-bold text-slate-800" x-text="ms.ten_nganh"></td>
                                 <td class="text-center font-bold text-slate-600 bg-slate-50/50" x-text="ms.chi_tieu || '-'"></td>
-                                <td class="text-center font-bold text-amber-700 bg-amber-50/20" x-text="ms.diem_chuan && parseFloat(ms.diem_chuan) > 0 ? parseFloat(ms.diem_chuan).toFixed(2) : '-'"></td>
+                                <td class="text-center font-bold text-amber-700 bg-amber-50/20" x-text="ms.diem_chuan && parseFloat(ms.diem_chuan) > 0 ? parseFloat(ms.diem_chuan).toFixed(3) : '-'"></td>
                                 <td class="text-center font-black text-indigo-600" x-text="ms.so_trung_tuyen || '-'"></td>
                                 <td class="text-center font-bold text-slate-500" x-text="ms.nv1_admit || '-'"></td>
                                 <td>
@@ -605,9 +605,9 @@ if (!empty($combinations)) {
                                 <td class="text-center">
                                     <template x-if="ms.diem_thap_nhat && parseFloat(ms.diem_thap_nhat) > 0">
                                         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600">
-                                            <span class="text-rose-500" x-text="parseFloat(ms.diem_thap_nhat).toFixed(2)"></span>
+                                            <span class="text-rose-500" x-text="parseFloat(ms.diem_thap_nhat).toFixed(3)"></span>
                                             <span class="text-slate-300">-</span>
-                                            <span class="text-emerald-600" x-text="parseFloat(ms.diem_cao_nhat).toFixed(2)"></span>
+                                            <span class="text-emerald-600" x-text="parseFloat(ms.diem_cao_nhat).toFixed(3)"></span>
                                         </span>
                                     </template>
                                     <template x-if="!ms.diem_thap_nhat || parseFloat(ms.diem_thap_nhat) <= 0">

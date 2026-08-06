@@ -146,12 +146,19 @@ class EnrollmentController extends Controller {
         $stmt = $this->db->prepare("
             SELECT kq.id as ket_qua_id, kq.ho_ten, kq.so_cccd, kq.sbd as so_bao_danh, kq.ngay_sinh, 
                    kq.ma_nganh, n.ten_nganh, kq.diem_xt as diem_xet_tuyen, kq.sdt as dien_thoai_kq, kq.email as email_kq,
-                   kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, kq.diem_to_hop, kq.phuong_thuc,
-                   ts.gioi_tinh, ts.dia_chi_chi_tiet, ts.nam_tot_nghiep, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts, ts.ma_truong_lop_12,
+                   kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, kq.diem_to_hop, kq.phuong_thuc, kq.xac_nhan_bo, kq.xac_nhan_truong,
+                   ts.gioi_tinh, ts.dan_toc, ts.anh_dai_dien, ts.dia_chi_chi_tiet, ts.nam_tot_nghiep, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts, ts.ma_truong_lop_12,
+                   tr.ten_truong as ten_truong_thpt,
+                   m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3,
                    nh.id as nhap_hoc_id, nh.trang_thai as trang_thai_nhap_hoc, nh.da_nop_tien, nh.ma_phieu, nh.ghi_chu_can_bo
             FROM ket_qua_trung_tuyen kq
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
             LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+            LEFT JOIN dm_truong_thpt tr ON ts.ma_truong_lop_12 = tr.ma_truong
+            LEFT JOIN dm_to_hop th ON kq.to_hop = th.ma_to_hop
+            LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
             LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = ?
             WHERE kq.session_id = ? 
               AND ($whereClause)
@@ -165,6 +172,14 @@ class EnrollmentController extends Controller {
         $docStmt = $this->db->prepare("SELECT * FROM nhap_hoc_ho_so WHERE session_id = ? ORDER BY thu_tu ASC");
         $docStmt->execute([$sessionId]);
         $documents = $docStmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($documents as &$d) {
+            if (strpos($d['cac_gia_tri'], '[') === 0) {
+                $arr = json_decode($d['cac_gia_tri'], true);
+                if (is_array($arr)) {
+                    $d['cac_gia_tri'] = implode(', ', $arr);
+                }
+            }
+        }
 
         // Process extra fields
         foreach ($candidates as &$candidate) {
@@ -325,7 +340,19 @@ class EnrollmentController extends Controller {
         $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
 
         // Get basic stats
-        $stmtTT = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_trung_tuyen WHERE session_id = ?");
+        $stmtCheck = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_loc_ao_bo_gd WHERE dot_tuyen_sinh_id = ?");
+        $stmtCheck->execute([$sessionId]);
+        $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
+
+        $admitCond = $hasBgd 
+            ? "cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ'" 
+            : "cs.trang_thai_trung_tuyen = TRUE";
+
+        $doBoExpr = $hasBgd 
+            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
+            : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+
+        $stmtTT = $this->db->prepare("SELECT COUNT(*) FROM nguyen_vong nv JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id WHERE nv.dot_tuyen_sinh_id = ? AND $admitCond");
         $stmtTT->execute([$sessionId]);
         $totalTrungTuyen = $stmtTT->fetchColumn();
 
@@ -333,40 +360,150 @@ class EnrollmentController extends Controller {
         $stmtNH->execute([$sessionId]);
         $totalNhapHoc = $stmtNH->fetchColumn();
         
+        // 1. Lấy danh sách ngành
         $stmtMajor = $this->db->prepare("
-            SELECT n.ten_nganh, n.ma_nganh, 
-                   COUNT(kq.id) as trung_tuyen,
-                   SUM(CASE WHEN nh.id IS NOT NULL THEN 1 ELSE 0 END) as nhap_hoc
-            FROM ket_qua_trung_tuyen kq
-            LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
-            LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
-            WHERE kq.session_id = ?
-            GROUP BY n.ten_nganh, n.ma_nganh
-            ORDER BY nhap_hoc DESC
+            SELECT n.ten_nganh, n.ma_nganh, n.chi_tieu,
+                   (
+                       SELECT $doBoExpr
+                       FROM nguyen_vong nv
+                       JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
+                       WHERE nv.ma_nganh = n.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                   ) as so_trung_tuyen,
+                   COALESCE(nh_stats.so_nhap_hoc, 0) as so_nhap_hoc,
+                   nh_stats.thu_khoa_nganh,
+                   COALESCE(nh_stats.xac_nhan_bo, 0) as xac_nhan_bo,
+                   COALESCE(nh_stats.xac_nhan_truong, 0) as xac_nhan_truong,
+                   COALESCE(nh_stats.tong_kinh_phi, 0) as tong_kinh_phi
+            FROM dm_nganh n
+            LEFT JOIN (
+                SELECT kq.ma_nganh,
+                       COUNT(nh.id) as so_nhap_hoc,
+                       MAX(kq.diem_xt) as thu_khoa_nganh,
+                       SUM(CASE WHEN kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1' THEN 1 ELSE 0 END) as xac_nhan_bo,
+                       SUM(CASE WHEN kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1' THEN 1 ELSE 0 END) as xac_nhan_truong,
+                       SUM(nh.so_tien_da_nop) as tong_kinh_phi
+                FROM ket_qua_trung_tuyen kq
+                JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
+                WHERE kq.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+                GROUP BY kq.ma_nganh
+            ) nh_stats ON n.ma_nganh = nh_stats.ma_nganh
+            ORDER BY nh_stats.so_nhap_hoc DESC NULLS LAST, so_trung_tuyen DESC
         ");
-        $stmtMajor->execute([$sessionId]);
+        $stmtMajor->execute([$sessionId, $sessionId]);
         $statsByMajor = $stmtMajor->fetchAll(PDO::FETCH_ASSOC);
 
-        $stmtRecent = $this->db->prepare("
-            SELECT nh.*, kq.ho_ten, kq.so_cccd, n.ten_nganh
+        // Lấy Thủ khoa trường (Đã nhập học)
+        $stmtTop = $this->db->prepare("
+            SELECT kq.ho_ten, kq.diem_xt, n.ten_nganh
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
-            WHERE nh.session_id = ?
-            ORDER BY nh.ngay_nhap_hoc DESC
-            LIMIT 10
+            WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            ORDER BY kq.diem_xt DESC
+            LIMIT 1
+        ");
+        $stmtTop->execute([$sessionId]);
+        $topStudent = $stmtTop->fetch(PDO::FETCH_ASSOC);
+
+        // 2. Dữ liệu cho biểu đồ (Chỉ lấy thí sinh đã nhập học)
+        $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                           COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
+                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong,
+                           k.xac_nhan_bo, nh.da_nop_tien
+                    FROM nhap_hoc nh
+                    JOIN ket_qua_trung_tuyen k ON nh.ket_qua_id = k.id
+                    JOIN thi_sinh t ON k.so_cccd = t.so_cccd
+                    LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'";
+        $demoStmt = $this->db->prepare($demoSql);
+        $demoStmt->execute([$sessionId]);
+        $demoRows = $demoStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $chartDist = [
+            'gender' => [],
+            'area' => [],
+            'object' => [],
+            'province' => [],
+            'school' => [],
+            'xn_bo' => ['Đã xác nhận' => 0, 'Chưa xác nhận' => 0],
+            'kinh_phi' => ['Đã nộp' => 0, 'Chưa nộp' => 0]
+        ];
+
+        foreach ($demoRows as $r) {
+            $gt = trim($r['gioi_tinh'] ?? '');
+            if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+            elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+            else $gt = 'Khác';
+            $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
+            
+            $ar = $r['khu_vuc_uu_tien'] ?: 'Khác';
+            $chartDist['area'][$ar] = ($chartDist['area'][$ar] ?? 0) + 1;
+
+            $obj = $r['doi_tuong_uu_tien'] ?: 'Không';
+            $chartDist['object'][$obj] = ($chartDist['object'][$obj] ?? 0) + 1;
+
+            $prov = $r['ten_tinh'] ?: 'Khác';
+            $chartDist['province'][$prov] = ($chartDist['province'][$prov] ?? 0) + 1;
+
+            $sch = $r['ten_truong'] ?: 'Khác';
+            $chartDist['school'][$sch] = ($chartDist['school'][$sch] ?? 0) + 1;
+
+            if (isset($r['xac_nhan_bo']) && $r['xac_nhan_bo'] == 1) {
+                $chartDist['xn_bo']['Đã xác nhận']++;
+            } else {
+                $chartDist['xn_bo']['Chưa xác nhận']++;
+            }
+
+            if (isset($r['da_nop_tien']) && $r['da_nop_tien'] == 1) {
+                $chartDist['kinh_phi']['Đã nộp']++;
+            } else {
+                $chartDist['kinh_phi']['Chưa nộp']++;
+            }
+        }
+
+        arsort($chartDist['province']);
+        arsort($chartDist['school']);
+
+        $chartDist['users'] = [];
+        $stmtUsers = $this->db->prepare("
+            SELECT qv.ho_ten, COUNT(nh.id) as so_luong
+            FROM nhap_hoc nh
+            JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
+            WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            GROUP BY qv.ho_ten
+            ORDER BY so_luong DESC
+        ");
+        $stmtUsers->execute([$sessionId]);
+        $userRows = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($userRows as $r) {
+            $chartDist['users'][$r['ho_ten']] = (int)$r['so_luong'];
+        }
+
+        // Gần đây (5 hồ sơ)
+        $stmtRecent = $this->db->prepare("
+            SELECT nh.*, kq.ho_ten, kq.so_cccd, n.ten_nganh, qv.ho_ten as ten_can_bo
+            FROM nhap_hoc nh
+            JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+            LEFT JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
+            WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            ORDER BY nh.updated_at DESC
+            LIMIT 5
         ");
         $stmtRecent->execute([$sessionId]);
         $recent = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('admin/enrollment/stats', [
-            'title' => 'Thống kê Nhập học',
-            'sessions' => $sessions,
-            'currentSessionId' => $sessionId,
+            'title' => 'Thống kê nhập học',
             'totalTrungTuyen' => $totalTrungTuyen,
             'totalNhapHoc' => $totalNhapHoc,
             'statsByMajor' => $statsByMajor,
-            'recent' => $recent
+            'topStudent' => $topStudent,
+            'chartDist' => $chartDist,
+            'sessions' => $sessions,
+            'activeSessionId' => $sessionId,
+            'recent' => $recent,
         ]);
     }
     public function apiStats() {

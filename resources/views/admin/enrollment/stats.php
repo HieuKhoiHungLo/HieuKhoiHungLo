@@ -1,152 +1,496 @@
 <?php
 $title = "Thống kê Nhập học";
 ob_start();
+
+$totalCandidates = $totalTrungTuyen;
+$admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 100, 1) : 0;
 ?>
 
-<div class="p-6 bg-slate-50 min-h-screen">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fas fa-chart-pie text-purple-600"></i> Thống kê Nhập học
-                </h1>
-                <p class="text-sm text-slate-500 mt-1">Theo dõi tiến độ nhập học và nộp hồ sơ theo thời gian thực.</p>
-            </div>
-            
-            <div class="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                <i class="fas fa-calendar-alt text-slate-400 ml-2"></i>
-                <select id="session-selector" class="border-none text-sm font-medium focus:ring-0 text-slate-700 bg-transparent py-1 pr-8" onchange="window.location.href='?session_id='+this.value">
+<!-- Assets -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
+
+<style>
+    .premium-table {
+        border-collapse: separate !important;
+        border-spacing: 0;
+        width: 100%;
+        table-layout: auto;
+    }
+    .premium-table th, .premium-table td {
+        padding: 0.35rem 0.65rem !important;
+        border: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        vertical-align: middle;
+        font-size: 11px;
+        color: #334155;
+        background-clip: padding-box;
+    }
+    .premium-table th {
+        background-color: #f8fafc !important;
+        color: #475569 !important;
+        font-weight: 700 !important;
+        text-transform: none !important;
+        letter-spacing: 0.01em;
+        text-align: left;
+    }
+    .premium-table th:first-child, .premium-table td:first-child { border-left: 1px solid #e2e8f0 !important; }
+    .premium-table thead tr:first-child th { border-top: 1px solid #e2e8f0 !important; }
+    .premium-table thead tr:first-child th:first-child { border-top-left-radius: 1rem; }
+    .premium-table thead tr:first-child th:last-child { border-top-right-radius: 1rem; }
+    .premium-table tbody tr:last-child td:first-child { border-bottom-left-radius: 1rem; }
+    .premium-table tbody tr:last-child td:last-child { border-bottom-right-radius: 1rem; }
+</style>
+
+<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
+
+    <!-- Header Row -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-purple-600"></i> Thống kê Nhập học
+            </h1>
+        </div>
+        
+        <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="relative flex-1 md:flex-none md:min-w-[220px]">
+                <select id="sessionSelector" onchange="window.location.href='?session_id='+this.value"
+                    class="w-full border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 text-slate-700 outline-none appearance-none cursor-pointer">
                     <?php foreach ($sessions as $s): ?>
-                        <option value="<?= $s['id'] ?>" <?= $s['id'] == $currentSessionId ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($s['ten_dot']) ?> (<?= $s['nam_tuyen_sinh'] ?>)
+                        <option value="<?= $s['id'] ?>" <?= ($s['id'] == $currentSessionId) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($s['ten_dot'] ?? ('Đợt #' . $s['id'])) ?> (<?= $s['nam_tuyen_sinh'] ?? '' ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button onclick="window.location.reload()" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors ml-2" title="Làm mới">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
             </div>
+            <button onclick="window.location.reload()" class="bg-white hover:bg-slate-50 border border-slate-200 text-purple-600 px-3 py-2 rounded-lg transition-colors shadow-sm" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
+        <button @click="activeTab = 'stats'"
+            :class="activeTab === 'stats' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-500 hover:text-purple-600'"
+            class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
+            <i class="fas fa-table mr-2"></i>THỐNG KÊ CHI TIẾT
+        </button>
+        <button @click="activeTab = 'charts'; initCharts();"
+            :class="activeTab === 'charts' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-500 hover:text-purple-600'"
+            class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
+            <i class="fas fa-chart-pie mr-2"></i>BIỂU ĐỒ PHÂN TÍCH
+        </button>
+    </div>
+
+    <!-- Compact Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tổng trúng tuyển</p>
+                <i class="fas fa-users text-slate-300"></i>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 leading-tight"><?= number_format($totalTrungTuyen) ?></h3>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-slate-500 uppercase">Tổng trúng tuyển</p>
-                    <p class="text-3xl font-bold text-slate-800"><?= number_format($totalTrungTuyen) ?></p>
-                </div>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-emerald-100 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-wider">Đã nhập học</p>
+                <span class="text-[10px] text-emerald-500 font-bold"><?= $admitRate ?>% đạt</span>
             </div>
-            
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center gap-4 relative overflow-hidden">
-                <div class="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl z-10">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="z-10">
-                    <p class="text-sm font-medium text-slate-500 uppercase">Đã nhập học</p>
-                    <div class="flex items-end gap-2">
-                        <p class="text-3xl font-bold text-slate-800"><?= number_format($totalNhapHoc) ?></p>
-                        <?php $rate = $totalTrungTuyen > 0 ? round(($totalNhapHoc / $totalTrungTuyen) * 100, 1) : 0; ?>
-                        <p class="text-sm font-semibold text-green-600 mb-1">(<?= $rate ?>%)</p>
-                    </div>
-                </div>
-                <!-- Progress bar background -->
-                <div class="absolute bottom-0 left-0 h-1.5 bg-green-500" style="width: <?= $rate ?>%"></div>
-            </div>
-
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl">
-                    <i class="fas fa-user-clock"></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-slate-500 uppercase">Chưa nhập học</p>
-                    <p class="text-3xl font-bold text-slate-800"><?= number_format($totalTrungTuyen - $totalNhapHoc) ?></p>
-                </div>
-            </div>
+            <h3 class="text-lg font-black text-emerald-700 leading-tight"><?= number_format($totalNhapHoc) ?></h3>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left: Stats by Major -->
-            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h3 class="font-semibold text-slate-700">Tiến độ theo Ngành học</h3>
-                </div>
-                <div class="p-0 overflow-x-auto max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="sticky top-0 bg-white shadow-sm">
-                            <tr class="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
-                                <th class="px-4 py-3 font-semibold">Mã ngành</th>
-                                <th class="px-4 py-3 font-semibold">Tên ngành</th>
-                                <th class="px-4 py-3 font-semibold text-center">Trúng tuyển</th>
-                                <th class="px-4 py-3 font-semibold text-center text-green-600">Đã nhập học</th>
-                                <th class="px-4 py-3 font-semibold text-center">Tỷ lệ</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <?php foreach ($statsByMajor as $stat): 
-                                $tt = intval($stat['trung_tuyen']);
-                                $nh = intval($stat['nhap_hoc']);
-                                $pt = $tt > 0 ? round(($nh / $tt) * 100, 1) : 0;
-                            ?>
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-4 py-3 text-sm font-medium text-slate-600"><?= $stat['ma_nganh'] ?></td>
-                                <td class="px-4 py-3 text-sm text-slate-800"><?= $stat['ten_nganh'] ?></td>
-                                <td class="px-4 py-3 text-sm text-center font-medium"><?= $tt ?></td>
-                                <td class="px-4 py-3 text-sm text-center font-bold text-green-600"><?= $nh ?></td>
-                                <td class="px-4 py-3 text-sm text-center">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-full bg-slate-200 rounded-full h-1.5">
-                                            <div class="bg-purple-600 h-1.5 rounded-full" style="width: <?= $pt ?>%"></div>
-                                        </div>
-                                        <span class="text-xs font-semibold w-8 text-right"><?= $pt ?>%</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-amber-200 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-amber-600 uppercase tracking-wider">Chưa nhập học</p>
+                <i class="fas fa-user-clock text-amber-300"></i>
             </div>
+            <h3 class="text-lg font-black text-amber-700 leading-tight"><?= number_format($totalTrungTuyen - $totalNhapHoc) ?></h3>
+        </div>
 
-            <!-- Right: Recent Activity -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h3 class="font-semibold text-slate-700">Mới nhập học gần đây</h3>
-                </div>
-                <div class="p-5 flex-1 overflow-y-auto max-h-[500px]">
-                    <div class="space-y-4">
-                        <?php if (empty($recent)): ?>
-                            <div class="text-center text-slate-500 py-8">
-                                <i class="fas fa-box-open text-3xl mb-2 text-slate-300"></i>
-                                <p class="text-sm">Chưa có giao dịch nhập học nào.</p>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($recent as $item): ?>
-                            <div class="relative pl-6 border-l-2 border-purple-200 last:border-transparent pb-4 last:pb-0">
-                                <div class="absolute w-3 h-3 bg-purple-600 rounded-full -left-[7px] top-1 border-2 border-white"></div>
-                                <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 hover:border-purple-200 transition-colors">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <h4 class="font-bold text-slate-800 text-sm"><?= htmlspecialchars($item['ho_ten']) ?></h4>
-                                        <span class="text-xs text-slate-500"><?= date('H:i d/m', strtotime($item['ngay_nhap_hoc'])) ?></span>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-purple-500 uppercase tracking-wider">Thủ khoa (Đã nhập học)</p>
+                <i class="fas fa-crown text-purple-300"></i>
+            </div>
+            <h3 class="text-lg font-black text-purple-700 leading-tight truncate" title="<?= $topStudent ? htmlspecialchars($topStudent['ho_ten'] . ' - ' . $topStudent['ten_nganh']) : '' ?>">
+                <?= $topStudent ? htmlspecialchars($topStudent['ho_ten']) : 'Chưa có' ?>
+            </h3>
+            <span class="text-[10px] text-purple-500 font-bold block truncate"><?= $topStudent ? $topStudent['diem_xt'] . ' điểm - ' . htmlspecialchars($topStudent['ten_nganh']) : '' ?></span>
+        </div>
+    </div>
+
+    <!-- 5 Hồ sơ mới nhập học gần nhất -->
+    <div class="mb-6 bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-4">
+            <i class="fas fa-history text-indigo-500 mr-2"></i> 5 Hồ sơ mới nhập học gần nhất
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-50">
+                        <th class="px-3 py-2 font-bold">Thí sinh</th>
+                        <th class="px-3 py-2 font-bold">CCCD</th>
+                        <th class="px-3 py-2 font-bold">Ngành</th>
+                        <th class="px-3 py-2 font-bold">Thời gian</th>
+                        <th class="px-3 py-2 font-bold">Bàn nhập học (Cán bộ)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    <?php if (empty($recent)): ?>
+                        <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu nhập học</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($recent as $r): ?>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-3 py-2.5 font-bold text-slate-700"><?= htmlspecialchars($r['ho_ten'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 font-mono text-slate-500"><?= htmlspecialchars($r['so_cccd'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 text-slate-600"><?= htmlspecialchars($r['ten_nganh'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 text-slate-500">
+                                <?= date('d/m/Y H:i', strtotime($r['updated_at'] ?? $r['ngay_nhap_hoc'])) ?>
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-medium">
+                                    <i class="fas fa-user-circle"></i> <?= htmlspecialchars($r['ten_can_bo'] ?? 'Hệ thống') ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: STATS (Thống kê chi tiết) -->
+    <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-6">
+                <span class="w-1.5 h-4 bg-emerald-500 rounded-full mr-2"></span>
+                Thống kê tiến độ nhập học theo ngành
+            </h3>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="premium-table min-w-[800px] lg:min-w-full">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px" class="text-center" rowspan="2">Mã ngành</th>
+                            <th rowspan="2">Tên ngành</th>
+                            <th style="width: 100px" class="text-center" rowspan="2">Chỉ tiêu</th>
+                            <th style="width: 80px" class="text-center" rowspan="2">Thủ khoa</th>
+                            <th class="text-center" colspan="3">Tiến độ</th>
+                            <th class="text-center" colspan="2">Xác nhận</th>
+                            <th class="text-right" rowspan="2">Tổng kinh phí (đ)</th>
+                        </tr>
+                        <tr>
+                            <th style="width: 100px" class="text-center">Trúng tuyển</th>
+                            <th style="width: 100px" class="text-center">Đã nhập học</th>
+                            <th style="width: 150px" class="text-center">Tỷ lệ Nhập học/Trúng tuyển (%)</th>
+                            <th style="width: 80px" class="text-center">Bộ</th>
+                            <th style="width: 80px" class="text-center">Trường</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        $totalCT = 0; $totalTT = 0; $totalNH = 0;
+                        $totalXnBo = 0; $totalXnTruong = 0; $totalKinhPhi = 0;
+                        foreach ($statsByMajor as $ms): 
+                            $ct = intval($ms['chi_tieu'] ?? 0);
+                            $tt = intval($ms['so_trung_tuyen'] ?? 0);
+                            $nh = intval($ms['so_nhap_hoc'] ?? 0);
+                            
+                            $totalCT += $ct; $totalTT += $tt; $totalNH += $nh;
+                            $totalXnBo += intval($ms['xac_nhan_bo']);
+                            $totalXnTruong += intval($ms['xac_nhan_truong']);
+                            $totalKinhPhi += floatval($ms['tong_kinh_phi']);
+                            
+                            $pct = $tt > 0 ? round(($nh / $tt) * 100, 1) : 0;
+                            $barColor = '';
+                            if ($pct >= 80) $barColor = 'bg-emerald-500';
+                            elseif ($pct >= 50) $barColor = 'bg-indigo-500';
+                            else $barColor = 'bg-amber-500';
+                        ?>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="text-center font-mono text-slate-500 font-bold"><?= $ms['ma_nganh'] ?></td>
+                            <td class="font-bold text-slate-800"><?= htmlspecialchars($ms['ten_nganh'] ?? '') ?></td>
+                            <td class="text-center font-bold text-slate-600 bg-slate-50/50"><?= $ct ?: '-' ?></td>
+                            <td class="text-center font-bold text-purple-600 bg-purple-50/30"><?= $ms['thu_khoa_nganh'] ? number_format($ms['thu_khoa_nganh'], 2) : '-' ?></td>
+                            <td class="text-center font-black text-slate-600"><?= $tt ?: '-' ?></td>
+                            <td class="text-center font-black text-emerald-600"><?= $nh ?: '-' ?></td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full <?= $barColor ?> rounded-full" style="width: <?= min($pct, 100) ?>%"></div>
                                     </div>
-                                    <div class="text-xs text-slate-500 space-y-1">
-                                        <p><i class="fas fa-id-card w-4 text-slate-400"></i> <?= $item['so_cccd'] ?></p>
-                                        <p><i class="fas fa-graduation-cap w-4 text-slate-400"></i> <?= $item['ten_nganh'] ?></p>
-                                        <p><i class="fas fa-money-bill-wave w-4 text-slate-400"></i> <?= $item['da_nop_tien'] == 1 ? '<span class="text-green-600 font-semibold">Đã nộp tiền</span>' : '<span class="text-amber-600">Chưa nộp tiền</span>' ?></p>
-                                    </div>
+                                    <span class="text-[10px] font-black w-8 text-right <?= $pct >= 80 ? 'text-emerald-600' : 'text-slate-500' ?>"><?= $pct ?>%</span>
                                 </div>
-                            </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                            </td>
+                            <td class="text-center font-bold text-blue-600"><?= $ms['xac_nhan_bo'] ?: '-' ?></td>
+                            <td class="text-center font-bold text-indigo-600"><?= $ms['xac_nhan_truong'] ?: '-' ?></td>
+                            <td class="text-right font-mono text-emerald-600 font-bold whitespace-nowrap"><?= $ms['tong_kinh_phi'] > 0 ? number_format($ms['tong_kinh_phi']) : '-' ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-200">
+                        <tr>
+                            <td colspan="2" class="px-3 py-3 text-right uppercase">Tổng cộng:</td>
+                            <td class="text-center bg-slate-100/50 text-slate-700"><?= number_format($totalCT) ?></td>
+                            <td class="text-center text-slate-700">-</td>
+                            <td class="text-center text-slate-700"><?= number_format($totalTT) ?></td>
+                            <td class="text-center text-emerald-700"><?= number_format($totalNH) ?></td>
+                            <td>
+                                <?php $totalPct = $totalTT > 0 ? round(($totalNH / $totalTT) * 100, 1) : 0; ?>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 rounded-full" style="width: <?= min($totalPct, 100) ?>%"></div>
+                                    </div>
+                                    <span class="text-[10px] font-black w-8 text-right text-emerald-600"><?= $totalPct ?>%</span>
+                                </div>
+                            </td>
+                            <td class="text-center text-blue-600"><?= number_format($totalXnBo) ?></td>
+                            <td class="text-center text-indigo-600"><?= number_format($totalXnTruong) ?></td>
+                            <td class="text-right text-emerald-700 font-mono"><?= number_format($totalKinhPhi) ?></td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
     </div>
+
+    <!-- TAB: CHARTS (Biểu đồ phân tích) -->
+    <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
+        
+        <!-- Major Enrollment Fill Chart -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                Biểu đồ tỷ lệ lấp đầy chuyên ngành (Theo số đã nhập học / Chỉ tiêu)
+            </h3>
+            <div class="relative h-96">
+                <canvas id="majorFillChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Row 2: Four statistics charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Phân bố Giới tính</h3>
+                <div class="relative h-64"><canvas id="genderChart"></canvas></div>
+            </div>
+
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Khu vực ưu tiên</h3>
+                <div class="relative h-64"><canvas id="areaChart"></canvas></div>
+            </div>
+
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Đối tượng ưu tiên</h3>
+                <div class="relative h-64"><canvas id="objectChart"></canvas></div>
+            </div>
+            
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Xác nhận Hệ thống Bộ</h3>
+                <div class="relative h-64"><canvas id="xnBoChart"></canvas></div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-indigo-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Theo Bàn nhập học (Cán bộ)</h3>
+                <div class="relative h-64"><canvas id="userChart"></canvas></div>
+            </div>
+
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-green-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Tình trạng Nộp Kinh phí</h3>
+                <div class="relative h-64"><canvas id="feeChart"></canvas></div>
+            </div>
+            
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Tỉnh / Thành phố</h3>
+                <div class="relative h-64"><canvas id="provinceChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-rose-500 mt-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs">Trường THPT</h3>
+                <button type="button" onclick="toggleShowAllSchools()" 
+                        class="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded text-[10px] font-bold transition cursor-pointer">
+                    <span id="btnToggleSchoolsText">Xem thêm</span>
+                </button>
+            </div>
+            <div class="relative h-64"><canvas id="schoolChart"></canvas></div>
+        </div>
+    </div>
 </div>
+
+<?php 
+// Chart Data preparation
+$majorLabels = [];
+$majorData = [];
+$majorQuota = [];
+foreach ($statsByMajor as $ms) {
+    $majorLabels[] = $ms['ma_nganh'];
+    $majorData[] = intval($ms['so_nhap_hoc'] ?? 0);
+    $majorQuota[] = intval($ms['chi_tieu'] ?? 0);
+}
+
+$chartData = [
+    'majors' => ['labels' => $majorLabels, 'data' => $majorData, 'quota' => $majorQuota],
+    'gender' => ['labels' => array_keys($chartDist['gender']), 'data' => array_values($chartDist['gender'])],
+    'area' => ['labels' => array_keys($chartDist['area']), 'data' => array_values($chartDist['area'])],
+    'object' => ['labels' => array_keys($chartDist['object']), 'data' => array_values($chartDist['object'])],
+    'xnBo' => ['labels' => array_keys($chartDist['xn_bo']), 'data' => array_values($chartDist['xn_bo'])],
+    'kinhPhi' => ['labels' => array_keys($chartDist['kinh_phi']), 'data' => array_values($chartDist['kinh_phi'])],
+    'users' => ['labels' => array_keys($chartDist['users'] ?? []), 'data' => array_values($chartDist['users'] ?? [])],
+    'province' => ['labels' => array_keys(array_slice($chartDist['province'], 0, 15)), 'data' => array_values(array_slice($chartDist['province'], 0, 15))],
+    'schoolTop20' => ['labels' => array_keys(array_slice($chartDist['school'], 0, 20)), 'data' => array_values(array_slice($chartDist['school'], 0, 20))],
+    'schoolAll' => ['labels' => array_keys($chartDist['school']), 'data' => array_values($chartDist['school'])]
+];
+?>
+
+<script>
+const CHART_DATA = <?= json_encode($chartData) ?>;
+let chartsInitialized = false;
+let schoolChartInstance = null;
+let showingAllSchools = false;
+
+function renderEnrollmentCharts() {
+    if (chartsInitialized) return;
+    if (typeof Chart === 'undefined') {
+        setTimeout(renderEnrollmentCharts, 200);
+        return;
+    }
+    
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    
+    // Major Fill Chart
+    new Chart(document.getElementById('majorFillChart'), {
+        type: 'bar',
+        data: {
+            labels: CHART_DATA.majors.labels,
+            datasets: [
+                {
+                    label: 'Đã nhập học',
+                    data: CHART_DATA.majors.data,
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Chỉ tiêu',
+                    data: CHART_DATA.majors.quota,
+                    backgroundColor: 'rgba(226, 232, 240, 0.6)',
+                    borderWidth: 1,
+                    borderColor: '#cbd5e1',
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+
+    // Helper for Pie Charts
+    const createPieChart = (elementId, dataObj, colors) => {
+        new Chart(document.getElementById(elementId), {
+            type: 'doughnut',
+            data: {
+                labels: dataObj.labels,
+                datasets: [{
+                    data: dataObj.data,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                },
+                cutout: '65%'
+            }
+        });
+    };
+
+    createPieChart('genderChart', CHART_DATA.gender, ['#3b82f6', '#ec4899', '#94a3b8']);
+    createPieChart('areaChart', CHART_DATA.area, ['#0ea5e9', '#38bdf8', '#7dd3fc', '#e0f2fe', '#cbd5e1']);
+    createPieChart('objectChart', CHART_DATA.object, ['#f59e0b', '#fbbf24', '#fcd34d', '#fef3c7', '#cbd5e1']);
+    createPieChart('xnBoChart', CHART_DATA.xnBo, ['#3b82f6', '#cbd5e1']);
+    createPieChart('feeChart', CHART_DATA.kinhPhi, ['#10b981', '#cbd5e1']);
+    createPieChart('userChart', CHART_DATA.users, ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316']);
+
+    // Province Chart
+    new Chart(document.getElementById('provinceChart'), {
+        type: 'bar',
+        data: {
+            labels: CHART_DATA.province.labels,
+            datasets: [{
+                label: 'Số lượng nhập học',
+                data: CHART_DATA.province.data,
+                backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, font: {size: 9} } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // School Chart Init
+    renderSchoolChart(false);
+    
+    chartsInitialized = true;
+}
+
+function renderSchoolChart(showAll) {
+    if (schoolChartInstance) schoolChartInstance.destroy();
+    const dataObj = showAll ? CHART_DATA.schoolAll : CHART_DATA.schoolTop20;
+    
+    schoolChartInstance = new Chart(document.getElementById('schoolChart'), {
+        type: 'bar',
+        data: {
+            labels: dataObj.labels,
+            datasets: [{
+                label: 'Thí sinh',
+                data: dataObj.data,
+                backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false }, ticks: { maxRotation: 90, minRotation: 45, font: {size: 9} } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function toggleShowAllSchools() {
+    showingAllSchools = !showingAllSchools;
+    document.getElementById('btnToggleSchoolsText').innerText = showingAllSchools ? 'Thu gọn (Top 20)' : 'Xem thêm';
+    renderSchoolChart(showingAllSchools);
+}
+</script>
 
 <?php
 $content = ob_get_clean();
