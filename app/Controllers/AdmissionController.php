@@ -147,6 +147,133 @@ class AdmissionController extends Controller {
         }
     }
 
+    public function overviewResults() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $sessionModel = new AdmissionSession();
+        
+        // Session selector: allow viewing any session, default to active
+        $allSessions = $sessionModel->getAll();
+        $selectedSessionId = $_GET['session_id'] ?? null;
+        
+        if ($selectedSessionId) {
+            $activeSession = null;
+            foreach ($allSessions as $s) {
+                if ($s['id'] == $selectedSessionId) { $activeSession = $s; break; }
+            }
+            if (!$activeSession) $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestSession();
+        } else {
+            $activeSession = $sessionModel->getActiveSession() ?: $sessionModel->getLatestSession();
+        }
+        $sessionId = $activeSession['id'] ?? 0;
+
+        // Filters
+        $filterMajor = $_GET['major'] ?? '';
+        $filterStatus = $_GET['status'] ?? '';
+        $showAll = isset($_GET['show_all']) && $_GET['show_all'] == '1';
+
+        // 1. Global Stats
+        $statsSql = "SELECT 
+                        COUNT(DISTINCT k.so_cccd) as total_candidates,
+                        COUNT(k.id) as total_wishes,
+                        COUNT(k.id) as total_admitted,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1_admit,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2_admit,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 3 THEN 1 ELSE 0 END) as nv3_admit
+                     FROM ket_qua_trung_tuyen k
+                     LEFT JOIN nguyen_vong nv ON k.so_cccd = nv.so_cccd AND k.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id
+                     WHERE k.session_id = ?";
+        $statsStmt = $db->prepare($statsSql);
+        $statsStmt->execute([$sessionId]);
+        $stats = $statsStmt->fetch(\PDO::FETCH_ASSOC);
+
+        // 2. Per-major stats
+        $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
+                            COUNT(k.id) as so_trung_tuyen,
+                            COUNT(k.id) as tong_nguyen_vong,
+                            SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1_admit,
+                            MAX(k.diem_xt) as diem_cao_nhat,
+                            MIN(k.diem_xt) as diem_thap_nhat
+                          FROM dm_nganh n
+                          LEFT JOIN ket_qua_trung_tuyen k ON n.ma_nganh = k.ma_nganh AND k.session_id = ?
+                          LEFT JOIN nguyen_vong nv ON k.so_cccd = nv.so_cccd AND k.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id
+                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
+                          ORDER BY n.ma_nganh";
+        $majorStatsStmt = $db->prepare($majorStatsSql);
+        $majorStatsStmt->execute([$sessionId]);
+        $majorStats = $majorStatsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 3. Demographics for Charts
+        $demoSql = "SELECT t.gioi_tinh, t.khu_vuc_uu_tien, t.doi_tuong_uu_tien, 
+                           COALESCE(dt.ten_tinh, t.ma_tinh_lop_12) as ten_tinh, 
+                           COALESCE(dthpt.ten_truong, t.ma_truong_lop_12) as ten_truong
+                    FROM ket_qua_trung_tuyen k
+                    JOIN thi_sinh t ON k.so_cccd = t.so_cccd
+                    LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    WHERE k.session_id = ?";
+        $demoStmt = $db->prepare($demoSql);
+        $demoStmt->execute([$sessionId]);
+        $demoRows = $demoStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $chartDist = [
+            'gender' => [],
+            'area' => [],
+            'object' => [],
+            'province' => [],
+            'school' => []
+        ];
+
+        foreach ($demoRows as $r) {
+            $gt = trim($r['gioi_tinh'] ?? '');
+            if (strcasecmp($gt, 'Nam') === 0 || $gt === '1') $gt = 'Nam';
+            elseif (strcasecmp($gt, 'Nữ') === 0 || strcasecmp($gt, 'Nu') === 0 || $gt === '0') $gt = 'Nữ';
+            else $gt = 'Khác';
+            $chartDist['gender'][$gt] = ($chartDist['gender'][$gt] ?? 0) + 1;
+            
+            $ar = $r['khu_vuc_uu_tien'] ?: 'Khác';
+            $chartDist['area'][$ar] = ($chartDist['area'][$ar] ?? 0) + 1;
+
+            $obj = $r['doi_tuong_uu_tien'] ?: 'Không';
+            $chartDist['object'][$obj] = ($chartDist['object'][$obj] ?? 0) + 1;
+
+            $prov = $r['ten_tinh'] ?: 'Khác';
+            $chartDist['province'][$prov] = ($chartDist['province'][$prov] ?? 0) + 1;
+
+            $sch = $r['ten_truong'] ?: 'Khác';
+            $chartDist['school'][$sch] = ($chartDist['school'][$sch] ?? 0) + 1;
+        }
+
+        arsort($chartDist['province']);
+        arsort($chartDist['school']);
+
+        // 4. Page visit stats for Calculator
+        $visitStatsSql = "SELECT 
+                            COUNT(*) as total_visits,
+                            COUNT(*) FILTER (WHERE created_at >= date_trunc('week', CURRENT_DATE)) as weekly_visits,
+                            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as daily_visits
+                          FROM page_views 
+                          WHERE url = '/tinh-diem-xet-tuyen'";
+        $visitStatsStmt = $db->query($visitStatsSql);
+        $visitStats = $visitStatsStmt->fetch(\PDO::FETCH_ASSOC);
+
+        $this->view('admin/admission/results', [
+            'isReadOnly' => true,
+            'stats' => $stats,
+            'visitStats' => $visitStats,
+            'majorStats' => $majorStats,
+            'chartDist' => $chartDist,
+            'majors' => $this->masterData->getMajors(),
+            'filterMajor' => $filterMajor,
+            'filterStatus' => $filterStatus,
+            'showAll' => $showAll,
+            'activeSession' => $activeSession,
+            'allSessions' => $allSessions,
+            'allTemplates' => [],
+            'emailTemplates' => [],
+            'currentTemplateId' => null
+        ]);
+    }
+
     public function results() {
         $db = \App\Core\Database::getInstance()->getConnection();
         $sessionModel = new AdmissionSession();
@@ -175,14 +302,15 @@ class AdmissionController extends Controller {
 
         // 1. Global Stats
         $statsSql = "SELECT 
-                        COUNT(DISTINCT so_cccd) as total_candidates,
-                        COUNT(*) as total_wishes,
-                        COUNT(*) as total_admitted,
-                        0 as nv1_admit,
-                        0 as nv2_admit,
-                        0 as nv3_admit
-                     FROM ket_qua_trung_tuyen
-                     WHERE session_id = ?";
+                        COUNT(DISTINCT k.so_cccd) as total_candidates,
+                        COUNT(k.id) as total_wishes,
+                        COUNT(k.id) as total_admitted,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1_admit,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 2 THEN 1 ELSE 0 END) as nv2_admit,
+                        SUM(CASE WHEN nv.thu_tu_nguyen_vong = 3 THEN 1 ELSE 0 END) as nv3_admit
+                     FROM ket_qua_trung_tuyen k
+                     LEFT JOIN nguyen_vong nv ON k.so_cccd = nv.so_cccd AND k.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id
+                     WHERE k.session_id = ?";
         $statsStmt = $db->prepare($statsSql);
         $statsStmt->execute([$sessionId]);
         $stats = $statsStmt->fetch(\PDO::FETCH_ASSOC);
@@ -191,10 +319,12 @@ class AdmissionController extends Controller {
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
                             COUNT(k.id) as so_trung_tuyen,
                             COUNT(k.id) as tong_nguyen_vong,
+                            SUM(CASE WHEN nv.thu_tu_nguyen_vong = 1 THEN 1 ELSE 0 END) as nv1_admit,
                             MAX(k.diem_xt) as diem_cao_nhat,
                             MIN(k.diem_xt) as diem_thap_nhat
                           FROM dm_nganh n
                           LEFT JOIN ket_qua_trung_tuyen k ON n.ma_nganh = k.ma_nganh AND k.session_id = ?
+                          LEFT JOIN nguyen_vong nv ON k.so_cccd = nv.so_cccd AND k.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id
                           GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh
                           ORDER BY n.ma_nganh";
         $majorStatsStmt = $db->prepare($majorStatsSql);
@@ -509,19 +639,23 @@ class AdmissionController extends Controller {
         $sessionInfo = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
         $sessionName = $sessionInfo['ten_dot'] ?? "Dot_$sessionId";
 
+        $exportType = $_GET['export_type'] ?? 'full';
+
         $sql = "SELECT k.*, 
                        ts.gioi_tinh, ts.dan_toc, ts.nam_tot_nghiep, ts.dia_chi_chi_tiet, ts.ma_tinh_lop_12, ts.ma_truong_lop_12,
                        ts.ngay_sinh, ts.dien_thoai, ts.email as thi_sinh_email,
                        dt.ten_tinh, dthpt.ten_truong as ten_truong_thpt,
                        kqht.hoc_luc_ca_nam as hoc_luc_12, kqht.hanh_kiem_ca_nam as hanh_kiem_12, kqht.diem_tb_ca_nam as diem_tb_12,
                        nh.trang_thai as nh_trang_thai, nh.ngay_nhap_hoc as nh_ngay_nhap_hoc, 
-                       nh.da_nop_tien as nh_da_nop_tien, nh.so_tien_da_nop as nh_so_tien_da_nop
+                       nh.da_nop_tien as nh_da_nop_tien, nh.so_tien_da_nop as nh_so_tien_da_nop,
+                       nv.thu_tu_nguyen_vong as thu_tu_nv
                 FROM ket_qua_trung_tuyen k
                 LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
                 LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
                 LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND ts.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE)
                 LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
                 LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
+                LEFT JOIN nguyen_vong nv ON (nv.so_cccd = k.so_cccd AND nv.ma_nganh = k.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id)
                 WHERE k.session_id = ?";
         $params = [$sessionId];
 
@@ -589,6 +723,7 @@ class AdmissionController extends Controller {
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $exportData = [];
+        $maxScores = [];
         foreach ($rows as $i => $r) {
             if ($r['diem_ut'] === null || $r['ut_quy_doi'] === null) {
                 $prio = self::calcPriorityPoints(
@@ -603,52 +738,144 @@ class AdmissionController extends Controller {
                 if ($r['ut_quy_doi'] === null) $r['ut_quy_doi'] = $prio['ut_quy_doi'];
             }
 
-            $exportData[] = [
-                'STT' => $i + 1,
-                'Số CCCD' => $r['so_cccd'] ?? '',
-                'Họ và Tên' => $r['ho_ten'] ?? '',
-                'Giới tính' => $r['gioi_tinh'] ?? '',
-                'Ngày sinh' => $r['ngay_sinh'] ?? '',
-                'Dân tộc' => $r['dan_toc'] ?? '',
-                'Điện thoại' => $r['sdt'] ?? ($r['dien_thoai'] ?? ''),
-                'Email' => $r['email'] ?? ($r['thi_sinh_email'] ?? ''),
-                'Trường THPT' => $r['ten_truong_thpt'] ?? ($r['ma_truong_lop_12'] ?? ''),
-                'Tỉnh / Thành' => $r['ten_tinh'] ?? ($r['ma_tinh_lop_12'] ?? ''),
-                'Năm tốt nghiệp' => $r['nam_tot_nghiep'] ?? '',
-                'Học lực Lớp 12' => $r['hoc_luc_12'] ?? '',
-                'Hạnh kiểm Lớp 12' => $r['hanh_kiem_12'] ?? '',
-                'ĐTB Lớp 12' => $r['diem_tb_12'] ?? '',
-                'Địa chỉ chi tiết' => $r['dia_chi_chi_tiet'] ?? '',
-                'Mã Ngành' => $r['ma_nganh'] ?? '',
-                'Tên Ngành' => $r['ten_nganh'] ?? '',
-                'KHOA' => $r['ten_khoa'] ?? '',
-                'Điểm Xét Tuyển' => $r['diem_xt'] ?? '',
-                'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
-                'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
-                'SBD thi THPT' => $r['sbd'] ?? '',
-                'Khu Vực' => $r['khu_vuc'] ?? '',
-                'Đối Tượng' => $r['doi_tuong'] ?? '',
-                'Tổ Hợp' => $r['to_hop'] ?? '',
-                'Phương Thức' => $r['phuong_thuc'] ?? '',
-                'Điểm Môn 1' => $r['diem_mon_1'] ?? '',
-                'Điểm Môn 2' => $r['diem_mon_2'] ?? '',
-                'Điểm Môn 3' => $r['diem_mon_3'] ?? '',
-                'Điểm UT (Thô)' => $r['diem_ut'] ?? '',
-                'Điểm UT Quy Đổi' => $r['ut_quy_doi'] ?? '',
-                'NV Đạt' => $r['thu_tu_nv'] ?? '',
-                'SOTK' => $r['so_tai_khoan'] ?? '',
-                'NGANHANG' => $r['ngan_hang'] ?? '',
-                'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
-                'SOTIEN' => $r['so_tien'] ?? '',
-                'NOIDUNG' => $r['noi_dung_ck'] ?? '',
-                'XACNHANBO' => (!empty($r['xac_nhan_bo']) || !empty($r['xac_nhan_nhap_hoc']) || !empty($r['is_confirm'])) ? 'Đã XN' : 'Chưa XN',
-                'XACNHANTRUONG' => !empty($r['xac_nhan_truong']) ? 'Đã XN' : 'Chưa XN',
-                'NHAPHOC' => (!empty($r['nh_trang_thai']) || !empty($r['is_nhap_hoc']) || !empty($r['nh_ngay_nhap_hoc'])) ? 'Đã nhập học' : 'Chưa nhập học',
-                'NOPKINHPHI' => (!empty($r['nh_da_nop_tien']) || !empty($r['da_nop_tien'])) ? 'Đã nộp' : 'Chưa nộp',
-                'SOTIENNOP' => $r['nh_so_tien_da_nop'] ?? ($r['so_tien_da_nop'] ?? ''),
-                'Thời Gian Nhập Học' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
-                'Ghi Chú' => $r['ghi_chu'] ?? ''
-            ];
+            if ($exportType === 'full' || $exportType === 'default') {
+                $orderedRow = [
+                    'STT' => $i + 1,
+                    'SBD' => $r['sbd'] ?? '',
+                    'HOTEN' => $r['ho_ten'] ?? '',
+                    'NGAYSINH' => $r['ngay_sinh'] ?? '',
+                    'GT' => $r['gioi_tinh'] ?? '',
+                    'CCCD' => $r['so_cccd'] ?? '',
+                    'KV' => $r['khu_vuc'] ?? ($r['khu_vuc_uu_tien'] ?? ''),
+                    'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
+                    'TH' => $r['to_hop'] ?? '',
+                    'TOHOP' => $r['to_hop'] ?? '', // Mapped to_hop here as well based on original list 'TH, TOHOP'
+                    'DM1' => $r['diem_mon_1'] ?? '',
+                    'DM2' => $r['diem_mon_2'] ?? '',
+                    'DM3' => $r['diem_mon_3'] ?? '',
+                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DIEMUT' => $r['diem_ut'] ?? '',
+                    'UTQ' => $r['ut_quy_doi'] ?? '',
+                    'DIEMXT' => $r['diem_xt'] ?? '',
+                    'SDT' => $r['sdt'] ?? ($r['dien_thoai'] ?? ''),
+                    'MANGANH' => $r['ma_nganh'] ?? '',
+                    'NGANH' => $r['ten_nganh'] ?? '',
+                    'TTNV' => $r['thu_tu_nv'] ?? '',
+                    'PHUONGTHUC' => $r['phuong_thuc'] ?? '',
+                    'TINH' => $r['ten_tinh'] ?? ($r['ma_tinh_lop_12'] ?? ''),
+                    'XA' => $r['phuong_xa'] ?? '',
+                    'DIACHI' => $r['dia_chi_chi_tiet'] ?? '',
+                    'SOTK' => $r['so_tai_khoan'] ?? '',
+                    'THOIGIANNHAP' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
+                    'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
+                ];
+
+                $originalData = [
+                    'Trường THPT' => $r['ten_truong_thpt'] ?? ($r['ma_truong_lop_12'] ?? ''),
+                    'Dân tộc' => $r['dan_toc'] ?? '',
+                    'Email' => $r['email'] ?? ($r['thi_sinh_email'] ?? ''),
+                    'Năm tốt nghiệp' => $r['nam_tot_nghiep'] ?? '',
+                    'Học lực Lớp 12' => $r['hoc_luc_12'] ?? '',
+                    'Hạnh kiểm Lớp 12' => $r['hanh_kiem_12'] ?? '',
+                    'ĐTB Lớp 12' => $r['diem_tb_12'] ?? '',
+                    'KHOA' => $r['ten_khoa'] ?? '',
+                    'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
+                    'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
+                    'NGANHANG' => $r['ngan_hang'] ?? '',
+                    'SOTIEN' => $r['so_tien'] ?? '',
+                    'NOIDUNG' => $r['noi_dung_ck'] ?? '',
+                    'XACNHANBO' => (!empty($r['xac_nhan_bo']) || !empty($r['xac_nhan_nhap_hoc']) || !empty($r['is_confirm'])) ? 'Đã XN' : 'Chưa XN',
+                    'XACNHANTRUONG' => !empty($r['xac_nhan_truong']) ? 'Đã XN' : 'Chưa XN',
+                    'NHAPHOC' => (!empty($r['nh_trang_thai']) || !empty($r['is_nhap_hoc']) || !empty($r['nh_ngay_nhap_hoc'])) ? 'Đã nhập học' : 'Chưa nhập học',
+                    'NOPKINHPHI' => (!empty($r['nh_da_nop_tien']) || !empty($r['da_nop_tien'])) ? 'Đã nộp' : 'Chưa nộp',
+                    'SOTIENNOP' => $r['nh_so_tien_da_nop'] ?? ($r['so_tien_da_nop'] ?? ''),
+                    'Ghi Chú' => $r['ghi_chu'] ?? ''
+                ];
+
+                $exportData[] = array_merge($orderedRow, $originalData);
+            } elseif ($exportType === 'print_letter') {
+                $exportData[] = [
+                    'Check_CCCD' => '',
+                    'STT' => $i + 1,
+                    'SBD' => $r['sbd'] ?? '',
+                    'HOTEN' => $r['ho_ten'] ?? '',
+                    'NGAYSINH' => $r['ngay_sinh'] ?? '',
+                    'GT' => $r['gioi_tinh'] ?? '',
+                    'CCCD' => $r['so_cccd'] ?? '',
+                    'KV' => $r['khu_vuc'] ?? ($r['khu_vuc_uu_tien'] ?? ''),
+                    'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
+                    'TH' => $r['to_hop'] ?? '',
+                    'TOHOP' => $r['to_hop'] ?? '',
+                    'DM1' => $r['diem_mon_1'] ?? '',
+                    'DM2' => $r['diem_mon_2'] ?? '',
+                    'DM3' => $r['diem_mon_3'] ?? '',
+                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DIEMUT' => $r['diem_ut'] ?? '',
+                    'UTQ' => $r['ut_quy_doi'] ?? '',
+                    'DIEMXT' => $r['diem_xt'] ?? '',
+                    'SDT' => $r['sdt'] ?? ($r['dien_thoai'] ?? ''),
+                    'MANGANH' => $r['ma_nganh'] ?? '',
+                    'NGANH' => $r['ten_nganh'] ?? '',
+                    'TTNV' => $r['thu_tu_nv'] ?? '',
+                    'PT' => $r['phuong_thuc'] ?? '',
+                    'TTT' => '',
+                    'TINH' => $r['ten_tinh'] ?? ($r['ma_tinh_lop_12'] ?? ''),
+                    'HUYEN' => $r['ten_huyen'] ?? ($r['ma_huyen_lop_12'] ?? ''),
+                    'XA' => $r['phuong_xa'] ?? '',
+                    'DIACHI' => $r['dia_chi_chi_tiet'] ?? '',
+                    'DIENTHOAI' => $r['dien_thoai'] ?? ($r['sdt'] ?? ''),
+                    'MATRUONG' => $r['ma_truong_lop_12'] ?? '',
+                    'TENTRUONG' => $r['ten_truong_thpt'] ?? '',
+                    'TT' => '',
+                    'SOTK' => $r['so_tai_khoan'] ?? '',
+                    'THOIGIANNHAP' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
+                    'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
+                    'DT' => $r['dan_toc'] ?? '',
+                    'TN' => $r['nam_tot_nghiep'] ?? '',
+                    'NGANH_TT' => $r['nganh_in_giay_bao'] ?? ($r['ten_nganh'] ?? ''),
+                    'KHOA' => $r['ten_khoa'] ?? '',
+                    'Linkanh' => $r['link_anh'] ?? '',
+                    'SOTIEN' => $r['so_tien'] ?? '',
+                    'NOIDUNG' => $r['noi_dung_ck'] ?? '',
+                    'NGANHANG' => $r['ngan_hang'] ?? '',
+                    'PHUONGTHUC' => $r['phuong_thuc'] ?? '',
+                    'Email' => $r['email'] ?? ($r['thi_sinh_email'] ?? '')
+                ];
+            } elseif ($exportType === 'top_students') {
+                $maNganh = $r['ma_nganh'] ?? 'N/A';
+                $diemXt = (float)($r['diem_xt'] ?? 0);
+                
+                if (!isset($maxScores[$maNganh])) {
+                    $maxScores[$maNganh] = $diemXt;
+                } else {
+                    if (abs($diemXt - $maxScores[$maNganh]) > 0.0001 && $diemXt < $maxScores[$maNganh]) {
+                        continue;
+                    }
+                }
+                
+                $exportData[] = [
+                    'STT' => count($exportData) + 1,
+                    'MANGANH' => $r['ma_nganh'] ?? '',
+                    'NGANH' => $r['ten_nganh'] ?? '',
+                    'SBD' => $r['sbd'] ?? '',
+                    'HOTEN' => $r['ho_ten'] ?? '',
+                    'NGAYSINH' => $r['ngay_sinh'] ?? '',
+                    'GT' => $r['gioi_tinh'] ?? '',
+                    'CCCD' => $r['so_cccd'] ?? '',
+                    'KV' => $r['khu_vuc'] ?? ($r['khu_vuc_uu_tien'] ?? ''),
+                    'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
+                    'TH' => $r['to_hop'] ?? '',
+                    'TOHOP' => $r['to_hop'] ?? '',
+                    'DM1' => $r['diem_mon_1'] ?? '',
+                    'DM2' => $r['diem_mon_2'] ?? '',
+                    'DM3' => $r['diem_mon_3'] ?? '',
+                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DIEMUT' => $r['diem_ut'] ?? '',
+                    'UTQ' => $r['ut_quy_doi'] ?? '',
+                    'DIEMXT' => $r['diem_xt'] ?? '',
+                    'SDT' => $r['sdt'] ?? ($r['dien_thoai'] ?? '')
+                ];
+            }
         }
 
         $exportService = new \App\Services\ExportService();

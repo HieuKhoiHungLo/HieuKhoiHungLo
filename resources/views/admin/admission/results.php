@@ -1,6 +1,7 @@
 <?php
 // results.php - Danh sách kết quả trúng tuyển (SSP + All 3 Phases)
-$title = "Danh sách Trúng tuyển";
+$isReadOnly = $isReadOnly ?? false;
+$title = $isReadOnly ? "Số liệu Trúng tuyển" : "Danh sách Trúng tuyển";
 ob_start();
 
 $totalCandidates = $stats['total_candidates'] ?? 0;
@@ -33,44 +34,38 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
 
 <style>
     .premium-table {
-        border-collapse: separate !important;
-        border-spacing: 0;
+        border-collapse: collapse !important;
         width: 100%;
         table-layout: auto;
     }
     .premium-table th, .premium-table td {
-        padding: 0.35rem 0.65rem !important;
-        border: none !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-        border-right: 1px solid #e2e8f0 !important;
+        padding: 0.5rem 0.75rem !important;
+        border: 1px solid #e2e8f0 !important;
         vertical-align: middle;
-        font-size: 11px;
+        font-size: 13px;
         color: #334155;
-        background-clip: padding-box;
     }
     .premium-table th {
         background-color: #f8fafc !important;
         color: #475569 !important;
         font-weight: 700 !important;
-        text-transform: none !important;
-        letter-spacing: 0.01em;
-        text-align: left;
+        text-transform: uppercase !important;
+        font-size: 11px !important;
+        letter-spacing: 0.02em;
+        text-align: center;
     }
-    .premium-table th:first-child, .premium-table td:first-child { border-left: 1px solid #e2e8f0 !important; }
-    .premium-table thead tr:first-child th { border-top: 1px solid #e2e8f0 !important; }
-    .premium-table thead tr:first-child th:first-child { border-top-left-radius: 1rem; }
-    .premium-table thead tr:first-child th:last-child { border-top-right-radius: 1rem; }
-    .premium-table tbody tr:last-child td:first-child { border-bottom-left-radius: 1rem; }
-    .premium-table tbody tr:last-child td:last-child { border-bottom-right-radius: 1rem; }
+    .premium-table tbody tr:hover td {
+        background-color: #f8fafc !important;
+    }
 </style>
 
-<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="resultsApp" x-data="{ activeTab: 'list', initCharts() { setTimeout(() => { renderAdmissionCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
+<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="resultsApp" x-data="{ activeTab: '<?= $isReadOnly ? 'stats' : 'list' ?>', initCharts() { setTimeout(() => { renderAdmissionCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
 
     <!-- Header Row (Title & Filters) -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <i class="fas fa-file-invoice text-indigo-600"></i> Danh Sách Trúng Tuyển
+                <i class="fas <?= $isReadOnly ? 'fa-chart-bar' : 'fa-file-invoice' ?> text-indigo-600"></i> <?= $title ?>
             </h1>
         </div>
         
@@ -107,11 +102,13 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
 
     <!-- Tab Navigation -->
     <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
+        <?php if (!$isReadOnly): ?>
         <button @click="activeTab = 'list'"
             :class="activeTab === 'list' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
             <i class="fas fa-list-ul mr-2"></i>DANH SÁCH TRÚNG TUYỂN
         </button>
+        <?php endif; ?>
         <button @click="activeTab = 'stats'"
             :class="activeTab === 'stats' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
@@ -174,6 +171,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     </div>
 
     <!-- TAB: LIST (Danh sách trúng tuyển) -->
+    <?php if (!$isReadOnly): ?>
     <div x-show="activeTab === 'list'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" class="flex flex-col flex-1" style="display: none;" x-init="$el.style.display = 'flex'">
 
     <!-- Filter & Search Toolbar -->
@@ -218,10 +216,33 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         </div>
 
         <!-- Export Excel Button -->
-        <button type="button" onclick="exportResultsExcel()" 
-            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
-            <i class="fas fa-file-excel text-sm"></i> Xuất Excel
-        </button>
+        <div x-data="{ open: false }" class="relative">
+            <button type="button" @click="open = !open" @click.away="open = false"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fas fa-file-excel text-sm"></i> Xuất Excel <i class="fas fa-chevron-down text-[10px] ml-1 opacity-70"></i>
+            </button>
+            <div x-show="open" style="display: none;"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="transform opacity-0 scale-95"
+                 x-transition:enter-end="transform opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="transform opacity-100 scale-100"
+                 x-transition:leave-end="transform opacity-0 scale-95"
+                 class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                <button type="button" onclick="exportResultsExcel('full')" class="w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-[11px] font-bold border-b border-slate-50 transition-colors flex items-center gap-2">
+                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">1</span>
+                    Xuất thông tin đầy đủ
+                </button>
+                <button type="button" onclick="exportResultsExcel('print_letter')" class="w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-[11px] font-bold border-b border-slate-50 transition-colors flex items-center gap-2">
+                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">2</span>
+                    Xuất danh sách in giấy báo
+                </button>
+                <button type="button" onclick="exportResultsExcel('top_students')" class="w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-2">
+                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">3</span>
+                    Xuất danh sách thủ khoa
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Table -->
@@ -353,6 +374,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         </div>
         </div>
     </div> <!-- END TAB LIST -->
+    <?php endif; ?>
     
     <!-- TAB: STATS (Thống kê trúng tuyển) -->
     <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
@@ -363,18 +385,19 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </h3>
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="premium-table min-w-[800px] lg:min-w-full">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px" class="text-center" rowspan="2">Mã ngành</th>
-                            <th rowspan="2">Tên ngành</th>
-                            <th style="width: 80px" class="text-center" rowspan="2">Chỉ tiêu</th>
-                            <th class="text-center" colspan="3">Trúng tuyển</th>
-                            <th style="width: 150px" class="text-center" rowspan="2">Mức điểm (Thấp-Cao)</th>
+                    <thead class="sticky top-0 z-10 bg-slate-100">
+                        <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
+                            <th style="width: 80px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Mã ngành</th>
+                            <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Tên ngành</th>
+                            <th style="width: 80px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Chỉ tiêu</th>
+                            <th style="width: 100px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Điểm chuẩn</th>
+                            <th class="py-1 border-b border-r border-slate-200 bg-blue-50 text-blue-800" colspan="3">Trúng tuyển</th>
+                            <th style="width: 150px" class="py-3 border-b-2 border-slate-200 bg-slate-100" rowspan="2">Mức điểm (Thấp-Cao)</th>
                         </tr>
-                        <tr>
-                            <th style="width: 80px" class="text-center">Tổng</th>
-                            <th style="width: 80px" class="text-center">NV1</th>
-                            <th style="width: 100px" class="text-center">Tiến độ (%)</th>
+                        <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">Tổng</th>
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">NV1</th>
+                            <th style="width: 100px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">Tiến độ (%)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -400,10 +423,11 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                             else $barColor = 'bg-amber-500';
                         ?>
                         <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="text-center font-mono text-slate-500 font-bold"><?= $ms['ma_nganh'] ?></td>
-                            <td class="font-bold text-slate-800"><?= htmlspecialchars($ms['ten_nganh'] ?? '') ?></td>
+                            <td class="text-center font-mono text-slate-600 font-bold"><?= $ms['ma_nganh'] ?></td>
+                            <td class="font-bold text-slate-800 text-left"><?= htmlspecialchars($ms['ten_nganh'] ?? '') ?></td>
                             <td class="text-center font-bold text-slate-600 bg-slate-50/50"><?= $ct ?: '-' ?></td>
-                            <td class="text-center font-black text-indigo-600"><?= $tt ?: '-' ?></td>
+                            <td class="text-center font-bold text-amber-700 bg-amber-50/20"><?= isset($ms['diem_thap_nhat']) && floatval($ms['diem_thap_nhat']) > 0 ? number_format($ms['diem_thap_nhat'], 3) : '-' ?></td>
+                            <td class="text-center font-black text-indigo-700"><?= $tt ?: '-' ?></td>
                             <td class="text-center font-bold text-slate-500"><?= isset($ms['nv1_admit']) ? $hnv1 : '-' ?></td>
                             <td>
                                 <div class="flex items-center gap-2">
@@ -429,10 +453,11 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     </tbody>
                     <tfoot class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-200">
                         <tr>
-                            <td colspan="2" class="text-right uppercase">Tổng cộng:</td>
-                            <td class="text-center bg-slate-100/50 text-slate-700"><?= $totalCT ?></td>
-                            <td class="text-center text-indigo-700"><?= $totalTT ?></td>
-                            <td class="text-center text-slate-700"><?= $totalHNV1 > 0 ? $totalHNV1 : '-' ?></td>
+                            <td colspan="2" class="text-right uppercase font-bold text-slate-700">Tổng cộng:</td>
+                            <td class="text-center bg-slate-100/50 text-slate-700 font-bold"><?= $totalCT ?></td>
+                            <td class="bg-slate-50"></td>
+                            <td class="text-center text-indigo-700 font-black"><?= $totalTT ?></td>
+                            <td class="text-center text-slate-700 font-bold"><?= $totalHNV1 > 0 ? $totalHNV1 : '-' ?></td>
                             <td>
                                 <?php $totalPct = $totalCT > 0 ? round(($totalTT / $totalCT) * 100, 1) : 0; ?>
                                 <div class="flex items-center gap-2">
@@ -453,19 +478,6 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
     <!-- TAB: CHARTS (Biểu đồ phân tích) -->
     <div x-show="activeTab === 'charts'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
         
-        <!-- Visit Stats Table -->
-        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 border-t-4 border-t-blue-500 mb-6">
-            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
-                <i class="fas fa-eye text-blue-500 mr-2"></i> Thống kê truy cập trang Tính điểm (http://localhost/TS/tinh-diem-xet-tuyen)
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng số lượt truy cập</span>
-                    <span class="text-3xl font-black text-blue-600"><?= number_format($visitStats['total_visits'] ?? 0) ?></span>
-                </div>
-            </div>
-        </div>
-
         <!-- Major Fill Chart -->
         <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
             <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
@@ -579,6 +591,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
         }
     </style>
 
+    <?php if (empty($isReadOnly)): ?>
     <div id="results-action-bar">
         <!-- Selected Count Badge if any -->
         <span id="selectedCountBadge" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 hidden">
@@ -638,6 +651,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             </button>
         </form>
     </div>
+    <?php endif; ?>
 </div>
 
 <script>
@@ -2004,6 +2018,7 @@ function handleAvatarZipSelect(input) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    <?php if (!$isReadOnly): ?>
     renderColConfigUI();
     applyColumnVisibility();
     reloadTable();
@@ -2011,6 +2026,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => { currentPage = 0; reloadTable(); }, 350);
     });
+    <?php endif; ?>
     
     // Auto download import result file if requested
     const urlParams = new URLSearchParams(window.location.search);
@@ -2021,7 +2037,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function exportResultsExcel() {
+function exportResultsExcel(type = 'full') {
     const sessionId = document.getElementById('sessionSelector')?.value || '<?= $sessionId ?>';
     const major = document.getElementById('majorFilter')?.value || '';
     const search = document.getElementById('searchInput')?.value || '';
@@ -2036,7 +2052,7 @@ function exportResultsExcel() {
     const colXnBo = document.getElementById('col_filter_xn_bo')?.value || '';
     const colXnTruong = document.getElementById('col_filter_xn_truong')?.value || '';
     
-    let exportUrl = '<?= url('/admin/admission/results/export') ?>?session_id=' + encodeURIComponent(sessionId);
+    let exportUrl = '<?= url('/admin/admission/results/export') ?>?session_id=' + encodeURIComponent(sessionId) + '&export_type=' + encodeURIComponent(type);
     if (major) exportUrl += '&major=' + encodeURIComponent(major);
     if (search) exportUrl += '&search=' + encodeURIComponent(search);
     if (colCccd) exportUrl += '&col_cccd=' + encodeURIComponent(colCccd);

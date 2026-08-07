@@ -271,6 +271,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/benchmarks', 'AdmissionController@saveBenchmarks');
     $router->post('/admin/admission/process', 'AdmissionController@process');
     $router->get('/admin/admission/results', 'AdmissionController@results');
+    $router->get('/admin/admission/overview-results', 'AdmissionController@overviewResults');
     $router->get('/admin/admission/results/api', 'AdmissionController@resultsApi');
     $router->get('/admin/admission/results/export', 'AdmissionController@exportResults');
     $router->post('/admin/admission/results/bulk-email', 'AdmissionController@bulkEmail');
@@ -519,6 +520,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/enrollment/submit', 'EnrollmentController@submitEnrollment');
     $router->get('/admin/enrollment/print', 'EnrollmentController@printReceipt');
     $router->get('/admin/enrollment/stats', 'EnrollmentController@stats');
+    $router->get('/admin/enrollment/overview-stats', 'EnrollmentController@overviewStats');
     
     // New Dashboard APIs
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');

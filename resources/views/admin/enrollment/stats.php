@@ -1,5 +1,6 @@
 <?php
-$title = "Thống kê Nhập học";
+$isReadOnly = $isReadOnly ?? false;
+$title = $isReadOnly ? "Số liệu Nhập học" : "Thống kê Nhập học";
 ob_start();
 
 $totalCandidates = $totalTrungTuyen;
@@ -11,35 +12,29 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
 
 <style>
     .premium-table {
-        border-collapse: separate !important;
-        border-spacing: 0;
+        border-collapse: collapse !important;
         width: 100%;
         table-layout: auto;
     }
     .premium-table th, .premium-table td {
-        padding: 0.35rem 0.65rem !important;
-        border: none !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-        border-right: 1px solid #e2e8f0 !important;
+        padding: 0.5rem 0.75rem !important;
+        border: 1px solid #e2e8f0 !important;
         vertical-align: middle;
-        font-size: 11px;
+        font-size: 13px;
         color: #334155;
-        background-clip: padding-box;
     }
     .premium-table th {
         background-color: #f8fafc !important;
         color: #475569 !important;
         font-weight: 700 !important;
-        text-transform: none !important;
-        letter-spacing: 0.01em;
-        text-align: left;
+        text-transform: uppercase !important;
+        font-size: 11px !important;
+        letter-spacing: 0.02em;
+        text-align: center;
     }
-    .premium-table th:first-child, .premium-table td:first-child { border-left: 1px solid #e2e8f0 !important; }
-    .premium-table thead tr:first-child th { border-top: 1px solid #e2e8f0 !important; }
-    .premium-table thead tr:first-child th:first-child { border-top-left-radius: 1rem; }
-    .premium-table thead tr:first-child th:last-child { border-top-right-radius: 1rem; }
-    .premium-table tbody tr:last-child td:first-child { border-bottom-left-radius: 1rem; }
-    .premium-table tbody tr:last-child td:last-child { border-bottom-right-radius: 1rem; }
+    .premium-table tbody tr:hover td {
+        background-color: #f8fafc !important;
+    }
 </style>
 
 <div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
@@ -48,7 +43,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <i class="fas fa-chart-pie text-purple-600"></i> Thống kê Nhập học
+                <i class="fas fa-chart-pie text-purple-600"></i> <?= $title ?>
             </h1>
         </div>
         
@@ -57,7 +52,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                 <select id="sessionSelector" onchange="window.location.href='?session_id='+this.value"
                     class="w-full border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2 text-slate-700 outline-none appearance-none cursor-pointer">
                     <?php foreach ($sessions as $s): ?>
-                        <option value="<?= $s['id'] ?>" <?= ($s['id'] == $currentSessionId) ? 'selected' : '' ?>>
+                        <option value="<?= $s['id'] ?>" <?= ($s['id'] == $activeSessionId) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($s['ten_dot'] ?? ('Đợt #' . $s['id'])) ?> (<?= $s['nam_tuyen_sinh'] ?? '' ?>)
                         </option>
                     <?php endforeach; ?>
@@ -71,16 +66,16 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     </div>
 
     <!-- Tab Navigation -->
-    <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
+    <div class="flex bg-slate-50 p-1 rounded-xl mb-6 border border-slate-200 shadow-sm w-max">
         <button @click="activeTab = 'stats'"
-            :class="activeTab === 'stats' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-500 hover:text-purple-600'"
-            class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
-            <i class="fas fa-table mr-2"></i>THỐNG KÊ CHI TIẾT
+            :class="activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
+            class="px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider flex items-center">
+            <i class="fas fa-table mr-2"></i> THỐNG KÊ CHI TIẾT
         </button>
         <button @click="activeTab = 'charts'; initCharts();"
-            :class="activeTab === 'charts' ? 'bg-white dark:bg-slate-700 text-purple-600 shadow-sm' : 'text-slate-500 hover:text-purple-600'"
-            class="flex-1 px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider">
-            <i class="fas fa-chart-pie mr-2"></i>BIỂU ĐỒ PHÂN TÍCH
+            :class="activeTab === 'charts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
+            class="px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider flex items-center">
+            <i class="fas fa-chart-pie mr-2"></i> BIỂU ĐỒ PHÂN TÍCH
         </button>
     </div>
 
@@ -111,14 +106,17 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
         </div>
 
         <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">
-            <div class="flex justify-between items-center mb-0.5">
-                <p class="text-[9px] font-black text-purple-500 uppercase tracking-wider">Thủ khoa (Đã nhập học)</p>
+            <div class="flex items-center justify-between mb-1">
+                <p class="text-[9px] font-black text-purple-500 uppercase tracking-wider">Thủ khoa trường</p>
                 <i class="fas fa-crown text-purple-300"></i>
             </div>
             <h3 class="text-lg font-black text-purple-700 leading-tight truncate" title="<?= $topStudent ? htmlspecialchars($topStudent['ho_ten'] . ' - ' . $topStudent['ten_nganh']) : '' ?>">
                 <?= $topStudent ? htmlspecialchars($topStudent['ho_ten']) : 'Chưa có' ?>
             </h3>
-            <span class="text-[10px] text-purple-500 font-bold block truncate"><?= $topStudent ? $topStudent['diem_xt'] . ' điểm - ' . htmlspecialchars($topStudent['ten_nganh']) : '' ?></span>
+            <span class="text-[10px] text-purple-500 font-bold block truncate">
+                <?= $topStudent ? $topStudent['diem_xt'] . ' điểm - ' . htmlspecialchars($topStudent['ten_nganh']) : '' ?>
+                <?= $topStudent ? ' <br/><span class="inline-block mt-1 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-black text-[9px] uppercase">' . htmlspecialchars($topStudent['tinh_trang'] ?? '') . '</span>' : '' ?>
+            </span>
         </div>
     </div>
 
@@ -172,22 +170,21 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
             </h3>
             <div class="overflow-x-auto custom-scrollbar">
                 <table class="premium-table min-w-[800px] lg:min-w-full">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px" class="text-center" rowspan="2">Mã ngành</th>
-                            <th rowspan="2">Tên ngành</th>
-                            <th style="width: 100px" class="text-center" rowspan="2">Chỉ tiêu</th>
-                            <th style="width: 80px" class="text-center" rowspan="2">Thủ khoa</th>
-                            <th class="text-center" colspan="3">Tiến độ</th>
-                            <th class="text-center" colspan="2">Xác nhận</th>
-                            <th class="text-right" rowspan="2">Tổng kinh phí (đ)</th>
+                    <thead class="sticky top-0 z-10 bg-slate-100">
+                        <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
+                            <th style="width: 80px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Mã ngành</th>
+                            <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Tên ngành</th>
+                            <th style="width: 80px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Chỉ tiêu</th>
+                            <th class="py-1 border-b border-r border-slate-200 bg-blue-50 text-blue-800" colspan="3">Nhập học</th>
+                            <th class="py-1 border-b border-r border-slate-200 bg-slate-100 text-slate-800" colspan="2">Xác nhận</th>
+                            <th class="py-3 border-b-2 border-slate-200 bg-slate-100 text-slate-800 text-right" rowspan="2">Tổng kinh phí (đ)</th>
                         </tr>
-                        <tr>
-                            <th style="width: 100px" class="text-center">Trúng tuyển</th>
-                            <th style="width: 100px" class="text-center">Đã nhập học</th>
-                            <th style="width: 150px" class="text-center">Tỷ lệ Nhập học/Trúng tuyển (%)</th>
-                            <th style="width: 80px" class="text-center">Bộ</th>
-                            <th style="width: 80px" class="text-center">Trường</th>
+                        <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">Tổng TT</th>
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-emerald-50 text-emerald-800">Đã nhập học</th>
+                            <th style="width: 100px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">Tiến độ (%)</th>
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-slate-100 text-slate-800">Bộ</th>
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-slate-100 text-slate-800">Trường</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -211,12 +208,11 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             else $barColor = 'bg-amber-500';
                         ?>
                         <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="text-center font-mono text-slate-500 font-bold"><?= $ms['ma_nganh'] ?></td>
-                            <td class="font-bold text-slate-800"><?= htmlspecialchars($ms['ten_nganh'] ?? '') ?></td>
+                            <td class="text-center font-mono text-slate-600 font-bold"><?= $ms['ma_nganh'] ?></td>
+                            <td class="font-bold text-slate-800 text-left"><?= htmlspecialchars($ms['ten_nganh'] ?? '') ?></td>
                             <td class="text-center font-bold text-slate-600 bg-slate-50/50"><?= $ct ?: '-' ?></td>
-                            <td class="text-center font-bold text-purple-600 bg-purple-50/30"><?= $ms['thu_khoa_nganh'] ? number_format($ms['thu_khoa_nganh'], 2) : '-' ?></td>
-                            <td class="text-center font-black text-slate-600"><?= $tt ?: '-' ?></td>
-                            <td class="text-center font-black text-emerald-600"><?= $nh ?: '-' ?></td>
+                            <td class="text-center font-black text-indigo-700"><?= $tt ?: '-' ?></td>
+                            <td class="text-center font-black text-emerald-600 bg-emerald-50/30"><?= $nh ?: '-' ?></td>
                             <td>
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -233,11 +229,10 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                     </tbody>
                     <tfoot class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-200">
                         <tr>
-                            <td colspan="2" class="px-3 py-3 text-right uppercase">Tổng cộng:</td>
-                            <td class="text-center bg-slate-100/50 text-slate-700"><?= number_format($totalCT) ?></td>
-                            <td class="text-center text-slate-700">-</td>
-                            <td class="text-center text-slate-700"><?= number_format($totalTT) ?></td>
-                            <td class="text-center text-emerald-700"><?= number_format($totalNH) ?></td>
+                            <td colspan="2" class="text-right uppercase font-bold text-slate-700">Tổng cộng:</td>
+                            <td class="text-center bg-slate-100/50 text-slate-700 font-bold"><?= number_format($totalCT) ?></td>
+                            <td class="text-center text-indigo-700 font-black"><?= number_format($totalTT) ?></td>
+                            <td class="text-center text-emerald-700 font-black bg-emerald-50/30"><?= number_format($totalNH) ?></td>
                             <td>
                                 <?php $totalPct = $totalTT > 0 ? round(($totalNH / $totalTT) * 100, 1) : 0; ?>
                                 <div class="flex items-center gap-2">

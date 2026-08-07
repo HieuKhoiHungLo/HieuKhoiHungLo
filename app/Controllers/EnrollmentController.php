@@ -24,10 +24,17 @@ class EnrollmentController extends Controller {
         }
 
         // Validate permissions
-        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view') &&
-            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
-            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
-            $this->redirect(url('/admin/dashboard'));
+        $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        if (strpos($currentUri, '/admin/enrollment/overview-stats') !== false) {
+             if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'stats')) {
+                 $this->redirect(url('/admin/dashboard'));
+             }
+        } else {
+            if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view') &&
+                !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
+                !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
+                $this->redirect(url('/admin/dashboard'));
+            }
         }
 
         $this->masterData = new MasterData();
@@ -335,7 +342,11 @@ class EnrollmentController extends Controller {
         ]);
     }
 
-    public function stats() {
+    public function overviewStats() {
+        return $this->stats(true);
+    }
+
+    public function stats($isReadOnly = false) {
         $sessions = $this->masterData->getSessions();
         $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
 
@@ -392,13 +403,19 @@ class EnrollmentController extends Controller {
         $stmtMajor->execute([$sessionId, $sessionId]);
         $statsByMajor = $stmtMajor->fetchAll(PDO::FETCH_ASSOC);
 
-        // Lấy Thủ khoa trường (Đã nhập học)
+        // Lấy Thủ khoa trường (Bất kể trạng thái)
         $stmtTop = $this->db->prepare("
-            SELECT kq.ho_ten, kq.diem_xt, n.ten_nganh
-            FROM nhap_hoc nh
-            JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            SELECT kq.ho_ten, kq.diem_xt, n.ten_nganh,
+                   CASE 
+                       WHEN nh.trang_thai = 'da_nhap_hoc' THEN 'Đã nhập học'
+                       WHEN nh.trang_thai = 'cho_xet_duyet' THEN 'Chờ xét duyệt'
+                       WHEN nh.trang_thai = 'da_huy' THEN 'Đã hủy'
+                       ELSE 'Chưa nhập học'
+                   END as tinh_trang
+            FROM ket_qua_trung_tuyen kq
+            LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
-            WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            WHERE kq.session_id = ?
             ORDER BY kq.diem_xt DESC
             LIMIT 1
         ");
@@ -495,6 +512,7 @@ class EnrollmentController extends Controller {
         $recent = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('admin/enrollment/stats', [
+            'isReadOnly' => $isReadOnly,
             'title' => 'Thống kê nhập học',
             'totalTrungTuyen' => $totalTrungTuyen,
             'totalNhapHoc' => $totalNhapHoc,
