@@ -142,6 +142,26 @@
                         </label>
                     </div>
 
+                    <!-- Google Drive Folder ID for Giấy báo -->
+                    <?php
+                    $driveFolderId = '';
+                    foreach ($settings as $s) {
+                        if ($s['key'] === 'google_drive_giay_bao_folder_id') {
+                            $driveFolderId = $s['value'];
+                            break;
+                        }
+                    }
+                    ?>
+                    <div class="space-y-4">
+                        <label class="block">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">ID thư mục Google Drive chứa Giấy báo (PDF)</span>
+                            <input type="text" name="settings[google_drive_giay_bao_folder_id]" value="<?= htmlspecialchars($driveFolderId) ?>"
+                                class="mt-2 block w-full rounded-[2rem] bg-slate-50 border border-slate-200 px-8 py-5 text-sm font-medium focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10 outline-none transition shadow-inner"
+                                placeholder="Ví dụ: 1A2b3C4d5E6f7G8h9I0j...">
+                            <p class="text-[10px] text-slate-400 mt-2 ml-4 italic">ID của thư mục trên Google Drive mà bạn đã lưu trữ toàn bộ các file PDF Giấy báo của thí sinh. Hệ thống sẽ sử dụng API để thí sinh có thể tra cứu file trong thư mục này.</p>
+                        </label>
+                    </div>
+
                     <!-- Master Password -->
                     <?php
                     $masterPassword = '';

@@ -30,9 +30,8 @@
             </script>
         <?php endif; ?>
 
-        <form method="POST" action="<?= url('/forgot-password') ?>
-    <?= csrf_field() ?>">
-            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
+        <form method="POST" action="<?= url('/forgot-password') ?>">
+            <?= csrf_field() ?>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-id-card text-hvu-red mr-2"></i> Số CCCD

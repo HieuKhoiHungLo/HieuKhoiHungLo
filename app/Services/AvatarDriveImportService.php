@@ -152,7 +152,10 @@ class AvatarDriveImportService {
 
                     $avatarUrl = null;
 
-                    if ($this->uploadDriver === 'google' && $this->driveService) {
+                    // Buộc lưu local khi import ZIP để tối ưu tốc độ (không upload Google Drive trực tiếp)
+                    $useGoogleUpload = false;
+
+                    if ($useGoogleUpload && $this->uploadDriver === 'google' && $this->driveService) {
                         // Xác định / Tạo mới thư mục cá nhân của thí sinh trên Google Drive
                         $targetFolderId = $this->driveService->resolveCandidateFolder($year, $sessionName, $cccd);
                         if ($targetFolderId) {
@@ -259,31 +262,13 @@ class AvatarDriveImportService {
      * Cập nhật URL ảnh đại diện đồng bộ vào 3 bảng database: ket_qua_trung_tuyen, thi_sinh, users
      */
     private function syncAvatarToDatabase($cccd, $sessionId, $avatarUrl, $overwrite = true) {
-        // 1. Cập nhật ket_qua_trung_tuyen
+        // Chỉ cập nhật bảng thi_sinh (do ket_qua_trung_tuyen và users không có cột lưu ảnh)
         if ($overwrite) {
-            $stmt1 = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET linkanh = ? WHERE session_id = ? AND so_cccd = ?");
-            $stmt1->execute([$avatarUrl, $sessionId, $cccd]);
+            $stmt = $this->db->prepare("UPDATE thi_sinh SET anh_dai_dien = ? WHERE so_cccd = ?");
+            $stmt->execute([$avatarUrl, $cccd]);
         } else {
-            $stmt1 = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET linkanh = ? WHERE session_id = ? AND so_cccd = ? AND (linkanh IS NULL OR linkanh = '')");
-            $stmt1->execute([$avatarUrl, $sessionId, $cccd]);
-        }
-
-        // 2. Cập nhật thi_sinh
-        if ($overwrite) {
-            $stmt2 = $this->db->prepare("UPDATE thi_sinh SET anh_dai_dien = ? WHERE so_cccd = ?");
-            $stmt2->execute([$avatarUrl, $cccd]);
-        } else {
-            $stmt2 = $this->db->prepare("UPDATE thi_sinh SET anh_dai_dien = ? WHERE so_cccd = ? AND (anh_dai_dien IS NULL OR anh_dai_dien = '')");
-            $stmt2->execute([$avatarUrl, $cccd]);
-        }
-
-        // 3. Cập nhật users (nếu tài khoản user đã khởi tạo)
-        if ($overwrite) {
-            $stmt3 = $this->db->prepare("UPDATE users SET anh_dai_dien = ? WHERE username = ? OR so_cccd = ?");
-            $stmt3->execute([$avatarUrl, $cccd, $cccd]);
-        } else {
-            $stmt3 = $this->db->prepare("UPDATE users SET anh_dai_dien = ? WHERE (username = ? OR so_cccd = ?) AND (anh_dai_dien IS NULL OR anh_dai_dien = '')");
-            $stmt3->execute([$avatarUrl, $cccd, $cccd]);
+            $stmt = $this->db->prepare("UPDATE thi_sinh SET anh_dai_dien = ? WHERE so_cccd = ? AND (anh_dai_dien IS NULL OR anh_dai_dien = '')");
+            $stmt->execute([$avatarUrl, $cccd]);
         }
     }
 

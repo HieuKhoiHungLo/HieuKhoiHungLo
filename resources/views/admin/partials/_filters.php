@@ -116,48 +116,68 @@
         </form>
     </div>
 
-    <!-- Hàng dưới: Các nút chức năng đặc quyền của Quản trị hệ thống -->
+    <!-- Hàng dưới: Các nút chức năng đặc quyền của Quản trị hệ thống (Fixed Bottom Action Bar) -->
     <?php if (isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'admin'): ?>
-        <div class="flex items-center flex-wrap gap-3 pt-2">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest mr-2 flex items-center gap-1">
-                <i class="fas fa-cogs"></i> Chức năng:
-            </span>
-            
-            <?php if (isset($mode) && $mode === 'review'): ?>
-            <button onclick="document.getElementById('modal-bulk-approve').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition shadow-sm">
-                <i class="fas fa-file-check"></i> Duyệt theo file
-            </button>
-            <?php if (!empty($filters['session_id'])): ?>
-            <button onclick="document.getElementById('modal-bulk-approve-all').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-semibold text-amber-700 hover:bg-amber-100 hover:border-amber-300 transition shadow-sm">
-                <i class="fas fa-check-double"></i> Duyệt tất cả
-            </button>
-            <button onclick="document.getElementById('modal-bulk-unapprove-all').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm font-semibold text-red-700 hover:bg-red-100 hover:border-red-300 transition shadow-sm">
-                <i class="fas fa-undo"></i> Hủy duyệt tất cả
-            </button>
-            <button type="button" onclick="openSendEmailToAllModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
-                <i class="fas fa-envelope-open-text"></i> Gửi thư tất cả
-            </button>
-            <?php endif; ?>
-            <button onclick="document.getElementById('modal-bulk-transcript').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition shadow-sm">
-                <i class="fas fa-file-excel"></i> Cập nhật học bạ
-            </button>
-            <button onclick="document.getElementById('modal-bulk-candidate-info').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
-                <i class="fas fa-user-edit"></i> Cập nhật thông tin
-            </button>
-            <?php endif; ?>
+        <div id="review-management-action-bar" style="
+            position: fixed;
+            bottom: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            z-index: 40;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 32px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            transition: left 0.3s ease;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+        ">
+            <div class="flex items-center gap-3 flex-wrap">
+                <?php if (isset($mode) && $mode === 'review'): ?>
+                <button onclick="document.getElementById('modal-bulk-approve').classList.remove('hidden')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Duyệt theo file
+                </button>
+                <?php if (!empty($filters['session_id'])): ?>
+                <button onclick="document.getElementById('modal-bulk-approve-all').classList.remove('hidden')" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Duyệt tất cả
+                </button>
+                <button onclick="document.getElementById('modal-bulk-unapprove-all').classList.remove('hidden')" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Hủy duyệt tất cả
+                </button>
+                <button type="button" onclick="openSendEmailToAllModal()" class="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Gửi thư tất cả
+                </button>
+                <button type="button" onclick="document.getElementById('modal-bulk-reset-password-default').classList.remove('hidden')" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Mật khẩu mặc định
+                </button>
+                <?php endif; ?>
+                <button onclick="document.getElementById('modal-bulk-transcript').classList.remove('hidden')" class="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Cập nhật học bạ
+                </button>
+                <button onclick="document.getElementById('modal-bulk-candidate-info').classList.remove('hidden')" class="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Cập nhật thông tin
+                </button>
+                <?php endif; ?>
 
-            <?php if (isset($mode) && $mode === 'all'): ?>
-            <a href="<?= url('/admin/candidate-management/export') ?>?<?= http_build_query($_GET) ?>" class="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition shadow-sm">
-                <i class="fas fa-file-excel"></i> Xuất dữ liệu
-            </a>
-            <button type="button" onclick="openSendEmailToAllModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shadow-sm">
-                <i class="fas fa-envelope-open-text"></i> Gửi thư tất cả
-            </button>
-            <?php endif; ?>
+                <?php if (isset($mode) && $mode === 'all'): ?>
+                <a href="<?= url('/admin/candidate-management/export') ?>?<?= http_build_query($_GET) ?>" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Xuất dữ liệu
+                </a>
+                <button type="button" onclick="openSendEmailToAllModal()" class="px-5 py-2.5 bg-[#0066FF] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 hover:shadow-lg">
+                    Gửi thư tất cả
+                </button>
+                <?php endif; ?>
+            </div>
 
-            <a href="<?= url('/admin/candidates/trash') ?>" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-red-600 hover:border-red-200 transition shadow-sm" title="Xem hồ sơ đã xóa">
-                <i class="fas fa-trash-alt"></i> Thùng rác
-            </a>
+            <div>
+                <a href="<?= url('/admin/candidates/trash') ?>" class="px-5 py-2.5 bg-slate-100 border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center">
+                    Thùng rác
+                </a>
+            </div>
         </div>
     <?php endif; ?>
 </div>

@@ -60,6 +60,9 @@ class FileUploader
 
             try {
                 $client = new \Google\Client();
+                // Bỏ qua xác thực SSL trên localhost (khắc phục lỗi cURL 60 của XAMPP)
+                $guzzleClient = new \GuzzleHttp\Client(['verify' => false]);
+                $client->setHttpClient($guzzleClient);
                 $client->setAuthConfig($clientSecretPath);
                 $client->addScope(\Google\Service\Drive::DRIVE_FILE);
                 $client->setAccessType('offline');

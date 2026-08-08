@@ -233,12 +233,8 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">1</span>
                     Xuất thông tin đầy đủ
                 </button>
-                <button type="button" onclick="exportResultsExcel('print_letter')" class="w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-[11px] font-bold border-b border-slate-50 transition-colors flex items-center gap-2">
-                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">2</span>
-                    Xuất danh sách in giấy báo
-                </button>
                 <button type="button" onclick="exportResultsExcel('top_students')" class="w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-[11px] font-bold transition-colors flex items-center gap-2">
-                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">3</span>
+                    <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">2</span>
                     Xuất danh sách thủ khoa
                 </button>
             </div>
@@ -617,9 +613,9 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             Upload Excel
         </button>
 
-        <!-- 4. Import Ảnh Thẻ -->
+        <!-- 4. Upload Ảnh Thẻ -->
         <button type="button" onclick="openUploadAvatarModal()" class="px-6 py-3.5 bg-[#0066FF] text-white font-medium text-sm rounded-xl shadow-md hover:bg-blue-700 transition-all whitespace-nowrap active:scale-95">
-            Import ảnh thẻ
+            Upload ảnh thẻ
         </button>
 
         <!-- 5. Mẫu Thông Báo Trúng Tuyển -->
@@ -1833,15 +1829,15 @@ function submitModalImport() {
                     <button type="button" onclick="closeModal('upload-avatar-modal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors">
                         Đóng
                     </button>
-                    <button type="submit" id="btnSubmitAvatarZip" disabled class="px-5 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:pointer-events-none rounded-xl shadow-sm shadow-violet-600/20 transition-all active:scale-95 flex items-center gap-2">
+                    <button type="submit" id="btnSubmitAvatarZip" disabled class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none rounded-xl shadow-sm shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2">
                         <i class="fas fa-cloud-upload-alt"></i>
-                        <span>Import Ảnh Thẻ ZIP</span>
+                        <span class="text-sm">BƯỚC 2: BẤM VÀO ĐÂY ĐỂ UPLOAD FILE ZIP</span>
                     </button>
                 </div>
             </form>
 
             <!-- Drive Sync Form -->
-            <div class="pt-4 border-t border-slate-100">
+            <div class="pt-4 border-t border-slate-100 mt-2">
                 <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3.5 flex items-center justify-between gap-3">
                     <div>
                         <h5 class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
@@ -1849,12 +1845,12 @@ function submitModalImport() {
                         </h5>
                         <p class="text-[11px] text-indigo-700/80 leading-tight mt-0.5">Tự động tìm file ảnh trong các thư mục hồ sơ thí sinh đã có sẵn trên Google Drive để quét và đồng bộ.</p>
                     </div>
-                    <form action="<?= url('/admin/admission/results/sync-drive-avatars') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét và đồng bộ tự động từ thư mục Google Drive của từng thí sinh không?');">
+                    <form action="<?= url('/admin/admission/results/sync-drive-avatars') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét và đồng bộ tự động từ thư mục Google Drive của từng thí sinh không? Quá trình này có thể mất nhiều thời gian.');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="session_id" value="<?= $sessionId ?>">
                         <button type="submit" class="px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-1.5">
                             <i class="fas fa-sync-alt"></i>
-                            <span>Quét & Đồng Bộ</span>
+                            <span>Đồng Bộ Drive</span>
                         </button>
                     </form>
                 </div>
@@ -1922,6 +1918,81 @@ function submitModalImport() {
         </div>
     </div>
 </div>
+
+<?php 
+if (session_status() == PHP_SESSION_NONE) session_start();
+if (isset($_SESSION['avatar_import_result'])): 
+    $importRes = $_SESSION['avatar_import_result'];
+    unset($_SESSION['avatar_import_result']);
+    
+    $total = $importRes['total'] ?? 0;
+    $inserted = $importRes['inserted'] ?? 0;
+    $unmatched = $importRes['unmatched'] ?? [];
+    $errors = $importRes['errors'] ?? [];
+?>
+<div id="avatar-import-result-modal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal('avatar-import-result-modal')"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 animate-fade-in-up overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-info-circle text-violet-600"></i> Báo cáo kết quả Upload Ảnh Thẻ
+            </h3>
+            <button type="button" onclick="closeModal('avatar-import-result-modal')" class="text-slate-400 hover:text-slate-600 transition-colors bg-white rounded-full p-1.5 shadow-sm hover:shadow">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                    <div class="text-slate-500 text-xs font-bold uppercase mb-1">Tổng ảnh xử lý</div>
+                    <div class="text-2xl font-black text-slate-800"><?= number_format($total) ?></div>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                    <div class="text-emerald-600 text-xs font-bold uppercase mb-1">Cập nhật thành công</div>
+                    <div class="text-2xl font-black text-emerald-700"><?= number_format($inserted) ?></div>
+                </div>
+            </div>
+
+            <?php if (count($unmatched) > 0): ?>
+            <div class="mb-4">
+                <h4 class="text-sm font-bold text-amber-700 mb-2 flex items-center gap-1.5">
+                    <i class="fas fa-exclamation-triangle"></i> <?= count($unmatched) ?> ảnh không tìm thấy sinh viên (sai CCCD hoặc chưa trúng tuyển)
+                </h4>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 max-h-32 overflow-y-auto font-mono">
+                    <?= implode(", ", array_map('htmlspecialchars', $unmatched)) ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (count($errors) > 0): ?>
+            <div>
+                <h4 class="text-sm font-bold text-rose-700 mb-2 flex items-center gap-1.5">
+                    <i class="fas fa-times-circle"></i> <?= count($errors) ?> lỗi phát sinh
+                </h4>
+                <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-800 max-h-32 overflow-y-auto space-y-1 font-mono">
+                    <?php foreach ($errors as $err): ?>
+                        <div>- <?= htmlspecialchars($err) ?></div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+            <button type="button" onclick="closeModal('avatar-import-result-modal')" class="px-5 py-2 text-sm font-bold text-white bg-slate-600 hover:bg-slate-700 rounded-xl shadow-sm">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 async function openPrintGiayBaoWordModal() {

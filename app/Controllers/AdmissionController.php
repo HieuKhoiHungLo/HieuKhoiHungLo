@@ -641,9 +641,27 @@ class AdmissionController extends Controller {
 
         $exportType = $_GET['export_type'] ?? 'full';
 
+        // Lấy danh sách Tổ hợp để định dạng
+        $toHopMap = [];
+        try {
+            $thStmt = $db->query("
+                SELECT th.ma_to_hop, m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3 
+                FROM dm_to_hop th
+                LEFT JOIN dm_mon m1 ON th.mon_1_id = m1.id
+                LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
+                LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
+            ");
+            while ($row = $thStmt->fetch(\PDO::FETCH_ASSOC)) {
+                $mons = array_filter([$row['m1'], $row['m2'], $row['m3']]);
+                if (!empty($mons)) {
+                    $toHopMap[$row['ma_to_hop']] = $row['ma_to_hop'] . ' (' . strtoupper(implode('-', $mons)) . ')';
+                }
+            }
+        } catch (\Exception $e) {}
+
         $sql = "SELECT k.*, 
                        ts.gioi_tinh, ts.dan_toc, ts.nam_tot_nghiep, ts.dia_chi_chi_tiet, ts.ma_tinh_lop_12, ts.ma_truong_lop_12,
-                       ts.ngay_sinh, ts.dien_thoai, ts.email as thi_sinh_email,
+                       ts.ngay_sinh, ts.dien_thoai, ts.email as thi_sinh_email, ts.anh_dai_dien,
                        dt.ten_tinh, dthpt.ten_truong as ten_truong_thpt,
                        kqht.hoc_luc_ca_nam as hoc_luc_12, kqht.hanh_kiem_ca_nam as hanh_kiem_12, kqht.diem_tb_ca_nam as diem_tb_12,
                        nh.trang_thai as nh_trang_thai, nh.ngay_nhap_hoc as nh_ngay_nhap_hoc, 
@@ -739,17 +757,25 @@ class AdmissionController extends Controller {
             }
 
             if ($exportType === 'full' || $exportType === 'default') {
+                $toHopCode = $r['to_hop'] ?? '';
+                $toHopFormatted = $toHopMap[$toHopCode] ?? $toHopCode;
+
+                $ngaySinh = $r['ngay_sinh'] ?? '';
+                if (!empty($ngaySinh) && strtotime($ngaySinh)) {
+                    $ngaySinh = date('d/m/Y', strtotime($ngaySinh));
+                }
+
                 $orderedRow = [
                     'STT' => $i + 1,
                     'SBD' => $r['sbd'] ?? '',
                     'HOTEN' => $r['ho_ten'] ?? '',
-                    'NGAYSINH' => $r['ngay_sinh'] ?? '',
+                    'NGAYSINH' => $ngaySinh,
                     'GT' => $r['gioi_tinh'] ?? '',
                     'CCCD' => $r['so_cccd'] ?? '',
                     'KV' => $r['khu_vuc'] ?? ($r['khu_vuc_uu_tien'] ?? ''),
                     'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
-                    'TH' => $r['to_hop'] ?? '',
-                    'TOHOP' => $r['to_hop'] ?? '', // Mapped to_hop here as well based on original list 'TH, TOHOP'
+                    'TH' => $toHopFormatted,
+                    'TOHOP' => $toHopFormatted,
                     'DM1' => $r['diem_mon_1'] ?? '',
                     'DM2' => $r['diem_mon_2'] ?? '',
                     'DM3' => $r['diem_mon_3'] ?? '',
@@ -764,11 +790,13 @@ class AdmissionController extends Controller {
                     'PHUONGTHUC' => $r['phuong_thuc'] ?? '',
                     'TINH' => $r['ten_tinh'] ?? ($r['ma_tinh_lop_12'] ?? ''),
                     'XA' => $r['phuong_xa'] ?? '',
-                    'DIACHI' => $r['dia_chi_chi_tiet'] ?? '',
-                    'SOTK' => $r['so_tai_khoan'] ?? '',
-                    'THOIGIANNHAP' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
-                    'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
+                    'DIACHI' => $r['dia_chi_chi_tiet'] ?? ''
                 ];
+
+                $linkAnh = $r['anh_dai_dien'] ?? '';
+                if ($linkAnh && !preg_match('/^https?:\/\//', $linkAnh)) {
+                    $linkAnh = url('/' . ltrim($linkAnh, '/'));
+                }
 
                 $originalData = [
                     'Trường THPT' => $r['ten_truong_thpt'] ?? ($r['ma_truong_lop_12'] ?? ''),
@@ -778,18 +806,24 @@ class AdmissionController extends Controller {
                     'Học lực Lớp 12' => $r['hoc_luc_12'] ?? '',
                     'Hạnh kiểm Lớp 12' => $r['hanh_kiem_12'] ?? '',
                     'ĐTB Lớp 12' => $r['diem_tb_12'] ?? '',
-                    'KHOA' => $r['ten_khoa'] ?? '',
-                    'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
-                    'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
-                    'NGANHANG' => $r['ngan_hang'] ?? '',
-                    'SOTIEN' => $r['so_tien'] ?? '',
-                    'NOIDUNG' => $r['noi_dung_ck'] ?? '',
                     'XACNHANBO' => (!empty($r['xac_nhan_bo']) || !empty($r['xac_nhan_nhap_hoc']) || !empty($r['is_confirm'])) ? 'Đã XN' : 'Chưa XN',
                     'XACNHANTRUONG' => !empty($r['xac_nhan_truong']) ? 'Đã XN' : 'Chưa XN',
                     'NHAPHOC' => (!empty($r['nh_trang_thai']) || !empty($r['is_nhap_hoc']) || !empty($r['nh_ngay_nhap_hoc'])) ? 'Đã nhập học' : 'Chưa nhập học',
                     'NOPKINHPHI' => (!empty($r['nh_da_nop_tien']) || !empty($r['da_nop_tien'])) ? 'Đã nộp' : 'Chưa nộp',
+                    'Ghi Chú' => $r['ghi_chu'] ?? '',
+                    // Yêu cầu chuyển về cuối danh sách:
+                    'SOTK' => $r['so_tai_khoan'] ?? '',
+                    'NGANHANG' => $r['ngan_hang'] ?? '',
+                    'SOTIEN' => $r['so_tien'] ?? '',
+                    'NOIDUNG' => $r['noi_dung_ck'] ?? '',
                     'SOTIENNOP' => $r['nh_so_tien_da_nop'] ?? ($r['so_tien_da_nop'] ?? ''),
-                    'Ghi Chú' => $r['ghi_chu'] ?? ''
+                    'THOIGIANNHAP' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
+                    'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
+                    'KHOA' => $r['ten_khoa'] ?? '',
+                    'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
+                    'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
+                    'Link Ảnh' => $linkAnh,
+                    'FILE_GIAY_BAO' => $r['file_giay_bao'] ?? ''
                 ];
 
                 $exportData[] = array_merge($orderedRow, $originalData);
@@ -1019,11 +1053,12 @@ class AdmissionController extends Controller {
             if ($result['status']) {
                 $unmatchedCount = count($result['unmatched']);
                 $msg = "Đã xử lý {$result['total']} file ảnh. Đã cập nhật thành công ảnh thẻ cho {$result['inserted']} thí sinh trúng tuyển.";
-                if ($unmatchedCount > 0) {
-                    $msg .= " (Có $unmatchedCount file ảnh không tìm thấy CCCD tương ứng trong danh sách trúng tuyển).";
-                }
+                if (session_status() == PHP_SESSION_NONE) session_start();
+                $_SESSION['avatar_import_result'] = $result;
                 $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg)));
             } else {
+                if (session_status() == PHP_SESSION_NONE) session_start();
+                $_SESSION['avatar_import_result'] = $result;
                 $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Đã xảy ra lỗi khi import ảnh.')));
             }
         } catch (\Exception $e) {
@@ -1460,7 +1495,9 @@ class AdmissionController extends Controller {
                     FROM nguyen_vong nv
                     JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                     JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                    WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE";
+                    WHERE nv.dot_tuyen_sinh_id = ? 
+                      AND cs.trang_thai_trung_tuyen = TRUE
+                      AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ'";
             
             $stmt = $db->prepare($sql);
             $stmt->execute([$sessionId, $sessionId]);

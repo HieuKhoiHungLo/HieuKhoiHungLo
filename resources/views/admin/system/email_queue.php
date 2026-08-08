@@ -53,9 +53,8 @@
             <button onclick="window.location.reload()" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm" title="Làm mới">
                 <i class="fas fa-sync-alt"></i>
             </button>
-            <form method="POST" action="<?= url('/admin/email-queue/toggle-pause') ?>
-    <?= csrf_field() ?>" class="inline">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/admin/email-queue/toggle-pause') ?>" class="inline">
+                <?= csrf_field() ?>
                 <?php if ($isPaused): ?>
                     <button type="submit" class="px-4 py-2.5 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl hover:bg-emerald-200 transition-all uppercase tracking-wider flex items-center gap-2">
                         <i class="fas fa-play"></i> Tiếp tục gửi
@@ -66,31 +65,27 @@
                     </button>
                 <?php endif; ?>
             </form>
-            <form method="POST" action="<?= url('/admin/email-queue/clear') ?>
-    <?= csrf_field() ?>" class="inline">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/admin/email-queue/clear') ?>" class="inline">
+                <?= csrf_field() ?>
                 <button type="submit" onclick="return confirm('Xóa toàn bộ các thư ĐANG CHỜ và thư BỊ LỖI? (Thư đã gửi sẽ được giữ lại)')" class="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all uppercase tracking-wider">
                     Làm sạch hàng đợi
                 </button>
             </form>
-            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>
-    <?= csrf_field() ?>" class="inline">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>" class="inline">
+                <?= csrf_field() ?>
                 <button type="submit" onclick="return confirm('Dọn dẹp các thư ĐÃ GỬI cũ hơn <?= $retentionDays ?> ngày? (Thống kê tổng sẽ được lưu trữ)')" class="px-4 py-2.5 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl hover:bg-indigo-100 transition-all uppercase tracking-wider border border-indigo-100">
                     Dọn thư đã gửi > <?= $retentionDays ?> ngày
                 </button>
             </form>
-            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>
-    <?= csrf_field() ?>" class="inline">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/admin/email-queue/purge-old') ?>" class="inline">
+                <?= csrf_field() ?>
                 <input type="hidden" name="all" value="1">
                 <button type="submit" onclick="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa trắng toàn bộ thư đã gửi? Thống kê tổng số lượng đã gửi sẽ vẫn được bảo toàn.')" class="px-4 py-2.5 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-100 transition-all uppercase tracking-wider border border-rose-100">
                     Xóa sạch thư đã gửi
                 </button>
             </form>
-            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>
-    <?= csrf_field() ?>" class="inline">
-                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>" class="inline">
+                <?= csrf_field() ?>
                 <button type="submit" onclick="return confirm('Gửi lại toàn bộ các thư đang bị lỗi?')" class="px-4 py-2.5 bg-[#0066FF] text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 uppercase tracking-wider">
                     Gửi lại tất cả lỗi
                 </button>
@@ -258,18 +253,16 @@
                                 <td class="px-4 py-3 border border-slate-200 text-center">
                                     <div class="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
                                         <?php if ($currentTab === 'failed'): ?>
-                                            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>
-    <?= csrf_field() ?>" class="inline">
-                                                <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                            <form method="POST" action="<?= url('/admin/email-queue/retry') ?>" class="inline">
+                                                <?= csrf_field() ?>
                                                 <input type="hidden" name="id" value="<?= $item['id'] ?>">
                                                 <button type="submit" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all" title="Gửi lại">
                                                     <i class="fas fa-redo-alt text-[9px]"></i>
                                                 </button>
                                             </form>
                                         <?php endif; ?>
-                                        <form method="POST" action="<?= url('/admin/email-queue/delete') ?>
-    <?= csrf_field() ?>" class="inline" onsubmit="return confirm('Xác nhận xóa bản ghi này?')">
-                                            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+                                        <form method="POST" action="<?= url('/admin/email-queue/delete') ?>" class="inline" onsubmit="return confirm('Xác nhận xóa bản ghi này?')">
+                                            <?= csrf_field() ?>
                                             <input type="hidden" name="id" value="<?= $item['id'] ?>">
                                             <button type="submit" class="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all" title="Xóa">
                                                 <i class="fas fa-trash-alt text-[9px]"></i>

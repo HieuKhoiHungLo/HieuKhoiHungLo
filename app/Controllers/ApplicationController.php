@@ -657,6 +657,34 @@ class ApplicationController extends Controller
         ]);
     }
 
+    public function confirmEnrollment()
+    {
+        $cccd = $_SESSION['cccd'] ?? null;
+        $sessionId = $_POST['session_id'] ?? null;
+
+        if (!$cccd || !$sessionId) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Yêu cầu không hợp lệ.'];
+            $this->redirect(url('/application/results' . ($sessionId ? '?session_id=' . $sessionId : '')));
+            return;
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_truong = 1 WHERE so_cccd = ? AND session_id = ? AND trung_tuyen = 1");
+            $result = $stmt->execute([$cccd, $sessionId]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                $_SESSION['flash_message'] = ['type' => 'success', 'message' => 'Bạn đã xác nhận nhập học thành công!'];
+            } else {
+                $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Không thể xác nhận (hồ sơ có thể chưa trúng tuyển hoặc đã được xác nhận).'];
+            }
+        } catch (\Exception $e) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
+        }
+
+        $this->redirect(url('/application/results?session_id=' . $sessionId));
+    }
+
     /**
      * Lấy kết quả thi năng khiếu (nếu có và đã công bố)
      */
@@ -678,4 +706,97 @@ class ApplicationController extends Controller
         $stmt->execute([$cccd]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
+
+    public function viewAdmissionLetter()
+    {
+        $cccd = $_SESSION['cccd'] ?? null;
+        $sessionId = $_GET['session_id'] ?? 0;
+
+        if (!$cccd) {
+            die("Bạn chưa đăng nhập.");
+        }
+
+        if (!$sessionId) {
+            die("Không tìm thấy đợt tuyển sinh.");
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("SELECT file_giay_bao FROM ket_qua_trung_tuyen WHERE so_cccd = ? AND session_id = ?");
+        $stmt->execute([$cccd, $sessionId]);
+        $record = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$record || empty($record['file_giay_bao'])) {
+            die("Bạn chưa có Giấy báo trúng tuyển hoặc Giấy báo chưa được upload.");
+        }
+
+        $fileName = trim($record['file_giay_bao']);
+
+        $settingStmt = $db->query("SELECT value FROM settings WHERE key = 'google_drive_giay_bao_folder_id'");
+        $folderId = $settingStmt->fetchColumn();
+
+        if (empty($folderId)) {
+            die("Hệ thống chưa cấu hình thư mục lưu trữ Giấy báo (Liên hệ Quản trị viên).");
+        }
+
+        try {
+            $client = new \Google\Client();
+            $guzzleClient = new \GuzzleHttp\Client(['verify' => false]);
+            $client->setHttpClient($guzzleClient);
+            
+            $clientSecretPath = __DIR__ . '/../../credentials.json';
+            if (file_exists($clientSecretPath)) {
+                $client->setAuthConfig($clientSecretPath);
+            } else {
+                die("Thiếu file credentials.json (Lỗi cấu hình).");
+            }
+            
+            $client->addScope(\Google\Service\Drive::DRIVE_FILE);
+            
+            $tokenPath = __DIR__ . '/../../token.json';
+            if (file_exists($tokenPath)) {
+                $accessToken = json_decode(file_get_contents($tokenPath), true);
+                $client->setAccessToken($accessToken);
+            } else {
+                die("Chưa xác thực Google Drive (Lỗi cấu hình hệ thống).");
+            }
+
+            if ($client->isAccessTokenExpired()) {
+                if ($client->getRefreshToken()) {
+                    $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                    file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+                } else {
+                    die("Token Google Drive đã hết hạn.");
+                }
+            }
+
+            $service = new \Google\Service\Drive($client);
+
+            $query = sprintf("name='%s' and '%s' in parents and trashed=false", str_replace("'", "\'", $fileName), str_replace("'", "\'", $folderId));
+            $optParams = [
+                'q' => $query,
+                'fields' => 'files(id, webViewLink, webContentLink)',
+                'pageSize' => 1
+            ];
+
+            $results = $service->files->listFiles($optParams);
+            
+            if (count($results->getFiles()) == 0) {
+                die("Không tìm thấy file Giấy báo '$fileName' trên Google Drive.");
+            }
+
+            $file = $results->getFiles()[0];
+            $link = $file->getWebViewLink();
+            
+            if ($link) {
+                header("Location: " . $link);
+                exit;
+            } else {
+                die("Lỗi không lấy được link xem file.");
+            }
+        } catch (\Exception $e) {
+            die("Lỗi kết nối Google Drive: " . $e->getMessage());
+        }
+    }
 }
+

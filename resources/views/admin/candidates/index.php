@@ -114,7 +114,7 @@
     }
 </style>
 
-<div x-data="{ 
+<div class="pb-24" x-data="{ 
     showCols: (function() {
         let cols = JSON.parse(localStorage.getItem('admin_cols')) || { 
             cccd: true, phone: true, email: true, province: false, school: false, nv1: true,

@@ -28,9 +28,8 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="<?= url('/login') ?>
-    <?= csrf_field() ?>">
-            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
+        <form method="POST" action="<?= url('/login') ?>">
+            <?= csrf_field() ?>
             <?php if (!empty($_REQUEST['redirect'])): ?>
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars($_REQUEST['redirect']) ?>">
             <?php endif; ?>

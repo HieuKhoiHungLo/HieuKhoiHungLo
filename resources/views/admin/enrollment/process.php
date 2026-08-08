@@ -717,10 +717,6 @@ ob_start();
 
                                 <template x-for="doc in selectedCandidate.documents" :key="doc.id">
                                     <div class="ep-doc-item">
-                                        <button type="button" class="ep-doc-toggle"
-                                            :class="doc.selected_value && doc.selected_value !== '' && doc.selected_value !== 'Chưa nộp' && doc.selected_value !== 'Không có' ? 'checked' : ''"
-                                            @click="toggleDoc(doc)">
-                                        </button>
                                         <div class="ep-doc-label" x-text="doc.ten_ho_so + (doc.bat_buoc === 'true' ? ' *' : '')"></div>
                                         <template x-if="doc.cac_gia_tri && doc.cac_gia_tri.split(',').length > 1">
                                             <select class="ep-doc-select" x-model="doc.selected_value">
@@ -766,16 +762,16 @@ ob_start();
                                     <div class="ep-qr-card" style="flex:1;min-width:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:1px solid #e2e8f0;padding:10px;border-radius:14px;">
                                         <div style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Mã QR nộp tiền</div>
                                         <img class="ep-qr-img"
-                                            :src="`https://img.vietqr.io/image/<?= $qrConfig['bank_id'] ?>-<?= $qrConfig['account_no'] ?>-compact.png?amount=<?= $qrConfig['amount'] ?>&addInfo=<?= urlencode($qrConfig['description_prefix']) ?>${selectedCandidate.so_cccd}`"
+                                            :src="`https://img.vietqr.io/image/${(selectedCandidate.ngan_hang || '<?= $qrConfig['bank_id'] ?>').replace(/\s+/g, '')}-${selectedCandidate.so_tai_khoan || '<?= $qrConfig['account_no'] ?>'}-compact.png?amount=${selectedCandidate.so_tien || <?= $qrConfig['amount'] ?>}&addInfo=${encodeURIComponent(selectedCandidate.noi_dung_ck || ('<?= $qrConfig['description_prefix'] ?>' + selectedCandidate.so_cccd + ' ' + (selectedCandidate.ho_ten ? selectedCandidate.ho_ten.replace(/\s+/g,'').toUpperCase() : '')))}`"
                                             alt="QR Code thanh toán">
                                     </div>
                                     <div style="flex:1.5;min-width:260px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;font-size:13px;line-height:1.8;color:#334155;display:flex;flex-direction:column;justify-content:center;">
                                         <div class="ep-section-title" style="margin-bottom:12px;color:#2563eb;"><i class="fas fa-info-circle"></i> Thông tin chuyển khoản</div>
-                                        <div style="margin-bottom:8px;">Ngân hàng: <span style="font-weight:700;color:#0f172a;"><?= $qrConfig['bank_id'] ?></span></div>
-                                        <div style="margin-bottom:8px;">Số tài khoản: <span style="font-weight:700;color:#0f172a;font-family:monospace;"><?= $qrConfig['account_no'] ?></span></div>
+                                        <div style="margin-bottom:8px;">Ngân hàng: <span style="font-weight:700;color:#0f172a;" x-text="selectedCandidate.ngan_hang || '<?= $qrConfig['bank_id'] ?>'"></span></div>
+                                        <div style="margin-bottom:8px;">Số tài khoản: <span style="font-weight:700;color:#0f172a;font-family:monospace;" x-text="selectedCandidate.so_tai_khoan || '<?= $qrConfig['account_no'] ?>'"></span></div>
                                         <div style="margin-bottom:8px;">Chủ tài khoản: <span style="font-weight:700;color:#0f172a;font-size:11px;white-space:nowrap;"><?= $qrConfig['account_name'] ?></span></div>
-                                        <div style="margin-bottom:8px;">Số tiền cần nộp: <span style="font-weight:700;color:#d97706;"><?= number_format($qrConfig['amount'], 0, ',', '.') ?> VNĐ</span></div>
-                                        <div style="margin-bottom:8px;">Nội dung chuyển khoản:<br><span style="font-weight:700;color:#1d4ed8;word-break:break-all;font-family:monospace;display:inline-block;margin-top:4px;font-size:13.5px;"><?= $qrConfig['description_prefix'] ?><span x-text="selectedCandidate.so_cccd"></span> <span x-text="selectedCandidate.ho_ten ? selectedCandidate.ho_ten.replace(/\s+/g,'').toUpperCase() : ''"></span></span></div>
+                                        <div style="margin-bottom:8px;">Số tiền cần nộp: <span style="font-weight:700;color:#d97706;" x-text="(selectedCandidate.so_tien ? new Intl.NumberFormat('vi-VN').format(selectedCandidate.so_tien) : '<?= number_format($qrConfig['amount'], 0, ',', '.') ?>') + ' VNĐ'"></span></div>
+                                        <div style="margin-bottom:8px;">Nội dung chuyển khoản:<br><span style="font-weight:700;color:#1d4ed8;word-break:break-all;font-family:monospace;display:inline-block;margin-top:4px;font-size:13.5px;" x-text="selectedCandidate.noi_dung_ck || ('<?= $qrConfig['description_prefix'] ?>' + selectedCandidate.so_cccd + ' ' + (selectedCandidate.ho_ten ? selectedCandidate.ho_ten.replace(/\s+/g,'').toUpperCase() : ''))"></span></div>
                                     </div>
                                 </div>
                             </div>

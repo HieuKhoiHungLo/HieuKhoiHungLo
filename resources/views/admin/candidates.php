@@ -137,7 +137,7 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<div x-data="{ 
+<div class="pb-24" x-data="{ 
     showCols: (function() {
         const defaults = { 
             cccd: true, phone: true, email: true, province: false, school: false, nv1: true,
@@ -439,6 +439,28 @@
                     <button type="button" onclick="document.getElementById('modal-bulk-unapprove-all').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
                     <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 shadow shadow-red-200 transition">
                         Xác nhận hủy duyệt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal: Reset mật khẩu tất cả thí sinh trong đợt về ddmmyyyy -->
+<div id="modal-bulk-reset-password-default" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-amber-600 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg"><i class="fas fa-exclamation-triangle mr-2"></i>Xác nhận khôi phục mật khẩu</h3>
+            <button onclick="document.getElementById('modal-bulk-reset-password-default').classList.add('hidden')" class="text-white/80 hover:text-white text-xl">&times;</button>
+        </div>
+        <div class="p-6">
+            <p class="text-slate-600 mb-6">Bạn có chắc chắn muốn **KHÔI PHỤC MẬT KHẨU MẶC ĐỊNH (ddmmyyyy)** cho tất cả thí sinh trong đợt này không? Hành động này sẽ cập nhật mật khẩu của tất cả thí sinh về định dạng ngày tháng năm sinh (ví dụ: ngày sinh 05/10/2005 thành mật khẩu 05102005).</p>
+            <form action="<?= url('/admin/review/bulk-reset-password-default') ?>" method="POST">
+                <input type="hidden" id="bulk_reset_password_csrf" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <input type="hidden" name="session_id" value="<?= $filters['session_id'] ?? '' ?>">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-bulk-reset-password-default').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow shadow-amber-200 transition">
+                        Xác nhận đặt lại
                     </button>
                 </div>
             </form>

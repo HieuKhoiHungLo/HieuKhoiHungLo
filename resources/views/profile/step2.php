@@ -148,9 +148,8 @@ $getVal = function ($grade, $field) use ($records) {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="<?= url('/profile/step2') ?>
-    <?= csrf_field() ?>" id="academicForm" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
+            <form method="POST" action="<?= url('/profile/step2') ?>" id="academicForm" enctype="multipart/form-data">
+                <?= csrf_field() ?>
 
                 <?php if (!empty($isLocked)): ?>
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" role="alert">

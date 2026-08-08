@@ -15,9 +15,8 @@
             <strong class="text-hvu-red"><?= htmlspecialchars($_SESSION['reset_email'] ?? '') ?></strong>
         </div>
 
-        <form method="POST" action="<?= url('/reset-password') ?>
-    <?= csrf_field() ?>">
-            <input type="hidden" name="csrf_token" value="<?= (string) $this->csrfToken() ?>">
+        <form method="POST" action="<?= url('/reset-password') ?>">
+            <?= csrf_field() ?>
             <div class="mb-5">
                 <label class="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                     <i class="fas fa-key text-hvu-red mr-2"></i> Mật khẩu mới

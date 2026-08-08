@@ -81,7 +81,36 @@ include __DIR__ . '/../layouts/header.php';
             </div>
         </div>
 
-    <?php if ($admissionRecord && !empty($renderedAdmissionLetter)): ?>
+    <?php if ($admissionRecord && (!empty($renderedAdmissionLetter) || !empty($admissionRecord['file_giay_bao']))): ?>
+        
+    <!-- Khối Xác nhận nhập học -->
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden mt-6 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 <?= empty($admissionRecord['xac_nhan_truong']) ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600' ?>">
+                <i class="fas <?= empty($admissionRecord['xac_nhan_truong']) ? 'fa-exclamation-triangle' : 'fa-check' ?> text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-1">Trạng thái Xác nhận Nhập học</h3>
+                <?php if (empty($admissionRecord['xac_nhan_truong'])): ?>
+                    <p class="text-gray-600 text-sm">Bạn chưa xác nhận nhập học trực tuyến trên hệ thống của trường. Vui lòng đọc kỹ Giấy báo và ấn xác nhận để đảm bảo quyền lợi.</p>
+                <?php else: ?>
+                    <p class="text-green-700 font-medium">Bạn đã xác nhận nhập học trực tuyến thành công vào hệ thống của nhà trường.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <?php if (empty($admissionRecord['xac_nhan_truong'])): ?>
+            <div class="shrink-0 w-full md:w-auto">
+                <form method="POST" action="<?= url('/application/confirm-enrollment') ?>" onsubmit="return confirm('Bạn có chắc chắn muốn XÁC NHẬN NHẬP HỌC vào ngành <?= htmlspecialchars($admissionRecord['nganh_tt'] ?? $admissionRecord['ten_nganh'] ?? '') ?> không?\n\nLưu ý: Hành động này không thể hoàn tác.');">
+                    <input type="hidden" name="session_id" value="<?= htmlspecialchars($sessionId) ?>">
+                    <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200">
+                        <i class="fas fa-check-circle mr-2"></i> XÁC NHẬN NGAY
+                    </button>
+                </form>
+            </div>
+        <?php endif; ?>
+    </div>
+
     <!-- Section: Thư trúng tuyển -->
     <div id="thu-trung-tuyen-chinh-thuc" class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden mt-6 scroll-mt-6">
         <!-- Header of the Paper Letter -->
@@ -90,8 +119,13 @@ include __DIR__ . '/../layouts/header.php';
                 <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
                 <h3 class="text-sm font-black text-gray-800 uppercase tracking-wider">Thông báo xử lý dữ liệu ghi danh</h3>
             </div>
-            <div>
-                <span class="text-xs text-gray-500 font-bold bg-white px-3 py-1 rounded-lg border border-gray-100">
+            <div class="flex items-center">
+                <?php if (!empty($admissionRecord['file_giay_bao'])): ?>
+                    <a href="<?= url('/application/view-letter?session_id=' . $admissionRecord['session_id']) ?>" target="_blank" class="mr-2 text-xs text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-bold flex items-center shadow-sm">
+                        <i class="fas fa-file-pdf mr-1"></i> Xem Giấy báo PDF
+                    </a>
+                <?php endif; ?>
+                <span class="text-xs text-gray-500 font-bold bg-white px-3 py-1.5 rounded-lg border border-gray-100">
                     Mã số: <?= htmlspecialchars($admissionRecord['sbd'] ?: $admissionRecord['so_cccd']) ?>
                 </span>
             </div>
@@ -101,7 +135,15 @@ include __DIR__ . '/../layouts/header.php';
         <div class="p-4 md:p-8 bg-gray-50/20">
             <div class="max-w-4xl mx-auto bg-white p-4 md:p-10 rounded-2xl shadow-sm border border-gray-100/80 leading-relaxed text-gray-700 overflow-x-auto">
                 <div class="min-w-[600px] sm:min-w-0">
-                    <?= $renderedAdmissionLetter ?>
+                    <?php if (!empty($renderedAdmissionLetter)): ?>
+                        <?= $renderedAdmissionLetter ?>
+                    <?php else: ?>
+                        <div class="text-center py-10">
+                            <i class="fas fa-envelope-open-text text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 font-medium">Giấy báo trúng tuyển của bạn đã được đính kèm ở định dạng PDF.</p>
+                            <p class="text-gray-500 mt-2">Vui lòng bấm nút <b>"Xem Giấy báo PDF"</b> ở góc trên bên phải để xem chi tiết.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

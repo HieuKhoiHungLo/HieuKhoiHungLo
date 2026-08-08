@@ -154,6 +154,7 @@ class EnrollmentController extends Controller {
             SELECT kq.id as ket_qua_id, kq.ho_ten, kq.so_cccd, kq.sbd as so_bao_danh, kq.ngay_sinh, 
                    kq.ma_nganh, n.ten_nganh, kq.diem_xt as diem_xet_tuyen, kq.sdt as dien_thoai_kq, kq.email as email_kq,
                    kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, kq.diem_to_hop, kq.phuong_thuc, kq.xac_nhan_bo, kq.xac_nhan_truong,
+                   kq.so_tai_khoan, kq.ngan_hang, kq.so_tien, kq.noi_dung_ck,
                    ts.gioi_tinh, ts.dan_toc, ts.anh_dai_dien, ts.dia_chi_chi_tiet, ts.nam_tot_nghiep, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts, ts.ma_truong_lop_12,
                    tr.ten_truong as ten_truong_thpt,
                    m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3,
@@ -576,7 +577,7 @@ class EnrollmentController extends Controller {
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
-            WHERE nh.session_id = ? 
+            WHERE nh.session_id = ? AND nh.trang_thai != 'chua_nhap_hoc' AND nh.trang_thai IS NOT NULL
             ORDER BY nh.updated_at DESC, nh.ngay_nhap_hoc DESC
             LIMIT ? OFFSET ?
         ");
@@ -617,7 +618,7 @@ class EnrollmentController extends Controller {
             $r['ngay_nhap_hoc_format'] = date('d/m/Y', strtotime($r['ngay_nhap_hoc']));
         }
 
-        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ?");
+        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND trang_thai != 'chua_nhap_hoc' AND trang_thai IS NOT NULL");
         $stmtTotal->execute([$sessionId]);
         $total = $stmtTotal->fetchColumn();
 

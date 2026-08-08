@@ -1803,6 +1803,97 @@ class CandidateController extends Controller
     }
 
     /**
+     * Bulk reset all candidates password in a session to ddmmyyyy (date of birth format)
+     */
+    public function bulkResetPasswordDefault()
+    {
+        $this->checkPermission('candidate.edit');
+        $this->validateCsrf();
+
+        // Prevent php timeout for large batches
+        @set_time_limit(300);
+
+        $redirectTo = url('/admin/review-management');
+        $sessionId = $_POST['session_id'] ?? null;
+
+        if (!$sessionId) {
+            $this->redirect($redirectTo . '?error=' . urlencode('Chưa chọn đợt tuyển sinh.'));
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+            $sql = "SELECT DISTINCT t.so_cccd, t.ngay_sinh, t.ho_va_ten 
+                    FROM thi_sinh t
+                    JOIN ho_so_xet_tuyen hs ON t.so_cccd = hs.so_cccd
+                    WHERE hs.dot_tuyen_sinh_id = ? AND t.ngay_sinh IS NOT NULL";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$sessionId]);
+            $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($candidates)) {
+                $this->redirect($redirectTo . '?error=' . urlencode('Không tìm thấy thí sinh nào trong đợt này có ngày sinh để đặt lại mật khẩu.'));
+                return;
+            }
+
+            // Optimization: Cache generated bcrypt hashes for identical birth dates
+            // This avoids executing heavy password_hash (takes ~80ms each) for duplicate dates of birth.
+            $hashedCache = [];
+            $cases = [];
+            $cccds = [];
+            $params = [];
+            $count = 0;
+
+            foreach ($candidates as $c) {
+                $dob = $c['ngay_sinh'];
+                if (empty($dob)) continue;
+
+                // Format date to ddmmyyyy
+                $defaultPass = date('dmY', strtotime($dob));
+                
+                if (!isset($hashedCache[$defaultPass])) {
+                    $hashedCache[$defaultPass] = password_hash($defaultPass, PASSWORD_BCRYPT, ['cost' => 4]);
+                }
+                
+                $hashed = $hashedCache[$defaultPass];
+                
+                $cases[] = "WHEN ? THEN ?";
+                $params[] = $c['so_cccd'];
+                $params[] = $hashed;
+                
+                $cccds[] = $c['so_cccd'];
+                $count++;
+            }
+
+            if ($count > 0) {
+                // Execute a single batched UPDATE to bypass SSH Tunnel latency
+                $caseSql = implode(' ', $cases);
+                $inPlaceholders = implode(',', array_fill(0, $count, '?'));
+                $updateSql = "UPDATE thi_sinh SET mat_khau = CASE so_cccd {$caseSql} END WHERE so_cccd IN ({$inPlaceholders})";
+                
+                $finalParams = array_merge($params, $cccds);
+                $updateStmt = $this->db->prepare($updateSql);
+                $updateStmt->execute($finalParams);
+            }
+
+            // Single audit log for the bulk operation to avoid DB query overhead in loop
+            $this->auditService->log('RESET_PASSWORD_BULK_ALL', 'sessions', $sessionId, null, [
+                'count' => $count
+            ]);
+
+            $this->db->commit();
+
+            $this->redirect($redirectTo . '?success=' . urlencode("Đã khôi phục mật khẩu mặc định (ddmmyyyy) thành công cho $count thí sinh trong đợt."));
+
+        } catch (\Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $this->redirect($redirectTo . '?error=' . urlencode('Lỗi hệ thống: ' . $e->getMessage()));
+        }
+    }
+
+    /**
      * Bulk approve ALL pending applications in a batch session
      */
     public function bulkApproveAll()

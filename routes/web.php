@@ -66,6 +66,8 @@ $router->post('/api/notifications/mark-read', 'NotificationController@markRead')
 $router->post('/api/notifications/mark-all-read', 'NotificationController@markAllRead');
 
 $router->get('/application/results', 'ApplicationController@results');
+$router->post('/application/confirm-enrollment', 'ApplicationController@confirmEnrollment');
+$router->get('/application/view-letter', 'ApplicationController@viewAdmissionLetter');
 $router->post('/application/requestEdit', 'ApplicationController@requestEdit');
 
 // API Routes
@@ -144,6 +146,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/review/download-transcript-template', 'CandidateController@downloadTranscriptTemplate');
     $router->post('/admin/review/bulk-update-candidate-info', 'CandidateController@bulkUpdateCandidateInfo');
     $router->get('/admin/review/download-candidate-update-template', 'CandidateController@downloadCandidateUpdateTemplate');
+    $router->post('/admin/review/bulk-reset-password-default', 'CandidateController@bulkResetPasswordDefault');
 
     // Admin Notifications
     $router->get('/admin/notifications', 'AdminNotificationController@index');
