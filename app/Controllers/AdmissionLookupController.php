@@ -82,6 +82,7 @@ class AdmissionLookupController extends Controller
 
         $sessionId = $activeSession['id'] ?? 0;
 
+        $db = Database::getInstance()->getConnection();
         $stmt = $db->prepare("
             SELECT t.*,
                    ts.id as thi_sinh_id,
