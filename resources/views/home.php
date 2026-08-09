@@ -672,7 +672,7 @@ if (isset($stepStatus)) {
                                     </td>
                                     <td class="px-5 py-2.5 text-center align-middle">
                                         <?php if ($major['diem_nam_truoc'] > 0): ?>
-                                            <span class="text-hvu-red font-bold group-hover:scale-105 inline-block transition-transform"><?= number_format($major['diem_nam_truoc'], 2) ?></span>
+                                            <span class="text-hvu-red font-bold group-hover:scale-105 inline-block transition-transform"><?= number_format($major['diem_nam_truoc'], 3) ?></span>
                                         <?php else: ?>
                                             <span class="text-gray-300 italic">--</span>
                                         <?php endif; ?>
@@ -720,7 +720,7 @@ if (isset($stepStatus)) {
                                         </p>
                                         <p class="text-[12px] text-gray-600">
                                             <span class="text-gray-400 font-semibold">Điểm chuẩn 2026:</span>
-                                            <span class="font-black <?= $major['diem_nam_truoc'] > 0 ? 'text-hvu-red' : 'text-gray-300' ?>"><?= $major['diem_nam_truoc'] > 0 ? number_format($major['diem_nam_truoc'], 2) : '--' ?></span>
+                                            <span class="font-black <?= $major['diem_nam_truoc'] > 0 ? 'text-hvu-red' : 'text-gray-300' ?>"><?= $major['diem_nam_truoc'] > 0 ? number_format($major['diem_nam_truoc'], 3) : '--' ?></span>
                                         </p>
                                     </div>
                                 </div>
