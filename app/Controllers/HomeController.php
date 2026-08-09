@@ -108,42 +108,33 @@ class HomeController extends Controller {
         $masterData = new \App\Models\MasterData();
         $majors = $masterData->getActiveMajorsWithCombinations();
 
-        // 5. Get Admission Conditions & Homepage Settings (Optimized with Session Cache)
-        if (!isset($_SESSION['cache_home_settings'])) {
-            $conditions = '';
-            $homeSettings = [
-                'video_url' => 'czCebfco6_g',
-                'stats_majors' => '27',
-                'stats_quota' => '3070',
-                'stats_employ' => '98%',
-                'announcement' => '',
-                'countdown_enabled' => '0',
-                'countdown_title' => '',
-                'countdown_deadline' => ''
-            ];
+        $conditions = '';
+        $homeSettings = [
+            'video_url' => 'czCebfco6_g',
+            'stats_majors' => '27',
+            'stats_quota' => '3070',
+            'stats_employ' => '98%',
+            'announcement' => '',
+            'countdown_enabled' => '0',
+            'countdown_title' => '',
+            'countdown_deadline' => ''
+        ];
 
-            try {
-                $stmt = $db->prepare("SELECT key, value FROM cau_hinh WHERE key IN ('admission_conditions', 'home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement', 'countdown_enabled', 'countdown_title', 'countdown_deadline')");
-                $stmt->execute();
-                while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                    if ($row['key'] === 'admission_conditions') $conditions = $row['value'];
-                    if ($row['key'] === 'home_video_url') $homeSettings['video_url'] = $row['value'];
-                    if ($row['key'] === 'home_stats_majors') $homeSettings['stats_majors'] = $row['value'];
-                    if ($row['key'] === 'home_stats_quota') $homeSettings['stats_quota'] = $row['value'];
-                    if ($row['key'] === 'home_stats_employment') $homeSettings['stats_employ'] = $row['value'];
-                    if ($row['key'] === 'home_announcement') $homeSettings['announcement'] = $row['value'];
-                    if ($row['key'] === 'countdown_enabled') $homeSettings['countdown_enabled'] = $row['value'];
-                    if ($row['key'] === 'countdown_title') $homeSettings['countdown_title'] = $row['value'];
-                    if ($row['key'] === 'countdown_deadline') $homeSettings['countdown_deadline'] = $row['value'];
-                }
-            } catch (\Exception $e) {}
-            
-            $_SESSION['cache_home_settings'] = $homeSettings;
-            $_SESSION['cache_admission_conditions'] = $conditions;
-        }
-        
-        $homeSettings = $_SESSION['cache_home_settings'];
-        $conditions = $_SESSION['cache_admission_conditions'];
+        try {
+            $stmt = $db->prepare("SELECT key, value FROM cau_hinh WHERE key IN ('admission_conditions', 'home_video_url', 'home_stats_majors', 'home_stats_quota', 'home_stats_employment', 'home_announcement', 'countdown_enabled', 'countdown_title', 'countdown_deadline')");
+            $stmt->execute();
+            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+                if ($row['key'] === 'admission_conditions') $conditions = $row['value'];
+                if ($row['key'] === 'home_video_url') $homeSettings['video_url'] = $row['value'];
+                if ($row['key'] === 'home_stats_majors') $homeSettings['stats_majors'] = $row['value'];
+                if ($row['key'] === 'home_stats_quota') $homeSettings['stats_quota'] = $row['value'];
+                if ($row['key'] === 'home_stats_employment') $homeSettings['stats_employ'] = $row['value'];
+                if ($row['key'] === 'home_announcement') $homeSettings['announcement'] = $row['value'];
+                if ($row['key'] === 'countdown_enabled') $homeSettings['countdown_enabled'] = $row['value'];
+                if ($row['key'] === 'countdown_title') $homeSettings['countdown_title'] = $row['value'];
+                if ($row['key'] === 'countdown_deadline') $homeSettings['countdown_deadline'] = $row['value'];
+            }
+        } catch (\Exception $e) {}
         
         // Get Settings using Repository (or Model if simple)
         // Since we are refactoring, let's use Repo.
