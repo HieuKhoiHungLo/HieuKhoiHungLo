@@ -94,12 +94,20 @@ class AdmissionLookupController extends Controller
 
         $loginUrl = url('/login?redirect=' . urlencode($targetUrl) . '&cccd=' . urlencode($cccdToPrefill));
         
+        $ngaySinh = $record['ngay_sinh'] ?? '';
+        if (!empty($ngaySinh)) {
+            $dateObj = \DateTime::createFromFormat('Y-m-d', $ngaySinh);
+            if ($dateObj) {
+                $ngaySinh = $dateObj->format('d/m/Y');
+            }
+        }
+
         echo json_encode([
             'success' => true,
             'data' => [
                 'ho_ten' => $record['ho_ten'] ?? 'Thí sinh',
                 'so_cccd' => $record['so_cccd'] ?? '--',
-                'ngay_sinh' => $record['ngay_sinh'] ?? '',
+                'ngay_sinh' => $ngaySinh,
                 'ma_nganh' => $record['ma_nganh'] ?? '',
                 'ten_nganh' => $record['ten_nganh'] ?? '',
                 'anh_the' => !empty($record['anh_dai_dien']) ? (strpos($record['anh_dai_dien'], 'http') === 0 ? $record['anh_dai_dien'] : url($record['anh_dai_dien'])) : '',
