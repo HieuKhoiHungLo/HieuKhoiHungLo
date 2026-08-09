@@ -15,7 +15,7 @@ class BGDResultImportService {
     protected $db;
 
     /** Mã trường của HVU trong hệ thống Bộ GD&ĐT */
-    const MA_TRUONG_HVU = 'DKS';
+    const MA_TRUONG_HVU = 'THV';
 
     /** Mapping tên cột trong file Excel Bộ → index (0-based) */
     const COL_LAN_LOC_AO      = 1;  // Lần lọc ảo
