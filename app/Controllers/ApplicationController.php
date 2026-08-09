@@ -906,4 +906,5 @@ class ApplicationController extends Controller
         $tab = $_POST['tab'] ?? '1';
         $this->redirect(url('/application/results?session_id=' . $sessionId . '&tab=' . $tab));
     }
+}
 
