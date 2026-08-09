@@ -1855,6 +1855,26 @@ function submitModalImport() {
                     </form>
                 </div>
             </div>
+
+            <!-- Local to Drive Sync Form -->
+            <div class="pt-4 border-t border-slate-100 mt-2">
+                <div class="bg-amber-50/60 border border-amber-100 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                    <div>
+                        <h5 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                            <i class="fas fa-cloud-upload-alt text-amber-600"></i> Đẩy ảnh cục bộ lên Google Drive
+                        </h5>
+                        <p class="text-[11px] text-amber-700/80 leading-tight mt-0.5">Đẩy toàn bộ các ảnh thẻ đang lưu tạm trên máy chủ này lên Google Drive và chuyển đổi đường dẫn của thí sinh sang link Drive.</p>
+                    </div>
+                    <form action="<?= url('/admin/admission/results/sync-local-avatars') ?>" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn đẩy tất cả ảnh thẻ cục bộ lên Google Drive? Quá trình này sẽ tốn thời gian upload.');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+                        <button type="submit" class="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-1.5">
+                            <i class="fas fa-upload"></i>
+                            <span>Đẩy lên Drive</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>

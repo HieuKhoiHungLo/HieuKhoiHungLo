@@ -283,6 +283,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/results/import', 'AdmissionController@import');
     $router->post('/admin/admission/results/import-avatars', 'AdmissionController@importAvatarsZip');
     $router->post('/admin/admission/results/sync-drive-avatars', 'AdmissionController@syncDriveAvatars');
+    $router->post('/admin/admission/results/sync-local-avatars', 'AdmissionController@syncLocalAvatarsToDrive');
     $router->post('/admin/admission/results/clear', 'AdmissionController@clearBatch');
     $router->post('/admin/admission/results/set-template', 'AdmissionController@setSessionTemplate');
     $router->post('/admin/admission/results/toggle-publish', 'AdmissionController@togglePublish');

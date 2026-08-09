@@ -322,4 +322,35 @@ class AvatarDriveImportService {
         }
         return rmdir($dir);
     }
+
+    /**
+     * Upload một file cục bộ lên Google Drive và đồng bộ CSDL
+     */
+    public function uploadSingleLocalFileToDrive($localFilePath, $cccd, $sessionId) {
+        if ($this->uploadDriver !== 'google' || !$this->driveService) {
+            return false;
+        }
+
+        $sessionInfo = $this->getSessionInfo($sessionId);
+        $year = $sessionInfo['year'];
+        $sessionName = $sessionInfo['session_name'];
+
+        try {
+            $targetFolderId = $this->driveService->resolveCandidateFolder($year, $sessionName, $cccd);
+            if ($targetFolderId) {
+                $this->uploader->setTargetFolderId($targetFolderId);
+            }
+
+            $newFileName = $cccd . '_avatar_' . time() . '.jpg';
+            $driveUrl = $this->uploader->uploadLocalFile($localFilePath, $newFileName, 'image/jpeg');
+
+            if ($driveUrl) {
+                $this->syncAvatarToDatabase($cccd, $sessionId, $driveUrl, true);
+                return $driveUrl;
+            }
+        } catch (\Exception $e) {
+            // Ignore error and return false
+        }
+        return false;
+    }
 }

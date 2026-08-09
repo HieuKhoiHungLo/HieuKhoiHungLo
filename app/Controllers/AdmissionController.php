@@ -1121,6 +1121,63 @@ class AdmissionController extends Controller {
         }
     }
 
+    /**
+     * Đồng bộ ảnh cục bộ (đã upload trước đây) lên Google Drive
+     */
+    public function syncLocalAvatarsToDrive() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionId = $_POST['session_id'] ?? '';
+        if (empty($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            
+            // Tìm tất cả thí sinh trúng tuyển có ảnh thẻ lưu local (bắt đầu bằng public/uploads/)
+            $stmt = $db->prepare("
+                SELECT ts.so_cccd, ts.anh_dai_dien 
+                FROM thi_sinh ts
+                JOIN ket_qua_trung_tuyen k ON ts.so_cccd = k.so_cccd
+                WHERE k.session_id = ? AND ts.anh_dai_dien LIKE 'public/uploads/%'
+            ");
+            $stmt->execute([$sessionId]);
+            $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($candidates)) {
+                $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode('Không có ảnh thẻ cục bộ nào cần đồng bộ.')));
+            }
+
+            $service = new \App\Services\AvatarDriveImportService();
+            $successCount = 0;
+            $notFoundCount = 0;
+
+            foreach ($candidates as $c) {
+                $cccd = $c['so_cccd'];
+                $localPath = dirname(__DIR__, 2) . '/' . $c['anh_dai_dien'];
+                if (file_exists($localPath)) {
+                    $driveUrl = $service->uploadSingleLocalFileToDrive($localPath, $cccd, $sessionId);
+                    if ($driveUrl) {
+                        $successCount++;
+                        // Xóa file local sau khi đẩy lên Drive thành công
+                        @unlink($localPath);
+                    }
+                } else {
+                    $notFoundCount++;
+                }
+            }
+
+            $msg = "Đồng bộ ảnh thẻ cục bộ lên Google Drive hoàn tất: Đã đẩy thành công {$successCount} ảnh.";
+            if ($notFoundCount > 0) {
+                $msg .= " (Có {$notFoundCount} file ảnh không tìm thấy vật lý trên máy chủ này).";
+            }
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&success=' . urlencode($msg)));
+        } catch (\Exception $e) {
+            $this->redirect(url('/admin/admission/results?session_id='.$sessionId.'&error=' . urlencode('Lỗi đồng bộ ảnh lên Drive: ' . $e->getMessage())));
+        }
+    }
+
 
     public function clearBatch() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
