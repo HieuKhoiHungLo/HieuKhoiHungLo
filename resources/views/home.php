@@ -651,7 +651,7 @@ if (isset($stepStatus)) {
                             <th class="px-4 py-3 text-center align-middle">Mã ngành</th>
                             <th class="px-4 py-3 text-center align-middle">Chỉ tiêu</th>
                             <th class="px-4 py-3 text-center align-middle">Tổ hợp môn</th>
-                            <th class="px-5 py-3 text-center text-hvu-red align-middle">Điểm chuẩn 2025</th>
+                            <th class="px-5 py-3 text-center text-hvu-red align-middle">Điểm chuẩn 2026</th>
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 bg-white">
@@ -719,7 +719,7 @@ if (isset($stepStatus)) {
                                             <span class="font-bold text-gray-800 uppercase"><?= $major['combination_list'] ?: ($major['khoi_xet_tuyen'] ?: '--') ?></span>
                                         </p>
                                         <p class="text-[12px] text-gray-600">
-                                            <span class="text-gray-400 font-semibold">Điểm chuẩn 2025:</span>
+                                            <span class="text-gray-400 font-semibold">Điểm chuẩn 2026:</span>
                                             <span class="font-black <?= $major['diem_nam_truoc'] > 0 ? 'text-hvu-red' : 'text-gray-300' ?>"><?= $major['diem_nam_truoc'] > 0 ? number_format($major['diem_nam_truoc'], 2) : '--' ?></span>
                                         </p>
                                     </div>
