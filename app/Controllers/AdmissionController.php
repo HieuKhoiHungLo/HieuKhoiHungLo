@@ -209,7 +209,7 @@ class AdmissionController extends Controller {
                     FROM ket_qua_trung_tuyen k
                     JOIN thi_sinh t ON k.so_cccd = t.so_cccd
                     LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
-                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND dthpt.is_active = TRUE
                     WHERE k.session_id = ?";
         $demoStmt = $db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);
@@ -338,7 +338,7 @@ class AdmissionController extends Controller {
                     FROM ket_qua_trung_tuyen k
                     JOIN thi_sinh t ON k.so_cccd = t.so_cccd
                     LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
-                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND dthpt.is_active = TRUE
                     WHERE k.session_id = ?";
         $demoStmt = $db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);
@@ -447,7 +447,7 @@ class AdmissionController extends Controller {
         $baseFrom = "FROM ket_qua_trung_tuyen k
                      LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
                      LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
-                     LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND ts.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE)
+                     LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND dthpt.is_active = TRUE)
                      LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
                      LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
                      WHERE k.session_id = ?";
@@ -671,7 +671,7 @@ class AdmissionController extends Controller {
                 FROM ket_qua_trung_tuyen k
                 LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
                 LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
-                LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND ts.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE)
+                LEFT JOIN dm_truong_thpt dthpt ON (ts.ma_truong_lop_12 = dthpt.ma_truong AND dthpt.is_active = TRUE)
                 LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
                 LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
                 LEFT JOIN nguyen_vong nv ON (nv.so_cccd = k.so_cccd AND nv.ma_nganh = k.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id)

@@ -432,7 +432,7 @@ class EnrollmentController extends Controller {
                     JOIN ket_qua_trung_tuyen k ON nh.ket_qua_id = k.id
                     JOIN thi_sinh t ON k.so_cccd = t.so_cccd
                     LEFT JOIN dm_tinh dt ON t.ma_tinh_lop_12 = dt.ma_tinh
-                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND t.ma_tinh_lop_12 = dthpt.ma_tinh AND dthpt.is_active = TRUE
+                    LEFT JOIN dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong AND dthpt.is_active = TRUE
                     WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'";
         $demoStmt = $this->db->prepare($demoSql);
         $demoStmt->execute([$sessionId]);
