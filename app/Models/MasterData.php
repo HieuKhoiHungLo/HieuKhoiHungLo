@@ -186,22 +186,20 @@ class MasterData extends Model {
 
     // Optimization: Fetch Majors with Combinations in one query
     public function getMajorsWithCombinations() {
-        return \App\Core\Cache::remember('master_majors_combinations', 1440, function() {
-            // Postgres uses string_agg
-            $sql = "SELECT n.*, 
-                           (SELECT string_agg(ma_to_hop, ', ') 
-                            FROM dm_nganh_to_hop 
-                            WHERE ma_nganh = n.ma_nganh) as combination_list 
-                    FROM dm_nganh n 
-                    ORDER BY n.ma_nganh ASC";
-            try {
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute();
-                return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\PDOException $e) {
-                return $this->getMajors(); 
-            }
-        });
+        // Postgres uses string_agg
+        $sql = "SELECT n.*, 
+                       (SELECT string_agg(ma_to_hop, ', ') 
+                        FROM dm_nganh_to_hop 
+                        WHERE ma_nganh = n.ma_nganh) as combination_list 
+                FROM dm_nganh n 
+                ORDER BY n.ma_nganh ASC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            return $this->getMajors(); 
+        }
     }
 
     public function getActiveMajorsWithCombinations() {

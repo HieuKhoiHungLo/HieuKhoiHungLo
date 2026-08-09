@@ -104,9 +104,9 @@ class HomeController extends Controller {
             ];
         }
 
-        // 4. Get Major Info - Chỉ lấy ngành đang kích hoạt
+        // 4. Get Major Info - Lấy tất cả ngành (kể cả ngành tạm tắt đăng ký) để hiển thị điểm chuẩn
         $masterData = new \App\Models\MasterData();
-        $majors = $masterData->getActiveMajorsWithCombinations();
+        $majors = $masterData->getMajorsWithCombinations();
 
         $conditions = '';
         $homeSettings = [

@@ -19,7 +19,7 @@ class CalculatorController extends Controller {
         }
 
         $masterData = new MasterData();
-        $majors = $masterData->getActiveMajorsWithCombinations();
+        $majors = $masterData->getMajorsWithCombinations();
         
         $subjects = [
             'Ngữ văn' => 'ngu_van',
