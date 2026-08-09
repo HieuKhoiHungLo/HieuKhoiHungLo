@@ -13,13 +13,18 @@ class AdmissionLookupController extends Controller
      */
     public function index()
     {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
-        $activeSession = $stmt->fetch(PDO::FETCH_ASSOC);
+        $activeSession = \App\Core\Cache::remember('active_lookup_session', 5, function() {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        });
 
-        if (!$activeSession) {
-            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY id DESC LIMIT 1");
-            $activeSession = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (empty($activeSession)) {
+            $activeSession = \App\Core\Cache::remember('latest_lookup_session', 5, function() {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY id DESC LIMIT 1");
+                return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            });
         }
 
         $sessionName = !empty($activeSession['ten_dot']) ? $activeSession['ten_dot'] : 'Tuyển sinh Đại học Hùng Vương';
