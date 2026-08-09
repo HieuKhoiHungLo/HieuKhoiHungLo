@@ -176,7 +176,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Tên ngành</th>
                             <th style="width: 80px" class="py-3 border-b-2 border-r border-slate-200 bg-slate-100" rowspan="2">Chỉ tiêu</th>
                             <th class="py-1 border-b border-r border-slate-200 bg-blue-50 text-blue-800" colspan="3">Nhập học</th>
-                            <th class="py-1 border-b border-r border-slate-200 bg-slate-100 text-slate-800" colspan="2">Xác nhận</th>
+                            <th class="py-1 border-b border-r border-slate-200 bg-slate-100 text-slate-800" colspan="3">Xác nhận</th>
                             <th class="py-3 border-b-2 border-slate-200 bg-slate-100 text-slate-800 text-right" rowspan="2">Tổng kinh phí (đ)</th>
                         </tr>
                         <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center">
@@ -185,12 +185,13 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             <th style="width: 100px" class="py-2 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800">Tiến độ (%)</th>
                             <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-slate-100 text-slate-800">Bộ</th>
                             <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-slate-100 text-slate-800">Trường</th>
+                            <th style="width: 80px" class="py-2 border-b-2 border-r border-slate-200 bg-slate-100 text-slate-800">K.Phí</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php 
                         $totalCT = 0; $totalTT = 0; $totalNH = 0;
-                        $totalXnBo = 0; $totalXnTruong = 0; $totalKinhPhi = 0;
+                        $totalXnBo = 0; $totalXnTruong = 0; $totalXnKinhPhi = 0; $totalKinhPhi = 0;
                         foreach ($statsByMajor as $ms): 
                             $ct = intval($ms['chi_tieu'] ?? 0);
                             $tt = intval($ms['so_trung_tuyen'] ?? 0);
@@ -199,6 +200,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             $totalCT += $ct; $totalTT += $tt; $totalNH += $nh;
                             $totalXnBo += intval($ms['xac_nhan_bo']);
                             $totalXnTruong += intval($ms['xac_nhan_truong']);
+                            $totalXnKinhPhi += intval($ms['xac_nhan_kinh_phi'] ?? 0);
                             $totalKinhPhi += floatval($ms['tong_kinh_phi']);
                             
                             $pct = $tt > 0 ? round(($nh / $tt) * 100, 1) : 0;
@@ -223,6 +225,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             </td>
                             <td class="text-center font-bold text-blue-600"><?= $ms['xac_nhan_bo'] ?: '-' ?></td>
                             <td class="text-center font-bold text-indigo-600"><?= $ms['xac_nhan_truong'] ?: '-' ?></td>
+                            <td class="text-center font-bold text-teal-600"><?= ($ms['xac_nhan_kinh_phi'] ?? 0) ?: '-' ?></td>
                             <td class="text-right font-mono text-emerald-600 font-bold whitespace-nowrap"><?= $ms['tong_kinh_phi'] > 0 ? number_format($ms['tong_kinh_phi']) : '-' ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -244,6 +247,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             </td>
                             <td class="text-center text-blue-600"><?= number_format($totalXnBo) ?></td>
                             <td class="text-center text-indigo-600"><?= number_format($totalXnTruong) ?></td>
+                            <td class="text-center text-teal-600"><?= number_format($totalXnKinhPhi) ?></td>
                             <td class="text-right text-emerald-700 font-mono"><?= number_format($totalKinhPhi) ?></td>
                         </tr>
                     </tfoot>

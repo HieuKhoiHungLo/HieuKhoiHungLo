@@ -383,25 +383,33 @@ class EnrollmentController extends Controller {
                    ) as so_trung_tuyen,
                    COALESCE(nh_stats.so_nhap_hoc, 0) as so_nhap_hoc,
                    nh_stats.thu_khoa_nganh,
-                   COALESCE(nh_stats.xac_nhan_bo, 0) as xac_nhan_bo,
-                   COALESCE(nh_stats.xac_nhan_truong, 0) as xac_nhan_truong,
+                   COALESCE(kq_stats.xac_nhan_bo, 0) as xac_nhan_bo,
+                   COALESCE(kq_stats.xac_nhan_truong, 0) as xac_nhan_truong,
+                   COALESCE(kq_stats.xac_nhan_kinh_phi, 0) as xac_nhan_kinh_phi,
                    COALESCE(nh_stats.tong_kinh_phi, 0) as tong_kinh_phi
             FROM dm_nganh n
             LEFT JOIN (
                 SELECT kq.ma_nganh,
                        COUNT(nh.id) as so_nhap_hoc,
                        MAX(kq.diem_xt) as thu_khoa_nganh,
-                       SUM(CASE WHEN kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1' THEN 1 ELSE 0 END) as xac_nhan_bo,
-                       SUM(CASE WHEN kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1' THEN 1 ELSE 0 END) as xac_nhan_truong,
                        SUM(nh.so_tien_da_nop) as tong_kinh_phi
                 FROM ket_qua_trung_tuyen kq
                 JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
                 WHERE kq.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
                 GROUP BY kq.ma_nganh
             ) nh_stats ON n.ma_nganh = nh_stats.ma_nganh
+            LEFT JOIN (
+                SELECT ma_nganh,
+                       SUM(CASE WHEN xac_nhan_bo = true OR xac_nhan_bo::text = '1' THEN 1 ELSE 0 END) as xac_nhan_bo,
+                       SUM(CASE WHEN xac_nhan_truong = true OR xac_nhan_truong::text = '1' THEN 1 ELSE 0 END) as xac_nhan_truong,
+                       SUM(CASE WHEN xac_nhan_kinh_phi = true OR xac_nhan_kinh_phi::text = '1' THEN 1 ELSE 0 END) as xac_nhan_kinh_phi
+                FROM ket_qua_trung_tuyen
+                WHERE session_id = ?
+                GROUP BY ma_nganh
+            ) kq_stats ON n.ma_nganh = kq_stats.ma_nganh
             ORDER BY nh_stats.so_nhap_hoc DESC NULLS LAST, so_trung_tuyen DESC
         ");
-        $stmtMajor->execute([$sessionId, $sessionId]);
+        $stmtMajor->execute([$sessionId, $sessionId, $sessionId]);
         $statsByMajor = $stmtMajor->fetchAll(PDO::FETCH_ASSOC);
 
         // Lấy Thủ khoa trường (Bất kể trạng thái)
