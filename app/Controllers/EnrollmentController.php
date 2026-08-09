@@ -381,11 +381,12 @@ class EnrollmentController extends Controller {
                        JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                        WHERE nv.ma_nganh = n.ma_nganh AND nv.dot_tuyen_sinh_id = ?
                    ) as so_trung_tuyen,
-                   COALESCE(nh_stats.so_nhap_hoc, 0) as so_nhap_hoc,
-                   nh_stats.thu_khoa_nganh,
                    COALESCE(kq_stats.xac_nhan_bo, 0) as xac_nhan_bo,
                    COALESCE(kq_stats.xac_nhan_truong, 0) as xac_nhan_truong,
                    COALESCE(kq_stats.xac_nhan_kinh_phi, 0) as xac_nhan_kinh_phi,
+                   COALESCE(kq_stats.tong_kinh_phi_du_kien, 0) as tong_kinh_phi_du_kien,
+                   COALESCE(nh_stats.so_nhap_hoc, 0) as so_nhap_hoc,
+                   nh_stats.thu_khoa_nganh,
                    COALESCE(nh_stats.tong_kinh_phi, 0) as tong_kinh_phi
             FROM dm_nganh n
             LEFT JOIN (
@@ -402,7 +403,8 @@ class EnrollmentController extends Controller {
                 SELECT ma_nganh,
                        SUM(CASE WHEN xac_nhan_bo = true OR xac_nhan_bo::text = '1' THEN 1 ELSE 0 END) as xac_nhan_bo,
                        SUM(CASE WHEN xac_nhan_truong = true OR xac_nhan_truong::text = '1' THEN 1 ELSE 0 END) as xac_nhan_truong,
-                       SUM(CASE WHEN xac_nhan_kinh_phi = true OR xac_nhan_kinh_phi::text = '1' THEN 1 ELSE 0 END) as xac_nhan_kinh_phi
+                       SUM(CASE WHEN xac_nhan_kinh_phi = true OR xac_nhan_kinh_phi::text = '1' THEN 1 ELSE 0 END) as xac_nhan_kinh_phi,
+                       SUM(CASE WHEN xac_nhan_truong = true OR xac_nhan_kinh_phi = true THEN COALESCE(so_tien, 0) ELSE 0 END) as tong_kinh_phi_du_kien
                 FROM ket_qua_trung_tuyen
                 WHERE session_id = ?
                 GROUP BY ma_nganh
