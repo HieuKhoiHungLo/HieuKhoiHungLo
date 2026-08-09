@@ -225,16 +225,19 @@ include __DIR__ . '/../layouts/header.php';
             
             <form id="confirm-form" method="POST" action="<?= url('/application/confirm-enrollment') ?>" style="display:none;">
                 <input type="hidden" name="session_id" value="<?= htmlspecialchars($sessionId) ?>">
+                <input type="hidden" name="tab" value="2">
                 <?= \App\Middleware\SecurityMiddleware::csrfField() ?>
             </form>
 
             <form id="confirm-bo-form" method="POST" action="<?= url('/application/confirm-enrollment-bo') ?>" style="display:none;">
                 <input type="hidden" name="session_id" value="<?= htmlspecialchars($sessionId) ?>">
+                <input type="hidden" name="tab" value="2">
                 <?= \App\Middleware\SecurityMiddleware::csrfField() ?>
             </form>
 
             <form id="confirm-kinhphi-form" method="POST" action="<?= url('/application/confirm-kinhphi') ?>" style="display:none;">
                 <input type="hidden" name="session_id" value="<?= htmlspecialchars($sessionId) ?>">
+                <input type="hidden" name="tab" value="3">
                 <?= \App\Middleware\SecurityMiddleware::csrfField() ?>
             </form>
 
@@ -311,5 +314,19 @@ include __DIR__ . '/../layouts/header.php';
     <?php endif; ?>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab) {
+        setTimeout(function() {
+            if (typeof window.hvuSwitchTab === 'function') {
+                window.hvuSwitchTab(parseInt(tab, 10));
+            }
+        }, 100);
+    }
+});
+</script>
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>

@@ -721,7 +721,8 @@ class ApplicationController extends Controller
             $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
         }
 
-        $this->redirect(url('/application/results?session_id=' . $sessionId));
+        $tab = $_POST['tab'] ?? '1';
+        $this->redirect(url('/application/results?session_id=' . $sessionId . '&tab=' . $tab));
     }
 
     /**
@@ -872,7 +873,8 @@ class ApplicationController extends Controller
             $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
         }
 
-        $this->redirect(url('/application/results?session_id=' . $sessionId));
+        $tab = $_POST['tab'] ?? '1';
+        $this->redirect(url('/application/results?session_id=' . $sessionId . '&tab=' . $tab));
     }
 
     public function confirmKinhPhi()
@@ -901,7 +903,7 @@ class ApplicationController extends Controller
             $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
         }
 
-        $this->redirect(url('/application/results?session_id=' . $sessionId));
+        $tab = $_POST['tab'] ?? '1';
+        $this->redirect(url('/application/results?session_id=' . $sessionId . '&tab=' . $tab));
     }
-}
 
