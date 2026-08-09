@@ -152,8 +152,8 @@ class AvatarDriveImportService {
 
                     $avatarUrl = null;
 
-                    // Buộc lưu local khi import ZIP để tối ưu tốc độ (không upload Google Drive trực tiếp)
-                    $useGoogleUpload = false;
+                    // Sử dụng cấu hình driver hoặc cấu hình Google Upload nếu được bật
+                    $useGoogleUpload = ($this->uploadDriver === 'google');
 
                     if ($useGoogleUpload && $this->uploadDriver === 'google' && $this->driveService) {
                         // Xác định / Tạo mới thư mục cá nhân của thí sinh trên Google Drive
