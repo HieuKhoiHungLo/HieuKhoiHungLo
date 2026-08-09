@@ -66,24 +66,36 @@ class AdmissionLookupController extends Controller
             return;
         }
 
-        $db = Database::getInstance()->getConnection();
+        $activeSession = \App\Core\Cache::remember('active_lookup_session', 5, function() {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        });
+
+        if (empty($activeSession)) {
+            $activeSession = \App\Core\Cache::remember('latest_lookup_session', 5, function() {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY id DESC LIMIT 1");
+                return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            });
+        }
+
+        $sessionId = $activeSession['id'] ?? 0;
 
         $stmt = $db->prepare("
             SELECT t.*,
                    ts.id as thi_sinh_id,
                    ts.anh_dai_dien
             FROM ket_qua_trung_tuyen t
-            LEFT JOIN dot_tuyen_sinh d ON d.id = t.session_id
             LEFT JOIN thi_sinh ts ON ts.so_cccd = t.so_cccd
             WHERE (
                 t.so_cccd = ?
                 OR t.sbd = ?
             )
-            AND (d.kich_hoat IS TRUE OR d.is_published_results IS TRUE)
-            ORDER BY d.kich_hoat DESC, d.is_published_results DESC, d.id DESC, t.created_at DESC
+            AND t.session_id = ?
             LIMIT 1
         ");
-        $stmt->execute([$keyword, $keyword]);
+        $stmt->execute([$keyword, $keyword, $sessionId]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
 
         header('Content-Type: application/json; charset=utf-8');
