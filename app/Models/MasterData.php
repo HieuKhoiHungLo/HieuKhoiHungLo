@@ -205,22 +205,20 @@ class MasterData extends Model {
     }
 
     public function getActiveMajorsWithCombinations() {
-        return \App\Core\Cache::remember('master_active_majors_combinations', 60, function() {
-            $sql = "SELECT n.*, 
-                           (SELECT string_agg(ma_to_hop, ', ') 
-                            FROM dm_nganh_to_hop 
-                            WHERE ma_nganh = n.ma_nganh) as combination_list 
-                    FROM dm_nganh n 
-                    WHERE COALESCE(n.kich_hoat, true) = true
-                    ORDER BY n.ma_nganh ASC";
-            try {
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute();
-                return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\PDOException $e) {
-                return $this->getActiveMajors(); 
-            }
-        });
+        $sql = "SELECT n.*, 
+                       (SELECT string_agg(ma_to_hop, ', ') 
+                        FROM dm_nganh_to_hop 
+                        WHERE ma_nganh = n.ma_nganh) as combination_list 
+                FROM dm_nganh n 
+                WHERE COALESCE(n.kich_hoat, true) = true
+                ORDER BY n.ma_nganh ASC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            return $this->getActiveMajors(); 
+        }
     }
 
     // Optimization: Fetch Schools with Province Name
