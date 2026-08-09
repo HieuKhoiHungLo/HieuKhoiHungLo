@@ -74,6 +74,7 @@ class AdmissionLookupController extends Controller
                 t.so_cccd = ?
                 OR t.sbd = ?
             )
+            AND (d.kich_hoat IS TRUE OR d.is_published_results IS TRUE)
             ORDER BY d.kich_hoat DESC, d.is_published_results DESC, d.id DESC, t.created_at DESC
             LIMIT 1
         ");
