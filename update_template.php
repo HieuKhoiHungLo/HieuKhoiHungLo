@@ -3,8 +3,13 @@ require_once 'vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-$db = new PDO('pgsql:host=127.0.0.1;port=5433;dbname=tuyensinh_thv', 'tuyensinh_app', 'Phutho2024@!');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$db = null;
+try {
+    $db = new PDO('pgsql:host=127.0.0.1;port=5433;dbname=tuyensinh_thv', 'tuyensinh_app', 'Phutho2024@!');
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (Exception $e) {
+    echo "Warning: Local tuyensinh_thv connection failed, will skip local update: " . $e->getMessage() . "\n";
+}
 
 $templateHtml = <<<'HTML'
 <!-- BẮT ĐẦU MẪU THÔNG BÁO TRÚNG TUYỂN -->
@@ -130,6 +135,10 @@ $templateHtml = <<<'HTML'
                             <li style="margin-bottom:4px;">Giấy chứng nhận kết quả thi TN THPT năm 2026 <strong>bản gốc</strong></li>
                             <li style="margin-bottom:4px;">Nộp học bạ THPT (gốc và sao chứng thực)</li>
                         </ul>
+                        <div style="margin-top: 16px; text-align: center; background: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #dcfce7; display: inline-block; width: 100%; box-sizing: border-box;">
+                            <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; color: #15803d; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif;"><i class="fas fa-qrcode" style="margin-right: 4px;"></i> QR Nhập học nhanh (CCCD)</p>
+                            {{QR_CCCD}}
+                        </div>
                     </div>
                 </div>
                 <!-- Giấy tờ cần hoàn thiện -->
@@ -172,9 +181,11 @@ function hvuSwitchTab(n) {
 <!-- KẾT THÚC MẪU THÔNG BÁO -->
 HTML;
 
-$stmt = $db->prepare("UPDATE email_templates SET body = :body, subject = :subject WHERE code = 'ADMISSION_LETTER'");
-$stmt->execute(['body' => $templateHtml, 'subject' => 'Thông báo trúng tuyển năm 2026 - Đợt 1']);
-echo "Updated email template ADMISSION_LETTER successfully on tuyensinh_thv.\n";
+if ($db) {
+    $stmt = $db->prepare("UPDATE email_templates SET body = :body, subject = :subject WHERE code = 'ADMISSION_LETTER'");
+    $stmt->execute(['body' => $templateHtml, 'subject' => 'Thông báo trúng tuyển năm 2026 - Đợt 1']);
+    echo "Updated email template ADMISSION_LETTER successfully on tuyensinh_thv.\n";
+}
 
 // Update Supabase
 try {
