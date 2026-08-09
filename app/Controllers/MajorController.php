@@ -406,5 +406,6 @@ class MajorController extends Controller {
         \App\Core\Cache::forget('master_active_majors_combinations');
         \App\Core\Cache::forget('active_majors_with_combinations_v2');
         \App\Core\Cache::forget('majors_with_combinations_v2');
+        \App\Core\Cache::forgetByPattern('/^active_majors_with_combinations_session_/');
     }
 }
