@@ -2108,6 +2108,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function changeSession(val) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('session_id', val);
+    window.location.href = url.toString();
+}
+
 function exportResultsExcel(type = 'full') {
     const sessionId = document.getElementById('sessionSelector')?.value || '<?= $sessionId ?>';
     const major = document.getElementById('majorFilter')?.value || '';

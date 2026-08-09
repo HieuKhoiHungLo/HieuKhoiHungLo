@@ -159,7 +159,7 @@
     <!-- Confetti canvas -->
     <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
 
-    <div class="relative z-10 w-full max-w-lg mx-auto">
+    <div class="relative z-10 w-full max-w-2xl mx-auto">
 
         <!-- Logo & Header -->
         <div class="text-center mb-8 fade-up">
@@ -171,7 +171,7 @@
             <h1 class="text-2xl sm:text-3xl font-black text-white leading-tight tracking-tight">
                 TRA CỨU TRÚNG TUYỂN
             </h1>
-            <p class="text-white/60 mt-2 font-medium text-xs sm:text-sm">
+            <p class="text-white/60 mt-2 mb-4 font-medium text-xs sm:text-sm">
                 <?= htmlspecialchars($sessionName) ?> (Năm <?= htmlspecialchars($year) ?>)
             </p>
         </div>
@@ -193,25 +193,35 @@
             </div>
         <?php endif; ?>
 
+        <!-- Navigation Links (outside, above the card, aligned to the edges) -->
+        <div class="flex items-center justify-between mb-3 px-3 pt-2 fade-up">
+            <a href="<?= url('/') ?>" class="text-white/70 hover:text-white text-sm font-semibold transition-all inline-flex items-center gap-1.5">
+                <i class="fas fa-arrow-left text-xs"></i> Quay lại trang chủ
+            </a>
+            <button type="button" onclick="resetSearch()" class="text-white/70 hover:text-white text-sm font-semibold transition-all inline-flex items-center gap-1.5">
+                <i class="fas fa-search text-xs"></i> Tra cứu thí sinh khác
+            </button>
+        </div>
+
         <!-- Search Card -->
-        <div id="search-section" class="glass-white rounded-3xl p-5 sm:p-6 shadow-2xl fade-up">
+        <div id="search-section" class="glass-white rounded-3xl p-5 sm:p-6 shadow-2xl fade-up relative">
 
             <form id="lookupForm" onsubmit="handleSearch(event)">
                 <?= csrf_field() ?>
 
                 <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                         Thông tin tra cứu
                     </label>
 
                     <!-- Tabs -->
                     <div class="flex gap-2 mb-3 p-1 bg-gray-100 rounded-2xl">
                         <button type="button" onclick="setPlaceholder('cccd')" id="tab-cccd"
-                            class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all tab-btn active-tab">
+                            class="flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all tab-btn active-tab">
                             <i class="fas fa-id-card mr-1"></i> CCCD
                         </button>
                         <button type="button" onclick="setPlaceholder('sbd')" id="tab-sbd"
-                            class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all tab-btn">
+                            class="flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all tab-btn">
                             <i class="fas fa-hashtag mr-1"></i> Số báo danh
                         </button>
                     </div>
@@ -222,44 +232,43 @@
                         </div>
                         <input type="text" name="keyword" id="keywordInput" required
                                placeholder="Nhập số CCCD của bạn..."
-                               value="<?= isset($_GET['q']) ? htmlspecialchars($_GET['q']) : '' ?>"
-                               class="w-full pl-10 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl outline-none input-glow transition font-semibold text-gray-800 text-sm">
+                                               class="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl outline-none input-glow transition font-semibold text-gray-800 text-base">
                     </div>
                 </div>
 
-                <button type="submit" id="btnSubmit"
-                    class="btn-primary w-full py-3 text-white font-black rounded-xl flex items-center justify-center gap-3 text-sm">
-                    <i class="fas fa-search"></i>
-                    <span>TRA CỨU KẾT QUẢ</span>
-                </button>
+                <div class="flex justify-center mt-6">
+                    <button type="submit" id="btnSubmit"
+                        class="btn-primary w-full sm:w-1/2 py-3.5 text-white font-black rounded-xl flex items-center justify-center gap-3 text-base">
+                        <i class="fas fa-search"></i>
+                        <span>TRA CỨU KẾT QUẢ</span>
+                    </button>
+                </div>
             </form>
 
-            <!-- Divider -->
-            <div class="flex items-center gap-3 my-4">
-                <div class="flex-1 h-px bg-gray-100"></div>
-                <span class="text-[10px] text-gray-400 font-medium">Hướng dẫn</span>
-                <div class="flex-1 h-px bg-gray-100"></div>
+            <!-- Divider & Left-aligned Hướng dẫn -->
+            <div class="border-t border-gray-100 pt-5 mt-6 mb-3 text-left">
+                <span class="text-[13px] sm:text-[14px] text-gray-500 font-bold uppercase tracking-wider">Hướng dẫn</span>
             </div>
 
             <!-- Tips -->
-            <div class="space-y-2">
-                <div class="flex items-start gap-2.5 text-xs text-gray-500">
-                    <div class="w-5 h-5 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <i class="fas fa-id-card text-blue-400 text-[10px]"></i>
+            <div class="space-y-3">
+                <div class="flex items-start gap-3 text-sm text-gray-500">
+                    <div class="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-id-card text-blue-400 text-xs"></i>
                     </div>
                     <span>Nhập <strong class="text-gray-700">số CCCD/CMND</strong> (12 số) để tra cứu</span>
                 </div>
-                <div class="flex items-start gap-2.5 text-xs text-gray-500">
-                    <div class="w-5 h-5 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <i class="fas fa-hashtag text-red-500 text-[10px]"></i>
+                <div class="flex items-start gap-3 text-sm text-gray-500">
+                    <div class="w-6 h-6 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-hashtag text-red-500 text-xs"></i>
                     </div>
                     <span>Hoặc nhập <strong class="text-gray-700">Số báo danh thi THPT</strong> của bạn</span>
                 </div>
-                <div class="flex items-start gap-2.5 text-xs text-gray-500">
-                    <div class="w-5 h-5 rounded-lg bg-yellow-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <i class="fas fa-info text-yellow-500 text-[10px]"></i>
+                <div class="flex items-start gap-3 text-sm text-gray-500">
+                    <div class="w-6 h-6 rounded-lg bg-yellow-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-info text-yellow-500 text-xs"></i>
                     </div>
-                    <span>Nếu không tìm thấy, liên hệ hotline: <strong class="text-gray-700">0866.993.468</strong></span>
+                    <span>Nếu không tìm thấy, liên hệ hotline: <strong class="text-gray-700 font-bold">0866.993.468</strong></span>
                 </div>
             </div>
         </div>
@@ -276,16 +285,7 @@
             <div id="res-content"></div>
         </div>
 
-        <!-- Bottom links -->
-        <div class="text-center mt-4 fade-up flex items-center justify-center gap-3">
-            <a href="<?= url('/') ?>" class="text-white/50 hover:text-white text-xs font-medium transition-colors inline-flex items-center gap-1.5">
-                <i class="fas fa-arrow-left text-[10px]"></i> Quay lại trang chủ
-            </a>
-            <span class="text-white/20 text-[10px]">|</span>
-            <button type="button" onclick="resetSearch()" class="text-white/50 hover:text-white text-xs font-medium transition-colors inline-flex items-center gap-1.5">
-                <i class="fas fa-search text-[10px]"></i> Tra cứu thí sinh khác
-            </button>
-        </div>
+
     </div>
 
     <script>
@@ -356,25 +356,25 @@
                                 </div>
                                 <!-- Student Details -->
                                 <div class="flex-1 w-full text-left">
-                                    <h4 class="text-[10px] font-extrabold text-emerald-600 uppercase tracking-[0.15em] mb-2.5 flex items-center gap-1.5">
+                                    <h4 class="text-xs sm:text-sm font-black text-emerald-600 uppercase tracking-[0.15em] mb-2.5 flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block"></span>
                                         Thông tin thí sinh
                                     </h4>
-                                    <div class="space-y-2 text-sm text-gray-700">
+                                    <div class="space-y-2.5 text-sm text-gray-700">
                                         <div class="info-row flex justify-between sm:justify-start items-baseline border-b border-gray-100 pb-1.5">
-                                            <span class="w-[110px] text-gray-400 font-medium text-xs flex-shrink-0">Họ và tên:</span>
+                                            <span class="w-[140px] text-gray-400 font-medium text-xs sm:text-sm flex-shrink-0">Họ và tên:</span>
                                             <strong class="text-red-600 font-extrabold uppercase text-right sm:text-left tracking-wide">${data.ho_ten}</strong>
                                         </div>
                                         <div class="info-row flex justify-between sm:justify-start items-baseline border-b border-gray-100 pb-1.5">
-                                            <span class="w-[110px] text-gray-400 font-medium text-xs flex-shrink-0">Ngày sinh:</span>
+                                            <span class="w-[140px] text-gray-400 font-medium text-xs sm:text-sm flex-shrink-0">Ngày sinh:</span>
                                             <strong class="text-red-600 font-extrabold text-right sm:text-left">${data.ngay_sinh || '--/--/----'}</strong>
                                         </div>
                                         <div class="info-row flex justify-between sm:justify-start items-baseline border-b border-gray-100 pb-1.5">
-                                            <span class="w-[110px] text-gray-400 font-medium text-xs flex-shrink-0">Số CCCD:</span>
+                                            <span class="w-[140px] text-gray-400 font-medium text-xs sm:text-sm flex-shrink-0">Số CCCD:</span>
                                             <strong class="text-red-600 font-extrabold text-right sm:text-left tracking-wider">${data.so_cccd}</strong>
                                         </div>
                                         <div class="info-row flex justify-between sm:justify-start items-baseline pb-0.5">
-                                            <span class="w-[110px] text-gray-400 font-medium text-xs flex-shrink-0">Ngành trúng tuyển:</span>
+                                            <span class="w-[140px] text-gray-400 font-medium text-xs sm:text-sm flex-shrink-0">Ngành trúng tuyển:</span>
                                             <strong class="text-red-600 font-extrabold text-right sm:text-left">${data.ten_nganh}</strong>
                                         </div>
                                     </div>
@@ -389,7 +389,7 @@
                             </div>
 
                             <!-- Hotline Footer -->
-                            <div class="border-t border-gray-100 pt-3 mt-5 text-center text-[11px] text-gray-400">
+                            <div class="border-t border-gray-100 pt-3.5 mt-5 text-center text-xs sm:text-sm text-gray-400">
                                 <i class="fas fa-headset text-emerald-400 mr-1"></i> Mọi thắc mắc liên hệ hotline: <a href="tel:0866993468" class="text-red-600 font-bold hover:underline">0866.993.468</a>
                             </div>
                         </div>
@@ -421,36 +421,31 @@
                         
                         <!-- Content Area -->
                         <div class="p-5 sm:p-6">
-                            <!-- Status message -->
+                            <!-- Combined message -->
                             <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-5 mb-4 text-center">
-                                <p class="font-black text-amber-900 text-base sm:text-lg mb-1.5">
-                                    Không tìm thấy thông tin trúng tuyển
-                                </p>
-                                <p class="text-sm text-amber-700 font-medium">
-                                    trong đợt xét tuyển:
-                                </p>
-                                <p class="font-extrabold text-red-600 text-sm sm:text-base uppercase mt-2">
-                                    ${sessionName}
-                                </p>
-                            </div>
-
-                            <!-- Encouragement message -->
-                            <div class="bg-blue-50/60 border border-blue-100/60 rounded-2xl p-4 mb-4 text-center">
-                                <p class="text-xs text-gray-600 leading-relaxed">
+                                <p class="text-sm sm:text-base text-gray-700 leading-relaxed font-medium mb-4">
                                     <i class="fas fa-lightbulb text-blue-400 mr-1"></i>
                                     Bạn vẫn có thể <strong class="text-blue-700">đăng ký xét tuyển</strong> vào Đại học Hùng Vương qua các đợt xét tuyển tiếp theo!
                                 </p>
+                                <div class="border-t border-amber-200/40 pt-4">
+                                    <p class="font-black text-amber-900 text-base sm:text-lg mb-1.5">
+                                        Không tìm thấy thông tin trúng tuyển trong đợt xét tuyển:
+                                    </p>
+                                    <p class="font-extrabold text-red-600 text-sm sm:text-base uppercase mt-2">
+                                        ${sessionName}
+                                    </p>
+                                </div>
                             </div>
 
                             <!-- CTA Button - Đăng ký ngay -->
                             <div class="max-w-[300px] mx-auto">
-                                <a href="<?= url('/dang-ky') ?>" class="w-full py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2.5 text-sm tracking-wide shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 8px 25px rgba(37,99,235,0.4);">
+                                <a href="<?= url('/login') ?>" class="w-full py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2.5 text-sm tracking-wide shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 8px 25px rgba(37,99,235,0.4);">
                                     <i class="fas fa-pen-to-square"></i> Đăng ký xét tuyển ngay
                                 </a>
                             </div>
 
                             <!-- Hotline Footer -->
-                            <div class="border-t border-gray-100 pt-3 mt-5 text-center text-[11px] text-gray-400">
+                            <div class="border-t border-gray-100 pt-3.5 mt-5 text-center text-xs sm:text-sm text-gray-400">
                                 <i class="fas fa-headset text-amber-400 mr-1"></i> Mọi thắc mắc liên hệ hotline: <a href="tel:0866993468" class="text-red-600 font-bold hover:underline">0866.993.468</a>
                             </div>
                         </div>

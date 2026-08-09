@@ -15,6 +15,24 @@ class ScoreCalculator {
     protected $aptitudeModel;
     protected $masterData;
 
+    // Cache variables to avoid N+1 remote database queries
+    private $cachedCandidates = [];
+    private $cachedBasePriorities = [];
+    private $cachedScores = [];
+    private $cachedRecords = [];
+    private $cachedSubjects = null;
+    private $cachedSubjectMap = null;
+    private $cachedSubjectCodeMap = null;
+    private $cachedExtScores = [];
+    private $cachedLangRecords = [];
+    private $cachedCombinations = [];
+    private $cachedMajorCombinations = [];
+    private $cachedWeightRatio = null;
+    private $cachedSettings = [];
+    private $cachedDiemXTN = [];
+    private $cachedMajorInfos = [];
+    private $cachedGrade12Summaries = [];
+
     public function __construct() {
         $this->thptModel = new DiemThiTHPT();
         $this->academicModel = new AcademicRecord();
@@ -24,36 +42,55 @@ class ScoreCalculator {
     }
 
     /**
+     * Cache-enabled wrapper for masterData->getSetting
+     */
+    private function getSettingCached($key) {
+        if (!isset($this->cachedSettings[$key])) {
+            $this->cachedSettings[$key] = $this->masterData->getSetting($key);
+        }
+        return $this->cachedSettings[$key];
+    }
+
+    /**
      * Calculate best score for a candidate for a specific major
      */
     public function calculateBestScore($cccd, $ma_nganh) {
-        // 1. Get Combinations
-        $combinationCodes = $this->masterData->getMajorCombinations($ma_nganh);
-        if (empty($combinationCodes)) {
-             $major = $this->masterData->find('dm_nganh', $ma_nganh, 'ma_nganh');
-             if ($major) {
-                 // Try to use new relation first, fallback to string
-                 // For now, assume we rely on string if relation helper returns empty
-                 if (!empty($major['khoi_xet_tuyen'])) {
-                    $combinationCodes = array_map('trim', explode(',', $major['khoi_xet_tuyen']));
+        // 1. Get Combinations (Cached)
+        if (!isset($this->cachedMajorCombinations[$ma_nganh])) {
+            $combinationCodes = $this->masterData->getMajorCombinations($ma_nganh);
+            if (empty($combinationCodes)) {
+                 $major = $this->masterData->find('dm_nganh', $ma_nganh, 'ma_nganh');
+                 if ($major) {
+                     if (!empty($major['khoi_xet_tuyen'])) {
+                        $combinationCodes = array_map('trim', explode(',', $major['khoi_xet_tuyen']));
+                     }
                  }
-             }
+            }
+            $this->cachedMajorCombinations[$ma_nganh] = $combinationCodes ?? [];
         }
+        $combinationCodes = $this->cachedMajorCombinations[$ma_nganh];
 
-        // 2. Fetch ALL scores from Normalized Table
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT mon_id, loai_diem, diem FROM diem_chi_tiet WHERE so_cccd = ?");
-        $stmt->execute([$cccd]);
-        $allScores = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        // 2. Fetch ALL scores from Normalized Table (Cached)
+        if (!isset($this->cachedScores[$cccd])) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT mon_id, loai_diem, diem FROM diem_chi_tiet WHERE so_cccd = ?");
+            $stmt->execute([$cccd]);
+            $allScores = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Group Scores: $scores['THPT'][mon_id] = 8.5
-        $scores = [];
-        foreach ($allScores as $row) {
-            $scores[$row['loai_diem']][$row['mon_id']] = (float)$row['diem'];
+            // Group Scores
+            $scores = [];
+            foreach ($allScores as $row) {
+                $scores[$row['loai_diem']][$row['mon_id']] = (float)$row['diem'];
+            }
+            $this->cachedScores[$cccd] = $scores;
         }
+        $scores = $this->cachedScores[$cccd];
 
-        // Fetch raw academic records to calculate 3-year averages for transcript
-        $records = $this->academicModel->getByCCCD($cccd);
+        // Fetch raw academic records to calculate 3-year averages for transcript (Cached)
+        if (!isset($this->cachedRecords[$cccd])) {
+            $this->cachedRecords[$cccd] = $this->academicModel->getByCCCD($cccd);
+        }
+        $records = $this->cachedRecords[$cccd];
         
         $aliases = [
             'toan' => ['TOAN', 'TO'],
@@ -70,12 +107,24 @@ class ScoreCalculator {
             'tin_hoc' => ['TIN', 'TIN_HOC', 'TH']
         ];
         
-        $stmtM = $db->query("SELECT id, ma_mon FROM dm_mon");
-        $subjects = $stmtM->fetchAll(\PDO::FETCH_ASSOC);
-        $subjectCodeToId = [];
-        foreach ($subjects as $s) {
-            $subjectCodeToId[strtoupper($s['ma_mon'])] = $s['id'];
+        // Fetch and map subjects (Cached)
+        if ($this->cachedSubjects === null) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmtM = $db->query("SELECT * FROM dm_mon");
+            $subjects = $stmtM->fetchAll(\PDO::FETCH_ASSOC);
+            
+            $this->cachedSubjects = [];
+            $this->cachedSubjectMap = [];
+            $this->cachedSubjectCodeMap = [];
+            
+            foreach ($subjects as $s) {
+                $this->cachedSubjects[strtoupper($s['ma_mon'])] = $s['id'];
+                $this->cachedSubjectMap[$s['id']] = $s;
+                $this->cachedSubjectCodeMap[strtoupper(trim($s['ma_mon']))] = $s;
+            }
         }
+        $subjectCodeToId = $this->cachedSubjects;
+        $subjectsMetadataGlobal = $this->cachedSubjectMap;
 
         $colToMonId = [];
         foreach ($aliases as $colName => $possibleCodes) {
@@ -119,32 +168,41 @@ class ScoreCalculator {
             }
         }
 
-        // 3. Fetch External Aptitude Scores
-        $stmtExt = $db->prepare("SELECT ma_mon, diem FROM diem_nang_khieu WHERE so_cccd = ?");
-        $stmtExt->execute([$cccd]);
-        $extScores = $stmtExt->fetchAll(\PDO::FETCH_ASSOC);
+        // 3. Fetch External Aptitude Scores (Cached)
+        if (!isset($this->cachedExtScores[$cccd])) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmtExt = $db->prepare("SELECT ma_mon, diem FROM diem_nang_khieu WHERE so_cccd = ?");
+            $stmtExt->execute([$cccd]);
+            $this->cachedExtScores[$cccd] = $stmtExt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+        $extScores = $this->cachedExtScores[$cccd];
 
-        // Map ma_mon to mon_id
+        // Map ma_mon to mon_id using cached mappings
         if (!empty($extScores)) {
             foreach ($extScores as $ext) {
-                // Find subject ID by ma_mon
-                $subj = $this->masterData->find('dm_mon', $ext['ma_mon'], 'ma_mon');
+                $codeUpper = strtoupper(trim($ext['ma_mon']));
+                $subj = $this->cachedSubjectCodeMap[$codeUpper] ?? null;
                 if ($subj) {
-                    // Store as 'NK' (Nang Khieu) type or specific type if needed
-                    // Using 'NK' allows generic fallback in logic below
                     $scores['NK'][$subj['id']] = (float)$ext['diem'];
                 }
             }
         }
 
-        // Get Language Certificate Score if any
-        $langScoreModel = new \App\Models\LanguageScore();
-        $langRecord = $langScoreModel->getByCCCD($cccd);
+        // Get Language Certificate Score if any (Cached)
+        if (!isset($this->cachedLangRecords[$cccd])) {
+            $langScoreModel = new \App\Models\LanguageScore();
+            $this->cachedLangRecords[$cccd] = $langScoreModel->getByCCCD($cccd);
+        }
+        $langRecord = $this->cachedLangRecords[$cccd];
         $convertedLangScore = $langRecord ? (float)$langRecord['diem_quy_doi'] : 0;
 
-        // Get Transcript Weight Ratio from cau_hinh
-        $start = $db->query("SELECT value FROM cau_hinh WHERE key = 'he_so_hoc_ba' LIMIT 1");
-        $weightRatio = (float)($start->fetchColumn() ?: 0.95);
+        // Get Transcript Weight Ratio from cau_hinh (Cached)
+        if ($this->cachedWeightRatio === null) {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $start = $db->query("SELECT value FROM cau_hinh WHERE key = 'he_so_hoc_ba' LIMIT 1");
+            $this->cachedWeightRatio = (float)($start->fetchColumn() ?: 0.95);
+        }
+        $weightRatio = $this->cachedWeightRatio;
 
         $bestResult = [
             'total' => 0,
@@ -159,7 +217,11 @@ class ScoreCalculator {
         $combinationModel = new Combination();
 
         foreach ($combinationCodes as $code) {
-            $combo = $combinationModel->findByCode($code);
+            // Get Combination info (Cached)
+            if (!isset($this->cachedCombinations[$code])) {
+                $this->cachedCombinations[$code] = $combinationModel->findByCode($code);
+            }
+            $combo = $this->cachedCombinations[$code];
             if (!$combo) continue;
 
             $subjectIds = [
@@ -168,10 +230,10 @@ class ScoreCalculator {
                 $combo['mon_3_id']
             ];
             
-            // Resolve Subject Codes for details
+            // Resolve Subject Codes for details from cached metadata map
             $subjectsMetadata = [];
             foreach ($subjectIds as $sId) {
-                $subjectsMetadata[$sId] = $this->masterData->find('dm_mon', $sId);
+                $subjectsMetadata[$sId] = $subjectsMetadataGlobal[$sId] ?? null;
             }
 
             // --- Method 100: THPT ---
@@ -263,8 +325,8 @@ class ScoreCalculator {
         // Note: Applying to the chosen method's score (Method 100 or 200)
         // Check if we have a valid score
         if ($bestResult['final_score'] > 0) {
-            $threshold = (float)$this->masterData->getSetting('score_threshold_dampening') ?: 22.5;
-            $divisor = (float)$this->masterData->getSetting('score_dampening_divisor') ?: 7.5;
+            $threshold = (float)$this->getSettingCached('score_threshold_dampening') ?: 22.5;
+            $divisor = (float)$this->getSettingCached('score_dampening_divisor') ?: 7.5;
 
             // Using raw total (on scale of 30) for the threshold check
             // For THPT: raw is total. For Transcript: raw is total (not weighted? wait. Formula says "Tong diem 3 mon")
@@ -286,15 +348,26 @@ class ScoreCalculator {
     }
 
     private function calculateBasePriority($cccd) {
-        $candidateModel = new \App\Models\ThiSinh();
-        $candidate = $candidateModel->findByCCCD($cccd);
-        if (!$candidate) return 0;
+        if (isset($this->cachedBasePriorities[$cccd])) {
+            return $this->cachedBasePriorities[$cccd];
+        }
+
+        if (!isset($this->cachedCandidates[$cccd])) {
+            $candidateModel = new \App\Models\ThiSinh();
+            $this->cachedCandidates[$cccd] = $candidateModel->findByCCCD($cccd);
+        }
+        $candidate = $this->cachedCandidates[$cccd];
+        if (!$candidate) {
+            $this->cachedBasePriorities[$cccd] = 0.0;
+            return 0.0;
+        }
 
         // 1. Check Graduation Year Condition (Grad Year + 1)
         if (!empty($candidate['nam_tot_nghiep'])) {
             $currentYear = (int)date('Y');
             if (($currentYear - (int)$candidate['nam_tot_nghiep']) > 1) {
-                return 0; // Expired priority
+                $this->cachedBasePriorities[$cccd] = 0.0;
+                return 0.0; // Expired priority
             }
         }
 
@@ -340,7 +413,9 @@ class ScoreCalculator {
             $diemDoiTuong = (float)($stmtDT->fetchColumn() ?: 0);
         }
 
-        return $diemKhuVuc + $diemDoiTuong;
+        $priority = $diemKhuVuc + $diemDoiTuong;
+        $this->cachedBasePriorities[$cccd] = $priority;
+        return $priority;
     }
 
     /**
@@ -354,8 +429,11 @@ class ScoreCalculator {
     public function checkAdmissionThreshold($cccd, $ma_nganh) {
         $result = ['passed' => true, 'errors' => [], 'threshold' => null];
         
-        // Get major info
-        $major = $this->masterData->find('dm_nganh', $ma_nganh, 'ma_nganh');
+        // Get major info (Cached)
+        if (!isset($this->cachedMajorInfos[$ma_nganh])) {
+            $this->cachedMajorInfos[$ma_nganh] = $this->masterData->find('dm_nganh', $ma_nganh, 'ma_nganh');
+        }
+        $major = $this->cachedMajorInfos[$ma_nganh];
         if (!$major) return $result;
         
         $nhomNganh = $major['nhom_nganh'] ?? 'Khac';
@@ -379,7 +457,10 @@ class ScoreCalculator {
         
         // 1. Check Học lực lớp 12
         if ($nguongHocLuc) {
-            $grade12 = $this->academicModel->getGrade12Summary($cccd);
+            if (!isset($this->cachedGrade12Summaries[$cccd])) {
+                $this->cachedGrade12Summaries[$cccd] = $this->academicModel->getGrade12Summary($cccd);
+            }
+            $grade12 = $this->cachedGrade12Summaries[$cccd];
             $hocLuc12 = $grade12['hoc_luc_ca_nam'] ?? null;
             $diemTb12 = $grade12['diem_tb_ca_nam'] ?? null;
             
@@ -395,11 +476,14 @@ class ScoreCalculator {
             $passedByGraduationScore = false;
             $diemXTN = null;
             if ($nguongDiemXTN) {
-                $db = \App\Core\Database::getInstance()->getConnection();
-                $stmt = $db->prepare("SELECT diem_xet_tot_nghiep FROM diem_thi_thpt WHERE so_cccd = ? LIMIT 1");
-                $stmt->execute([$cccd]);
-                $diemXTN = $stmt->fetchColumn();
-                $diemXTN = ($diemXTN !== null && $diemXTN !== false && $diemXTN !== '') ? (float)$diemXTN : null;
+                if (!isset($this->cachedDiemXTN[$cccd])) {
+                    $db = \App\Core\Database::getInstance()->getConnection();
+                    $stmt = $db->prepare("SELECT diem_xet_tot_nghiep FROM diem_thi_thpt WHERE so_cccd = ? LIMIT 1");
+                    $stmt->execute([$cccd]);
+                    $val = $stmt->fetchColumn();
+                    $this->cachedDiemXTN[$cccd] = ($val !== null && $val !== false && $val !== '') ? (float)$val : null;
+                }
+                $diemXTN = $this->cachedDiemXTN[$cccd];
                 
                 if ($diemXTN !== null && $diemXTN >= $nguongDiemXTN) {
                     $passedByGraduationScore = true;

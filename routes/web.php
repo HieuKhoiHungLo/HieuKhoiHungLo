@@ -67,6 +67,8 @@ $router->post('/api/notifications/mark-all-read', 'NotificationController@markAl
 
 $router->get('/application/results', 'ApplicationController@results');
 $router->post('/application/confirm-enrollment', 'ApplicationController@confirmEnrollment');
+$router->post('/application/confirm-enrollment-bo', 'ApplicationController@confirmEnrollmentBo');
+$router->post('/application/confirm-kinhphi', 'ApplicationController@confirmKinhPhi');
 $router->get('/application/view-letter', 'ApplicationController@viewAdmissionLetter');
 $router->post('/application/requestEdit', 'ApplicationController@requestEdit');
 

@@ -533,11 +533,11 @@ class ApplicationController extends Controller
 
         $db = \App\Core\Database::getInstance()->getConnection();
 
-        // Find all sessions this candidate is associated with
+        // Find all sessions this candidate is associated with that are currently ACTIVE
         $stmtSessions = $db->prepare("
             SELECT id, ten_dot, is_published_results 
             FROM dot_tuyen_sinh 
-            WHERE id IN (
+            WHERE kich_hoat = true AND id IN (
                 SELECT dot_tuyen_sinh_id FROM nguyen_vong WHERE so_cccd = ?
                 UNION
                 SELECT session_id FROM ket_qua_trung_tuyen WHERE so_cccd = ?
@@ -615,13 +615,47 @@ class ApplicationController extends Controller
         $renderedAdmissionLetter = null;
 
         if ($enableResults && $sessionId) {
-            $admStmt = $db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? AND session_id = ? ORDER BY created_at DESC LIMIT 1");
+            $admStmt = $db->prepare("
+                SELECT k.*, cs.chi_tiet_diem 
+                FROM ket_qua_trung_tuyen k 
+                LEFT JOIN nguyen_vong nv ON (nv.so_cccd = k.so_cccd AND nv.ma_nganh = k.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id)
+                LEFT JOIN v_calc_summary cs ON (nv.id = cs.nguyen_vong_id)
+                WHERE k.so_cccd = ? AND k.session_id = ? 
+                ORDER BY k.created_at DESC 
+                LIMIT 1
+            ");
             $admStmt->execute([$cccd, $sessionId]);
             $admissionRecord = $admStmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($admissionRecord) {
+                // Override raw scores with converted scores if chi_tiet_diem is present
+                if (!empty($admissionRecord['chi_tiet_diem'])) {
+                    $chiTietRaw = json_decode($admissionRecord['chi_tiet_diem'], true) ?: [];
+                    $m1Score = $chiTietRaw['mon_1']['final'] ?? ($chiTietRaw['mon_1']['base_scaled'] ?? null);
+                    $m2Score = $chiTietRaw['mon_2']['final'] ?? ($chiTietRaw['mon_2']['base_scaled'] ?? null);
+                    $m3Score = $chiTietRaw['mon_3']['final'] ?? ($chiTietRaw['mon_3']['base_scaled'] ?? null);
+                    if ($m1Score === null) {
+                        $monEntries = [];
+                        foreach ($chiTietRaw as $k => $v) {
+                            if (is_array($v) && isset($v['base_scaled'])) {
+                                $monEntries[] = $v;
+                            }
+                        }
+                        $m1Score = $monEntries[0]['base_scaled'] ?? null;
+                        $m2Score = $monEntries[1]['base_scaled'] ?? null;
+                        $m3Score = $monEntries[2]['base_scaled'] ?? null;
+                    }
+                    if ($m1Score !== null) $admissionRecord['diem_mon_1'] = round((float)$m1Score, 3);
+                    if ($m2Score !== null) $admissionRecord['diem_mon_2'] = round((float)$m2Score, 3);
+                    if ($m3Score !== null) $admissionRecord['diem_mon_3'] = round((float)$m3Score, 3);
+                    $admissionRecord['diem_to_hop'] = (float)$admissionRecord['diem_mon_1'] + (float)$admissionRecord['diem_mon_2'] + (float)$admissionRecord['diem_mon_3'];
+                }
+
+                // Hợp nhất dữ liệu thí sinh vào kết quả trúng tuyển để render template
+                $admissionRecord = array_merge((array)$user, (array)$admissionRecord);
+                $admissionRecord['ho_ten'] = $admissionRecord['ho_ten'] ?? $user['ho_va_ten'] ?? '';
+
                 $recordSessionId = $admissionRecord['session_id'];
-            
                 // Tìm template ID cho session_id này, nếu không có thì mặc định lấy ADMISSION_LETTER
                 $tplIdStmt = $db->prepare("SELECT template_id FROM session_templates WHERE session_id = ?");
                 $tplIdStmt->execute([$recordSessionId]);
@@ -639,21 +673,26 @@ class ApplicationController extends Controller
 
                 if ($template) {
                     $letterService = new \App\Services\AdmissionResultService();
-                    $renderedAdmissionLetter = $letterService->renderTemplate($template['body'], $admissionRecord);
+                    $bodyHtml = str_replace('Điểm các môn:', 'Điểm các môn (quy đổi):', $template['body'] ?? '');
+                    $renderedAdmissionLetter = $letterService->renderTemplate($bodyHtml, $admissionRecord);
                 }
             }
         }
 
+        $postModel = new \App\Models\Post();
+        $latestPosts = $postModel->getLatest(2);
+
         $this->view('application/results', [
             'results' => $results,
-            'user' => $user,
             'enableResults' => $enableResults,
             'sessionId' => $sessionId,
             'candidateSessions' => $candidateSessions,
             'currentSession' => $currentSession,
             'talentResults' => $this->getTalentTestResults($cccd),
             'admissionRecord' => $admissionRecord,
-            'renderedAdmissionLetter' => $renderedAdmissionLetter
+            'renderedAdmissionLetter' => $renderedAdmissionLetter,
+            'user' => $user,
+            'latestPosts' => $latestPosts
         ]);
     }
 
@@ -670,7 +709,7 @@ class ApplicationController extends Controller
 
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
-            $stmt = $db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_truong = 1 WHERE so_cccd = ? AND session_id = ? AND trung_tuyen = 1");
+            $stmt = $db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_truong = true WHERE so_cccd = ? AND session_id = ?");
             $result = $stmt->execute([$cccd, $sessionId]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -745,34 +784,39 @@ class ApplicationController extends Controller
             $client->setHttpClient($guzzleClient);
             
             $clientSecretPath = __DIR__ . '/../../credentials.json';
+            $isServiceAccount = false;
             if (file_exists($clientSecretPath)) {
                 $client->setAuthConfig($clientSecretPath);
+                $creds = json_decode(file_get_contents($clientSecretPath), true);
+                $isServiceAccount = isset($creds['type']) && $creds['type'] === 'service_account';
             } else {
                 die("Thiếu file credentials.json (Lỗi cấu hình).");
             }
             
-            $client->addScope(\Google\Service\Drive::DRIVE_FILE);
+            $client->addScope(\Google\Service\Drive::DRIVE);
             
-            $tokenPath = __DIR__ . '/../../token.json';
-            if (file_exists($tokenPath)) {
-                $accessToken = json_decode(file_get_contents($tokenPath), true);
-                $client->setAccessToken($accessToken);
-            } else {
-                die("Chưa xác thực Google Drive (Lỗi cấu hình hệ thống).");
-            }
-
-            if ($client->isAccessTokenExpired()) {
-                if ($client->getRefreshToken()) {
-                    $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                    file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+            if (!$isServiceAccount) {
+                $tokenPath = __DIR__ . '/../../token.json';
+                if (file_exists($tokenPath)) {
+                    $accessToken = json_decode(file_get_contents($tokenPath), true);
+                    $client->setAccessToken($accessToken);
                 } else {
-                    die("Token Google Drive đã hết hạn.");
+                    die("Chưa xác thực Google Drive (Lỗi cấu hình hệ thống).");
+                }
+
+                if ($client->isAccessTokenExpired()) {
+                    if ($client->getRefreshToken()) {
+                        $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                        file_put_contents($tokenPath, json_encode($client->getAccessToken()));
+                    } else {
+                        die("Token Google Drive đã hết hạn.");
+                    }
                 }
             }
 
             $service = new \Google\Service\Drive($client);
 
-            $query = sprintf("name='%s' and '%s' in parents and trashed=false", str_replace("'", "\'", $fileName), str_replace("'", "\'", $folderId));
+            $query = sprintf("(name='%s' or name='%s.pdf') and '%s' in parents and trashed=false", str_replace("'", "\'", $fileName), str_replace("'", "\'", $fileName), str_replace("'", "\'", $folderId));
             $optParams = [
                 'q' => $query,
                 'fields' => 'files(id, webViewLink, webContentLink)',
@@ -782,7 +826,7 @@ class ApplicationController extends Controller
             $results = $service->files->listFiles($optParams);
             
             if (count($results->getFiles()) == 0) {
-                die("Không tìm thấy file Giấy báo '$fileName' trên Google Drive.");
+                die("Không tìm thấy file Giấy báo '$fileName' (hoặc '$fileName.pdf') trên Google Drive.");
             }
 
             $file = $results->getFiles()[0];
@@ -797,6 +841,67 @@ class ApplicationController extends Controller
         } catch (\Exception $e) {
             die("Lỗi kết nối Google Drive: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Xác nhận nhập học tại Bộ GD&ĐT (POST /application/confirm-enrollment-bo)
+     */
+    public function confirmEnrollmentBo()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $cccd = $_SESSION['cccd'] ?? null;
+        $sessionId = $_POST['session_id'] ?? null;
+
+        if (!$cccd || !$sessionId) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Yêu cầu không hợp lệ.'];
+            $this->redirect(url('/application/results' . ($sessionId ? '?session_id=' . $sessionId : '')));
+            return;
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = true WHERE so_cccd = ? AND session_id = ?");
+            $result = $stmt->execute([$cccd, $sessionId]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                $_SESSION['flash_message'] = ['type' => 'success', 'message' => 'Lưu trạng thái xác nhận nhập học trên Bộ GD&ĐT thành công!'];
+            } else {
+                $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Không thể lưu trạng thái xác nhận nhập học trên Bộ GD&ĐT.'];
+            }
+        } catch (\Exception $e) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
+        }
+
+        $this->redirect(url('/application/results?session_id=' . $sessionId));
+    }
+
+    public function confirmKinhPhi()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $cccd = $_SESSION['cccd'] ?? null;
+        $sessionId = $_POST['session_id'] ?? null;
+
+        if (!$cccd || !$sessionId) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Yêu cầu không hợp lệ.'];
+            $this->redirect(url('/application/results' . ($sessionId ? '?session_id=' . $sessionId : '')));
+            return;
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_kinh_phi = true WHERE so_cccd = ? AND session_id = ?");
+            $result = $stmt->execute([$cccd, $sessionId]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                $_SESSION['flash_message'] = ['type' => 'success', 'message' => 'Lưu trạng thái xác nhận nộp kinh phí thành công!'];
+            } else {
+                $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Không thể lưu trạng thái xác nhận nộp kinh phí.'];
+            }
+        } catch (\Exception $e) {
+            $_SESSION['flash_message'] = ['type' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()];
+        }
+
+        $this->redirect(url('/application/results?session_id=' . $sessionId));
     }
 }
 

@@ -764,6 +764,15 @@ class AdmissionResultService {
             }
         }
 
+        $prio = \App\Controllers\AdmissionController::calcPriorityPoints(
+            $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
+            $data['diem_mon_1'] ?? null,
+            $data['diem_mon_2'] ?? null,
+            $data['diem_mon_3'] ?? null,
+            $data['diem_to_hop'] ?? null
+        );
+
         $replacements = [
             // 1. Thông tin cá nhân thí sinh
             '{{HoTen}}'       => $data['ho_ten'] ?? '',
@@ -774,27 +783,28 @@ class AdmissionResultService {
             '{{NgaySinh}}'    => $data['ngay_sinh'] ?? '',
             '{{NGAYSINH}}'    => $data['ngay_sinh'] ?? '',
             '{{SBD}}'         => $data['sbd'] ?? '',
+            '{{GioiTinh}}'    => $data['gioi_tinh'] ?? '',
             '{{Email}}'       => $data['email'] ?? '',
             '{{EMAIL}}'       => $data['email'] ?? '',
-            '{{SDT}}'         => $data['sdt'] ?? '',
-            '{{KhuVuc}}'      => $data['khu_vuc'] ?? '',
-            '{{KHUVUC}}'      => $data['khu_vuc'] ?? '',
-            '{{DoiTuong}}'    => $data['doi_tuong'] ?? '',
-            '{{DOITUONG}}'    => $data['doi_tuong'] ?? '',
+            '{{SDT}}'         => $data['sdt'] ?? $data['dien_thoai'] ?? $data['dien_thoai_lien_he'] ?? '',
+            '{{KhuVuc}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            '{{KHUVUC}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            '{{DoiTuong}}'    => $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
+            '{{DOITUONG}}'    => $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
 
             // 2. Thông tin xét tuyển & điểm
             '{{PhuongThuc}}'  => $data['phuong_thuc'] ?? '',
             '{{PHUONGTHUC}}'  => $data['phuong_thuc'] ?? '',
-            '{{ToHop}}'       => $data['to_hop'] ?? '',
-            '{{TOHOP}}'       => $data['to_hop'] ?? '',
+            '{{ToHop}}'       => !empty($data['to_hop']) ? $this->getToHopDetail($data['to_hop']) : '',
+            '{{TOHOP}}'       => !empty($data['to_hop']) ? $this->getToHopDetail($data['to_hop']) : '',
             '{{DM1}}'         => $data['diem_mon_1'] ?? '',
             '{{DM2}}'         => $data['diem_mon_2'] ?? '',
             '{{DM3}}'         => $data['diem_mon_3'] ?? '',
             '{{DiemToHop}}'   => $data['diem_to_hop'] ?? '',
             '{{DIEMTOHOP}}'   => $data['diem_to_hop'] ?? '',
-            '{{DiemUT}}'      => $data['diem_ut'] ?? '',
-            '{{DIEMUT}}'      => $data['diem_ut'] ?? '',
-            '{{UTQ}}'         => $data['ut_quy_doi'] ?? '',
+            '{{DiemUT}}'      => !empty($data['diem_ut']) ? $data['diem_ut'] : ($prio['diem_ut'] ?? ''),
+            '{{DIEMUT}}'      => !empty($data['diem_ut']) ? $data['diem_ut'] : ($prio['diem_ut'] ?? ''),
+            '{{UTQ}}'         => !empty($data['ut_quy_doi']) ? $data['ut_quy_doi'] : ($prio['ut_quy_doi'] ?? ''),
             '{{DiemXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{DIEMXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{Nganh}}'       => $data['ten_nganh'] ?? '',
@@ -820,6 +830,7 @@ class AdmissionResultService {
             '{{KHOA}}'        => $data['ten_khoa'] ?? '',
             '{{KinhPhi}}'     => $data['kinh_phi'] ?? '',
             '{{KINHPHI}}'     => $data['kinh_phi'] ?? '',
+            '{{KhoiKinhPhi}}' => !empty($data['kinh_phi']) ? '<div style="margin-top:12px; padding:10px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; font-size:13px; color:#1e40af; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-info-circle" style="margin-right:4px;"></i> ' . $data['kinh_phi'] . '</div>' : '',
             '{{FileGiayBao}}' => $data['file_giay_bao'] ?? '',
             '{{LINKGIAYBAO}}' => $data['file_giay_bao'] ?? '',
 
@@ -832,6 +843,80 @@ class AdmissionResultService {
             '{{NOIDUNG}}'     => $data['noi_dung_ck'] ?? '',
             '{{NOIDUNGCK}}'   => $data['noi_dung_ck'] ?? '',
         ];
+
+        // === Nút Xem giấy báo PDF ===
+        if (!empty($data['file_giay_bao'])) {
+            $fileUrl = url('/application/view-letter?session_id=' . ($data['session_id'] ?? 0));
+            $replacements['{{NutXemGiayBao}}'] = '<div style="margin-top: 14px; text-align: center;"><a href="' . $fileUrl . '" target="_blank" style="display: inline-block; background-color: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; font-size: 13px; font-family: Arial, Helvetica, sans-serif;"><i class="fas fa-file-pdf" style="margin-right: 6px;"></i> Xem Giấy báo trúng tuyển (PDF)</a></div>';
+        } else {
+            $replacements['{{NutXemGiayBao}}'] = '';
+        }
+
+        // === Trạng thái xác nhận Nhà trường ===
+        if (!empty($data['xac_nhan_truong'])) {
+            $replacements['{{TrangThaiXacNhan}}'] = '<div style="color: #15803d; font-weight: bold; padding: 10px 24px; background: #dcfce7; border-radius: 8px; text-align: center; font-size: 13px; font-family: Arial, Helvetica, sans-serif; display: inline-block;"><i class="fas fa-check-double" style="margin-right: 4px;"></i> Đã xác nhận nhập học thành công!</div>';
+        } else {
+            $replacements['{{TrangThaiXacNhan}}'] = '<a href="javascript:void(0)" onclick="document.getElementById(\'hvu-confirm-modal\').style.display=\'flex\'" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; text-align: center; font-size: 13px; font-family: Arial, Helvetica, sans-serif; cursor: pointer;"><i class="fas fa-check-circle" style="margin-right: 4px;"></i> XÁC NHẬN NHẬP HỌC</a>'
+                . '<div id="hvu-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; font-family:Arial,Helvetica,sans-serif;">'
+                . '<div style="background:#fff; border-radius:14px; padding:28px 24px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:hvuFadeIn .2s ease;">'
+                . '<div style="width:56px; height:56px; margin:0 auto 14px; background:#fef2f2; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-graduation-cap" style="font-size:24px; color:#dc2626;"></i></div>'
+                . '<h3 style="margin:0 0 8px; font-size:16px; color:#111827; font-weight:700;">Xác nhận nhập học</h3>'
+                . '<p style="margin:0 0 20px; font-size:13px; color:#6b7280; line-height:1.5;">Bạn xác nhận nhập học vào<br><strong style="color:#111827;">Trường Đại học Hùng Vương?</strong></p>'
+                . '<div style="display:flex; gap:10px; justify-content:center;">'
+                . '<button onclick="document.getElementById(\'hvu-confirm-modal\').style.display=\'none\'" style="flex:1; padding:10px; border:1px solid #d1d5db; background:#fff; color:#374151; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Huỷ bỏ</button>'
+                . '<button onclick="document.getElementById(\'confirm-form\').submit()" style="flex:1; padding:10px; border:none; background:#dc2626; color:#fff; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Xác nhận</button>'
+                . '</div>'
+                . '</div>'
+                . '</div>';
+        }
+
+        // === Trạng thái xác nhận Bộ GD&ĐT ===
+        if (!empty($data['xac_nhan_bo'])) {
+            $replacements['{{TrangThaiXacNhanBo}}'] = '<div style="color: #15803d; font-weight: bold; padding: 10px 24px; background: #dcfce7; border-radius: 8px; text-align: center; font-size: 13px; font-family: Arial, Helvetica, sans-serif; display: inline-block;"><i class="fas fa-check-double" style="margin-right: 4px;"></i> Đã xác nhận trên hệ thống Bộ</div>';
+        } else {
+            $replacements['{{TrangThaiXacNhanBo}}'] = '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; text-align: left; font-family: Arial, Helvetica, sans-serif;">'
+                . '<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #374151; margin: 0; flex: 1; min-width: 200px;">'
+                . '<input type="checkbox" id="cb-xacnhanbo" style="width: 18px; height: 18px; accent-color: #2563eb;">'
+                . ' Tôi đã xác nhận nhập học trên hệ thống Bộ GD&ĐT'
+                . '</label>'
+                . '<button onclick="if(!document.getElementById(\'cb-xacnhanbo\').checked){alert(\'Vui lòng tích vào ô xác nhận trước!\');return;} document.getElementById(\'hvu-bo-modal\').style.display=\'flex\'" style="display: inline-block; background-color: #059669; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="fas fa-save" style="margin-right: 4px;"></i> Lưu trạng thái</button>'
+                . '</div>'
+                . '<div id="hvu-bo-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; font-family:Arial,Helvetica,sans-serif;">'
+                . '<div style="background:#fff; border-radius:14px; padding:28px 24px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+                . '<div style="width:56px; height:56px; margin:0 auto 14px; background:#dbeafe; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-globe" style="font-size:24px; color:#2563eb;"></i></div>'
+                . '<h3 style="margin:0 0 8px; font-size:16px; color:#111827; font-weight:700;">Xác nhận hệ thống Bộ</h3>'
+                . '<p style="margin:0 0 20px; font-size:13px; color:#6b7280; line-height:1.5;">Bạn xác nhận đã hoàn tất xác nhận<br>nhập học trên <strong style="color:#111827;">hệ thống Bộ GD&ĐT</strong>?</p>'
+                . '<div style="display:flex; gap:10px; justify-content:center;">'
+                . '<button onclick="document.getElementById(\'hvu-bo-modal\').style.display=\'none\'" style="flex:1; padding:10px; border:1px solid #d1d5db; background:#fff; color:#374151; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Huỷ bỏ</button>'
+                . '<button onclick="document.getElementById(\'confirm-bo-form\').submit()" style="flex:1; padding:10px; border:none; background:#059669; color:#fff; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Xác nhận</button>'
+                . '</div>'
+                . '</div>'
+                . '</div>';
+        }
+
+        // === Trạng thái xác nhận kinh phí ===
+        if (!empty($data['xac_nhan_kinh_phi'])) {
+            $replacements['{{XacNhanKinhPhi}}'] = '<div style="margin-top:14px; text-align:center;"><div style="color: #15803d; font-weight: bold; padding: 10px 24px; background: #dcfce7; border-radius: 8px; font-size: 13px; font-family: Arial, Helvetica, sans-serif; display: inline-block;"><i class="fas fa-check-double" style="margin-right: 4px;"></i> Đã xác nhận nộp kinh phí</div></div>';
+        } else {
+            $replacements['{{XacNhanKinhPhi}}'] = '<div style="margin-top:14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; text-align: left; font-family: Arial, Helvetica, sans-serif;">'
+                . '<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #374151; margin: 0; flex: 1; min-width: 200px;">'
+                . '<input type="checkbox" id="cb-xacnhankinhphi" style="width: 18px; height: 18px; accent-color: #2563eb;">'
+                . ' Tôi đã nộp kinh phí nhập học'
+                . '</label>'
+                . '<button onclick="if(!document.getElementById(\'cb-xacnhankinhphi\').checked){alert(\'Vui lòng tích vào ô xác nhận trước!\');return;} document.getElementById(\'hvu-kinhphi-modal\').style.display=\'flex\'" style="display: inline-block; background-color: #059669; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="fas fa-save" style="margin-right: 4px;"></i> Lưu trạng thái</button>'
+                . '</div>'
+                . '<div id="hvu-kinhphi-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; font-family:Arial,Helvetica,sans-serif;">'
+                . '<div style="background:#fff; border-radius:14px; padding:28px 24px; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3);">'
+                . '<div style="width:56px; height:56px; margin:0 auto 14px; background:#ecfdf5; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-money-bill-wave" style="font-size:24px; color:#059669;"></i></div>'
+                . '<h3 style="margin:0 0 8px; font-size:16px; color:#111827; font-weight:700;">Xác nhận nộp kinh phí</h3>'
+                . '<p style="margin:0 0 20px; font-size:13px; color:#6b7280; line-height:1.5;">Bạn xác nhận đã nộp<br><strong style="color:#111827;">kinh phí nhập học</strong>?</p>'
+                . '<div style="display:flex; gap:10px; justify-content:center;">'
+                . '<button onclick="document.getElementById(\'hvu-kinhphi-modal\').style.display=\'none\'" style="flex:1; padding:10px; border:1px solid #d1d5db; background:#fff; color:#374151; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Huỷ bỏ</button>'
+                . '<button onclick="document.getElementById(\'confirm-kinhphi-form\').submit()" style="flex:1; padding:10px; border:none; background:#059669; color:#fff; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Xác nhận</button>'
+                . '</div>'
+                . '</div>'
+                . '</div>';
+        }
 
         // Tạo QR Code urls
         $bankName = strtolower(str_replace(' ', '', $data['ngan_hang'] ?? ''));
@@ -857,6 +942,33 @@ class AdmissionResultService {
         $replacements['{{THANH_TIEN_DO_6_BUOC}}'] = $this->renderStepperHtml($data);
 
         return strtr($templateHtml, $replacements);
+    }
+
+    /**
+     * Lấy thông tin tổ hợp môn đầy đủ từ ma_to_hop (Ví dụ: M05 -> M05 (VA-SU-NK1))
+     */
+    private function getToHopDetail($maToHop) {
+        $stmt = $this->db->prepare("
+            SELECT t.ma_to_hop, m1.ma_mon as mon1, m2.ma_mon as mon2, m3.ma_mon as mon3 
+            FROM dm_to_hop t
+            LEFT JOIN dm_mon m1 ON t.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON t.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON t.mon_3_id = m3.id
+            WHERE t.ma_to_hop = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$maToHop]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($row) {
+            $mon1 = !empty($row['mon1']) ? strtoupper($row['mon1']) : '';
+            $mon2 = !empty($row['mon2']) ? strtoupper($row['mon2']) : '';
+            $mon3 = !empty($row['mon3']) ? strtoupper($row['mon3']) : '';
+            $subjects = array_filter([$mon1, $mon2, $mon3]);
+            if (!empty($subjects)) {
+                return $row['ma_to_hop'] . ' (' . implode('-', $subjects) . ')';
+            }
+        }
+        return $maToHop;
     }
 
     /**

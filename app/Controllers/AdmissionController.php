@@ -666,7 +666,8 @@ class AdmissionController extends Controller {
                        kqht.hoc_luc_ca_nam as hoc_luc_12, kqht.hanh_kiem_ca_nam as hanh_kiem_12, kqht.diem_tb_ca_nam as diem_tb_12,
                        nh.trang_thai as nh_trang_thai, nh.ngay_nhap_hoc as nh_ngay_nhap_hoc, 
                        nh.da_nop_tien as nh_da_nop_tien, nh.so_tien_da_nop as nh_so_tien_da_nop,
-                       nv.thu_tu_nguyen_vong as thu_tu_nv
+                       nv.thu_tu_nguyen_vong as thu_tu_nv,
+                       cs.chi_tiet_diem
                 FROM ket_qua_trung_tuyen k
                 LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
                 LEFT JOIN dm_tinh dt ON (COALESCE(ts.ma_tinh_ho_khau, ts.ma_tinh_thuong_tru, ts.ma_tinh_lop_12) = dt.ma_tinh)
@@ -674,6 +675,7 @@ class AdmissionController extends Controller {
                 LEFT JOIN ket_qua_hoc_tap kqht ON (ts.so_cccd = kqht.so_cccd AND kqht.lop = 12)
                 LEFT JOIN nhap_hoc nh ON (nh.session_id = k.session_id AND nh.so_cccd = k.so_cccd)
                 LEFT JOIN nguyen_vong nv ON (nv.so_cccd = k.so_cccd AND nv.ma_nganh = k.ma_nganh AND nv.dot_tuyen_sinh_id = k.session_id)
+                LEFT JOIN v_calc_summary cs ON (nv.id = cs.nguyen_vong_id)
                 WHERE k.session_id = ?";
         $params = [$sessionId];
 
@@ -743,14 +745,41 @@ class AdmissionController extends Controller {
         $exportData = [];
         $maxScores = [];
         foreach ($rows as $i => $r) {
+            $dm1 = $r['diem_mon_1'] ?? '';
+            $dm2 = $r['diem_mon_2'] ?? '';
+            $dm3 = $r['diem_mon_3'] ?? '';
+            $diemToHop = $r['diem_to_hop'] ?? '';
+
+            if (!empty($r['chi_tiet_diem'])) {
+                $chiTietRaw = json_decode($r['chi_tiet_diem'], true) ?: [];
+                $m1Score = $chiTietRaw['mon_1']['final'] ?? ($chiTietRaw['mon_1']['base_scaled'] ?? null);
+                $m2Score = $chiTietRaw['mon_2']['final'] ?? ($chiTietRaw['mon_2']['base_scaled'] ?? null);
+                $m3Score = $chiTietRaw['mon_3']['final'] ?? ($chiTietRaw['mon_3']['base_scaled'] ?? null);
+                if ($m1Score === null) {
+                    $monEntries = [];
+                    foreach ($chiTietRaw as $k => $v) {
+                        if (is_array($v) && isset($v['base_scaled'])) {
+                            $monEntries[] = $v;
+                        }
+                    }
+                    $m1Score = $monEntries[0]['base_scaled'] ?? null;
+                    $m2Score = $monEntries[1]['base_scaled'] ?? null;
+                    $m3Score = $monEntries[2]['base_scaled'] ?? null;
+                }
+                if ($m1Score !== null) $dm1 = round((float)$m1Score, 3);
+                if ($m2Score !== null) $dm2 = round((float)$m2Score, 3);
+                if ($m3Score !== null) $dm3 = round((float)$m3Score, 3);
+                $diemToHop = $dm1 + $dm2 + $dm3;
+            }
+
             if ($r['diem_ut'] === null || $r['ut_quy_doi'] === null) {
                 $prio = self::calcPriorityPoints(
                     $r['khu_vuc'] ?? $r['khu_vuc_uu_tien'] ?? '',
                     $r['doi_tuong'] ?? $r['doi_tuong_uu_tien'] ?? '',
-                    $r['diem_mon_1'] ?? null,
-                    $r['diem_mon_2'] ?? null,
-                    $r['diem_mon_3'] ?? null,
-                    $r['diem_to_hop'] ?? null
+                    $dm1,
+                    $dm2,
+                    $dm3,
+                    $diemToHop
                 );
                 if ($r['diem_ut'] === null) $r['diem_ut'] = $prio['diem_ut'];
                 if ($r['ut_quy_doi'] === null) $r['ut_quy_doi'] = $prio['ut_quy_doi'];
@@ -776,10 +805,10 @@ class AdmissionController extends Controller {
                     'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
                     'TH' => $toHopFormatted,
                     'TOHOP' => $toHopFormatted,
-                    'DM1' => $r['diem_mon_1'] ?? '',
-                    'DM2' => $r['diem_mon_2'] ?? '',
-                    'DM3' => $r['diem_mon_3'] ?? '',
-                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DM1' => $dm1,
+                    'DM2' => $dm2,
+                    'DM3' => $dm3,
+                    'DIEMTOHOP' => $diemToHop,
                     'DIEMUT' => $r['diem_ut'] ?? '',
                     'UTQ' => $r['ut_quy_doi'] ?? '',
                     'DIEMXT' => $r['diem_xt'] ?? '',
@@ -840,10 +869,10 @@ class AdmissionController extends Controller {
                     'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
                     'TH' => $r['to_hop'] ?? '',
                     'TOHOP' => $r['to_hop'] ?? '',
-                    'DM1' => $r['diem_mon_1'] ?? '',
-                    'DM2' => $r['diem_mon_2'] ?? '',
-                    'DM3' => $r['diem_mon_3'] ?? '',
-                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DM1' => $dm1,
+                    'DM2' => $dm2,
+                    'DM3' => $dm3,
+                    'DIEMTOHOP' => $diemToHop,
                     'DIEMUT' => $r['diem_ut'] ?? '',
                     'UTQ' => $r['ut_quy_doi'] ?? '',
                     'DIEMXT' => $r['diem_xt'] ?? '',
@@ -900,10 +929,10 @@ class AdmissionController extends Controller {
                     'DOITUONG' => $r['doi_tuong'] ?? ($r['doi_tuong_uu_tien'] ?? ''),
                     'TH' => $r['to_hop'] ?? '',
                     'TOHOP' => $r['to_hop'] ?? '',
-                    'DM1' => $r['diem_mon_1'] ?? '',
-                    'DM2' => $r['diem_mon_2'] ?? '',
-                    'DM3' => $r['diem_mon_3'] ?? '',
-                    'DIEMTOHOP' => $r['diem_to_hop'] ?? '',
+                    'DM1' => $dm1,
+                    'DM2' => $dm2,
+                    'DM3' => $dm3,
+                    'DIEMTOHOP' => $diemToHop,
                     'DIEMUT' => $r['diem_ut'] ?? '',
                     'UTQ' => $r['ut_quy_doi'] ?? '',
                     'DIEMXT' => $r['diem_xt'] ?? '',
