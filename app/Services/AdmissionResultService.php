@@ -94,6 +94,8 @@ class AdmissionResultService {
                 'dienthoai' => 'sdt',
                 'sodienthoai' => 'sdt',
                 'ghichu' => 'ghichu',
+                'dantoc' => 'dantoc',
+                'dt' => 'dantoc',
                 'phuongthuc' => 'phuongthuc',
                 'sogiaybao' => 'sogiaybao',
                 'sogb' => 'sogiaybao',
@@ -159,6 +161,7 @@ class AdmissionResultService {
         $ignored    = 0;
         $seenInFile = [];
         $rowStatuses = []; // Track status of each row for download result Excel
+        $thiSinhUpdates = [];
 
         for ($row = 2; $row <= $highestRow; $row++) {
             $rowData = $data[$row] ?? [];
@@ -238,6 +241,15 @@ class AdmissionResultService {
                     'trang_thai' => $nhStatus ? 'da_nhap_hoc' : ($nhStatus === false ? 'chua_nhap_hoc' : null),
                     'da_nop'     => $nopFee,
                     'so_tien'    => $soTienNop
+                ];
+            }
+            $danToc = trim(isset($colMap['dantoc']) ? ($rowData[$colMap['dantoc']] ?? '') : '');
+            if (!empty($danToc) || !empty($email) || !empty($record['sdt'])) {
+                $thiSinhUpdates[] = [
+                    'cccd' => $cccd,
+                    'dan_toc' => $danToc,
+                    'email' => $email,
+                    'sdt' => $record['sdt']
                 ];
             }
 
@@ -449,6 +461,26 @@ class AdmissionResultService {
                     }
                     $sql = sprintf($nhBaseSql, implode(', ', $placeholders));
                     $this->db->prepare($sql)->execute($flat);
+                }
+            }
+
+            // 5d. Cập nhật Dân tộc, Email, SĐT vào bảng thi_sinh
+            if (!empty($thiSinhUpdates)) {
+                $tsStmt = $this->db->prepare("
+                    UPDATE thi_sinh 
+                    SET 
+                        dan_toc = CASE WHEN ? != '' THEN ? ELSE dan_toc END,
+                        email = CASE WHEN ? != '' THEN ? ELSE email END,
+                        dien_thoai = CASE WHEN ? != '' THEN ? ELSE dien_thoai END
+                    WHERE so_cccd = ?
+                ");
+                foreach ($thiSinhUpdates as $ts) {
+                    $tsStmt->execute([
+                        $ts['dan_toc'], $ts['dan_toc'],
+                        $ts['email'], $ts['email'],
+                        $ts['sdt'], $ts['sdt'],
+                        $ts['cccd']
+                    ]);
                 }
             }
 

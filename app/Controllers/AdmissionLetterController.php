@@ -359,4 +359,59 @@ class AdmissionLetterController extends Controller {
         ]);
         exit;
     }
+
+    /**
+     * Đồng bộ kết quả trúng tuyển sang thư trúng tuyển
+     */
+    public function syncFromResults() {
+        $this->requireAdmin();
+        $this->validateCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $sessionId = (int)($_POST['session_id'] ?? 0);
+            
+            if (!$sessionId) {
+                $this->redirect(url('/admin/admission-letters?error=' . urlencode('Vui lòng chọn đợt tuyển sinh hợp lệ.')));
+                return;
+            }
+
+            try {
+                $result = $this->service->syncFromResults($sessionId);
+                $this->redirect(url('/admin/admission-letters?success=1&imported=' . $result['imported'] . '&ignored=' . $result['ignored']));
+            } catch (\Exception $e) {
+                $this->redirect(url('/admin/admission-letters?error=' . urlencode('Lỗi đồng bộ: ' . $e->getMessage())));
+            }
+        }
+    }
+
+    /**
+     * Lấy danh sách đợt tuyển sinh kèm theo số lượng kết quả trúng tuyển
+     */
+    public function getSessions() {
+        $this->requireAdmin();
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        // Lấy tất cả đợt tuyển sinh và đếm số lượng bản ghi trong ket_qua_trung_tuyen
+        $sql = "
+            SELECT 
+                d.id, 
+                d.ten_dot, 
+                d.nam_tuyen_sinh, 
+                COUNT(k.id) as total_results
+            FROM dot_tuyen_sinh d
+            LEFT JOIN ket_qua_trung_tuyen k ON d.id = k.session_id
+            GROUP BY d.id, d.ten_dot, d.nam_tuyen_sinh
+            ORDER BY d.nam_tuyen_sinh DESC, d.id DESC
+        ";
+        
+        $stmt = $db->query($sql);
+        $sessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => true,
+            'sessions' => $sessions
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }

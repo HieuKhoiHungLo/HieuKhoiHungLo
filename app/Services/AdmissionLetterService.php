@@ -624,6 +624,125 @@ class AdmissionLetterService {
     }
 
     /**
+     * Đồng bộ thí sinh trúng tuyển từ kết quả tuyển sinh sang thư trúng tuyển
+     */
+    public function syncFromResults($sessionId) {
+        $sessionId = (int)$sessionId;
+        
+        // 1. Lấy thông tin đợt tuyển sinh
+        $sessionStmt = $this->db->prepare("SELECT ten_dot FROM dot_tuyen_sinh WHERE id = ?");
+        $sessionStmt->execute([$sessionId]);
+        $session = $sessionStmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$session) {
+            throw new \Exception("Đợt tuyển sinh không tồn tại.");
+        }
+        $batchId = "Đồng bộ " . $session['ten_dot'];
+
+        // 2. Lấy danh sách CCCD + Ngành đã tồn tại trong đợt này ở bảng thu_trung_tuyen để tránh trùng lặp
+        $existStmt = $this->db->prepare("SELECT so_cccd, ma_nganh FROM thu_trung_tuyen WHERE batch_id = ?");
+        $existStmt->execute([$batchId]);
+        $existing = [];
+        while ($row = $existStmt->fetch(\PDO::FETCH_ASSOC)) {
+            $key = $row['so_cccd'] . '|' . $row['ma_nganh'];
+            $existing[$key] = true;
+        }
+
+        // 3. Lấy dữ liệu từ ket_qua_trung_tuyen JOIN thi_sinh
+        $sql = "
+            SELECT 
+                k.so_cccd, k.ho_ten, k.ngay_sinh, k.sbd, k.khu_vuc, k.doi_tuong, k.to_hop,
+                k.diem_mon_1, k.diem_mon_2, k.diem_mon_3, k.diem_to_hop, k.diem_ut, k.ut_quy_doi,
+                k.diem_xt, k.ma_nganh, k.ten_nganh, k.phuong_thuc, k.ghi_chu,
+                ts.email, ts.dien_thoai as sdt
+            FROM ket_qua_trung_tuyen k
+            LEFT JOIN thi_sinh ts ON k.so_cccd = ts.so_cccd
+            WHERE k.session_id = ?
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$sessionId]);
+        $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $rows = [];
+        $ignored = 0;
+        foreach ($candidates as $c) {
+            $key = $c['so_cccd'] . '|' . $c['ma_nganh'];
+            if (isset($existing[$key])) {
+                $ignored++;
+                continue;
+            }
+
+            // Đánh dấu in-memory để tránh trùng lặp trong chính danh sách đang lặp
+            $existing[$key] = true;
+
+            // Xử lý các giá trị mặc định nếu rỗng
+            $email = trim($c['email'] ?? '');
+            $sdt = trim($c['sdt'] ?? '');
+            
+            // Một số trường hợp cần chuẩn hóa
+            $rows[] = [
+                $batchId,
+                $c['so_cccd'],
+                trim($c['ho_ten'] ?? ''),
+                trim($c['ngay_sinh'] ?? ''),
+                trim($c['sbd'] ?? ''),
+                trim($c['khu_vuc'] ?? ''),
+                trim($c['doi_tuong'] ?? ''),
+                trim($c['to_hop'] ?? ''),
+                $c['diem_mon_1'] !== null ? (float)$c['diem_mon_1'] : 0.0,
+                $c['diem_mon_2'] !== null ? (float)$c['diem_mon_2'] : 0.0,
+                $c['diem_mon_3'] !== null ? (float)$c['diem_mon_3'] : 0.0,
+                $c['diem_to_hop'] !== null ? (float)$c['diem_to_hop'] : 0.0,
+                $c['diem_ut'] !== null ? (float)$c['diem_ut'] : 0.0,
+                $c['ut_quy_doi'] !== null ? (float)$c['ut_quy_doi'] : 0.0,
+                $c['diem_xt'] !== null ? (float)$c['diem_xt'] : 0.0,
+                trim($c['ma_nganh'] ?? ''),
+                trim($c['ten_nganh'] ?? ''),
+                trim($c['phuong_thuc'] ?? ''),
+                '', // so_tai_khoan
+                '', // ngan_hang
+                0,  // so_tien
+                '', // noi_dung_ck
+                $email,
+                $sdt,
+                trim($c['ghi_chu'] ?? '')
+            ];
+        }
+
+        // 4. Batch Insert
+        $imported = 0;
+        if (!empty($rows)) {
+            $batchSize  = 500;
+            $colCount   = 25;
+            $baseSql = "INSERT INTO thu_trung_tuyen (
+                batch_id, so_cccd, ho_ten, ngay_sinh, sbd, khu_vuc, doi_tuong, to_hop,
+                diem_mon_1, diem_mon_2, diem_mon_3, diem_to_hop, diem_ut, ut_quy_doi,
+                diem_xt, ma_nganh, ten_nganh, phuong_thuc,
+                so_tai_khoan, ngan_hang, so_tien, noi_dung_ck,
+                email, sdt, ghi_chu
+            ) VALUES ";
+
+            $chunks = array_chunk($rows, $batchSize);
+            $this->db->beginTransaction();
+            try {
+                foreach ($chunks as $chunk) {
+                    $placeholderRow = '(' . implode(',', array_fill(0, $colCount, '?')) . ')';
+                    $sql = $baseSql . implode(',', array_fill(0, count($chunk), $placeholderRow));
+                    $flat = array_merge(...$chunk);
+
+                    $this->db->prepare($sql)->execute($flat);
+                    $imported += count($chunk);
+                }
+                $this->db->commit();
+            } catch (\Exception $e) {
+                $this->db->rollBack();
+                throw $e;
+            }
+        }
+
+        return ['imported' => $imported, 'ignored' => $ignored];
+    }
+
+    /**
      * Chuẩn hóa tiêu đề: viết thường, xóa dấu Tiếng Việt, xóa tất cả các ký tự không phải chữ/số
      */
     private function normalizeHeader($str) {

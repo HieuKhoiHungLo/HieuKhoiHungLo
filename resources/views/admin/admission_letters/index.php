@@ -8,6 +8,9 @@
             <p class="text-sm text-gray-500 mt-1">Quản lý và gửi thư thông báo linh hoạt cho thí sinh</p>
         </div>
         <div class="flex gap-2">
+            <button type="button" onclick="openSyncModal()" class="px-4 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-200 flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> Đồng bộ từ Kết quả
+            </button>
             <button type="button" onclick="openSendAllModal()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center">
                 <i class="fas fa-mail-bulk mr-2"></i> Gửi toàn bộ
             </button>
@@ -520,6 +523,44 @@
     </div>
 </div>
 
+<!-- Sync From Results Modal -->
+<div id="syncModal" class="hidden fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <form action="<?= url('/admin/admission-letters/sync') ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= $this->csrfToken() ?>">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-teal-50">
+                <div>
+                    <h3 class="text-lg font-black text-slate-800">Đồng bộ từ Kết quả</h3>
+                    <p class="text-xs text-slate-500 mt-1">Đồng bộ danh sách trúng tuyển sang thư báo.</p>
+                </div>
+                <button type="button" onclick="closeSyncModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="bg-teal-50 border border-teal-200 rounded-xl p-4 text-xs text-teal-700">
+                    <i class="fas fa-info-circle mr-1"></i> <strong>Chống trùng lặp:</strong> Hệ thống tự động bỏ qua các thí sinh đã được đồng bộ trước đó (so sánh CCCD và mã ngành) của đợt này.
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Chọn Đợt tuyển sinh <span class="text-red-500">*</span></label>
+                    <select id="sync-session-id" name="session_id" onchange="onSyncSessionChange()" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition text-sm" required>
+                        <option value="">-- Đang tải danh sách đợt... --</option>
+                    </select>
+                </div>
+                <div id="sync-candidate-count-box" class="hidden text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    Số thí sinh trúng tuyển trong đợt này: <span id="sync-candidate-count" class="font-bold text-teal-600">0</span>
+                </div>
+            </div>
+            <div class="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+                <button type="button" onclick="closeSyncModal()" class="px-5 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-sm">Hủy</button>
+                <button type="submit" onclick="if(typeof Loading !== 'undefined') Loading.show();" class="px-5 py-2 bg-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-200 hover:bg-teal-700 transition flex items-center text-sm">
+                    <i class="fas fa-sync-alt mr-2"></i> Đồng bộ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function openTestEmailModal() {
         const form = document.querySelector('#testEmailModal form');
@@ -625,6 +666,56 @@
             if (e.key === 'Enter') applyFilters();
         });
     });
+
+    let syncSessions = [];
+
+    function openSyncModal() {
+        const select = document.getElementById('sync-session-id');
+        select.innerHTML = '<option value="">-- Đang tải danh sách đợt... --</option>';
+        document.getElementById('sync-candidate-count-box').classList.add('hidden');
+        document.getElementById('syncModal').classList.remove('hidden');
+
+        fetch('<?= url("/admin/admission-letters/sessions-api") ?>')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    syncSessions = data.sessions;
+                    let html = '<option value="">-- Chọn đợt tuyển sinh --</option>';
+                    data.sessions.forEach(s => {
+                        html += `<option value="${s.id}">${s.ten_dot} (${s.nam_tuyen_sinh})</option>`;
+                    });
+                    select.innerHTML = html;
+                } else {
+                    select.innerHTML = '<option value="">Lỗi tải dữ liệu!</option>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                select.innerHTML = '<option value="">Lỗi kết nối máy chủ!</option>';
+            });
+    }
+
+    function closeSyncModal() {
+        document.getElementById('syncModal').classList.add('hidden');
+    }
+
+    function onSyncSessionChange() {
+        const val = document.getElementById('sync-session-id').value;
+        const box = document.getElementById('sync-candidate-count-box');
+        const countSpan = document.getElementById('sync-candidate-count');
+        if (!val) {
+            box.classList.add('hidden');
+            return;
+        }
+
+        const session = syncSessions.find(s => s.id == val);
+        if (session) {
+            countSpan.innerText = Number(session.total_results).toLocaleString();
+            box.classList.remove('hidden');
+        } else {
+            box.classList.add('hidden');
+        }
+    }
 </script>
 
 <?php 

@@ -364,7 +364,7 @@ class EnrollmentController extends Controller {
             ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
             : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
 
-        $stmtTT = $this->db->prepare("SELECT COUNT(*) FROM nguyen_vong nv JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id WHERE nv.dot_tuyen_sinh_id = ? AND $admitCond");
+        $stmtTT = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_trung_tuyen WHERE session_id = ?");
         $stmtTT->execute([$sessionId]);
         $totalTrungTuyen = $stmtTT->fetchColumn();
 
@@ -376,10 +376,9 @@ class EnrollmentController extends Controller {
         $stmtMajor = $this->db->prepare("
             SELECT n.ten_nganh, n.ma_nganh, n.chi_tieu,
                    (
-                       SELECT $doBoExpr
-                       FROM nguyen_vong nv
-                       JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                       WHERE nv.ma_nganh = n.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                       SELECT COUNT(*)
+                       FROM ket_qua_trung_tuyen k
+                       WHERE k.ma_nganh = n.ma_nganh AND k.session_id = ?
                    ) as so_trung_tuyen,
                    COALESCE(kq_stats.xac_nhan_bo, 0) as xac_nhan_bo,
                    COALESCE(kq_stats.xac_nhan_truong, 0) as xac_nhan_truong,
