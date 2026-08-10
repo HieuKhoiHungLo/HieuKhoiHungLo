@@ -15,7 +15,7 @@ class AdmissionLookupController extends Controller
     {
         $activeSession = \App\Core\Cache::remember('active_lookup_session', 5, function() {
             $db = Database::getInstance()->getConnection();
-            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
+            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE is_published_results IS TRUE ORDER BY id DESC LIMIT 1");
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         });
 
@@ -68,7 +68,7 @@ class AdmissionLookupController extends Controller
 
         $activeSession = \App\Core\Cache::remember('active_lookup_session', 5, function() {
             $db = Database::getInstance()->getConnection();
-            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
+            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE is_published_results IS TRUE ORDER BY id DESC LIMIT 1");
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         });
 

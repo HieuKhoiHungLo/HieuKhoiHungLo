@@ -1544,6 +1544,8 @@ class AdmissionController extends Controller {
             $stmt = $db->prepare("UPDATE dot_tuyen_sinh SET is_published_results = ? WHERE id = ?");
             $stmt->execute([$status ? 'true' : 'false', $sessionId]);
             
+            \App\Core\Cache::forget('active_lookup_session');
+            
             $msg = $status ? 'Đã công bố kết quả xét tuyển cho đợt này.' : 'Đã hủy công bố kết quả xét tuyển.';
             $this->redirect(url('/admin/admission/results?session_id=' . $sessionId . '&success=' . urlencode($msg)));
         } else {
