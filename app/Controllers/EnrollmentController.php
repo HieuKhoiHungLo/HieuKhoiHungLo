@@ -507,6 +507,19 @@ class EnrollmentController extends Controller {
             $chartDist['users'][$r['ho_ten']] = (int)$r['so_luong'];
         }
 
+        // 3. Dữ liệu thí sinh nhập học theo ngày
+        $stmtDaily = $this->db->prepare("
+            SELECT DATE(ngay_nhap_hoc) as date, COUNT(*) as count
+            FROM nhap_hoc
+            WHERE session_id = ? AND trang_thai = 'da_nhap_hoc'
+            GROUP BY DATE(ngay_nhap_hoc)
+            ORDER BY date ASC
+        ");
+        $stmtDaily->execute([$sessionId]);
+        $dailyRows = $stmtDaily->fetchAll(PDO::FETCH_ASSOC);
+        
+        $chartDist['daily_enrollment'] = $dailyRows;
+
         // Gần đây (5 hồ sơ)
         $stmtRecent = $this->db->prepare("
             SELECT nh.*, kq.ho_ten, kq.so_cccd, n.ten_nganh, qv.ho_ten as ten_can_bo

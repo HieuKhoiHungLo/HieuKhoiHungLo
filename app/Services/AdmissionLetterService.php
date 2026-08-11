@@ -382,6 +382,28 @@ class AdmissionLetterService {
      * Render nội dung thư
      */
     public function renderTemplate($templateHtml, $data) {
+        $cccd = $data['so_cccd'] ?? '';
+        $maNganh = $data['ma_nganh'] ?? '';
+        
+        // Fetch extra fields from ket_qua_trung_tuyen
+        $stmtKq = $this->db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? AND ma_nganh = ? LIMIT 1");
+        $stmtKq->execute([$cccd, $maNganh]);
+        $kqRow = $stmtKq->fetch(\PDO::FETCH_ASSOC) ?: [];
+        
+        // Fetch gender and details from thi_sinh
+        $stmtTs = $this->db->prepare("SELECT gioi_tinh, dien_thoai, email FROM thi_sinh WHERE so_cccd = ? LIMIT 1");
+        $stmtTs->execute([$cccd]);
+        $tsRow = $stmtTs->fetch(\PDO::FETCH_ASSOC) ?: [];
+        $gioiTinh = $tsRow['gioi_tinh'] ?? '';
+        
+        // Fetch from nhap_hoc
+        $nhapHocRow = [];
+        if (!empty($kqRow['id'])) {
+            $stmtNh = $this->db->prepare("SELECT * FROM nhap_hoc WHERE ket_qua_id = ? LIMIT 1");
+            $stmtNh->execute([$kqRow['id']]);
+            $nhapHocRow = $stmtNh->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         $chiTieu = '';
         $diemNamTruoc = '';
         if (!empty($data['ma_nganh'])) {
@@ -398,37 +420,109 @@ class AdmissionLetterService {
         }
 
         $replacements = [
-            '{{HoTen}}' => $data['ho_ten'] ?? '',
-            '{{name}}' => $data['ho_ten'] ?? '',
-            '{{SBD}}' => $data['sbd'] ?? '',
-            '{{NgaySinh}}' => $data['ngay_sinh'] ?? '',
-            '{{CCCD}}' => $data['so_cccd'] ?? '',
-            '{{KhuVuc}}' => $data['khu_vuc'] ?? '',
-            '{{DoiTuong}}' => $data['doi_tuong'] ?? '',
-            '{{PhuongThuc}}' => $data['phuong_thuc'] ?? '',
-            '{{ToHop}}' => $data['to_hop'] ?? '',
-            '{{DM1}}' => $data['diem_mon_1'] ?? '',
-            '{{DM2}}' => $data['diem_mon_2'] ?? '',
-            '{{DM3}}' => $data['diem_mon_3'] ?? '',
-            '{{DiemToHop}}' => $data['diem_to_hop'] ?? '',
-            '{{DiemUT}}' => $data['diem_ut'] ?? '',
-            '{{UTQ}}' => $data['ut_quy_doi'] ?? '',
-            '{{DiemXT}}' => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
-            '{{Nganh}}' => $data['ten_nganh'] ?? '',
-            '{{major}}' => $data['ten_nganh'] ?? '',
-            '{{MaNganh}}' => $data['ma_nganh'] ?? '',
-            '{{ChiTieu}}' => $chiTieu,
-            '{{DiemNamTruoc}}' => $diemNamTruoc,
-            '{{XepHang}}' => $data['ghi_chu'] ?? '',
-            '{{GhiChu}}' => $data['ghi_chu'] ?? '',
-            '{{SoTien}}' => number_format((float)($data['so_tien'] ?? 0), 0, ',', '.'),
+            // 1. Thông tin cá nhân thí sinh
+            '{{HoTen}}'       => $data['ho_ten'] ?? '',
+            '{{HOTEN}}'       => $data['ho_ten'] ?? '',
+            '{{name}}'        => $data['ho_ten'] ?? '',
+            '{{CCCD}}'        => $data['so_cccd'] ?? '',
+            '{{SO_CCCD}}'     => $data['so_cccd'] ?? '',
+            '{{NgaySinh}}'    => $data['ngay_sinh'] ?? '',
+            '{{NGAYSINH}}'    => $data['ngay_sinh'] ?? '',
+            '{{SBD}}'         => $data['sbd'] ?? '',
+            '{{GioiTinh}}'    => $gioiTinh ?: ($data['gioi_tinh'] ?? ''),
+            '{{Email}}'       => $data['email'] ?? $tsRow['email'] ?? '',
+            '{{EMAIL}}'       => $data['email'] ?? $tsRow['email'] ?? '',
+            '{{SDT}}'         => $data['sdt'] ?? $tsRow['dien_thoai'] ?? '',
+            '{{KhuVuc}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            '{{KHUVUC}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            '{{DoiTuong}}'    => $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
+            '{{DOITUONG}}'    => $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
+
+            // 2. Thông tin xét tuyển & điểm
+            '{{PhuongThuc}}'  => $data['phuong_thuc'] ?? '',
+            '{{PHUONGTHUC}}'  => $data['phuong_thuc'] ?? '',
+            '{{ToHop}}'       => !empty($data['to_hop']) ? $this->getToHopDetail($data['to_hop']) : '',
+            '{{TOHOP}}'       => !empty($data['to_hop']) ? $this->getToHopDetail($data['to_hop']) : '',
+            '{{DM1}}'         => $data['diem_mon_1'] ?? '',
+            '{{DM2}}'         => $data['diem_mon_2'] ?? '',
+            '{{DM3}}'         => $data['diem_mon_3'] ?? '',
+            '{{DiemToHop}}'   => $data['diem_to_hop'] ?? '',
+            '{{DIEMTOHOP}}'   => $data['diem_to_hop'] ?? '',
+            '{{DiemUT}}'      => $data['diem_ut'] ?? '',
+            '{{DIEMUT}}'      => $data['diem_ut'] ?? '',
+            '{{UTQ}}'         => $data['ut_quy_doi'] ?? '',
+            '{{DiemXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
+            '{{DIEMXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
+            '{{Nganh}}'       => $data['ten_nganh'] ?? '',
+            '{{NGANH}}'       => $data['ten_nganh'] ?? '',
+            '{{major}}'       => $data['ten_nganh'] ?? '',
+            '{{MaNganh}}'     => $data['ma_nganh'] ?? '',
+            '{{MANGANH}}'     => $data['ma_nganh'] ?? '',
+            '{{ChiTieu}}'     => $chiTieu,
+            '{{CHITIEU}}'     => $chiTieu,
+            '{{DiemNamTruoc}}'=> $diemNamTruoc,
+            '{{XepHang}}'     => $data['ghi_chu'] ?? '',
+            '{{GhiChu}}'      => $data['ghi_chu'] ?? '',
+
+            // 3. Thông tin Nhập học & Giấy báo trúng tuyển
+            '{{SoGB}}'        => $kqRow['so_giay_bao'] ?? '',
+            '{{SOGIAYBAO}}'   => $kqRow['so_giay_bao'] ?? '',
+            '{{SOGB}}'        => $kqRow['so_giay_bao'] ?? '',
+            '{{ThoiGianNhap}}'=> $kqRow['thoi_gian_nhap'] ?? '',
+            '{{THOIGIANNHAP}}'=> $kqRow['thoi_gian_nhap'] ?? '',
+            '{{NganhTT}}'     => !empty($kqRow['nganh_tt']) ? $kqRow['nganh_tt'] : ($data['ten_nganh'] ?? ''),
+            '{{NGANH_TT}}'    => !empty($kqRow['nganh_tt']) ? $kqRow['nganh_tt'] : ($data['ten_nganh'] ?? ''),
+            '{{Khoa}}'        => $kqRow['ten_khoa'] ?? '',
+            '{{KHOA}}'        => $kqRow['ten_khoa'] ?? '',
+            '{{KinhPhi}}'     => $kqRow['kinh_phi'] ?? '',
+            '{{KINHPHI}}'     => $kqRow['kinh_phi'] ?? '',
+            '{{KhoiKinhPhi}}' => !empty($kqRow['kinh_phi']) ? '<div style="margin-top:12px; padding:10px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; font-size:13px; color:#1e40af; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-info-circle" style="margin-right:4px;"></i> ' . $kqRow['kinh_phi'] . '</div>' : '',
+            '{{FileGiayBao}}' => $kqRow['file_giay_bao'] ?? '',
+            '{{LINKGIAYBAO}}' => $kqRow['file_giay_bao'] ?? '',
+
+            // 4. Thông tin Học phí & Ngân hàng
+            '{{SOTK}}'        => !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : ''),
+            '{{SOTAIKHOAN}}'  => !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : ''),
+            '{{NGANHANG}}'    => !empty($data['ngan_hang']) ? $data['ngan_hang'] : (!empty($kqRow['ngan_hang']) ? $kqRow['ngan_hang'] : ''),
+            '{{SoTien}}'      => number_format((float)(!empty($data['so_tien']) ? $data['so_tien'] : (!empty($kqRow['so_tien']) ? $kqRow['so_tien'] : 0)), 0, ',', '.'),
+            '{{SOTIEN}}'      => number_format((float)(!empty($data['so_tien']) ? $data['so_tien'] : (!empty($kqRow['so_tien']) ? $kqRow['so_tien'] : 0)), 0, ',', '.'),
+            '{{NOIDUNG}}'     => !empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : (!empty($kqRow['noi_dung_ck']) ? $kqRow['noi_dung_ck'] : ''),
+            '{{NOIDUNGCK}}'   => !empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : (!empty($kqRow['noi_dung_ck']) ? $kqRow['noi_dung_ck'] : ''),
         ];
 
+        // === Nút Xem giấy báo PDF ===
+        $replacements['{{NutXemGiayBao}}'] = '<div style="margin-top: 14px; text-align: center;"><a href="' . url('/tra-cuu-trung-tuyen', true) . '" target="_blank" style="display: inline-block; background-color: #1e40af; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; font-size: 13px; font-family: Arial, Helvetica, sans-serif;"><i class="fas fa-file-pdf" style="margin-right: 6px;"></i> Xem Giấy báo trúng tuyển (PDF)</a></div>';
+
+        // === Trạng thái xác nhận Nhà trường ===
+        $replacements['{{TrangThaiXacNhan}}'] = '<div style="text-align: center;"><a href="' . url('/tra-cuu-trung-tuyen', true) . '" target="_blank" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; text-align: center; font-size: 13px; font-family: Arial, Helvetica, sans-serif;"><i class="fas fa-check-circle" style="margin-right: 4px;"></i> XÁC NHẬN NHẬP HỌC TRỰC TUYẾN</a></div>';
+
+        // === Trạng thái xác nhận Bộ GD&ĐT ===
+        $replacements['{{TrangThaiXacNhanBo}}'] = '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; text-align: left; font-family: Arial, Helvetica, sans-serif;">'
+            . '<span style="font-size: 13px; color: #374151; flex: 1;">Vui lòng truy cập hệ thống Bộ GD&ĐT để xác nhận nhập học chính thức.</span>'
+            . '<a href="https://thisinh.thitotnghiepthpt.edu.vn" target="_blank" style="display: inline-block; background-color: #059669; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 13px; white-space: nowrap; font-family: Arial, Helvetica, sans-serif;"><i class="fas fa-external-link-alt" style="margin-right: 4px;"></i> Đi tới hệ thống Bộ</a>'
+            . '</div>';
+
+        // === Trạng thái xác nhận kinh phí ===
+        $replacements['{{XacNhanKinhPhi}}'] = '<div style="margin-top:14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; text-align: left; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #374151;"><i class="fas fa-info-circle" style="color: #3b82f6; margin-right: 6px;"></i> Sau khi hoàn tất nộp kinh phí nhập học, Anh (chị) vui lòng truy cập <a href="' . url('/tra-cuu-trung-tuyen', true) . '" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: underline;">Cổng tra cứu kết quả</a> để cập nhật trạng thái nộp kinh phí.</div>';
+
+        // === Tiến trình 6 bước ===
+        $mergedData = array_merge($data, $kqRow);
+        $mergedData['gioi_tinh'] = $gioiTinh;
+        $mergedData['nop_kinh_phi'] = !empty($kqRow['xac_nhan_kinh_phi']);
+        $mergedData['so_tien_nop'] = $nhapHocRow['so_tien_da_nop'] ?? 0;
+        $mergedData['nhap_hoc'] = !empty($nhapHocRow['id']) && ($nhapHocRow['trang_thai'] === 'da_nhap_hoc');
+        $replacements['{{THANH_TIEN_DO_6_BUOC}}'] = $this->renderStepperHtml($mergedData);
+
         // Tạo QR Code urls
-        $bankName = strtolower(str_replace(' ', '', $data['ngan_hang'] ?? ''));
-        $accountNum = $data['so_tai_khoan'] ?? '';
-        $amount = $data['so_tien'] ?? 0;
-        $content = urlencode(trim($data['noi_dung_ck'] ?? ''));
+        $resolvedNganHang = !empty($data['ngan_hang']) ? $data['ngan_hang'] : (!empty($kqRow['ngan_hang']) ? $kqRow['ngan_hang'] : '');
+        $resolvedSoTK = !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : '');
+        $resolvedSoTien = !empty($data['so_tien']) ? $data['so_tien'] : (!empty($kqRow['so_tien']) ? $kqRow['so_tien'] : 0);
+        $resolvedNoiDung = !empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : (!empty($kqRow['noi_dung_ck']) ? $kqRow['noi_dung_ck'] : '');
+
+        $bankName = strtolower(str_replace(' ', '', $resolvedNganHang));
+        $accountNum = $resolvedSoTK;
+        $amount = $resolvedSoTien;
+        $content = urlencode(trim($resolvedNoiDung));
 
         if ($bankName && $accountNum) {
             $qrVietQR = '<img src="https://img.vietqr.io/image/' . $bankName . '-' . $accountNum . '-compact2.jpg?amount=' . $amount . '&addInfo=' . $content . '" alt="QR Thanh Toan" style="max-width: 250px; height: auto; border: 1px solid #eee; border-radius: 5px; display: inline-block;" />';
@@ -447,6 +541,74 @@ class AdmissionLetterService {
         $replacements['{{QR_CCCD}}'] = $qrCCCD;
 
         return strtr($templateHtml, $replacements);
+    }
+
+    private function calculateEnrollmentSteps($data) {
+        $step1 = true;
+        $step2 = !empty($data['xac_nhan_bo']);
+        $step3 = !empty($data['xac_nhan_truong']);
+        $step4 = !empty($data['nop_kinh_phi']) || (!empty($data['so_tien_nop']) && (float)$data['so_tien_nop'] > 0) || !empty($data['xac_nhan_kinh_phi']);
+        $step5 = !empty($data['nhap_hoc']);
+        $step6 = !empty($data['nhap_hoc']) && $step4;
+
+        return [
+            1 => ['title' => '1. Trúng tuyển', 'completed' => $step1, 'icon' => 'fa-graduation-cap', 'desc' => 'Đã có tên trong danh sách trúng tuyển'],
+            2 => ['title' => '2. Xác nhận Bộ GD&ĐT', 'completed' => $step2, 'icon' => 'fa-building-columns', 'desc' => 'Xác nhận trên thisinh.thitotnghiepthpt.edu.vn'],
+            3 => ['title' => '3. Xác nhận HVU', 'completed' => $step3, 'icon' => 'fa-university', 'desc' => 'Xác nhận nhập học Trường ĐH Hùng Vương'],
+            4 => ['title' => '4. Nộp học phí', 'completed' => $step4, 'icon' => 'fa-credit-card', 'desc' => 'Chuyển khoản nộp kinh phí nhập học (VietQR)'],
+            5 => ['title' => '5. Nộp hồ sơ online', 'completed' => $step5, 'icon' => 'fa-folder-open', 'desc' => 'Tải bản chụp 8 giấy tờ hồ sơ nhập học'],
+            6 => ['title' => '6. Theo dõi hồ sơ', 'completed' => $step6, 'icon' => 'fa-clock-rotate-left', 'desc' => 'Nhà trường tiếp nhận & kiểm tra hồ sơ'],
+        ];
+    }
+
+    private function renderStepperHtml($data) {
+        $steps = $this->calculateEnrollmentSteps($data);
+        $html = '<div class="hvu-stepper-container my-6 p-4 md:p-6 bg-slate-900 text-white rounded-2xl shadow-xl font-sans border border-slate-800" style="margin-top: 24px; margin-bottom: 24px; padding: 20px; background-color: #0f172a; color: #ffffff; border-radius: 16px; border: 1px solid #1e293b;">';
+        $html .= '<div style="border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px; text-align: left;">';
+        $html .= '  <h4 style="font-size: 14px; font-weight: bold; color: #fbbf24; text-transform: uppercase; margin: 0;"><i class="fas fa-route"></i> TIẾN TRÌNH NHẬP HỌC</h4>';
+        $html .= '</div>';
+        
+        $html .= '<div style="text-align: center; margin: 0 auto; width: 100%;">';
+        foreach ($steps as $num => $step) {
+            $isDone = $step['completed'];
+            $statusStyle = $isDone 
+                ? 'background-color: #14532d; border: 1px solid #22c55e; color: #bbf7d0; display: inline-block; width: 30%; min-width: 145px; margin: 6px; padding: 12px 8px; border-radius: 12px; text-align: center; vertical-align: top; box-sizing: border-box;' 
+                : 'background-color: #1e293b; border: 1px solid #334155; color: #94a3b8; display: inline-block; width: 30%; min-width: 145px; margin: 6px; padding: 12px 8px; border-radius: 12px; text-align: center; vertical-align: top; box-sizing: border-box;';
+            $badgeIcon   = $isDone ? '✓' : $num;
+            $badgeBg     = $isDone ? 'background-color: #22c55e; color: #ffffff;' : 'background-color: #475569; color: #ffffff;';
+            
+            $html .= '<div style="' . $statusStyle . '">';
+            $html .= '  <div style="width: 24px; height: 24px; line-height: 24px; border-radius: 50%; margin: 0 auto 8px; text-align: center; font-size: 12px; font-weight: bold; ' . $badgeBg . '">' . $badgeIcon . '</div>';
+            $html .= '  <div style="font-size: 11px; font-weight: bold; line-height: 1.3; margin-bottom: 4px;">' . htmlspecialchars($step['title']) . '</div>';
+            $html .= '  <div style="font-size: 10px; opacity: 0.75;">' . ($isDone ? 'Đã hoàn thành' : 'Chưa thực hiện') . '</div>';
+            $html .= '</div>';
+        }
+        $html .= '</div></div>';
+        return $html;
+    }
+
+    private function getToHopDetail($maToHop) {
+        $stmt = $this->db->prepare("
+            SELECT t.ma_to_hop, m1.ma_mon as mon1, m2.ma_mon as mon2, m3.ma_mon as mon3 
+            FROM dm_to_hop t
+            LEFT JOIN dm_mon m1 ON t.mon_1_id = m1.id
+            LEFT JOIN dm_mon m2 ON t.mon_2_id = m2.id
+            LEFT JOIN dm_mon m3 ON t.mon_3_id = m3.id
+            WHERE t.ma_to_hop = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$maToHop]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($row) {
+            $mon1 = !empty($row['mon1']) ? strtoupper($row['mon1']) : '';
+            $mon2 = !empty($row['mon2']) ? strtoupper($row['mon2']) : '';
+            $mon3 = !empty($row['mon3']) ? strtoupper($row['mon3']) : '';
+            $subjects = array_filter([$mon1, $mon2, $mon3]);
+            if (!empty($subjects)) {
+                return $row['ma_to_hop'] . ' (' . implode('-', $subjects) . ')';
+            }
+        }
+        return $maToHop;
     }
     
     /**

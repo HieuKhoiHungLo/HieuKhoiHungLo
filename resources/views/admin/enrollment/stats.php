@@ -281,6 +281,17 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
             </div>
         </div>
 
+        <!-- Daily Enrollment Chart -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-indigo-500 mt-6">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">
+                <span class="w-1.5 h-4 bg-indigo-500 rounded-full mr-2"></span>
+                Số thí sinh xác nhận nhập học theo ngày
+            </h3>
+            <div class="relative h-96">
+                <canvas id="dailyEnrollmentChart"></canvas>
+            </div>
+        </div>
+
         <!-- Row 2: Four statistics charts -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
@@ -345,6 +356,15 @@ foreach ($statsByMajor as $ms) {
     $majorQuota[] = intval($ms['chi_tieu'] ?? 0);
 }
 
+$dailyLabels = [];
+$dailyData = [];
+if (!empty($chartDist['daily_enrollment'])) {
+    foreach ($chartDist['daily_enrollment'] as $row) {
+        $dailyLabels[] = date('d/m/Y', strtotime($row['date']));
+        $dailyData[] = (int)$row['count'];
+    }
+}
+
 $chartData = [
     'majors' => ['labels' => $majorLabels, 'data' => $majorData, 'quota' => $majorQuota],
     'gender' => ['labels' => array_keys($chartDist['gender']), 'data' => array_values($chartDist['gender'])],
@@ -355,7 +375,8 @@ $chartData = [
     'users' => ['labels' => array_keys($chartDist['users'] ?? []), 'data' => array_values($chartDist['users'] ?? [])],
     'province' => ['labels' => array_keys(array_slice($chartDist['province'], 0, 15)), 'data' => array_values(array_slice($chartDist['province'], 0, 15))],
     'schoolTop20' => ['labels' => array_keys(array_slice($chartDist['school'], 0, 20)), 'data' => array_values(array_slice($chartDist['school'], 0, 20))],
-    'schoolAll' => ['labels' => array_keys($chartDist['school']), 'data' => array_values($chartDist['school'])]
+    'schoolAll' => ['labels' => array_keys($chartDist['school']), 'data' => array_values($chartDist['school'])],
+    'dailyEnrollment' => ['labels' => $dailyLabels, 'data' => $dailyData]
 ];
 ?>
 
@@ -408,6 +429,47 @@ function renderEnrollmentCharts() {
                 x: { grid: { display: false } }
             },
             plugins: { legend: { position: 'top' } }
+        }
+    });
+
+    // Daily Enrollment Chart
+    new Chart(document.getElementById('dailyEnrollmentChart'), {
+        type: 'line',
+        data: {
+            labels: CHART_DATA.dailyEnrollment.labels,
+            datasets: [{
+                label: 'Số thí sinh',
+                data: CHART_DATA.dailyEnrollment.data,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { borderDash: [4, 4] },
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                },
+                x: { 
+                    grid: { display: false },
+                    ticks: { maxRotation: 45, minRotation: 45, font: { size: 9 } }
+                }
+            },
+            plugins: {
+                legend: { position: 'top' }
+            }
         }
     });
 

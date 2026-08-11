@@ -83,13 +83,22 @@ class App {
     }
 
     public static function fullUrl($path = '') {
-        $baseUrl = rtrim($_ENV['APP_URL'] ?? '', '/');
-        if (empty($baseUrl)) {
-            // Fallback to auto-detection of host if APP_URL missing
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
-            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $baseUrl = $protocol . "://" . $host . self::getBaseUrl();
+        $baseUrl = rtrim($_ENV['APP_URL'] ?? getenv('APP_URL') ?: '', '/');
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        
+        if (empty($baseUrl) || strpos($baseUrl, 'localhost') !== false || strpos($baseUrl, '127.0.0.1') !== false) {
+            if (!empty($host) && (strpos($host, 'localhost') !== false || strpos($host, '127.0.0.1') !== false)) {
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+                $baseUrl = $protocol . "://" . $host . self::getBaseUrl();
+            } else {
+                $baseUrl = 'https://tuyensinh.hvu.edu.vn';
+            }
         }
+        
+        if (empty($baseUrl) || $baseUrl === 'http://' || $baseUrl === 'https://' || strpos($baseUrl, 'http:///') === 0 || strpos($baseUrl, 'https:///') === 0) {
+            $baseUrl = 'https://tuyensinh.hvu.edu.vn';
+        }
+
         return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
     }
 

@@ -52,11 +52,11 @@ class AdmissionLookupController extends Controller
             return;
         }
 
-        // Rate Limiting: Max 5 requests per 1 minute per IP
+        // Rate Limiting: Max 20 requests per 1 minute per IP
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown_ip';
         $rateLimitKey = 'search_admission_' . $ip;
         
-        if (!\App\Core\RateLimiter::check($rateLimitKey, 5, 1)) {
+        if (!\App\Core\RateLimiter::check($rateLimitKey, 20, 1)) {
             header('Content-Type: application/json; charset=utf-8');
             http_response_code(429);
             echo json_encode([
