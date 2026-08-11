@@ -428,8 +428,23 @@ class AdmissionLetterService {
             $data['diem_to_hop'] ?? null
         );
 
-        $rawDiemUt = !empty($data['diem_ut']) && (float)$data['diem_ut'] > 0 ? $data['diem_ut'] : (!empty($kqRow['diem_ut']) && (float)$kqRow['diem_ut'] > 0 ? $kqRow['diem_ut'] : ($prio['diem_ut'] ?? 0));
-        $rawUtQuyDoi = !empty($data['ut_quy_doi']) && (float)$data['ut_quy_doi'] > 0 ? $data['ut_quy_doi'] : (!empty($kqRow['ut_quy_doi']) && (float)$kqRow['ut_quy_doi'] > 0 ? $kqRow['ut_quy_doi'] : ($prio['ut_quy_doi'] ?? 0));
+        // Trích xuất từ chi_tiet_diem (nếu có)
+        $priorityRaw = null;
+        $priorityConverted = null;
+        $chiTietDiemStr = $data['chi_tiet_diem'] ?? $kqRow['chi_tiet_diem'] ?? '';
+        if (!empty($chiTietDiemStr)) {
+            $chiTietRaw = json_decode($chiTietDiemStr, true) ?: [];
+            if (isset($chiTietRaw['priority_raw'])) {
+                $priorityRaw = $chiTietRaw['priority_raw'];
+            }
+            if (isset($chiTietRaw['priority_converted'])) {
+                $priorityConverted = $chiTietRaw['priority_converted'];
+            }
+        }
+
+        // Tính DiemUT / UTQ: ưu tiên data > kqRow > chi_tiet_diem > calcPriorityPoints
+        $rawDiemUt = !empty($data['diem_ut']) && (float)$data['diem_ut'] > 0 ? $data['diem_ut'] : (!empty($kqRow['diem_ut']) && (float)$kqRow['diem_ut'] > 0 ? $kqRow['diem_ut'] : ($priorityRaw !== null ? $priorityRaw : ($prio['diem_ut'] ?? 0)));
+        $rawUtQuyDoi = !empty($data['ut_quy_doi']) && (float)$data['ut_quy_doi'] > 0 ? $data['ut_quy_doi'] : (!empty($kqRow['ut_quy_doi']) && (float)$kqRow['ut_quy_doi'] > 0 ? $kqRow['ut_quy_doi'] : ($priorityConverted !== null ? $priorityConverted : ($prio['ut_quy_doi'] ?? 0)));
 
         $diemUtFormatted = number_format((float)$rawDiemUt, 3, '.', '');
         $utQuyDoiFormatted = number_format((float)$rawUtQuyDoi, 3, '.', '');
