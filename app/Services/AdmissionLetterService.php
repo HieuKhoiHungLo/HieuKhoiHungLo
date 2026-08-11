@@ -419,6 +419,21 @@ class AdmissionLetterService {
             }
         }
 
+        $prio = \App\Controllers\AdmissionController::calcPriorityPoints(
+            $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
+            $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
+            $data['diem_mon_1'] ?? null,
+            $data['diem_mon_2'] ?? null,
+            $data['diem_mon_3'] ?? null,
+            $data['diem_to_hop'] ?? null
+        );
+
+        $rawDiemUt = !empty($data['diem_ut']) && (float)$data['diem_ut'] > 0 ? $data['diem_ut'] : (!empty($kqRow['diem_ut']) && (float)$kqRow['diem_ut'] > 0 ? $kqRow['diem_ut'] : ($prio['diem_ut'] ?? 0));
+        $rawUtQuyDoi = !empty($data['ut_quy_doi']) && (float)$data['ut_quy_doi'] > 0 ? $data['ut_quy_doi'] : (!empty($kqRow['ut_quy_doi']) && (float)$kqRow['ut_quy_doi'] > 0 ? $kqRow['ut_quy_doi'] : ($prio['ut_quy_doi'] ?? 0));
+
+        $diemUtFormatted = number_format((float)$rawDiemUt, 3, '.', '');
+        $utQuyDoiFormatted = number_format((float)$rawUtQuyDoi, 3, '.', '');
+
         $replacements = [
             // 1. Thông tin cá nhân thí sinh
             '{{HoTen}}'       => $data['ho_ten'] ?? '',
@@ -448,9 +463,9 @@ class AdmissionLetterService {
             '{{DM3}}'         => $data['diem_mon_3'] ?? '',
             '{{DiemToHop}}'   => $data['diem_to_hop'] ?? '',
             '{{DIEMTOHOP}}'   => $data['diem_to_hop'] ?? '',
-            '{{DiemUT}}'      => $data['diem_ut'] ?? '',
-            '{{DIEMUT}}'      => $data['diem_ut'] ?? '',
-            '{{UTQ}}'         => $data['ut_quy_doi'] ?? '',
+            '{{DiemUT}}'      => $diemUtFormatted,
+            '{{DIEMUT}}'      => $diemUtFormatted,
+            '{{UTQ}}'         => $utQuyDoiFormatted,
             '{{DiemXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{DIEMXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{Nganh}}'       => $data['ten_nganh'] ?? '',

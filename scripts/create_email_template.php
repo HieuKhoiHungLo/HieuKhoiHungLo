@@ -31,29 +31,29 @@ $body = '<!-- BẮT ĐẦU MẪU THÔNG BÁO TRÚNG TUYỂN (GỬI EMAIL) -->
                 <div style="background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; padding:16px;">
                     <h3 style="font-size:13px; font-weight:bold; color:#1e3a8a; margin:0 0 12px 0; border-bottom:2px solid #bfdbfe; padding-bottom:6px; text-transform:uppercase; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-user-circle" style="margin-right:5px;"></i> Thông tin cá nhân</h3>
                     <table width="100%" cellpadding="5" cellspacing="0" style="font-size:13px; color:#374151; text-align:left; font-family:Arial,Helvetica,sans-serif;">
-                        <tr><td width="180" style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Họ và tên:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0; text-transform:uppercase;">{{HoTen}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Ngày sinh:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{NgaySinh}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Số CCCD:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{CCCD}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">SBD / Mã hồ sơ:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{SBD}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Giới tính:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{GioiTinh}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Điện thoại:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{SDT}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Email:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{Email}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Khu vực ưu tiên:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{KhuVuc}}</td></tr>
-                        <tr><td style="color:#6b7280;">Đối tượng ưu tiên:</td><td style="font-weight:bold; color:#111827;">{{DoiTuong}}</td></tr>
+                        <tr><td width="135" style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Họ và tên:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0; text-transform:uppercase;">{{HoTen}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Ngày sinh:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{NgaySinh}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Số CCCD:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{CCCD}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Mã HS / SBD:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{SBD}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Giới tính:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{GioiTinh}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Điện thoại:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{SDT}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Email:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{Email}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Khu vực UT:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{KhuVuc}}</td></tr>
+                        <tr><td style="color:#6b7280; white-space:nowrap; padding-right:10px;">Đối tượng UT:</td><td style="font-weight:bold; color:#111827;">{{DoiTuong}}</td></tr>
                     </table>
                 </div>
                 <!-- Thông tin xét tuyển -->
                 <div style="background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; padding:16px; margin-top: 16px;">
                     <h3 style="font-size:13px; font-weight:bold; color:#b91c1c; margin:0 0 12px 0; border-bottom:2px solid #fecaca; padding-bottom:6px; text-transform:uppercase; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-graduation-cap" style="margin-right:5px;"></i> Thông tin xét tuyển</h3>
                     <table width="100%" cellpadding="5" cellspacing="0" style="font-size:13px; color:#374151; text-align:left; font-family:Arial,Helvetica,sans-serif;">
-                        <tr><td width="180" style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Ngành trúng tuyển:</td><td style="font-weight:bold; color:#b91c1c; border-bottom:1px dashed #e2e8f0; text-transform:uppercase;">{{Nganh}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Mã ngành:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{MaNganh}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Phương thức:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{PhuongThuc}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Tổ hợp xét:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{ToHop}}</td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Điểm các môn (quy đổi):</td><td style="color:#111827; border-bottom:1px dashed #e2e8f0;">ĐM1: <b>{{DM1}}</b> | ĐM2: <b>{{DM2}}</b> | ĐM3: <b>{{DM3}}</b></td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Điểm ƯT / Quy đổi:</td><td style="color:#111827; border-bottom:1px dashed #e2e8f0;"><b>{{DiemUT}}</b> / <b>{{UTQ}}</b></td></tr>
-                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0;">Điểm tổ hợp:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{DiemToHop}}</td></tr>
-                        <tr><td style="font-weight:bold; color:#b91c1c;">ĐIỂM XÉT TUYỂN:</td><td style="font-weight:bold; color:#b91c1c;">{{DiemXT}}</td></tr>
+                        <tr><td width="135" style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Ngành trúng tuyển:</td><td style="font-weight:bold; color:#b91c1c; border-bottom:1px dashed #e2e8f0; text-transform:uppercase;">{{Nganh}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Mã ngành:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{MaNganh}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Phương thức:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{PhuongThuc}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Tổ hợp xét:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{ToHop}}</td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Điểm các môn (QĐ):</td><td style="color:#111827; border-bottom:1px dashed #e2e8f0;">ĐM1: <b>{{DM1}}</b> | ĐM2: <b>{{DM2}}</b> | ĐM3: <b>{{DM3}}</b></td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Điểm ƯT / Quy đổi:</td><td style="color:#111827; border-bottom:1px dashed #e2e8f0;"><b>{{DiemUT}}</b> / <b>{{UTQ}}</b></td></tr>
+                        <tr><td style="color:#6b7280; border-bottom:1px dashed #e2e8f0; white-space:nowrap; padding-right:10px;">Điểm tổ hợp:</td><td style="font-weight:bold; color:#111827; border-bottom:1px dashed #e2e8f0;">{{DiemToHop}}</td></tr>
+                        <tr><td style="font-weight:bold; color:#b91c1c; white-space:nowrap; padding-right:10px;">ĐIỂM XÉT TUYỂN:</td><td style="font-weight:bold; color:#b91c1c;">{{DiemXT}}</td></tr>
                     </table>
                 </div>
             </div>
