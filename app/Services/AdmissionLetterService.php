@@ -494,6 +494,10 @@ class AdmissionLetterService {
             '{{KhoiKinhPhi}}' => !empty($kqRow['kinh_phi']) ? '<div style="margin-top:12px; padding:10px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; font-size:13px; color:#1e40af; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-info-circle" style="margin-right:4px;"></i> ' . $kqRow['kinh_phi'] . '</div>' : '',
             '{{FileGiayBao}}' => $kqRow['file_giay_bao'] ?? '',
             '{{LINKGIAYBAO}}' => $kqRow['file_giay_bao'] ?? '',
+            '{{BanNhapHoc}}'  => $kqRow['ban_nhap_hoc'] ?? $data['ban_nhap_hoc'] ?? '',
+            '{{ViTriNhapHoc}}'=> $kqRow['vi_tri_nhap_hoc'] ?? $data['vi_tri_nhap_hoc'] ?? '',
+            '{{LinkSoDo}}'    => $kqRow['link_so_do'] ?? $data['link_so_do'] ?? '',
+            '{{GVCN}}'        => $kqRow['gvcn'] ?? $data['gvcn'] ?? '',
 
             // 4. Thông tin Học phí & Ngân hàng
             '{{SOTK}}'        => !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : ''),

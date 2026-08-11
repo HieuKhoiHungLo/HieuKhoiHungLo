@@ -781,6 +781,34 @@ class AdmissionResultService {
      * Render nội dung thư
      */
     public function renderTemplate($templateHtml, $data) {
+        $cccd = $data['so_cccd'] ?? '';
+        $maNganh = $data['ma_nganh'] ?? '';
+
+        // Fetch extra fields from ket_qua_trung_tuyen (fallback)
+        $kqRow = [];
+        if ($cccd && $maNganh) {
+            $stmtKq = $this->db->prepare("SELECT * FROM ket_qua_trung_tuyen WHERE so_cccd = ? AND ma_nganh = ? LIMIT 1");
+            $stmtKq->execute([$cccd, $maNganh]);
+            $kqRow = $stmtKq->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+
+        // Fetch gender and details from thi_sinh
+        $tsRow = [];
+        if ($cccd) {
+            $stmtTs = $this->db->prepare("SELECT gioi_tinh, dien_thoai, email FROM thi_sinh WHERE so_cccd = ? LIMIT 1");
+            $stmtTs->execute([$cccd]);
+            $tsRow = $stmtTs->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+        $gioiTinh = $tsRow['gioi_tinh'] ?? '';
+
+        // Fetch from nhap_hoc
+        $nhapHocRow = [];
+        if (!empty($kqRow['id'])) {
+            $stmtNh = $this->db->prepare("SELECT * FROM nhap_hoc WHERE ket_qua_id = ? LIMIT 1");
+            $stmtNh->execute([$kqRow['id']]);
+            $nhapHocRow = $stmtNh->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+
         $chiTieu = '';
         $diemNamTruoc = '';
         if (!empty($data['ma_nganh'])) {
@@ -805,6 +833,13 @@ class AdmissionResultService {
             $data['diem_to_hop'] ?? null
         );
 
+        // Tính DiemUT / UTQ: ưu tiên data > kqRow > calcPriorityPoints
+        $rawDiemUt = !empty($data['diem_ut']) && (float)$data['diem_ut'] > 0 ? $data['diem_ut'] : (!empty($kqRow['diem_ut']) && (float)$kqRow['diem_ut'] > 0 ? $kqRow['diem_ut'] : ($prio['diem_ut'] ?? 0));
+        $rawUtQuyDoi = !empty($data['ut_quy_doi']) && (float)$data['ut_quy_doi'] > 0 ? $data['ut_quy_doi'] : (!empty($kqRow['ut_quy_doi']) && (float)$kqRow['ut_quy_doi'] > 0 ? $kqRow['ut_quy_doi'] : ($prio['ut_quy_doi'] ?? 0));
+
+        $diemUtFormatted = number_format((float)$rawDiemUt, 3, '.', '');
+        $utQuyDoiFormatted = number_format((float)$rawUtQuyDoi, 3, '.', '');
+
         $replacements = [
             // 1. Thông tin cá nhân thí sinh
             '{{HoTen}}'       => $data['ho_ten'] ?? '',
@@ -815,10 +850,10 @@ class AdmissionResultService {
             '{{NgaySinh}}'    => $data['ngay_sinh'] ?? '',
             '{{NGAYSINH}}'    => $data['ngay_sinh'] ?? '',
             '{{SBD}}'         => $data['sbd'] ?? '',
-            '{{GioiTinh}}'    => $data['gioi_tinh'] ?? '',
-            '{{Email}}'       => $data['email'] ?? '',
-            '{{EMAIL}}'       => $data['email'] ?? '',
-            '{{SDT}}'         => $data['sdt'] ?? $data['dien_thoai'] ?? $data['dien_thoai_lien_he'] ?? '',
+            '{{GioiTinh}}'    => $gioiTinh ?: ($data['gioi_tinh'] ?? ''),
+            '{{Email}}'       => $data['email'] ?? $tsRow['email'] ?? '',
+            '{{EMAIL}}'       => $data['email'] ?? $tsRow['email'] ?? '',
+            '{{SDT}}'         => $data['sdt'] ?? $tsRow['dien_thoai'] ?? $data['dien_thoai'] ?? $data['dien_thoai_lien_he'] ?? '',
             '{{KhuVuc}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
             '{{KHUVUC}}'      => $data['khu_vuc'] ?? $data['khu_vuc_uu_tien'] ?? '',
             '{{DoiTuong}}'    => $data['doi_tuong'] ?? $data['doi_tuong_uu_tien'] ?? '',
@@ -834,9 +869,9 @@ class AdmissionResultService {
             '{{DM3}}'         => $data['diem_mon_3'] ?? '',
             '{{DiemToHop}}'   => $data['diem_to_hop'] ?? '',
             '{{DIEMTOHOP}}'   => $data['diem_to_hop'] ?? '',
-            '{{DiemUT}}'      => !empty($data['diem_ut']) ? $data['diem_ut'] : ($prio['diem_ut'] ?? ''),
-            '{{DIEMUT}}'      => !empty($data['diem_ut']) ? $data['diem_ut'] : ($prio['diem_ut'] ?? ''),
-            '{{UTQ}}'         => !empty($data['ut_quy_doi']) ? $data['ut_quy_doi'] : ($prio['ut_quy_doi'] ?? ''),
+            '{{DiemUT}}'      => $diemUtFormatted,
+            '{{DIEMUT}}'      => $diemUtFormatted,
+            '{{UTQ}}'         => $utQuyDoiFormatted,
             '{{DiemXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{DIEMXT}}'      => rtrim(rtrim(number_format((float)($data['diem_xt'] ?? 0), 3, '.', ''), '0'), '.'),
             '{{Nganh}}'       => $data['ten_nganh'] ?? '',
@@ -851,29 +886,33 @@ class AdmissionResultService {
             '{{GhiChu}}'      => $data['ghi_chu'] ?? '',
 
             // 3. Thông tin Nhập học & Giấy báo trúng tuyển
-            '{{SoGB}}'        => $data['so_giay_bao'] ?? '',
-            '{{SOGIAYBAO}}'   => $data['so_giay_bao'] ?? '',
-            '{{SOGB}}'        => $data['so_giay_bao'] ?? '',
-            '{{ThoiGianNhap}}'=> $data['thoi_gian_nhap'] ?? '',
-            '{{THOIGIANNHAP}}'=> $data['thoi_gian_nhap'] ?? '',
-            '{{NganhTT}}'     => !empty($data['nganh_tt']) ? $data['nganh_tt'] : ($data['ten_nganh'] ?? ''),
-            '{{NGANH_TT}}'    => !empty($data['nganh_tt']) ? $data['nganh_tt'] : ($data['ten_nganh'] ?? ''),
-            '{{Khoa}}'        => $data['ten_khoa'] ?? '',
-            '{{KHOA}}'        => $data['ten_khoa'] ?? '',
-            '{{KinhPhi}}'     => $data['kinh_phi'] ?? '',
-            '{{KINHPHI}}'     => $data['kinh_phi'] ?? '',
-            '{{KhoiKinhPhi}}' => !empty($data['kinh_phi']) ? '<div style="margin-top:12px; padding:10px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; font-size:13px; color:#1e40af; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-info-circle" style="margin-right:4px;"></i> ' . $data['kinh_phi'] . '</div>' : '',
-            '{{FileGiayBao}}' => $data['file_giay_bao'] ?? '',
-            '{{LINKGIAYBAO}}' => $data['file_giay_bao'] ?? '',
+            '{{SoGB}}'        => $kqRow['so_giay_bao'] ?? $data['so_giay_bao'] ?? '',
+            '{{SOGIAYBAO}}'   => $kqRow['so_giay_bao'] ?? $data['so_giay_bao'] ?? '',
+            '{{SOGB}}'        => $kqRow['so_giay_bao'] ?? $data['so_giay_bao'] ?? '',
+            '{{ThoiGianNhap}}'=> $kqRow['thoi_gian_nhap'] ?? $data['thoi_gian_nhap'] ?? '',
+            '{{THOIGIANNHAP}}'=> $kqRow['thoi_gian_nhap'] ?? $data['thoi_gian_nhap'] ?? '',
+            '{{NganhTT}}'     => !empty($kqRow['nganh_tt']) ? $kqRow['nganh_tt'] : (!empty($data['nganh_tt']) ? $data['nganh_tt'] : ($data['ten_nganh'] ?? '')),
+            '{{NGANH_TT}}'    => !empty($kqRow['nganh_tt']) ? $kqRow['nganh_tt'] : (!empty($data['nganh_tt']) ? $data['nganh_tt'] : ($data['ten_nganh'] ?? '')),
+            '{{Khoa}}'        => $kqRow['ten_khoa'] ?? $data['ten_khoa'] ?? '',
+            '{{KHOA}}'        => $kqRow['ten_khoa'] ?? $data['ten_khoa'] ?? '',
+            '{{KinhPhi}}'     => $kqRow['kinh_phi'] ?? $data['kinh_phi'] ?? '',
+            '{{KINHPHI}}'     => $kqRow['kinh_phi'] ?? $data['kinh_phi'] ?? '',
+            '{{KhoiKinhPhi}}' => !empty($kqRow['kinh_phi'] ?? $data['kinh_phi'] ?? '') ? '<div style="margin-top:12px; padding:10px 14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; font-size:13px; color:#1e40af; font-family:Arial,Helvetica,sans-serif;"><i class="fas fa-info-circle" style="margin-right:4px;"></i> ' . ($kqRow['kinh_phi'] ?? $data['kinh_phi'] ?? '') . '</div>' : '',
+            '{{FileGiayBao}}' => $kqRow['file_giay_bao'] ?? $data['file_giay_bao'] ?? '',
+            '{{LINKGIAYBAO}}' => $kqRow['file_giay_bao'] ?? $data['file_giay_bao'] ?? '',
+            '{{BanNhapHoc}}'  => $kqRow['ban_nhap_hoc'] ?? $data['ban_nhap_hoc'] ?? '',
+            '{{ViTriNhapHoc}}'=> $kqRow['vi_tri_nhap_hoc'] ?? $data['vi_tri_nhap_hoc'] ?? '',
+            '{{LinkSoDo}}'    => $kqRow['link_so_do'] ?? $data['link_so_do'] ?? '',
+            '{{GVCN}}'        => $kqRow['gvcn'] ?? $data['gvcn'] ?? '',
 
             // 4. Thông tin Học phí & Ngân hàng
-            '{{SOTK}}'        => $data['so_tai_khoan'] ?? '',
-            '{{SOTAIKHOAN}}'  => $data['so_tai_khoan'] ?? '',
-            '{{NGANHANG}}'    => $data['ngan_hang'] ?? '',
-            '{{SoTien}}'      => number_format((float)($data['so_tien'] ?? 0), 0, ',', '.'),
-            '{{SOTIEN}}'      => number_format((float)($data['so_tien'] ?? 0), 0, ',', '.'),
-            '{{NOIDUNG}}'     => $data['noi_dung_ck'] ?? '',
-            '{{NOIDUNGCK}}'   => $data['noi_dung_ck'] ?? '',
+            '{{SOTK}}'        => !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : ''),
+            '{{SOTAIKHOAN}}'  => !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : (!empty($kqRow['so_tai_khoan']) ? $kqRow['so_tai_khoan'] : ''),
+            '{{NGANHANG}}'    => !empty($data['ngan_hang']) ? $data['ngan_hang'] : (!empty($kqRow['ngan_hang']) ? $kqRow['ngan_hang'] : ''),
+            '{{SoTien}}'      => number_format((float)(!empty($data['so_tien']) ? $data['so_tien'] : (!empty($kqRow['so_tien']) ? $kqRow['so_tien'] : 0)), 0, ',', '.'),
+            '{{SOTIEN}}'      => number_format((float)(!empty($data['so_tien']) ? $data['so_tien'] : (!empty($kqRow['so_tien']) ? $kqRow['so_tien'] : 0)), 0, ',', '.'),
+            '{{NOIDUNG}}'     => !empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : (!empty($kqRow['noi_dung_ck']) ? $kqRow['noi_dung_ck'] : ''),
+            '{{NOIDUNGCK}}'   => !empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : (!empty($kqRow['noi_dung_ck']) ? $kqRow['noi_dung_ck'] : ''),
         ];
 
         // === Nút Xem giấy báo PDF ===
@@ -951,10 +990,10 @@ class AdmissionResultService {
         }
 
         // Tạo QR Code urls
-        $bankName = strtolower(str_replace(' ', '', $data['ngan_hang'] ?? ''));
-        $accountNum = $data['so_tai_khoan'] ?? '';
-        $amount = $data['so_tien'] ?? 0;
-        $content = urlencode(trim($data['noi_dung_ck'] ?? ''));
+        $bankName = strtolower(str_replace(' ', '', !empty($data['ngan_hang']) ? $data['ngan_hang'] : ($kqRow['ngan_hang'] ?? '')));
+        $accountNum = !empty($data['so_tai_khoan']) ? $data['so_tai_khoan'] : ($kqRow['so_tai_khoan'] ?? '');
+        $amount = !empty($data['so_tien']) ? $data['so_tien'] : ($kqRow['so_tien'] ?? 0);
+        $content = urlencode(trim(!empty($data['noi_dung_ck']) ? $data['noi_dung_ck'] : ($kqRow['noi_dung_ck'] ?? '')));
 
         if ($bankName && $accountNum) {
             $qrVietQR = '<img src="https://img.vietqr.io/image/' . $bankName . '-' . $accountNum . '-compact2.jpg?amount=' . $amount . '&addInfo=' . $content . '" alt="QR Thanh Toan" style="max-width: 250px; height: auto; border: 1px solid #eee; border-radius: 5px; display: inline-block;" />';
