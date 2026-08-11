@@ -1911,10 +1911,24 @@ class CandidateController extends Controller
         }
 
         try {
+            $this->db->beginTransaction();
+
             $sql = "UPDATE ho_so_xet_tuyen SET trang_thai = 'Đã duyệt', nguoi_duyet_id = ?, updated_at = NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh' WHERE dot_tuyen_sinh_id = ? AND trang_thai != 'Đã duyệt'";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$adminId, $sessionId]);
             $count = $stmt->rowCount();
+
+            // Sync nguyen_vong status to match (scoped to this session only)
+            if ($count > 0) {
+                $sqlNv = "UPDATE nguyen_vong 
+                          SET trang_thai = 'DaDuyet' 
+                          WHERE dot_tuyen_sinh_id = ? 
+                            AND so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)";
+                $stmtNv = $this->db->prepare($sqlNv);
+                $stmtNv->execute([$sessionId, $sessionId]);
+            }
+
+            $this->db->commit();
             $this->clearCandidateStatsCache();
 
             $this->redirect($redirectTo . '?success=' . urlencode("Đã duyệt tất cả $count hồ sơ trong đợt."));
@@ -1955,12 +1969,13 @@ class CandidateController extends Controller
             $count = $stmt1->rowCount();
 
             if ($count > 0) {
-                // 2. Sync nguyen_vong status back to 'Chờ duyệt' for these candidates in this session
+                // 2. Sync nguyen_vong status back to 'Chờ duyệt' — SCOPED to this session only
                 $sql2 = "UPDATE nguyen_vong 
                         SET trang_thai = 'Chờ duyệt' 
-                        WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)";
+                        WHERE dot_tuyen_sinh_id = ? 
+                          AND so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)";
                 $stmt2 = $this->db->prepare($sql2);
-                $stmt2->execute([$sessionId]);
+                $stmt2->execute([$sessionId, $sessionId]);
             }
 
             $this->db->commit();
