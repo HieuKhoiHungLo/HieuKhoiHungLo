@@ -1011,31 +1011,29 @@ class AdmissionResultService {
         $step2 = !empty($data['xac_nhan_bo']); // Xác nhận trên Cổng Bộ
         $step3 = !empty($data['xac_nhan_truong']); // Xác nhận tại HVU
         $step4 = !empty($data['nop_kinh_phi']) || (!empty($data['so_tien_nop']) && (float)$data['so_tien_nop'] > 0); // Nộp kinh phí
-        $step5 = !empty($data['nhap_hoc']); // Nộp hồ sơ điện tử
-        $step6 = !empty($data['nhap_hoc']) && $step4; // Theo dõi trạng thái xử lý hồ sơ thời gian thực
+        $step5 = !empty($data['nhap_hoc']) && $step4; // Hướng dẫn hồ sơ nhập học
 
         return [
             1 => ['title' => '1. Trúng tuyển', 'completed' => $step1, 'icon' => 'fa-graduation-cap', 'desc' => 'Đã có tên trong danh sách trúng tuyển'],
             2 => ['title' => '2. Xác nhận Bộ GD&ĐT', 'completed' => $step2, 'icon' => 'fa-building-columns', 'desc' => 'Xác nhận trên thisinh.thitotnghiepthpt.edu.vn'],
             3 => ['title' => '3. Xác nhận HVU', 'completed' => $step3, 'icon' => 'fa-university', 'desc' => 'Xác nhận nhập học Trường ĐH Hùng Vương'],
             4 => ['title' => '4. Nộp học phí', 'completed' => $step4, 'icon' => 'fa-credit-card', 'desc' => 'Chuyển khoản nộp kinh phí nhập học (VietQR)'],
-            5 => ['title' => '5. Nộp hồ sơ online', 'completed' => $step5, 'icon' => 'fa-folder-open', 'desc' => 'Tải bản chụp 8 giấy tờ hồ sơ nhập học'],
-            6 => ['title' => '6. Theo dõi hồ sơ', 'completed' => $step6, 'icon' => 'fa-clock-rotate-left', 'desc' => 'Nhà trường tiếp nhận & kiểm tra hồ sơ'],
+            5 => ['title' => '5. Hướng dẫn hồ sơ nhập học', 'completed' => $step5, 'icon' => 'fa-folder-open', 'desc' => 'Nhà trường hướng dẫn hoàn thiện hồ sơ'],
         ];
     }
 
     /**
-     * Render Thanh tiến độ 6 bước dạng HTML
+     * Render Thanh tiến độ 5 bước dạng HTML
      */
     public function renderStepperHtml($data) {
         $steps = $this->calculateEnrollmentSteps($data);
         $html = '<div class="hvu-stepper-container my-6 p-4 md:p-6 bg-slate-900 text-white rounded-2xl shadow-xl font-sans border border-slate-800">';
         $html .= '<div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">';
-        $html .= '  <h4 class="text-sm font-bold tracking-wide uppercase text-amber-400 flex items-center gap-2"><i class="fas fa-route"></i> Tiến Trình Nhập Học 6 Bước</h4>';
+        $html .= '  <h4 class="text-sm font-bold tracking-wide uppercase text-amber-400 flex items-center gap-2"><i class="fas fa-route"></i> Tiến Trình Nhập Học 5 Bước</h4>';
         $html .= '  <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg"><i class="fas fa-sync-alt fa-spin text-[10px] mr-1"></i> Cập nhật thời gian thực</span>';
         $html .= '</div>';
         
-        $html .= '<div class="grid grid-cols-2 md:grid-cols-6 gap-3 relative">';
+        $html .= '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 relative">';
         foreach ($steps as $num => $step) {
             $isDone = $step['completed'];
             $statusClass = $isDone ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200' : 'bg-slate-800/60 border-slate-700/80 text-slate-400';

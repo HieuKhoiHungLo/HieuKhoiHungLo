@@ -548,16 +548,14 @@ class AdmissionLetterService {
         $step2 = !empty($data['xac_nhan_bo']);
         $step3 = !empty($data['xac_nhan_truong']);
         $step4 = !empty($data['nop_kinh_phi']) || (!empty($data['so_tien_nop']) && (float)$data['so_tien_nop'] > 0) || !empty($data['xac_nhan_kinh_phi']);
-        $step5 = !empty($data['nhap_hoc']);
-        $step6 = !empty($data['nhap_hoc']) && $step4;
+        $step5 = !empty($data['nhap_hoc']) && $step4;
 
         return [
             1 => ['title' => '1. Trúng tuyển', 'completed' => $step1, 'icon' => 'fa-graduation-cap', 'desc' => 'Đã có tên trong danh sách trúng tuyển'],
             2 => ['title' => '2. Xác nhận Bộ GD&ĐT', 'completed' => $step2, 'icon' => 'fa-building-columns', 'desc' => 'Xác nhận trên thisinh.thitotnghiepthpt.edu.vn'],
             3 => ['title' => '3. Xác nhận HVU', 'completed' => $step3, 'icon' => 'fa-university', 'desc' => 'Xác nhận nhập học Trường ĐH Hùng Vương'],
             4 => ['title' => '4. Nộp học phí', 'completed' => $step4, 'icon' => 'fa-credit-card', 'desc' => 'Chuyển khoản nộp kinh phí nhập học (VietQR)'],
-            5 => ['title' => '5. Nộp hồ sơ online', 'completed' => $step5, 'icon' => 'fa-folder-open', 'desc' => 'Tải bản chụp 8 giấy tờ hồ sơ nhập học'],
-            6 => ['title' => '6. Theo dõi hồ sơ', 'completed' => $step6, 'icon' => 'fa-clock-rotate-left', 'desc' => 'Nhà trường tiếp nhận & kiểm tra hồ sơ'],
+            5 => ['title' => '5. Hướng dẫn hồ sơ nhập học', 'completed' => $step5, 'icon' => 'fa-folder-open', 'desc' => 'Nhà trường hướng dẫn hoàn thiện hồ sơ'],
         ];
     }
 
