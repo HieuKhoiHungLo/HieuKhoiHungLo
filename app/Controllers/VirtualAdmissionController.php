@@ -138,7 +138,7 @@ class VirtualAdmissionController extends Controller {
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
             // 5b. Tổng hồ sơ đã duyệt từ ho_so_xet_tuyen (bao gồm cả TS chưa đăng ký NV)
-            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR trang_thai LIKE '%Đã duyệt%')");
+            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet', 'Yêu cầu sửa') OR trang_thai LIKE '%Đã duyệt%')");
             $stmtHoso->execute([$sessionId]);
             $totalApprovedHoso = $stmtHoso->fetchColumn() ?: 0;
             $noAspirationCount = max(0, $totalApprovedHoso - $candidateCount);
