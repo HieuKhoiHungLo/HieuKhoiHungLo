@@ -80,6 +80,13 @@ class AdmissionSession extends \App\Core\Model {
         return $res ?: null;
     }
     
+    // Check if a session is locked
+    public function isLocked($id) {
+        if (!$id) return false;
+        $session = $this->find($id);
+        return $session && !empty($session['is_locked']);
+    }
+    
     public function getAll() {
         $sql = "
             SELECT dt.*, 

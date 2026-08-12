@@ -57,6 +57,12 @@ class NgoaiLeController extends Controller {
             return;
         }
 
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->json(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
+            return;
+        }
+
         try {
             $result = $this->ngoaiLeModel->saveRule($sessionId, $cccd, $majorCode, $status, $note);
             if ($result) {
@@ -82,6 +88,18 @@ class NgoaiLeController extends Controller {
         }
 
         try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $nl = $db->prepare("SELECT session_id FROM ngoai_le_xet_tuyen WHERE id = ?");
+            $nl->execute([$id]);
+            $record = $nl->fetch(\PDO::FETCH_ASSOC);
+            if ($record) {
+                $sessionModel = new \App\Models\AdmissionSession();
+                if ($sessionModel->isLocked($record['session_id'])) {
+                    $this->json(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
+                    return;
+                }
+            }
+
             $result = $this->ngoaiLeModel->deleteRule($id);
             if ($result) {
                 $this->json(['success' => true, 'message' => 'Đã xóa ngoại lệ.']);
@@ -102,6 +120,12 @@ class NgoaiLeController extends Controller {
         $sessionId = intval($_POST['session_id'] ?? 0);
         if (!$sessionId) {
             $this->json(['success' => false, 'message' => 'Vui lòng chọn đợt tuyển sinh.']);
+            return;
+        }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->json(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
             return;
         }
 
@@ -275,6 +299,12 @@ class NgoaiLeController extends Controller {
         $sessionId = intval($_POST['session_id'] ?? 0);
         if (!$sessionId) {
             $this->json(['success' => false, 'message' => 'Vui lòng chọn đợt tuyển sinh.']);
+            return;
+        }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->json(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
             return;
         }
 

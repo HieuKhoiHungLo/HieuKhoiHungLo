@@ -45,17 +45,41 @@ class ImportRepository {
             $stmt = $this->db->prepare("DELETE FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?");
             $stmt->execute([$batchId]);
 
-            // 2. Delete ket_qua_hoc_tap (via subquery to avoid large parameter lists)
-            $stmt = $this->db->prepare("DELETE FROM ket_qua_hoc_tap WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+            // 2. Delete ket_qua_hoc_tap (via subquery, scoped to avoid deleting from other sessions)
+            $stmt = $this->db->prepare("
+                DELETE FROM ket_qua_hoc_tap 
+                WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ho_so_xet_tuyen 
+                      WHERE ho_so_xet_tuyen.so_cccd = ket_qua_hoc_tap.so_cccd 
+                        AND ho_so_xet_tuyen.dot_tuyen_sinh_id != ?
+                  )
+            ");
+            $stmt->execute([$batchId, $batchId]);
 
-            // 3. Delete diem_thi_thpt (via subquery)
-            $stmt = $this->db->prepare("DELETE FROM diem_thi_thpt WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+            // 3. Delete diem_thi_thpt (via subquery, scoped to avoid deleting from other sessions)
+            $stmt = $this->db->prepare("
+                DELETE FROM diem_thi_thpt 
+                WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ho_so_xet_tuyen 
+                      WHERE ho_so_xet_tuyen.so_cccd = diem_thi_thpt.so_cccd 
+                        AND ho_so_xet_tuyen.dot_tuyen_sinh_id != ?
+                  )
+            ");
+            $stmt->execute([$batchId, $batchId]);
 
-            // 4. Delete diem_chi_tiet (via subquery)
-            $stmt = $this->db->prepare("DELETE FROM diem_chi_tiet WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)");
-            $stmt->execute([$batchId]);
+            // 4. Delete diem_chi_tiet (via subquery, scoped to avoid deleting from other sessions)
+            $stmt = $this->db->prepare("
+                DELETE FROM diem_chi_tiet 
+                WHERE so_cccd IN (SELECT so_cccd FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ho_so_xet_tuyen 
+                      WHERE ho_so_xet_tuyen.so_cccd = diem_chi_tiet.so_cccd 
+                        AND ho_so_xet_tuyen.dot_tuyen_sinh_id != ?
+                  )
+            ");
+            $stmt->execute([$batchId, $batchId]);
 
             // 5. Delete ho_so_xet_tuyen (The linker)
             $stmt = $this->db->prepare("DELETE FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ?");

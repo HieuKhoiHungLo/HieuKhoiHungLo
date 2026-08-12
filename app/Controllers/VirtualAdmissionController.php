@@ -224,6 +224,12 @@ class VirtualAdmissionController extends Controller {
             exit;
         }
 
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            echo json_encode(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
+            exit;
+        }
+
         $mode = $_POST['mode'] ?? 'chinh_thuc'; // 'hoc_ba' | 'chinh_thuc'
         $skipThptCondition = ($mode === 'hoc_ba');
 
@@ -317,6 +323,12 @@ class VirtualAdmissionController extends Controller {
         $sessionId = $_POST['session_id'] ?? null;
         if (!$sessionId) {
             echo json_encode(['success' => false, 'message' => 'Chưa chọn đợt xét tuyển.']);
+            exit;
+        }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            echo json_encode(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
             exit;
         }
 
@@ -900,6 +912,12 @@ class VirtualAdmissionController extends Controller {
         $sessionId = intval($_POST['session_id'] ?? 0);
         if (!$sessionId) {
             $this->json(['success' => false, 'message' => 'Chưa chọn đợt tuyển sinh.']);
+            return;
+        }
+
+        $sessionModel = new \App\Models\AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->json(['success' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
             return;
         }
 

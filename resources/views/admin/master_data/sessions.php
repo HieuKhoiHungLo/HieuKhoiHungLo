@@ -72,8 +72,16 @@
                                         </span>
                                     <?php else: ?>
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-400 uppercase tracking-wider">
-                                            Bị khóa
+                                            Không kích hoạt
                                         </span>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($session['is_locked'])): ?>
+                                        <div class="mt-2">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-wider">
+                                                <i class="fas fa-lock mr-1"></i> Đã khóa
+                                            </span>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-6 pr-8 text-center text-xs opacity-0 group-hover:opacity-100 transition">
@@ -149,6 +157,16 @@
                 <span class="text-sm font-bold text-slate-700">Kích hoạt đợt này</span>
             </label>
             
+            <label class="flex items-center space-x-3 cursor-pointer p-4 bg-rose-50 rounded-2xl hover:bg-rose-100 transition border border-rose-100">
+                <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-rose-200 rounded-full">
+                    <input type="checkbox" name="is_locked" id="is_locked" class="absolute w-6 h-6 bg-white border-2 border-rose-200 rounded-full appearance-none cursor-pointer checked:right-0 checked:border-rose-600 right-6 focus:outline-none transition-all duration-200 shadow-sm" style="top: 0;">
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-rose-700">Khóa dữ liệu xét tuyển đợt này</div>
+                    <div class="text-[10px] text-rose-500 mt-1">Đóng băng thao tác Lọc Ảo & Xét tuyển</div>
+                </div>
+            </label>
+            
             <div class="flex space-x-4 pt-4">
                 <button type="button" onclick="closeModal()" 
                         class="flex-grow py-4 bg-slate-100 text-slate-600 font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-slate-200 transition">Hủy</button>
@@ -176,6 +194,7 @@
         document.getElementById('ngay_bat_dau').value = '';
         document.getElementById('ngay_ket_thuc').value = '';
         document.getElementById('kich_hoat').checked = true;
+        document.getElementById('is_locked').checked = false;
     }
     function closeModal() {
         document.getElementById('modal').classList.add('hidden');
@@ -191,6 +210,7 @@
         document.getElementById('ngay_bat_dau').value = s.ngay_bat_dau;
         document.getElementById('ngay_ket_thuc').value = s.ngay_ket_thuc;
         document.getElementById('kich_hoat').checked = parseInt(s.kich_hoat) === 1;
+        document.getElementById('is_locked').checked = parseInt(s.is_locked) === 1;
     }
     
     function deleteSession(id) {

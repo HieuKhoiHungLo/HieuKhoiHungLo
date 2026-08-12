@@ -46,6 +46,7 @@ class SessionController extends Controller {
                 'ngay_bat_dau' => $_POST['ngay_bat_dau'],
                 'ngay_ket_thuc' => $_POST['ngay_ket_thuc'],
                 'kich_hoat' => isset($_POST['kich_hoat']) ? 'true' : 'false',
+                'is_locked' => isset($_POST['is_locked']) ? 'true' : 'false',
                 'loai_xet_tuyen' => $_POST['loai_xet_tuyen'] ?? 'chinh_thuc'
             ];
 

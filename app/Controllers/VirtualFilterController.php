@@ -119,6 +119,12 @@ class VirtualFilterController extends Controller {
                 return;
             }
 
+            $sessionModel = new \App\Models\AdmissionSession();
+            if ($sessionModel->isLocked($batchId)) {
+                $this->json(['status' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
+                return;
+            }
+
             $sql = "
                 SELECT DISTINCT nv.so_cccd 
                 FROM nguyen_vong nv
@@ -168,6 +174,12 @@ class VirtualFilterController extends Controller {
 
             if (!$batchId) {
                 $this->json(['status' => false, 'message' => 'Thiếu ID đợt tuyển sinh (session_id)']);
+                return;
+            }
+
+            $sessionModel = new \App\Models\AdmissionSession();
+            if ($sessionModel->isLocked($batchId)) {
+                $this->json(['status' => false, 'message' => 'Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.']);
                 return;
             }
 

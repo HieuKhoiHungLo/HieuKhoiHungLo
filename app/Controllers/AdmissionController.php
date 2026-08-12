@@ -84,6 +84,11 @@ class AdmissionController extends Controller {
         $activeSession = $sessionModel->getActiveSession();
         $sessionId = $activeSession['id'] ?? 0;
 
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->redirect(url('/admin/admission/benchmarks?error=session_locked'));
+            return;
+        }
+
         $data = $_POST['benchmarks'] ?? [];
         $db = \App\Core\Database::getInstance()->getConnection();
 
@@ -123,11 +128,15 @@ class AdmissionController extends Controller {
     public function process() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
-        // 1. Get Active Session
         $sessionModel = new AdmissionSession();
         $activeSession = $sessionModel->getActiveSession();
         if (!$activeSession) {
-             $this->redirect(url('/admin/admission/benchmarks?error=no_session'));
+             $this->redirect(url('/admin/admission/results?error=no_session'));
+             return;
+        }
+
+        if ($sessionModel->isLocked($activeSession['id'])) {
+             $this->redirect(url('/admin/admission/benchmarks?error=session_locked'));
              return;
         }
 
@@ -947,14 +956,27 @@ class AdmissionController extends Controller {
         exit;
     }
 
+
+
     public function import() {
         // Allow unlimited time and enough memory for large Excel files
         set_time_limit(0);
         ini_set('memory_limit', '512M');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
-
         
+        $sessionModel = new AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        if (!$activeSession) {
+             $this->redirect(url('/admin/admission/results?error=no_session'));
+             return;
+        }
+
+        if ($sessionModel->isLocked($activeSession['id'])) {
+             $this->redirect(url('/admin/admission/results?error=session_locked'));
+             return;
+        }
+
         $sessionId = $_POST['session_id'] ?? '';
         if (empty($sessionId)) {
             $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
@@ -1181,6 +1203,19 @@ class AdmissionController extends Controller {
 
     public function clearBatch() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        
+        $sessionModel = new AdmissionSession();
+        $activeSession = $sessionModel->getActiveSession();
+        if (!$activeSession) {
+             $this->redirect(url('/admin/admission/results?error=no_session'));
+             return;
+        }
+
+        if ($sessionModel->isLocked($activeSession['id'])) {
+             $this->redirect(url('/admin/admission/results?error=session_locked'));
+             return;
+        }
+
         $sessionId = $_POST['session_id'] ?? '';
         if (empty($sessionId)) {
             $this->redirect(url('/admin/admission/results?error=' . urlencode('Dữ liệu không hợp lệ.')));
@@ -1389,6 +1424,11 @@ class AdmissionController extends Controller {
              return;
         }
 
+        if ($sessionModel->isLocked($activeSession['id'])) {
+             $this->redirect(url('/admin/admission/benchmarks?error=session_locked'));
+             return;
+        }
+
         $db = \App\Core\Database::getInstance()->getConnection();
         
         // 1. Get Benchmarks
@@ -1559,6 +1599,12 @@ class AdmissionController extends Controller {
         $sessionId = $_POST['session_id'] ?? 0;
         if (!$sessionId) {
             $this->redirect(url('/admin/admission/results?error=' . urlencode('Vui lòng chọn đợt tuyển sinh.')));
+            return;
+        }
+
+        $sessionModel = new AdmissionSession();
+        if ($sessionModel->isLocked($sessionId)) {
+            $this->redirect(url('/admin/admission/results?error=' . urlencode('Đợt xét tuyển này đã bị khóa. Vui lòng mở khóa để thực hiện thao tác.')));
             return;
         }
 

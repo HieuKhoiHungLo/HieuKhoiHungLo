@@ -315,7 +315,7 @@ class AdmissionLetterService {
         foreach ($candidates as $candidate) {
             if (empty($candidate['email'])) continue;
 
-            $subject = $template['subject'] ?? 'Thông báo';
+            $subject = $this->renderTemplate($template['subject'] ?? 'Thông báo', $candidate);
             $body = $this->renderTemplate($template['body'], $candidate);
             
             $this->mailer->enqueue($candidate['email'], $subject, $body, true, 'admission_letter');
@@ -360,7 +360,7 @@ class AdmissionLetterService {
         foreach ($candidates as $candidate) {
             if (empty($candidate['email'])) continue;
 
-            $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
+            $subject = $this->renderTemplate($template['subject'] ?? 'Thông báo trúng tuyển', $candidate);
             
             // Render template
             $body = $this->renderTemplate($template['body'], $candidate);
@@ -566,7 +566,7 @@ class AdmissionLetterService {
 
         $cccd = urlencode($data['so_cccd'] ?? '');
         if ($cccd) {
-            $qrCCCD = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . $cccd . '" alt="QR CCCD" style="max-width: 200px; height:auto; border:1px solid #ccc; border-radius:6px;" />';
+            $qrCCCD = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&qzone=4&data=' . $cccd . '" alt="QR CCCD" style="max-width: 200px; height:auto; border:1px solid #ccc; border-radius:6px; background-color:#ffffff; padding:8px;" />';
         } else {
             $qrCCCD = '';
         }
@@ -679,7 +679,7 @@ class AdmissionLetterService {
             throw new \Exception("Mẫu email không tồn tại.");
         }
 
-        $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
+        $subjectTpl = $template['subject'] ?? 'Thông báo trúng tuyển';
 
         if (!empty($ids)) {
             // Gửi email test cho các thí sinh được chọn tới email nhận test
@@ -689,6 +689,7 @@ class AdmissionLetterService {
             $candidates = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             foreach ($candidates as $candidate) {
+                $subject = $this->renderTemplate($subjectTpl, $candidate);
                 $body = $this->renderTemplate($template['body'], $candidate);
                 $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter');
             }
@@ -723,6 +724,7 @@ class AdmissionLetterService {
             ];
 
             $body = $this->renderTemplate($template['body'], $fakeData);
+            $subject = $this->renderTemplate($subjectTpl, $fakeData);
             return $this->mailer->enqueue($email, $subject, $body, true, 'admission_letter') ? 1 : 0;
         }
     }
@@ -745,7 +747,7 @@ class AdmissionLetterService {
             throw new \Exception("Mẫu email không tồn tại.");
         }
 
-        $subject = $template['subject'] ?? 'Thông báo trúng tuyển';
+        $subjectTpl = $template['subject'] ?? 'Thông báo trúng tuyển';
 
         // Xây dựng điều kiện lọc theo scope
         if (!empty($batchId)) {
@@ -787,6 +789,7 @@ class AdmissionLetterService {
 
             foreach ($candidates as $candidate) {
                 if (empty($candidate['email'])) continue;
+                $subject = $this->renderTemplate($subjectTpl, $candidate);
                 $body = $this->renderTemplate($template['body'], $candidate);
                 try {
                     $insertStmt->execute([$candidate['email'], $subject, $body]);

@@ -13,6 +13,7 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         * {
@@ -129,6 +130,7 @@
     </style>
 </head>
 <body class="flex flex-col h-[100vh] overflow-hidden bg-[#F5F7FB]">
+    <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
 
     <!-- Header -->
     <header class="primary-bg text-white shadow-md z-30 shrink-0">
@@ -173,315 +175,151 @@
     </div>
 
     <!-- Main Content Panel -->
-    <main class="flex-1 w-full max-w-[1600px] mx-auto p-3 flex gap-3 min-h-0 relative">
+    <main class="flex-1 w-full max-w-[1920px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-8 gap-4 min-h-0 relative">
 
-        <!-- COLUMN 1: Tra cứu & Thông tin thí sinh (Desktop: Left Column, Kiosk: Tab 1) -->
-        <div id="col-tra-cuu" class="w-full lg:w-[420px] flex-shrink-0 flex flex-col h-full min-h-0 transition-all duration-300">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5 flex-1 flex flex-col min-h-0 overflow-y-auto">
-                
-                <!-- Section Header -->
-                <div class="flex items-center gap-2.5 mb-4 shrink-0">
-                    <div class="w-8 h-8 rounded-full primary-bg text-white font-black flex items-center justify-center shadow-md">1</div>
-                    <h2 class="txt-title primary-text uppercase">Tra cứu thông tin</h2>
+        <!-- COLUMN 1: Left 3 cols (Candidate Info) -->
+        <div id="col-tra-cuu" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Header section matching screenshot: Teal background -->
+            <div id="success-banner" class="bg-[#1e9a95] p-6 text-center text-white relative hidden">
+                <!-- Inner border decoration -->
+                <div class="absolute inset-2 border-2 border-[#54b8b4] rounded-lg pointer-events-none"></div>
+                <h2 class="text-3xl font-black mb-2 mt-4 tracking-wider uppercase drop-shadow-md">CHÚC MỪNG!</h2>
+                <p class="text-base font-bold mb-4 drop-shadow-sm">TÂN SINH VIÊN ĐẠI HỌC HÙNG VƯƠNG</p>
+            </div>
+            
+            <!-- Candidate Data section -->
+            <div class="p-6 flex-1 bg-white relative min-h-[300px]">
+                <!-- Initial State (Waiting to scan) -->
+                <div id="waiting-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 text-slate-400 transition-opacity duration-300">
+                    <i class="fa-solid fa-id-card text-6xl mb-4 text-slate-200"></i>
+                    <p class="font-bold text-xl uppercase text-slate-300">THÔNG TIN THÍ SINH</p>
+                    <p class="font-medium text-sm mt-2">Vui lòng quét QR hoặc nhập CCCD</p>
                 </div>
 
-                <!-- Input/Scanner Selection Area -->
-                <div id="search-container" class="flex flex-col flex-1 min-h-0">
-                    <!-- Tab toggle: scan/manual -->
-                    <div class="flex p-1 bg-slate-100 border border-slate-200 rounded-xl mb-4 shrink-0">
-                        <button type="button" id="tab-scan" onclick="setSearchMethod('scan')" class="touch-btn flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all primary-bg text-white flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fa-solid fa-qrcode"></i> Quét mã QR
-                        </button>
-                        <button type="button" id="tab-manual" onclick="setSearchMethod('manual')" class="touch-btn flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-all text-slate-600 hover:bg-slate-200 flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-keyboard"></i> Nhập số CCCD
-                        </button>
+                <!-- Result State (Hidden by default, shown via JS) -->
+                <div id="result-state" class="flex flex-col items-center h-full opacity-0 pointer-events-none transition-opacity duration-300">
+                    
+                    <!-- Top: Avatar -->
+                    <div class="w-[130px] shrink-0 flex flex-col items-center mb-5 relative">
+                        <div class="w-full aspect-[3/4] bg-gray-100 overflow-hidden border-[6px] border-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] ring-1 ring-slate-200/50 mb-2 relative z-10 rounded-sm">
+                            <img id="cand-avatar" src="<?= url('/assets/img/default-avatar.png') ?>" alt="Avatar" class="w-full h-full object-cover">
+                        </div>
                     </div>
-
-                    <!-- Method 1: QR Scanning -->
-                    <div id="method-scan" class="flex-1 flex flex-col min-h-0">
-                        <div class="relative w-full h-[200px] md:h-[220px] bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center shrink-0 mb-4">
-                            <!-- Laser scan line animation -->
-                            <div id="laser" class="laser-line hidden"></div>
-                            
-                            <!-- Scanner corners decoration -->
-                            <div class="qr-corner c-tl"></div>
-                            <div class="qr-corner c-tr"></div>
-                            <div class="qr-corner c-bl"></div>
-                            <div class="qr-corner c-br"></div>
-                            
-                            <!-- Video target element -->
-                            <div id="qr-reader" class="w-full h-full absolute inset-0 z-0 bg-transparent"></div>
-                            
-                            <!-- Attract placeholder -->
-                            <div id="qr-placeholder" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-slate-950/80 backdrop-blur-sm transition-opacity">
-                                <div class="w-14 h-14 bg-blue-900/40 text-blue-400 border border-blue-500/30 rounded-full flex items-center justify-center mb-3 animate-pulse">
-                                    <i class="fa-solid fa-expand text-2xl"></i>
-                                </div>
-                                <p class="text-white font-bold txt-item-title mb-1">Đưa mã QR trên giấy báo vào khung</p>
-                                <p class="text-slate-400 txt-desc leading-snug">Hệ thống sẽ tự động quét và hiện thông tin</p>
+                    
+                    <!-- Bottom: Info -->
+                    <div class="w-full flex-1 flex flex-col">
+                        <h3 class="text-green-600 font-bold text-sm md:text-base mb-4 flex items-center gap-2 justify-center">
+                            <i class="fa-solid fa-circle text-[6px]"></i> THÔNG TIN THÍ SINH
+                        </h3>
+                        
+                        <div class="space-y-3 max-w-[420px] mx-auto w-full px-2">
+                            <div class="flex items-start">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Họ và tên:</span>
+                                <span id="cand-name" class="font-black text-red-600 text-lg uppercase leading-tight">--</span>
                             </div>
-                        </div>
-
-                        <!-- Manual fallback inside scan tab -->
-                        <div class="flex gap-2 shrink-0">
-                            <form onsubmit="handleQuerySubmit(event, 'input-cccd-inline')" class="flex-1 flex gap-2">
-                                <div class="relative flex-1">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                                        <i class="fa-solid fa-id-card text-xs md:text-sm"></i>
-                                    </div>
-                                    <input type="text" id="input-cccd-inline" placeholder="Nhập Số CCCD / Số báo danh" 
-                                           class="touch-input w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent text-xs md:text-sm font-semibold text-slate-800 outline-none transition-all">
-                                </div>
-                                <button type="submit" class="touch-btn px-4 py-2.5 rounded-lg primary-bg hover:bg-blue-800 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 shrink-0 transition-colors shadow-sm">
-                                    <i class="fa-solid fa-magnifying-glass"></i> Tra cứu
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="flex justify-between items-center mt-4 shrink-0">
-                            <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="touch-btn text-xs md:text-sm font-bold text-blue-700 hover:text-blue-950 flex items-center gap-2 transition-colors">
-                                <i class="fa-solid fa-camera"></i> <span id="cam-btn-text">Bật Camera Quét</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Method 2: Manual Input -->
-                    <div id="method-manual" class="flex-1 hidden flex-col pt-3 min-h-0">
-                        <form onsubmit="handleQuerySubmit(event, 'input-cccd-full')" class="space-y-4">
-                            <div>
-                                <label class="block txt-body font-bold text-slate-700 mb-2">Số Căn cước công dân hoặc SBD của thí sinh:</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <i class="fa-solid fa-id-card text-base"></i>
-                                    </div>
-                                    <input type="text" id="input-cccd-full" placeholder="Nhập đúng số CCCD (12 số) hoặc SBD" 
-                                           class="touch-input w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm md:text-base font-semibold text-slate-800 outline-none transition-all">
-                                </div>
+                            <div class="flex items-center">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Ngày sinh:</span>
+                                <span id="cand-dob" class="font-bold text-red-600 text-base">--</span>
                             </div>
-                            <button type="submit" class="touch-btn w-full py-3.5 rounded-lg primary-bg hover:bg-blue-800 text-white font-bold text-sm md:text-base flex items-center justify-center gap-2 transition-all shadow-md">
-                                <i class="fa-solid fa-magnifying-glass"></i> Tra cứu ngay
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Alert message container -->
-                    <div id="error-alert" class="hidden mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs md:text-sm flex items-start gap-2 shrink-0 animate__animated animate__fadeIn">
-                        <i class="fa-solid fa-circle-exclamation mt-0.5 text-base"></i>
-                        <div id="error-message" class="font-semibold leading-snug"></div>
-                    </div>
-                </div>
-
-                <!-- Result Card Info Section (Hidden until query hits success) -->
-                <div id="result-container" class="hidden flex-1 flex-col pt-3 border-t border-slate-100 min-h-0">
-                    <div class="flex items-center justify-between mb-4 shrink-0">
-                        <h3 class="txt-item-title primary-text uppercase">Thông tin thí sinh</h3>
-                        <span class="text-[10px] md:text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-check"></i> ĐÃ TRÚNG TUYỂN
-                        </span>
-                    </div>
-
-                    <!-- Layout: Image & Info -->
-                    <div class="flex gap-4 mb-4 shrink-0 items-start">
-                        <div class="w-[90px] h-[120px] bg-slate-100 rounded-lg border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative">
-                            <img id="res-avatar" src="" alt="Avatar" class="w-full h-full object-cover hidden">
-                            <i id="res-avatar-icon" class="fa-solid fa-user text-4xl text-slate-400"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 id="res-name" class="txt-candidate-name text-blue-800 uppercase mb-2 truncate">--</h4>
-                            <div class="space-y-1 md:space-y-1.5 text-slate-600 txt-body">
-                                <div class="flex justify-between py-0.5 border-b border-slate-50"><span class="font-medium text-slate-400">Ngày sinh:</span><strong id="res-dob" class="text-slate-800">--</strong></div>
-                                <div class="flex justify-between py-0.5 border-b border-slate-50"><span class="font-medium text-slate-400">Số CCCD:</span><strong id="res-cccd" class="text-slate-800">--</strong></div>
-                                <div class="flex justify-between py-0.5 border-b border-slate-50"><span class="font-medium text-slate-400">Mã hồ sơ:</span><strong id="res-sbd" class="text-slate-800">--</strong></div>
-                                <div class="flex justify-between py-0.5 border-b border-slate-50"><span class="font-medium text-slate-400">Ngành:</span><strong id="res-nganh" class="text-slate-800 truncate pl-2 max-w-[180px]" title="">--</strong></div>
+                            <div class="flex items-center">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Số CCCD:</span>
+                                <span id="cand-cccd" class="font-bold text-red-600 text-base">--</span>
+                            </div>
+                            <div class="flex items-start mt-3 pt-3 border-t border-slate-100">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Ngành trúng tuyển:</span>
+                                <span id="cand-major" class="font-black text-red-600 text-base md:text-lg leading-tight">--</span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="space-y-1 text-slate-600 txt-body mb-4 shrink-0">
-                        <div class="flex justify-between py-1 border-b border-slate-50"><span class="font-medium text-slate-400">Khoa quản lý:</span><strong id="res-khoa" class="text-slate-800">--</strong></div>
-                        <div class="flex justify-between py-1 border-b border-slate-50"><span class="font-medium text-slate-400">Giáo viên chủ nhiệm:</span><strong id="res-gvcn" class="text-slate-800">--</strong></div>
-                    </div>
-
-                    <!-- Target table pointer (Huge visual indicator) -->
-                    <div id="desk-card" class="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-center shrink-0 mb-4 transition-all">
-                        <div class="txt-desc font-bold text-red-600 uppercase tracking-widest mb-1">VUI LÒNG DI CHUYỂN ĐẾN</div>
-                        <div id="res-desk" class="txt-desk-num text-red-600 leading-none">--</div>
-                        <div id="res-vi-tri" class="txt-desc font-bold text-slate-600 mt-2">--</div>
-                    </div>
-
-                    <!-- Action items -->
-                    <div class="mt-auto grid grid-cols-2 gap-3 shrink-0">
-                        <button type="button" onclick="showKioskGuide()" id="btn-kiosk-guide" class="hidden touch-btn py-3 px-2 rounded-xl primary-bg text-white font-bold text-sm flex items-center justify-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-arrow-right"></i> Xem đường đi
-                        </button>
-                        <button type="button" onclick="resetSearchForm()" class="touch-btn py-3 px-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-sm flex items-center justify-center gap-1.5 transition-colors">
-                            <i class="fa-solid fa-arrow-rotate-left"></i> Tra cứu lại
-                        </button>
-                    </div>
                 </div>
-
             </div>
         </div>
 
-        <!-- COLUMN 2: Sơ đồ & Chỉ dẫn (Desktop: Right Column, Kiosk: Tab 2) -->
-        <div id="col-huong-dan" class="flex-1 flex flex-col h-full min-h-0 transition-all duration-300">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-5 flex-1 flex flex-col min-h-0 overflow-y-auto">
-                
-                <!-- Section Header -->
-                <div class="flex items-center gap-2.5 mb-4 shrink-0">
-                    <div class="w-8 h-8 rounded-full secondary-bg text-white font-black flex items-center justify-center shadow-md">2</div>
-                    <h2 class="txt-title secondary-text uppercase">Hướng dẫn & Chỉ dẫn chi tiết</h2>
-                </div>
+        <!-- COLUMN 2: Middle 2 cols (Scanner & Text Directory) -->
+        <div class="col-span-1 lg:col-span-2 flex flex-col gap-4 h-full min-h-0">
+            <!-- Top: Scanner -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col shrink-0 relative">
+                <!-- Camera Button in top right corner -->
+                <button type="button" id="btn-toggle-cam" onclick="toggleCamera()" class="absolute top-6 right-6 z-20 w-8 h-8 rounded-full bg-blue-600/80 hover:bg-blue-700 text-white flex items-center justify-center shadow-md backdrop-blur-sm transition-colors" title="Bật/Tắt Camera">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
 
-                <div class="flex-1 flex flex-col gap-4 min-h-0">
+                <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center shrink-0 mb-4">
+                    <div id="laser" class="laser-line hidden"></div>
+                    <div class="qr-corner c-tl"></div>
+                    <div class="qr-corner c-tr"></div>
+                    <div class="qr-corner c-bl"></div>
+                    <div class="qr-corner c-br"></div>
                     
-                    <!-- Card 1: Sơ đồ khu vực làm thủ tục -->
-                    <div class="bg-slate-50 rounded-xl border border-slate-200/80 p-3 md:p-4 shrink-0 relative">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="txt-item-title text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-map-location-dot text-blue-600"></i> Sơ đồ khu vực
-                            </h3>
-                            <button type="button" onclick="zoomMap()" class="touch-btn text-xs font-bold text-blue-700 flex items-center gap-1">
-                                <i class="fa-solid fa-magnifying-glass-plus"></i> Phóng to
-                            </button>
+                    <div id="qr-reader" class="w-full h-full absolute inset-0 z-0 bg-transparent"></div>
+                    
+                    <div id="qr-placeholder" class="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-slate-900/80 backdrop-blur-sm transition-opacity">
+                        <div class="w-12 h-12 bg-blue-900/40 text-blue-400 border border-blue-500/30 rounded-full flex items-center justify-center mb-2 animate-pulse">
+                            <i class="fa-solid fa-expand text-xl"></i>
                         </div>
-                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white max-h-[220px] md:max-h-[260px] flex justify-center items-center shadow-inner relative">
-                            <img id="res-sodo-img" src="<?= url('/assets/img/sodo-nhaphoc.png') ?>" alt="Sơ đồ khu vực nhập học" onerror="this.src='https://placehold.co/1000x400/f8fafc/64748b?text=S%C6%A1+%C4%91%E1%BB%93+H%C6%B0%E1%BB%9Bng+d%E1%BA%ABn+Nh%E1%BA%ADp+h%E1%BB%8Dc'" class="w-full h-auto max-h-full object-contain cursor-pointer transition-transform hover:scale-[1.01]" onclick="zoomMap()">
-                        </div>
-                        
-                        <!-- Visual Step path details text below map -->
-                        <div class="mt-3 bg-white border border-slate-100 rounded-lg p-2.5 flex items-center justify-center gap-2 flex-wrap">
-                            <span class="txt-desc font-bold text-slate-500">HÀNH TRÌNH:</span>
-                            <span class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">CỔNG CHÍNH</span>
-                            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
-                            <span id="route-step-1" class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">BÀN 1</span>
-                            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
-                            <span id="route-step-2" class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">BÀN 2</span>
-                            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
-                            <span id="route-step-3" class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">BÀN 3</span>
-                            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
-                            <span id="route-step-4" class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">BÀN 4</span>
-                            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
-                            <span id="route-step-5" class="px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-700">BÀN 5</span>
-                        </div>
+                        <p class="text-white font-bold text-sm md:text-base mb-1">Đưa mã QR trên giấy báo vào khung</p>
+                        <p class="text-slate-400 text-xs leading-snug">Hệ thống tự động quét</p>
                     </div>
-
-                    <!-- Cards Split Area -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0">
-                        
-                        <!-- Card 2: Các bước nhập học (Timeline) -->
-                        <div class="md:col-span-2 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200/80 p-3 md:p-4">
-                            <h3 class="txt-item-title text-slate-800 mb-3 flex items-center gap-2 shrink-0">
-                                <i class="fa-solid fa-route text-rose-600"></i> Quy trình thực hiện
-                            </h3>
-                            <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="timeline-container">
-                                <!-- Step 1 -->
-                                <div id="timeline-step-1" class="flex items-center gap-3 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm transition-all duration-300">
-                                    <div id="timeline-circle-1" class="w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0">1</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="txt-desc font-bold text-slate-800 uppercase leading-none">BÀN 1: Xác nhận hồ sơ</h4>
-                                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">Kiểm tra thông tin tuyển sinh, đối chiếu các giấy tờ gốc</p>
-                                    </div>
-                                </div>
-                                <!-- Step 2 -->
-                                <div id="timeline-step-2" class="flex items-center gap-3 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm transition-all duration-300">
-                                    <div id="timeline-circle-2" class="w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0">2</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="txt-desc font-bold text-slate-800 uppercase leading-none">BÀN 2: Kiểm tra hồ sơ</h4>
-                                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">Nộp học bạ THPT, Bằng tốt nghiệp và Giấy khai sinh</p>
-                                    </div>
-                                </div>
-                                <!-- Step 3 -->
-                                <div id="timeline-step-3" class="flex items-center gap-3 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm transition-all duration-300">
-                                    <div id="timeline-circle-3" class="w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0">3</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="txt-desc font-bold text-slate-800 uppercase leading-none">BÀN 3: Thu học phí</h4>
-                                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">Hoàn thành học phí kỳ 1 và bảo hiểm y tế bắt buộc</p>
-                                    </div>
-                                </div>
-                                <!-- Step 4 -->
-                                <div id="timeline-step-4" class="flex items-center gap-3 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm transition-all duration-300">
-                                    <div id="timeline-circle-4" class="w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0">4</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="txt-desc font-bold text-slate-800 uppercase leading-none">BÀN 4: Nhận thẻ sinh viên</h4>
-                                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">Chụp ảnh thẻ, nhận thẻ SV tạm thời, đăng ký đồng phục</p>
-                                    </div>
-                                </div>
-                                <!-- Step 5 -->
-                                <div id="timeline-step-5" class="flex items-center gap-3 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm transition-all duration-300">
-                                    <div id="timeline-circle-5" class="w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0">5</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="txt-desc font-bold text-slate-800 uppercase leading-none">BÀN 5: Ban Hỗ trợ ký túc xá</h4>
-                                        <p class="text-[10px] md:text-xs text-slate-500 mt-1">Làm đơn xin nội trú ký túc xá, tìm phòng trọ giá rẻ ngoại khu</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card 3: Giấy tờ & Card 4: Hotline -->
-                        <div class="flex flex-col gap-3 min-h-0">
-                            <!-- Card 3: Giấy tờ cần chuẩn bị -->
-                            <div class="bg-amber-50/50 border border-amber-200 rounded-xl p-3 flex-1 overflow-y-auto">
-                                <h3 class="txt-desc font-bold text-amber-800 uppercase mb-2 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-file-invoice text-amber-600"></i> Giấy tờ cần có
-                                </h3>
-                                <ul class="space-y-1.5 txt-desc text-slate-700">
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>Giấy báo trúng tuyển bản chính</span>
-                                    </li>
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>Học bạ THPT (Bản chính + Bản sao)</span>
-                                    </li>
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>Căn cước công dân (Bản công chứng)</span>
-                                    </li>
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>Bằng tốt nghiệp (Hoặc CN tạm thời)</span>
-                                    </li>
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>Giấy khai sinh (Bản sao hợp lệ)</span>
-                                    </li>
-                                    <li class="flex items-start gap-1.5">
-                                        <i class="fa-solid fa-circle-check text-amber-600 mt-1 text-[10px]"></i>
-                                        <span>4 ảnh 3x4 (Chụp không quá 6 tháng)</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Card 4: Thông tin hỗ trợ -->
-                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 shrink-0 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-lg shrink-0">
-                                    <i class="fa-solid fa-headset"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="text-[9px] font-bold text-blue-800 uppercase">Liên hệ hỗ trợ</div>
-                                    <a href="tel:0866993468" class="text-sm md:text-base font-black text-blue-700 hover:underline">0866 993 468</a>
-                                </div>
-                            </div>
-                        </div>
-
+                </div>
+                
+                <form id="manual-search-form" onsubmit="handleQuerySubmit(event, 'cccd-input')" class="flex gap-2">
+                    <input type="text" id="cccd-input" class="flex-1 border border-slate-300 px-3 py-2 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm font-semibold" placeholder="Nhập Số CCCD / SBD">
+                    <button id="search-btn" type="submit" class="primary-bg hover:bg-blue-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">
+                        <i class="fa-solid fa-search"></i> Tra cứu
+                    </button>
+                </form>
+                
+                <!-- Alert message container -->
+                <div id="error-alert" class="hidden mt-3 p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs flex items-start gap-2 shrink-0 animate__animated animate__fadeIn">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5 text-sm"></i>
+                    <div id="error-message" class="font-semibold leading-snug"></div>
+                </div>
+            </div>
+            
+            <!-- Bottom: Directory -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-1 overflow-y-auto">
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 1, Bàn 2, Bàn 3 (Hội trường trung tâm)</div>
+                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Ngôn ngữ Trung quốc, Điều dưỡng, SP Toán, SP Khoa học tự nhiên</div>
+                    </div>
+                    <div>
+                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 4, Bàn 5 (Giảng đường D)</div>
+                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Sư phạm Ngữ Văn, SP Lịch sử - Địa lí, QTDV Du lịch – LH, Du lịch</div>
+                    </div>
+                    <div>
+                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 6, Bàn 7 (Giảng đường E)</div>
+                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Công nghệ thông tin, CNKT Điện – ĐT, CNKT Cơ khí</div>
+                    </div>
+                    <div>
+                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 8, Bàn 9 (Góc văn hoá Hàn quốc – tầng 3)</div>
+                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành GDTH, GD Mầm non, GD Thể chất, SP Mỹ thuật, SP Âm nhạc, Chăn nuôi, KHCT, Thú y</div>
+                    </div>
+                    <div>
+                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 10, Bàn 11, Bàn 12 (Hội trường tầng 3)</div>
+                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Tiếp thí sinh mới, Nhập học không đúng thời gian quy định</div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- COLUMN 3: Right 3 cols (Image Map) -->
+        <div class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <img id="map-image" src="<?= url('/assets/img/so_do_nhap_hoc.jpg') ?>" alt="Sơ đồ nhập học" class="w-full h-full object-contain bg-slate-50" onerror="this.src='https://placehold.co/1000x800/f8fafc/64748b?text=S%C6%A1+%C4%91%E1%BB%93+v%E1%BB%8B+tr%C3%AD+b%C3%A0n+nh%E1%BA%ADp+h%E1%BB%8Dc'">
         </div>
 
     </main>
 
     <!-- Attract Mode / Screensaver Overlay (Hidden normally, shown on Kiosk idle) -->
     <div id="attract-overlay" class="fixed inset-0 bg-[#0D47A1] z-50 flex flex-col items-center justify-center p-6 text-white text-center cursor-pointer transition-all duration-500 hidden" onclick="dismissAttractMode()">
-        <div class="max-w-2xl flex flex-col items-center">
+        <div class="max-w-4xl flex flex-col items-center">
             <!-- Animated HVU logo circle -->
             <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center p-3 shadow-2xl mb-8 animate__animated animate__pulse animate__infinite">
                 <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="w-full h-full object-contain">
             </div>
             
-            <h2 class="text-3xl md:text-5xl font-black uppercase tracking-wider mb-2 animate__animated animate__fadeInDown">CHÀO MỪNG TÂN SINH VIÊN</h2>
-            <h3 class="text-lg md:text-2xl text-blue-200 font-bold uppercase tracking-widest mb-12 animate__animated animate__fadeInUp">Trường Đại học Hùng Vương</h3>
+            <h2 class="text-3xl md:text-5xl font-black uppercase tracking-wider mb-2 animate__animated animate__fadeInDown whitespace-nowrap">CHÀO MỪNG TÂN SINH VIÊN</h2>
+            <h3 class="text-lg md:text-2xl text-blue-200 font-bold uppercase tracking-widest mb-12 animate__animated animate__fadeInUp whitespace-nowrap">Trường Đại học Hùng Vương</h3>
 
             <div class="space-y-4 animate__animated animate__flash animate__infinite animate__slower">
                 <div class="w-16 h-16 rounded-full border-2 border-white/60 flex items-center justify-center mx-auto">
@@ -724,7 +562,8 @@
                 }
             }
             stopScannerCamera();
-            document.getElementById('input-cccd-inline').value = scanValue;
+            const inputEl = document.getElementById('cccd-input');
+            if (inputEl) inputEl.value = scanValue;
             executeSearchQuery(scanValue);
         }
 
@@ -783,133 +622,106 @@
         }
 
         function renderResult(student) {
-            // Transition effect: Hide search, show results card
-            const searchSection = document.getElementById('search-container');
-            const resultSection = document.getElementById('result-container');
+            const waitingState = document.getElementById('waiting-state');
+            const resultState = document.getElementById('result-state');
             
-            searchSection.classList.add('hidden');
-            resultSection.classList.remove('hidden');
-            resultSection.classList.add('flex', 'animate__animated', 'animate__fadeIn');
+            waitingState.classList.add('opacity-0', 'pointer-events-none');
+            resultState.classList.remove('opacity-0', 'pointer-events-none');
+            
+            // Add animations
+            resultState.classList.remove('animate__animated', 'animate__zoomIn');
+            void resultState.offsetWidth; // trigger reflow
+            resultState.classList.add('animate__animated', 'animate__zoomIn');
+
+            const successBanner = document.getElementById('success-banner');
+            if (successBanner) {
+                successBanner.classList.remove('hidden', 'animate__animated', 'animate__fadeInDown');
+                void successBanner.offsetWidth; // trigger reflow
+                successBanner.classList.add('animate__animated', 'animate__fadeInDown');
+            }
 
             // Set result contents
-            document.getElementById('res-name').innerText = student.ho_ten || 'Thí sinh';
-            document.getElementById('res-cccd').innerText = student.so_cccd || '--';
-            document.getElementById('res-sbd').innerText = student.sbd || '--';
-            document.getElementById('res-dob').innerText = student.ngay_sinh || '--';
-            document.getElementById('res-khoa').innerText = student.ten_khoa || '--';
-            document.getElementById('res-gvcn').innerText = student.gvcn || 'Chưa cập nhật';
+            document.getElementById('cand-name').innerText = student.ho_ten || 'Thí sinh';
+            document.getElementById('cand-cccd').innerText = student.so_cccd || '--';
+            document.getElementById('cand-dob').innerText = student.ngay_sinh || '--';
             
-            const nganhEl = document.getElementById('res-nganh');
+            const nganhEl = document.getElementById('cand-major');
             nganhEl.innerText = student.ten_nganh || '--';
-            nganhEl.title = student.ten_nganh || '--';
 
             // Set avatar photo
-            const imgEl = document.getElementById('res-avatar');
-            const iconEl = document.getElementById('res-avatar-icon');
+            const imgEl = document.getElementById('cand-avatar');
             if (student.anh_the) {
                 imgEl.src = student.anh_the;
-                imgEl.classList.remove('hidden');
-                iconEl.classList.add('hidden');
             } else {
-                imgEl.classList.add('hidden');
-                iconEl.classList.remove('hidden');
+                imgEl.src = '<?= url("/assets/img/default-avatar.png") ?>';
             }
-
-            // Target desk styling
-            const deskEl = document.getElementById('res-desk');
-            const deskCard = document.getElementById('desk-card');
-            const viTriEl = document.getElementById('res-vi-tri');
-            const deskName = student.ban_nhap_hoc ? student.ban_nhap_hoc.toUpperCase() : 'BÀN 1';
-            
-            deskEl.innerText = deskName;
-            viTriEl.innerText = student.vi_tri_nhap_hoc || 'Khu vực Hội trường trung tâm';
-            
-            // Add Pulsing desk glow class to highlight the card
-            deskCard.className = "desk-glow rounded-xl p-4 text-center shrink-0 mb-4 transition-all bg-red-50/70";
 
             // Map image updates based on DB link
-            const sodoImg = document.getElementById('res-sodo-img');
+            const mapImg = document.getElementById('map-image');
             if (student.link_so_do) {
-                sodoImg.src = student.link_so_do;
+                mapImg.src = student.link_so_do;
             } else {
-                sodoImg.src = defaultMapSrc;
+                mapImg.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
             }
-
-            // Highlight corresponding timeline desk steps
-            highlightTimeline(deskName);
 
             // Update status bar bottom (if visible)
             const statusBarText = document.getElementById('status-bar-text');
             if (statusBarText) {
-                statusBarText.innerText = `THÍ SINH: ${student.ho_ten.toUpperCase()} ➔ ${deskName} (${student.vi_tri_nhap_hoc || 'Hội trường'})`;
+                statusBarText.innerText = `THÍ SINH: ${student.ho_ten.toUpperCase()} ➔ ${student.ban_nhap_hoc || ''} (${student.vi_tri_nhap_hoc || 'Hội trường'})`;
             }
-
-            // If we are in kiosk/portrait view, reveal the navigation guide tab button
-            const btnKioskGuide = document.getElementById('btn-kiosk-guide');
-            if (window.innerHeight > window.innerWidth || window.location.search.includes('mode=kiosk')) {
-                btnKioskGuide.classList.remove('hidden');
-                // Auto switch kiosk view to map guide section after a short delay
-                setTimeout(() => {
-                    switchKioskTab(2);
-                }, 2200);
-            }
-        }
-
-        // Highlight Active Timeline Steps in vertical step indicator
-        function highlightTimeline(deskName) {
-            let activeNumber = 1;
-            const match = deskName.match(/\d+/);
-            if (match) {
-                activeNumber = parseInt(match[0]);
-            }
-
-            // Highlight steps up to activeNumber, mute steps above it
-            for (let i = 1; i <= 5; i++) {
-                const stepRow = document.getElementById(`timeline-step-${i}`);
-                const stepCircle = document.getElementById(`timeline-circle-${i}`);
-                const routePill = document.getElementById(`route-step-${i}`);
-                
-                if (i <= activeNumber) {
-                    // Highlight Active
-                    stepRow.classList.remove('opacity-40', 'grayscale');
-                    stepRow.classList.add('border-emerald-200', 'bg-emerald-50/40');
-                    stepCircle.className = "w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 shadow-sm";
+            
+            // Trigger confetti
+            try {
+                var canvas = document.getElementById('confetti-canvas');
+                var container = document.getElementById('col-tra-cuu');
+                if (canvas && container) {
+                    var rect = container.getBoundingClientRect();
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                    var myConfetti = confetti.create(canvas, { resize: true, useWorker: false });
                     
-                    if (routePill) {
-                        routePill.className = "px-2 py-0.5 bg-emerald-600 rounded text-[11px] font-bold text-white shadow-sm";
-                    }
-                } else {
-                    // Muted/De-emphasized
-                    stepRow.classList.add('opacity-40', 'grayscale');
-                    stepRow.classList.remove('border-emerald-200', 'bg-emerald-50/40');
-                    stepCircle.className = "w-8 h-8 rounded-full bg-slate-400 text-white font-bold flex items-center justify-center shrink-0";
-                    
-                    if (routePill) {
-                        routePill.className = "px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold text-slate-400";
-                    }
+                    var duration = 4000;
+                    var end = Date.now() + duration;
+                    (function frame() {
+                        myConfetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors: ['#dc2626','#f59e0b','#10b981','#3b82f6','#ec4899'] });
+                        myConfetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors: ['#dc2626','#f59e0b','#10b981','#3b82f6','#ec4899'] });
+                        if (Date.now() < end) requestAnimationFrame(frame);
+                    }());
                 }
-            }
+            } catch(e) { console.log('Confetti error:', e); }
         }
 
         // Reset forms back to standard state
         function resetSearchForm() {
             stopScannerCamera();
             
-            // Toggle container display back
-            const searchSection = document.getElementById('search-container');
-            const resultSection = document.getElementById('result-container');
+            const waitingState = document.getElementById('waiting-state');
+            const resultState = document.getElementById('result-state');
             
-            searchSection.classList.remove('hidden');
-            resultSection.classList.add('hidden');
-            resultSection.classList.remove('flex');
+            waitingState.classList.remove('opacity-0', 'pointer-events-none');
+            resultState.classList.add('opacity-0', 'pointer-events-none');
+            resultState.classList.remove('animate__animated', 'animate__zoomIn');
+            
+            const successBanner = document.getElementById('success-banner');
+            if (successBanner) {
+                successBanner.classList.add('hidden');
+                successBanner.classList.remove('animate__animated', 'animate__fadeInDown');
+            }
 
             // Clean input values
-            document.getElementById('input-cccd-inline').value = '';
-            document.getElementById('input-cccd-full').value = '';
-            document.getElementById('res-sodo-img').src = defaultMapSrc;
-
-            // Reset Timeline highlights to default Bàn 1
-            highlightTimeline('BÀN 1');
+            const cccdInput = document.getElementById('cccd-input');
+            if (cccdInput) cccdInput.value = '';
+            
+            const mapImg = document.getElementById('map-image');
+            if (mapImg) mapImg.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
+            
+            try {
+                var canvas = document.getElementById('confetti-canvas');
+                if(canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            } catch(e){}
 
             // Reset bottom status bar
             const statusBarText = document.getElementById('status-bar-text');
@@ -917,23 +729,10 @@
                 statusBarText.innerText = "Vui lòng quét QR trên giấy báo hoặc nhập CCCD để tra cứu";
             }
 
-            // Restore Kiosk guide button hide
-            const btnKioskGuide = document.getElementById('btn-kiosk-guide');
-            if (btnKioskGuide) {
-                btnKioskGuide.classList.add('hidden');
-            }
-
             hideFormError();
-
-            // Auto-switch to Search tab if in Kiosk view
-            if (window.innerHeight > window.innerWidth || window.location.search.includes('mode=kiosk')) {
-                switchKioskTab(1);
-            }
-
-            // Trigger scanner again in scan view
-            if (currentSearchMethod === 'scan') {
-                startScannerCamera();
-            }
+            
+            // Re-start camera scanning
+            startScannerCamera();
         }
 
         // Error message display helpers

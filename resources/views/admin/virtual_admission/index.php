@@ -72,6 +72,15 @@ if (!empty($combinations)) {
     </div>
 
     <?php if (!$isReadOnly): ?>
+    <!-- Lock Alert -->
+    <div x-show="isSessionLocked" x-cloak class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl mb-4 shadow-sm flex items-start gap-3">
+        <i class="fas fa-lock text-rose-500 mt-0.5"></i>
+        <div>
+            <h4 class="font-bold text-sm">Đợt xét tuyển này đã bị khóa</h4>
+            <p class="text-xs mt-1 text-rose-600">Bạn không thể thực hiện các thao tác thay đổi dữ liệu (Đồng bộ, Tính điểm, Lọc ảo, Nhập điểm) trong đợt này. Vui lòng mở khóa ở mục Quản lý Đợt Tuyển sinh để thao tác.</p>
+        </div>
+    </div>
+    
     <!-- Action Toolbar (Down on a new line, clean layout) -->
     <div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap justify-between items-center gap-4">
         <!-- Left: Computational actions -->
@@ -79,7 +88,7 @@ if (!empty($combinations)) {
             <!-- 1. Sync Data Button -->
             <button @click="syncData()" 
                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
-                    :disabled="isLoading || !selectedSession">
+                    :disabled="isLoading || !selectedSession || isSessionLocked">
                 <i class="fas fa-sync-alt" :class="{'fa-spin': isSyncing}"></i> 
                 <span>Đồng bộ dữ liệu</span>
             </button>
@@ -87,7 +96,7 @@ if (!empty($combinations)) {
             <!-- 2. Score Calculation Button -->
             <button @click="recalculate()" 
                     class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
-                    :disabled="isLoading || !selectedSession">
+                    :disabled="isLoading || !selectedSession || isSessionLocked">
                 <i class="fas fa-calculator" :class="{'fa-spin': isCalculating}"></i> 
                 <span>Tính lại toàn bộ</span>
             </button>
@@ -95,7 +104,7 @@ if (!empty($combinations)) {
             <!-- 3. Run Virtual Filter Button -->
             <button @click="runVirtualFilter()" 
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" 
-                    :disabled="isLoading || !selectedSession">
+                    :disabled="isLoading || !selectedSession || isSessionLocked">
                 <i class="fas fa-magic" :class="{'fa-spin': isFiltering}"></i>
                 <span>Chạy Lọc Ảo</span>
             </button>
@@ -104,7 +113,7 @@ if (!empty($combinations)) {
             <button @click="showBgdUploadModal = true; bgdStatus.lastMessage = ''; bgdStatus.selectedFileName = ''; bgdStatus.selectedFile = null; if(document.getElementById('bgd-file-input-modal')) document.getElementById('bgd-file-input-modal').value = '';" 
                     style="background-color: #7c3aed;"
                     class="text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none hover:opacity-90" 
-                    :disabled="isLoading || !selectedSession">
+                    :disabled="isLoading || !selectedSession || isSessionLocked">
                 <i class="fas fa-file-import"></i>
                 <span>Nhập KQ lọc ảo</span>
             </button>
@@ -781,6 +790,11 @@ if (!empty($combinations)) {
             chartInstances: {},
             showAllSchools: false,
             allSessions: <?= json_encode($sessions) ?>,
+            get isSessionLocked() {
+                if (!this.selectedSession) return false;
+                const session = this.allSessions.find(s => parseInt(s.id) === parseInt(this.selectedSession));
+                return session ? parseInt(session.is_locked) === 1 : false;
+            },
             isLoading: false,
             isStatsLoading: false,
             isCalculating: false,
@@ -1219,6 +1233,7 @@ if (!empty($combinations)) {
                 this.chartsRendered = false;
                 
                 if (this.selectedSession) {
+                    this.fetchBGDStatus();
                     if (this.activeTab === 'stats') {
                         this.fetchStats(false);
                     } else if (this.activeTab === 'charts') {
