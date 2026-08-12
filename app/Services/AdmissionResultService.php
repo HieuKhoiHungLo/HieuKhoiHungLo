@@ -1026,6 +1026,16 @@ class AdmissionResultService {
         $replacements['{{QR_CCCD}}'] = $qrCCCD;
         $replacements['{{THANH_TIEN_DO_6_BUOC}}'] = $this->renderStepperHtml($data);
 
+        // Dynamically add support for triple curly braces (e.g. {{{HoTen}}})
+        $tripleReplacements = [];
+        foreach ($replacements as $key => $val) {
+            if (substr($key, 0, 2) === '{{' && substr($key, -2) === '}}') {
+                $tripleKey = '{' . $key . '}';
+                $tripleReplacements[$tripleKey] = $val;
+            }
+        }
+        $replacements = array_merge($replacements, $tripleReplacements);
+
         return strtr($templateHtml, $replacements);
     }
 
