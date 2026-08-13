@@ -160,6 +160,10 @@
                         <span id="current-time" class="font-bold text-white">--:--:--</span>
                     </div>
                 </div>
+                <div class="w-px h-5 bg-white/20"></div>
+                <button type="button" onclick="openKioskSettingsModal()" class="text-blue-200 hover:text-white transition flex items-center justify-center p-1" title="Cấu hình thiết bị Kiosk">
+                    <i class="fa-solid fa-gear text-base"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -367,6 +371,37 @@
         </div>
     </div>
 
+    <!-- Kiosk Settings Modal -->
+    <div id="kioskSettingsModal" class="hidden fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-gears text-blue-600 text-lg"></i>
+                    <h3 class="text-base font-bold text-slate-800">Cấu hình Thiết bị Kiosk</h3>
+                </div>
+                <button type="button" onclick="closeKioskSettingsModal()" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Thời gian hiển thị kết quả (giây)</label>
+                    <input type="number" id="kiosk_display_seconds_input" min="3" max="180" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <p class="text-[10px] text-slate-400 mt-1">Sau số giây này, màn hình sẽ tự động xóa thông tin để quét thí sinh mới.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Thời gian chờ về màn hình quảng cáo (phút)</label>
+                    <input type="number" id="kiosk_idle_minutes_input" min="1" max="60" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <p class="text-[10px] text-slate-400 mt-1">Khi thiết bị hoàn toàn không có tương tác sau số phút này, màn hình quảng cáo chào mừng sẽ hiện lên.</p>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button type="button" onclick="closeKioskSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition">Hủy</button>
+                <button type="button" onclick="saveKioskSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-md transition">Lưu cấu hình</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript logic -->
     <script>
         let html5QrCode = null;
@@ -377,8 +412,8 @@
         // Timer configurations
         let idleTimer = null;
         let attractTimer = null;
-        const IDLE_RESET_MS = 15000; // 15 seconds to reset query results
-        const ATTRACT_TIMEOUT_MS = 60000; // 60 seconds to launch attract mode screensaver
+        let IDLE_RESET_MS = parseInt(localStorage.getItem('kiosk_display_seconds') || '10') * 1000; // default 10 seconds
+        let ATTRACT_TIMEOUT_MS = parseInt(localStorage.getItem('kiosk_idle_minutes') || '2') * 60 * 1000; // default 2 minutes
 
         // Device display configuration check
         const isKioskMode = window.location.search.includes('mode=kiosk') || window.innerHeight > window.innerWidth;
@@ -792,8 +827,8 @@
 
             // Rebuild timers
             idleTimer = setTimeout(() => {
-                // If student result is active, clear it out after 45s of user idleness
-                if (!document.getElementById('result-container').classList.contains('hidden')) {
+                const resultState = document.getElementById('result-state');
+                if (resultState && !resultState.classList.contains('opacity-0')) {
                     resetSearchForm();
                 }
             }, IDLE_RESET_MS);
@@ -819,6 +854,36 @@
             // Clean/Reset all search criteria
             resetSearchForm();
             resetTimers();
+        }
+
+        // Kiosk Settings Modal control functions
+        function openKioskSettingsModal() {
+            document.getElementById('kiosk_display_seconds_input').value = Math.round(IDLE_RESET_MS / 1000);
+            document.getElementById('kiosk_idle_minutes_input').value = Math.round(ATTRACT_TIMEOUT_MS / 60000);
+            
+            const modal = document.getElementById('kioskSettingsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeKioskSettingsModal() {
+            const modal = document.getElementById('kioskSettingsModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveKioskSettings() {
+            const displaySecs = parseInt(document.getElementById('kiosk_display_seconds_input').value) || 10;
+            const idleMins = parseInt(document.getElementById('kiosk_idle_minutes_input').value) || 2;
+            
+            localStorage.setItem('kiosk_display_seconds', displaySecs.toString());
+            localStorage.setItem('kiosk_idle_minutes', idleMins.toString());
+            
+            IDLE_RESET_MS = displaySecs * 1000;
+            ATTRACT_TIMEOUT_MS = idleMins * 60 * 1000;
+            
+            resetTimers();
+            closeKioskSettingsModal();
         }
     </script>
 </body>
