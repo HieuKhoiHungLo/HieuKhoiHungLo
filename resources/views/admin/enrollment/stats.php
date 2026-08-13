@@ -37,7 +37,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     }
 </style>
 
-<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() })">
+<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() }); setTimeout(() => window.location.reload(), 30000);">
 
     <!-- Header Row -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -351,6 +351,11 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                 <div class="relative h-64"><canvas id="userChart"></canvas></div>
             </div>
 
+            <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
+                <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Timeline Nhập học (Trong ngày)</h3>
+                <div class="relative h-64"><canvas id="hourlyChart"></canvas></div>
+            </div>
+
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-green-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Tình trạng Nộp Kinh phí</h3>
                 <div class="relative h-64"><canvas id="feeChart"></canvas></div>
@@ -395,6 +400,15 @@ if (!empty($chartDist['daily_enrollment'])) {
     }
 }
 
+$hourlyLabels = [];
+$hourlyData = [];
+if (!empty($chartDist['hourly_enrollment'])) {
+    foreach ($chartDist['hourly_enrollment'] as $row) {
+        $hourlyLabels[] = $row['hour'];
+        $hourlyData[] = (int)$row['count'];
+    }
+}
+
 $chartData = [
     'majors' => ['labels' => $majorLabels, 'data' => $majorData, 'quota' => $majorQuota],
     'gender' => ['labels' => array_keys($chartDist['gender']), 'data' => array_values($chartDist['gender'])],
@@ -406,7 +420,8 @@ $chartData = [
     'province' => ['labels' => array_keys(array_slice($chartDist['province'], 0, 15)), 'data' => array_values(array_slice($chartDist['province'], 0, 15))],
     'schoolTop20' => ['labels' => array_keys(array_slice($chartDist['school'], 0, 20)), 'data' => array_values(array_slice($chartDist['school'], 0, 20))],
     'schoolAll' => ['labels' => array_keys($chartDist['school']), 'data' => array_values($chartDist['school'])],
-    'dailyEnrollment' => ['labels' => $dailyLabels, 'data' => $dailyData]
+    'dailyEnrollment' => ['labels' => $dailyLabels, 'data' => $dailyData],
+    'hourlyEnrollment' => ['labels' => $hourlyLabels, 'data' => $hourlyData]
 ];
 ?>
 
@@ -532,7 +547,54 @@ function renderEnrollmentCharts() {
     createPieChart('objectChart', CHART_DATA.object, ['#f59e0b', '#fbbf24', '#fcd34d', '#fef3c7', '#cbd5e1']);
     createPieChart('xnBoChart', CHART_DATA.xnBo, ['#3b82f6', '#cbd5e1']);
     createPieChart('feeChart', CHART_DATA.kinhPhi, ['#10b981', '#cbd5e1']);
-    createPieChart('userChart', CHART_DATA.users, ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316']);
+    
+    // User Chart as Bar
+    new Chart(document.getElementById('userChart'), {
+        type: 'bar',
+        data: {
+            labels: CHART_DATA.users.labels,
+            datasets: [{
+                label: 'Số hồ sơ đã nhập',
+                data: CHART_DATA.users.data,
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false }, ticks: { font: {size: 10} } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Hourly Timeline Chart
+    new Chart(document.getElementById('hourlyChart'), {
+        type: 'line',
+        data: {
+            labels: CHART_DATA.hourlyEnrollment.labels,
+            datasets: [{
+                label: 'Thí sinh nhập học theo giờ',
+                data: CHART_DATA.hourlyEnrollment.data,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#3b82f6'
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 
     // Province Chart
     new Chart(document.getElementById('provinceChart'), {

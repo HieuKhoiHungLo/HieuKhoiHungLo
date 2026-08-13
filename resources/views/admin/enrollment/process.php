@@ -502,7 +502,7 @@ ob_start();
                 <i class="fas fa-id-card-alt" style="color:#fff;font-size:16px;"></i>
             </div>
             <div>
-                <div style="font-size:15px;font-weight:800;color:#1e293b;">Quản lý Nhập học</div>
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">Quản lý Nhập học <span style="font-size:12px;font-weight:600;color:#2563eb;margin-left:8px;"><i class="fas fa-user-circle"></i> <?= htmlspecialchars($currentUser['ho_ten'] ?? 'Cán bộ') ?></span></div>
                 <div style="font-size:11px;color:#64748b;">Đợt tuyển sinh</div>
             </div>
         </div>
@@ -691,6 +691,18 @@ ob_start();
                             <!-- TAB: HỒ SƠ & NHẬP HỌC -->
                             <div class="ep-tab-pane" :class="activeTab === 'admission' ? 'active' : ''">
 
+                                <!-- Cảnh báo nhập trùng -->
+                                <template x-if="selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc' && selectedCandidate.ten_can_bo_nhap">
+                                    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5;color:#991b1b;display:flex;align-items:start;gap:10px;">
+                                        <i class="fas fa-exclamation-triangle" style="font-size:16px;color:#dc2626;margin-top:2px;"></i>
+                                        <div>
+                                            <strong style="display:block;margin-bottom:4px;font-size:14px;">Thí sinh này đã được nhập học!</strong>
+                                            Người nhập: <strong x-text="selectedCandidate.ten_can_bo_nhap"></strong><br>
+                                            Thời gian: <span x-text="selectedCandidate.thoi_gian_nhap_hoc ? (selectedCandidate.thoi_gian_nhap_hoc.substring(0,16).replace('T', ' ')) : ''"></span>
+                                        </div>
+                                    </div>
+                                </template>
+
                                 <!-- Admission Info Quick View Replacement -->
                                 <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;color:#334155;">
                                     <div>Xác nhận hệ thống Bộ GD&ĐT: 
@@ -704,8 +716,11 @@ ob_start();
                                     </div>
                                 </div>
 
-                                <div class="ep-section-title">
-                                    <i class="fas fa-folder-check"></i> Danh sách hồ sơ cần nộp
+                                <div class="ep-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span><i class="fas fa-folder-check"></i> Danh sách hồ sơ cần nộp</span>
+                                    <button class="ep-btn ep-btn-ghost" style="padding:4px 8px; font-size:11px;" @click="markAllDocs()" title="Đánh dấu tất cả là Đã nộp">
+                                        <i class="fas fa-check-double"></i> Đánh dấu tất cả
+                                    </button>
                                 </div>
 
                                 <template x-if="!selectedCandidate.documents || selectedCandidate.documents.length === 0">
@@ -944,11 +959,25 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             this.loadAllData();
+            
+            // Auto refresh stats mỗi 30 giây
+            setInterval(() => {
+                if (!this.isSaving && !this.isSearching) {
+                    this.loadStats();
+                }
+            }, 30000);
+
+            // Tự động focus ô tìm kiếm khi load trang
+            setTimeout(() => document.getElementById('search-input')?.focus(), 300);
+
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                     e.preventDefault();
                     document.getElementById('search-input')?.focus();
                     document.getElementById('search-input')?.select();
+                }
+                if (e.key === 'Escape') {
+                    this.resetForm();
                 }
             });
         },
@@ -991,6 +1020,9 @@ document.addEventListener('alpine:init', () => {
                         this.searchResults = data.data;
                         if (this.searchResults.length === 0) {
                             this.showToast('Không tìm thấy thí sinh nào phù hợp.', 'info');
+                        } else if (this.searchResults.length === 1 && this.searchKeyword.length === 12 && /^\d+$/.test(this.searchKeyword)) {
+                            // Auto select if exact CCCD match
+                            this.selectCandidate(this.searchResults[0]);
                         }
                     }
                 })
@@ -1021,11 +1053,23 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        markAllDocs() {
+            if (!this.selectedCandidate || !this.selectedCandidate.documents) return;
+            this.selectedCandidate.documents.forEach(doc => {
+                if (!doc.selected_value || doc.selected_value === 'Chưa nộp') {
+                    const vals = doc.cac_gia_tri ? doc.cac_gia_tri.split(',').map(v => v.trim()) : [];
+                    doc.selected_value = vals.find(v => v !== 'Chưa nộp') || vals[0] || 'Đã nộp';
+                }
+            });
+            this.showToast('Đã đánh dấu tất cả hồ sơ!', 'success');
+        },
+
         resetForm() {
             this.selectedCandidate = null;
             this.searchKeyword = '';
             this.searchResults = [];
             this.activeTab = 'admission';
+            setTimeout(() => document.getElementById('search-input')?.focus(), 100);
         },
 
         submitEnrollment(action) {
@@ -1068,6 +1112,12 @@ document.addEventListener('alpine:init', () => {
                     if (action === 'huy')       this.selectedCandidate.trang_thai_nhap_hoc = 'da_huy';
                     this.loadStats();
                     this.loadEnrolledList();
+                    
+                    // Auto-focus search for the next candidate, but keep current candidate visible for printing
+                    setTimeout(() => {
+                        document.getElementById('search-input')?.focus();
+                        document.getElementById('search-input')?.select();
+                    }, 200);
                 } else {
                     this.showToast(data.message || 'Có lỗi xảy ra', 'error');
                 }

@@ -130,7 +130,8 @@ class EnrollmentController extends Controller {
             'title' => 'Xử lý Nhập học',
             'sessions' => $sessions,
             'currentSessionId' => $sessionId,
-            'qrConfig' => $qrConfig
+            'qrConfig' => $qrConfig,
+            'currentUser' => $this->currentUser
         ]);
     }
 
@@ -158,7 +159,8 @@ class EnrollmentController extends Controller {
                    ts.gioi_tinh, ts.dan_toc, ts.anh_dai_dien, ts.dia_chi_chi_tiet, ts.nam_tot_nghiep, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts, ts.ma_truong_lop_12,
                    tr.ten_truong as ten_truong_thpt,
                    m1.ma_mon as m1, m2.ma_mon as m2, m3.ma_mon as m3,
-                   nh.id as nhap_hoc_id, nh.trang_thai as trang_thai_nhap_hoc, nh.da_nop_tien, nh.ma_phieu, nh.ghi_chu_can_bo
+                   nh.id as nhap_hoc_id, nh.trang_thai as trang_thai_nhap_hoc, nh.da_nop_tien, nh.ma_phieu, nh.ghi_chu_can_bo,
+                   qv.ho_ten as ten_can_bo_nhap, nh.updated_at as thoi_gian_nhap_hoc
             FROM ket_qua_trung_tuyen kq
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
             LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
@@ -168,6 +170,7 @@ class EnrollmentController extends Controller {
             LEFT JOIN dm_mon m2 ON th.mon_2_id = m2.id
             LEFT JOIN dm_mon m3 ON th.mon_3_id = m3.id
             LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = ?
+            LEFT JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
             WHERE kq.session_id = ? 
               AND ($whereClause)
             ORDER BY kq.ho_ten ASC
@@ -278,6 +281,10 @@ class EnrollmentController extends Controller {
                 $del->execute([$nhapHocId]);
             } else {
                 $year = date('Y');
+                
+                // Prevent race conditions when generating ma_phieu by locking the table for concurrent inserts
+                $this->db->exec("LOCK TABLE nhap_hoc IN SHARE ROW EXCLUSIVE MODE");
+                
                 $countStmt = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ?");
                 $countStmt->execute([$sessionId]);
                 $count = $countStmt->fetchColumn() + 1;
@@ -520,6 +527,16 @@ class EnrollmentController extends Controller {
         
         $chartDist['daily_enrollment'] = $dailyRows;
 
+        $stmtHourly = $this->db->prepare("
+            SELECT TO_CHAR(ngay_nhap_hoc, 'HH24:00') as hour, COUNT(*) as count
+            FROM nhap_hoc
+            WHERE session_id = ? AND trang_thai = 'da_nhap_hoc'
+            GROUP BY TO_CHAR(ngay_nhap_hoc, 'HH24:00')
+            ORDER BY hour ASC
+        ");
+        $stmtHourly->execute([$sessionId]);
+        $chartDist['hourly_enrollment'] = $stmtHourly->fetchAll(PDO::FETCH_ASSOC);
+
         // Gần đây (5 hồ sơ)
         $stmtRecent = $this->db->prepare("
             SELECT nh.*, kq.ho_ten, kq.so_cccd, n.ten_nganh, qv.ho_ten as ten_can_bo
@@ -574,6 +591,27 @@ class EnrollmentController extends Controller {
         
         $conChiTieu = max(0, $totalTrungTuyen - $totalNhapHoc);
 
+        $stmtUsers = $this->db->prepare("
+            SELECT qv.ho_ten, COUNT(nh.id) as so_luong
+            FROM nhap_hoc nh
+            JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
+            WHERE nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            GROUP BY qv.ho_ten
+            ORDER BY so_luong DESC
+        ");
+        $stmtUsers->execute([$sessionId]);
+        $statsByUser = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtHourly = $this->db->prepare("
+            SELECT TO_CHAR(ngay_nhap_hoc, 'HH24:00') as hour, COUNT(*) as count
+            FROM nhap_hoc
+            WHERE session_id = ? AND trang_thai = 'da_nhap_hoc'
+            GROUP BY TO_CHAR(ngay_nhap_hoc, 'HH24:00')
+            ORDER BY hour ASC
+        ");
+        $stmtHourly->execute([$sessionId]);
+        $hourlyStats = $stmtHourly->fetchAll(PDO::FETCH_ASSOC);
+
         echo json_encode([
             'success' => true,
             'data' => [
@@ -581,7 +619,9 @@ class EnrollmentController extends Controller {
                 'da_nhap_hoc' => $totalNhapHoc,
                 'cho_xet_duyet' => $choDuyet,
                 'da_huy' => $daHuy,
-                'con_chi_tieu' => $conChiTieu
+                'con_chi_tieu' => $conChiTieu,
+                'stats_by_user' => $statsByUser,
+                'hourly_stats' => $hourlyStats
             ]
         ]);
     }
