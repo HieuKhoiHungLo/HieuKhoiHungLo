@@ -92,16 +92,17 @@ class EnrollmentGuideController extends Controller
         // Override logic for different schedule on 16/8/2026
         $thoiGianNhap = $record['thoi_gian_nhap'] ?? '';
         
-        // Determine session time (Morning vs Afternoon)
+        // Determine session time (Morning vs Afternoon) based on absolute boundary: 12:00 on 16/8/2026
         // Check if test_hour query param is passed
         $testHour = isset($_REQUEST['test_hour']) ? (int)$_REQUEST['test_hour'] : null;
         
         if ($testHour !== null) {
             $isAfternoonSession = ($testHour >= 12);
         } else {
-            // Real system time check
-            $currentHour = (int)date('H');
-            $isAfternoonSession = ($currentHour >= 12);
+            // Real absolute system time check
+            $boundaryTimestamp = strtotime('2026-08-16 12:00:00');
+            $currentTimestamp = time();
+            $isAfternoonSession = ($currentTimestamp >= $boundaryTimestamp);
         }
 
         // Apply override conditions

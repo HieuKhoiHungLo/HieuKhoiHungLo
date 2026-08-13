@@ -1,11 +1,13 @@
 <?php
-$currentHour = (int)date('H');
 $testHour = isset($_GET['test_hour']) ? (int)$_GET['test_hour'] : null;
 $defaultSession = 'morning';
 if ($testHour !== null) {
     $defaultSession = ($testHour >= 12) ? 'afternoon' : 'morning';
 } else {
-    $defaultSession = ($currentHour >= 12) ? 'afternoon' : 'morning';
+    // Real absolute system time check: boundary is 12:00 on August 16, 2026
+    $boundaryTimestamp = strtotime('2026-08-16 12:00:00');
+    $currentTimestamp = time();
+    $defaultSession = ($currentTimestamp >= $boundaryTimestamp) ? 'afternoon' : 'morning';
 }
 ?>
 <!DOCTYPE html>
