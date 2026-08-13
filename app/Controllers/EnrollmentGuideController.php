@@ -95,27 +95,17 @@ class EnrollmentGuideController extends Controller
         // Determine session time (Morning vs Afternoon)
         // Check if test_hour query param is passed
         $testHour = isset($_REQUEST['test_hour']) ? (int)$_REQUEST['test_hour'] : null;
-        $shouldOverride = false;
         
         if ($testHour !== null) {
             $isAfternoonSession = ($testHour >= 12);
-            $shouldOverride = true;
         } else {
             // Real system time check
-            $currentDateStr = date('Y-m-d');
             $currentHour = (int)date('H');
-            if ($currentDateStr === '2026-08-16') {
-                $isAfternoonSession = ($currentHour >= 12);
-                $shouldOverride = true;
-            } else {
-                // Default fallback during development: check current hour
-                $isAfternoonSession = ($currentHour >= 12);
-                $shouldOverride = false; // Do not apply overrides on pre-event lookup dates
-            }
+            $isAfternoonSession = ($currentHour >= 12);
         }
 
         // Apply override conditions
-        if ($shouldOverride && strpos($thoiGianNhap, '16/8/2026') !== false) {
+        if (strpos($thoiGianNhap, '16/8/2026') !== false) {
             if (!$isAfternoonSession && strpos($thoiGianNhap, '13h30') !== false) {
                 // Morning lookup, but afternoon scheduled -> wrong schedule!
                 $banNhapHoc = 'Bàn 10, Bàn 11, Bàn 12';
