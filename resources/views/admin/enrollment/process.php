@@ -518,14 +518,7 @@ ob_start();
                 <span>Đã nhập học: <strong x-text="stats.da_nhap_hoc">–</strong></span>
                 <span style="font-size:10px;opacity:0.8;" x-show="stats.tong_thi_sinh > 0" x-text="'(' + ((stats.da_nhap_hoc / stats.tong_thi_sinh)*100).toFixed(0) + '%)'"></span>
             </div>
-            <div class="ep-stat-pill" style="background:#fefce8;border-color:#fde68a;color:#a16207;">
-                <i class="fas fa-clock" style="font-size:11px;"></i>
-                <span>Chờ duyệt: <strong x-text="stats.cho_xet_duyet">–</strong></span>
-            </div>
-            <div class="ep-stat-pill" style="background:#f1f5f9;border-color:#cbd5e1;color:#64748b;">
-                <i class="fas fa-chart-pie" style="font-size:11px;"></i>
-                <span>Còn chỉ tiêu: <strong x-text="stats.con_chi_tieu">–</strong></span>
-            </div>
+
         </div>
 
         <!-- SESSION SELECTOR -->
