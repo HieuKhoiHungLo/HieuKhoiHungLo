@@ -1,3 +1,13 @@
+<?php
+$currentHour = (int)date('H');
+$testHour = isset($_GET['test_hour']) ? (int)$_GET['test_hour'] : null;
+$defaultSession = 'morning';
+if ($testHour !== null) {
+    $defaultSession = ($testHour >= 12) ? 'afternoon' : 'morning';
+} else {
+    $defaultSession = ($currentHour >= 12) ? 'afternoon' : 'morning';
+}
+?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -216,35 +226,27 @@
                             <i class="fa-solid fa-circle text-[6px]"></i> THÔNG TIN THÍ SINH
                         </h3>
                         
-                        <div class="space-y-3 max-w-[420px] mx-auto w-full px-2">
-                            <div class="flex items-start">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Họ và tên:</span>
-                                <span id="cand-name" class="font-black text-red-600 text-lg uppercase leading-tight">--</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Ngày sinh:</span>
-                                <span id="cand-dob" class="font-bold text-red-600 text-base">--</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Số CCCD:</span>
-                                <span id="cand-cccd" class="font-bold text-red-600 text-base">--</span>
-                            </div>
-                            <div class="flex items-start mt-3 pt-3 border-t border-slate-100">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Ngành trúng tuyển:</span>
-                                <span id="cand-major" class="font-black text-red-600 text-base md:text-lg leading-tight">--</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Bàn nhập học:</span>
-                                <span id="cand-desk" class="font-bold text-red-600 text-base">--</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Vị trí:</span>
-                                <span id="cand-location" class="font-bold text-red-600 text-base">--</span>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="w-[135px] text-slate-500 text-sm shrink-0">GVCN:</span>
-                                <span id="cand-gvcn" class="font-bold text-red-600 text-base">--</span>
-                            </div>
+                        <div class="grid grid-cols-[150px_1fr] gap-x-4 gap-y-3 max-w-[420px] mx-auto w-full px-2">
+                            <div class="text-slate-500 text-sm flex items-center">Họ và tên:</div>
+                            <div id="cand-name" class="font-black text-red-600 text-lg uppercase leading-tight flex items-center">--</div>
+
+                            <div class="text-slate-500 text-sm flex items-center">Ngày sinh:</div>
+                            <div id="cand-dob" class="font-bold text-red-600 text-base flex items-center">--</div>
+
+                            <div class="text-slate-500 text-sm flex items-center">Số CCCD:</div>
+                            <div id="cand-cccd" class="font-bold text-red-600 text-base flex items-center">--</div>
+
+                            <div class="col-span-2 border-t border-slate-100 my-1"></div>
+
+                            <div class="text-slate-500 text-sm flex items-start">Ngành trúng tuyển:</div>
+                            <div id="cand-major" class="font-black text-red-600 text-base leading-tight flex items-start">--</div>
+                        </div>
+
+                        <!-- Hidden fields to prevent JavaScript errors -->
+                        <div style="display: none;">
+                            <span id="cand-desk"></span>
+                            <span id="cand-location"></span>
+                            <span id="cand-gvcn"></span>
                         </div>
                     </div>
                 </div>
@@ -292,36 +294,100 @@
                 </div>
             </div>
             
-            <!-- Bottom: Directory -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 flex-1 overflow-y-auto">
-                <div class="space-y-3">
-                    <div>
-                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 1, Bàn 2, Bàn 3 (Hội trường trung tâm)</div>
-                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Ngôn ngữ Trung quốc, Điều dưỡng, SP Toán, SP Khoa học tự nhiên</div>
+            <!-- Bottom: Directory (Morning / Afternoon Tabs) -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-2 pb-1.5 flex-1 overflow-hidden flex flex-col min-h-0">
+                <!-- Tab Headers -->
+                <div class="flex border-b border-slate-200 mb-2 text-xs font-bold text-center shrink-0">
+                    <button type="button" onclick="switchDirectoryTab('morning')" id="dir-tab-morning" class="flex-1 pb-1 border-b-2 border-blue-600 text-blue-600 cursor-pointer">Sáng (Từ 7h30)</button>
+                    <button type="button" onclick="switchDirectoryTab('afternoon')" id="dir-tab-afternoon" class="flex-1 pb-1 border-b-2 border-transparent text-slate-400 hover:text-slate-600 cursor-pointer">Chiều (Từ 13h30)</button>
+                </div>
+
+                <!-- Tab Contents Container -->
+                <div class="flex-1 overflow-y-auto pr-0.5">
+                    <!-- Morning panel -->
+                    <div id="dir-panel-morning" class="space-y-1.5">
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 1, Bàn 2, Bàn 3 (Hội trường trung tâm)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Ngôn ngữ Trung quốc, Điều dưỡng, SP Toán, SP Khoa học tự nhiên</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 4, Bàn 5 (Giảng đường D)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Sư phạm Ngữ Văn, SP Lịch sử - Địa lí, QTDV Du lịch – LH, Du lịch</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 6, Bàn 7 (Giảng đường E)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Công nghệ thông tin, CNKT Điện – ĐT, CNKT Cơ khí</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 8, Bàn 9 (Góc văn hoá Hàn quốc – tầng 3)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành GDTH, GD Mầm non, GD Thể chất, SP Mỹ thuật, SP Âm nhạc, Chăn nuôi, KHCT, Thú y</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 10, Bàn 11, Bàn 12 (Hội trường tầng 3)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Tiếp thí sinh mới, Nhập học không đúng thời gian quy định</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 4, Bàn 5 (Giảng đường D)</div>
-                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Sư phạm Ngữ Văn, SP Lịch sử - Địa lí, QTDV Du lịch – LH, Du lịch</div>
-                    </div>
-                    <div>
-                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 6, Bàn 7 (Giảng đường E)</div>
-                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Công nghệ thông tin, CNKT Điện – ĐT, CNKT Cơ khí</div>
-                    </div>
-                    <div>
-                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 8, Bàn 9 (Góc văn hoá Hàn quốc – tầng 3)</div>
-                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành GDTH, GD Mầm non, GD Thể chất, SP Mỹ thuật, SP Âm nhạc, Chăn nuôi, KHCT, Thú y</div>
-                    </div>
-                    <div>
-                        <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 10, Bàn 11, Bàn 12 (Hội trường tầng 3)</div>
-                        <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Tiếp thí sinh mới, Nhập học không đúng thời gian quy định</div>
+
+                    <!-- Afternoon panel -->
+                    <div id="dir-panel-afternoon" class="space-y-1.5 hidden">
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 1, BÀN 2 (Hội trường trung tâm)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Kế toán, Quản trị kinh doanh, Tài chính ngân hàng, Kinh tế</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 3, BÀN 4 (Hội trường trung tâm)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Ngành Tâm lý, Công tác xã hội</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 6, BÀN 8 (Góc văn hoá Hàn Quốc – Tầng 3)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Sư phạm Tiếng Anh, Ngôn ngữ Anh</div>
+                        </div>
+                        <div>
+                            <div class="text-red-600 font-bold text-[11px] md:text-xs uppercase leading-tight">Bàn 10, BÀN 11, BÀN 12 (Hội trường tầng 3)</div>
+                            <div class="text-slate-700 text-[11px] md:text-xs mt-0.5 leading-snug">Tiếp thí sinh mới, Nhập học không đúng thời gian quy định</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- COLUMN 3: Right 3 cols (Image Map) -->
-        <div class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <img id="map-image" src="<?= url('/assets/img/so_do_nhap_hoc.jpg') ?>" alt="Sơ đồ nhập học" class="w-full h-full object-contain bg-slate-50" onerror="this.src='https://placehold.co/1000x800/f8fafc/64748b?text=S%C6%A1+%C4%91%E1%BB%93+v%E1%BB%8B+tr%C3%AD+b%C3%A0n+nh%E1%BA%ADp+h%E1%BB%8Dc'">
+        <!-- COLUMN 3: Right 3 cols (Image Map & Guide Details) -->
+        <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Initial State (Waiting to scan) -->
+            <div id="map-waiting-state" class="flex-1 flex flex-col items-center justify-center p-6 text-slate-400 bg-slate-50/50">
+                <p class="font-bold text-2xl text-slate-400 text-center tracking-wide uppercase">Sơ đồ vị trí bàn nhập học</p>
+            </div>
+
+            <!-- Result State (Shown when student data is loaded) -->
+            <div id="map-result-state" class="hidden flex flex-col h-full p-6 min-h-0">
+                <!-- Top Header: Invitation -->
+                <div class="text-center mb-4 shrink-0">
+                    <h3 class="text-xs md:text-sm font-black text-slate-400 uppercase tracking-widest">MỜI BẠN LÀM THỦ TỤC TẠI:</h3>
+                    <div id="res-desk-num" class="text-2xl md:text-3xl font-black text-red-600 mt-2 leading-tight">--</div>
+                    <div id="res-location-name" class="text-lg md:text-xl font-black text-blue-900 mt-1 leading-tight">--</div>
+                </div>
+
+                <!-- Middle: Map Image -->
+                <div class="flex-1 min-h-0 w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group cursor-pointer" onclick="zoomMap()">
+                    <img id="map-image" src="https://tuyensinh.hvu.edu.vn/assets/img/so_do_nhap_hoc.jpg" alt="Sơ đồ nhập học" class="w-full h-full object-contain bg-slate-50">
+                    <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span class="bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i> Phóng to sơ đồ
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Bottom: GVCN Info -->
+                <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-start gap-3 shrink-0">
+                    <div class="p-2 bg-blue-600 text-white rounded-lg shrink-0 mt-0.5 shadow-sm">
+                        <i class="fa-solid fa-user-tie text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Giáo viên chủ nhiệm (GVCN)</div>
+                        <div id="res-gvcn-info" class="text-sm font-bold text-slate-800 mt-0.5 leading-snug break-words">--</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </main>
@@ -406,7 +472,7 @@
     <script>
         let html5QrCode = null;
         let isCameraActive = false;
-        const defaultMapSrc = document.getElementById('res-sodo-img').src;
+        const defaultMapSrc = 'https://tuyensinh.hvu.edu.vn/assets/img/so_do_nhap_hoc.jpg';
         let currentSearchMethod = 'scan'; // 'scan' or 'manual'
         
         // Timer configurations
@@ -422,6 +488,9 @@
             initClock();
             checkLayoutMode();
             resetTimers();
+            
+            // Initialize dynamic morning/afternoon directory tab
+            switchDirectoryTab('<?= $defaultSession ?>');
             
             // Attach interaction listeners to reset idle and attract mode timer
             ['mousedown', 'mousemove', 'keypress', 'touchstart', 'scroll'].forEach(evt => {
@@ -512,6 +581,28 @@
             switchKioskTab(2);
         }
 
+        // Toggle Directory Tabs (Morning / Afternoon)
+        function switchDirectoryTab(session) {
+            const tabMorning = document.getElementById('dir-tab-morning');
+            const tabAfternoon = document.getElementById('dir-tab-afternoon');
+            const panelMorning = document.getElementById('dir-panel-morning');
+            const panelAfternoon = document.getElementById('dir-panel-afternoon');
+
+            if (!tabMorning || !tabAfternoon || !panelMorning || !panelAfternoon) return;
+
+            if (session === 'morning') {
+                tabMorning.className = "flex-1 pb-2 border-b-2 border-blue-600 text-blue-600 cursor-pointer";
+                tabAfternoon.className = "flex-1 pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-600 cursor-pointer";
+                panelMorning.classList.remove('hidden');
+                panelAfternoon.classList.add('hidden');
+            } else {
+                tabAfternoon.className = "flex-1 pb-2 border-b-2 border-blue-600 text-blue-600 cursor-pointer";
+                tabMorning.className = "flex-1 pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-600 cursor-pointer";
+                panelAfternoon.classList.remove('hidden');
+                panelMorning.classList.add('hidden');
+            }
+        }
+
         // Toggle Search Tabs: Scan QR or Keyboard Manual
         function setSearchMethod(method) {
             const tabScan = document.getElementById('tab-scan');
@@ -546,6 +637,27 @@
             }
         }
 
+        function updateCameraButtonState(active) {
+            const btn = document.getElementById('btn-toggle-cam');
+            if (btn) {
+                if (active) {
+                    btn.classList.remove('bg-blue-600/80', 'hover:bg-blue-700');
+                    btn.classList.add('bg-red-600/80', 'hover:bg-red-700');
+                    btn.innerHTML = '<i class="fa-solid fa-video-slash"></i>';
+                    btn.title = "Tắt Camera";
+                } else {
+                    btn.classList.remove('bg-red-600/80', 'hover:bg-red-700');
+                    btn.classList.add('bg-blue-600/80', 'hover:bg-blue-700');
+                    btn.innerHTML = '<i class="fa-solid fa-camera"></i>';
+                    btn.title = "Bật Camera";
+                }
+            }
+            const btnText = document.getElementById('cam-btn-text');
+            if (btnText) {
+                btnText.innerText = active ? "Tắt Camera" : "Bật Camera Quét";
+            }
+        }
+
         function startScannerCamera() {
             hideFormError();
             document.getElementById('qr-placeholder').classList.add('opacity-0');
@@ -563,13 +675,13 @@
             html5QrCode.start({ facingMode: "environment" }, scanConfig, onScanSuccess, onScanError)
                 .then(() => {
                     isCameraActive = true;
-                    document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                    updateCameraButtonState(true);
                 })
                 .catch(err => {
                     html5QrCode.start({ facingMode: "user" }, scanConfig, onScanSuccess, onScanError)
                         .then(() => {
                             isCameraActive = true;
-                            document.getElementById('cam-btn-text').innerText = "Tắt Camera";
+                            updateCameraButtonState(true);
                         })
                         .catch(err2 => handleScannerCameraFailure(err2));
                 });
@@ -581,7 +693,7 @@
                 if (html5QrCode && isCameraActive) {
                     html5QrCode.stop().then(() => {
                         isCameraActive = false;
-                        document.getElementById('cam-btn-text').innerText = "Bật Camera Quét";
+                        updateCameraButtonState(false);
                         document.getElementById('qr-placeholder').classList.remove('hidden');
                         document.getElementById('qr-placeholder').classList.remove('opacity-0');
                         document.getElementById('laser').classList.add('hidden');
@@ -593,6 +705,7 @@
         }
 
         function handleScannerCameraFailure(err) {
+            updateCameraButtonState(false);
             document.getElementById('qr-placeholder').classList.remove('hidden');
             document.getElementById('qr-placeholder').classList.remove('opacity-0');
             document.getElementById('laser').classList.add('hidden');
@@ -645,7 +758,14 @@
             formData.append('keyword', keyword);
             formData.append('csrf_token', '<?= csrf_token() ?? '' ?>');
 
-            fetch('<?= url('/huong-dan-nhap-hoc/search') ?>', {
+            const urlParams = new URLSearchParams(window.location.search);
+            const testHour = urlParams.get('test_hour');
+            let searchUrl = '<?= url("/huong-dan-nhap-hoc/search") ?>';
+            if (testHour) {
+                searchUrl += '?test_hour=' + encodeURIComponent(testHour);
+            }
+
+            fetch(searchUrl, {
                 method: 'POST',
                 body: formData
             })
@@ -674,6 +794,20 @@
             
             waitingState.classList.add('opacity-0', 'pointer-events-none');
             resultState.classList.remove('opacity-0', 'pointer-events-none');
+
+            // Toggle map layout states
+            const mapWaitingState = document.getElementById('map-waiting-state');
+            const mapResultState = document.getElementById('map-result-state');
+            if (mapWaitingState) mapWaitingState.classList.add('hidden');
+            if (mapResultState) mapResultState.classList.remove('hidden');
+
+            // Populate map block details
+            const resDesk = document.getElementById('res-desk-num');
+            if (resDesk) resDesk.innerText = student.ban_nhap_hoc || '--';
+            const resLoc = document.getElementById('res-location-name');
+            if (resLoc) resLoc.innerText = student.vi_tri_nhap_hoc || '--';
+            const resGvcn = document.getElementById('res-gvcn-info');
+            if (resGvcn) resGvcn.innerText = student.gvcn || 'Chưa phân công';
             
             // Add animations
             resultState.classList.remove('animate__animated', 'animate__zoomIn');
@@ -712,7 +846,7 @@
             if (student.link_so_do) {
                 mapImg.src = student.link_so_do;
             } else {
-                mapImg.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
+                mapImg.src = 'https://tuyensinh.hvu.edu.vn/assets/img/so_do_nhap_hoc.jpg';
             }
 
             // Update status bar bottom (if visible)
@@ -740,6 +874,9 @@
                     }());
                 }
             } catch(e) { console.log('Confetti error:', e); }
+            
+            // Reset timers to start the 10s countdown from this moment!
+            resetTimers();
         }
 
         // Reset forms back to standard state
@@ -767,8 +904,21 @@
             document.getElementById('cand-location').innerText = '--';
             document.getElementById('cand-gvcn').innerText = '--';
             
+            // Reset right column layout
+            const mapWaitingState = document.getElementById('map-waiting-state');
+            const mapResultState = document.getElementById('map-result-state');
+            if (mapWaitingState) mapWaitingState.classList.remove('hidden');
+            if (mapResultState) mapResultState.classList.add('hidden');
+            
+            const resDesk = document.getElementById('res-desk-num');
+            if (resDesk) resDesk.innerText = '--';
+            const resLoc = document.getElementById('res-location-name');
+            if (resLoc) resLoc.innerText = '--';
+            const resGvcn = document.getElementById('res-gvcn-info');
+            if (resGvcn) resGvcn.innerText = '--';
+
             const mapImg = document.getElementById('map-image');
-            if (mapImg) mapImg.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
+            if (mapImg) mapImg.src = 'https://tuyensinh.hvu.edu.vn/assets/img/so_do_nhap_hoc.jpg';
             
             try {
                 var canvas = document.getElementById('confetti-canvas');
@@ -808,10 +958,12 @@
 
         // Modal triggers
         function zoomMap() {
-            const mapSrc = document.getElementById('res-sodo-img').src;
-            document.getElementById('img-modal-src').src = mapSrc;
-            document.getElementById('img-modal').classList.remove('hidden');
-            document.getElementById('img-modal').classList.add('flex');
+            const mapImg = document.getElementById('map-image');
+            if (mapImg) {
+                document.getElementById('img-modal-src').src = mapImg.src;
+                document.getElementById('img-modal').classList.remove('hidden');
+                document.getElementById('img-modal').classList.add('flex');
+            }
         }
 
         function closeImageModal() {

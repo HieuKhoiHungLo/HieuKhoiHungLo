@@ -59,6 +59,36 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                 </select>
                 <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
             </div>
+            
+            <!-- Excel Export Dropdown -->
+            <div x-data="{ open: false }" class="relative">
+                <button type="button" @click="open = !open" @click.away="open = false"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-lg shadow-sm transition flex items-center gap-1.5 whitespace-nowrap h-[38px]">
+                    <i class="fas fa-file-excel text-sm"></i> Xuất Excel <i class="fas fa-chevron-down text-[10px] ml-1 opacity-70"></i>
+                </button>
+                <div x-show="open" style="display: none;"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="transform opacity-0 scale-95"
+                     x-transition:enter-end="transform opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="transform opacity-100 scale-100"
+                     x-transition:leave-end="transform opacity-0 scale-95"
+                     class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50 overflow-hidden">
+                    <a href="<?= url('/admin/enrollment/export-confirmed?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-xs font-semibold border-b border-slate-100 transition-colors flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">1</span>
+                        Danh sách xác nhận nhập học
+                    </a>
+                    <a href="<?= url('/admin/enrollment/export-unconfirmed?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-xs font-semibold border-b border-slate-100 transition-colors flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">2</span>
+                        Danh sách chưa xác nhận nhập học
+                    </a>
+                    <a href="<?= url('/admin/enrollment/export-enrolled?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">3</span>
+                        Danh sách nhập học
+                    </a>
+                </div>
+            </div>
+
             <button onclick="window.location.reload()" class="bg-white hover:bg-slate-50 border border-slate-200 text-purple-600 px-3 py-2 rounded-lg transition-colors shadow-sm" title="Làm mới">
                 <i class="fas fa-sync-alt"></i>
             </button>

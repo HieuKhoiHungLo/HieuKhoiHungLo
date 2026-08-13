@@ -464,24 +464,45 @@ class AdmissionResultService {
                 }
             }
 
-            // 5d. Cập nhật Dân tộc, Email, SĐT vào bảng thi_sinh
+            // 5d. Cập nhật Dân tộc, Email, SĐT vào bảng thi_sinh bằng temp table (tối ưu hóa bulk update)
             if (!empty($thiSinhUpdates)) {
-                $tsStmt = $this->db->prepare("
-                    UPDATE thi_sinh 
-                    SET 
-                        dan_toc = CASE WHEN ? != '' THEN ? ELSE dan_toc END,
-                        email = CASE WHEN ? != '' THEN ? ELSE email END,
-                        dien_thoai = CASE WHEN ? != '' THEN ? ELSE dien_thoai END
-                    WHERE so_cccd = ?
+                $this->db->exec("
+                    CREATE TEMP TABLE temp_update_thi_sinh (
+                        so_cccd varchar,
+                        dan_toc varchar,
+                        email varchar,
+                        sdt varchar
+                    ) ON COMMIT DROP
                 ");
-                foreach ($thiSinhUpdates as $ts) {
-                    $tsStmt->execute([
-                        $ts['dan_toc'], $ts['dan_toc'],
-                        $ts['email'], $ts['email'],
-                        $ts['sdt'], $ts['sdt'],
-                        $ts['cccd']
-                    ]);
+
+                $tsChunkSize = 500;
+                $tsChunks = array_chunk($thiSinhUpdates, $tsChunkSize);
+                $tsInsertSql = "INSERT INTO temp_update_thi_sinh (so_cccd, dan_toc, email, sdt) VALUES ";
+
+                foreach ($tsChunks as $chunk) {
+                    $placeholders = array_fill(0, count($chunk), '(?, ?, ?, ?)');
+                    $sql = $tsInsertSql . implode(', ', $placeholders);
+                    
+                    $flatValues = [];
+                    foreach ($chunk as $ts) {
+                        $flatValues[] = $ts['cccd'];
+                        $flatValues[] = $ts['dan_toc'];
+                        $flatValues[] = $ts['email'];
+                        $flatValues[] = $ts['sdt'];
+                    }
+                    $this->db->prepare($sql)->execute($flatValues);
                 }
+
+                $bulkTsUpdateSql = "
+                    UPDATE thi_sinh AS t
+                    SET 
+                        dan_toc = CASE WHEN tmp.dan_toc != '' THEN tmp.dan_toc ELSE t.dan_toc END,
+                        email = CASE WHEN tmp.email != '' THEN tmp.email ELSE t.email END,
+                        dien_thoai = CASE WHEN tmp.sdt != '' THEN tmp.sdt ELSE t.dien_thoai END
+                    FROM temp_update_thi_sinh AS tmp
+                    WHERE t.so_cccd = tmp.so_cccd
+                ";
+                $this->db->exec($bulkTsUpdateSql);
             }
 
             $this->db->commit();

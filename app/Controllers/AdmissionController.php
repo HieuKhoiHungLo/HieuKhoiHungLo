@@ -868,7 +868,7 @@ class AdmissionController extends Controller {
                     'ĐTB Lớp 12' => $r['diem_tb_12'] ?? '',
                     'XACNHANBO' => (!empty($r['xac_nhan_bo']) || !empty($r['xac_nhan_nhap_hoc']) || !empty($r['is_confirm'])) ? 'Đã XN' : 'Chưa XN',
                     'XACNHANTRUONG' => !empty($r['xac_nhan_truong']) ? 'Đã XN' : 'Chưa XN',
-                    'NHAPHOC' => (!empty($r['nh_trang_thai']) || !empty($r['is_nhap_hoc']) || !empty($r['nh_ngay_nhap_hoc'])) ? 'Đã nhập học' : 'Chưa nhập học',
+                    'NHAPHOC' => (!empty($r['nh_trang_thai']) && $r['nh_trang_thai'] === 'da_nhap_hoc') ? 'Đã nhập học' : 'Chưa nhập học',
                     'NOPKINHPHI' => (!empty($r['nh_da_nop_tien']) || !empty($r['da_nop_tien'])) ? 'Đã nộp' : 'Chưa nộp',
                     'Ghi Chú' => $r['ghi_chu'] ?? '',
                     // Yêu cầu chuyển về cuối danh sách:
@@ -877,13 +877,17 @@ class AdmissionController extends Controller {
                     'SOTIEN' => $r['so_tien'] ?? '',
                     'NOIDUNG' => $r['noi_dung_ck'] ?? '',
                     'SOTIENNOP' => $r['nh_so_tien_da_nop'] ?? ($r['so_tien_da_nop'] ?? ''),
-                    'THOIGIANNHAP' => $r['thoi_gian_nhap_hoc'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
+                    'THOIGIANNHAP' => $r['thoi_gian_nhap'] ?? ($r['nh_ngay_nhap_hoc'] ?? ''),
                     'KINHPHI' => $r['kinh_phi'] ?? ($r['noi_dung_thu'] ?? ''),
                     'KHOA' => $r['ten_khoa'] ?? '',
                     'Số Giấy Báo' => $r['so_giay_bao'] ?? '',
                     'Ngành in Giấy Báo' => $r['nganh_in_giay_bao'] ?? '',
                     'Link Ảnh' => $linkAnh,
-                    'FILE_GIAY_BAO' => $r['file_giay_bao'] ?? ''
+                    'FILE_GIAY_BAO' => $r['file_giay_bao'] ?? '',
+                    'BANNHAPHOC' => $r['ban_nhap_hoc'] ?? '',
+                    'VITRI' => $r['vi_tri_nhap_hoc'] ?? '',
+                    'LINKSODO' => $r['link_so_do'] ?? '',
+                    'GVCN' => $r['gvcn'] ?? ''
                 ];
 
                 $exportData[] = array_merge($orderedRow, $originalData);

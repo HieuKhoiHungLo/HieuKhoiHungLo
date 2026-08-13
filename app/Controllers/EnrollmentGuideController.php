@@ -85,6 +85,45 @@ class EnrollmentGuideController extends Controller
             ]);
         }
 
+        $banNhapHoc = $record['ban_nhap_hoc'] ?? '';
+        $viTriNhapHoc = $record['vi_tri_nhap_hoc'] ?? '';
+        $linkSoDo = $record['link_so_do'] ?? '';
+
+        // Override logic for different schedule on 16/8/2026
+        $thoiGianNhap = $record['thoi_gian_nhap'] ?? '';
+        
+        // Determine session time (Morning vs Afternoon)
+        // Check if test_hour query param is passed
+        $testHour = isset($_REQUEST['test_hour']) ? (int)$_REQUEST['test_hour'] : null;
+        if ($testHour !== null) {
+            $isAfternoonSession = ($testHour >= 12);
+        } else {
+            // Real system time check
+            $currentDateStr = date('Y-m-d');
+            $currentHour = (int)date('H');
+            if ($currentDateStr === '2026-08-16') {
+                $isAfternoonSession = ($currentHour >= 12);
+            } else {
+                // Default fallback during development: check current hour
+                $isAfternoonSession = ($currentHour >= 12);
+            }
+        }
+
+        // Apply override conditions
+        if (strpos($thoiGianNhap, '16/8/2026') !== false) {
+            if (!$isAfternoonSession && strpos($thoiGianNhap, '13h30') !== false) {
+                // Morning lookup, but afternoon scheduled -> wrong schedule!
+                $banNhapHoc = 'Bàn 10, Bàn 11, Bàn 12';
+                $viTriNhapHoc = 'Hội trường Tầng 3';
+                $linkSoDo = '/uploads/media/1786629203_6a7dcc5318a94.jpg'; // Specific map S_vt5.jpg
+            } else if ($isAfternoonSession && strpos($thoiGianNhap, '7h30') !== false) {
+                // Afternoon lookup, but morning scheduled -> wrong schedule!
+                $banNhapHoc = 'Bàn 10, Bàn 11, Bàn 12';
+                $viTriNhapHoc = 'Hội trường Tầng 3';
+                $linkSoDo = '/uploads/media/1786629203_6a7dcc5318a94.jpg'; // Specific map S_vt5.jpg
+            }
+        }
+
         // Format response data
         return $this->json([
             'success' => true,
@@ -98,12 +137,12 @@ class EnrollmentGuideController extends Controller
                 'ten_khoa'       => $record['ten_khoa'] ?? '',
                 'so_giay_bao'    => $record['so_giay_bao'] ?? '',
                 'thoi_gian_nhap' => $record['thoi_gian_nhap'] ?? '',
-                'ban_nhap_hoc'   => $record['ban_nhap_hoc'] ?? '',
-                'vi_tri_nhap_hoc'=> $record['vi_tri_nhap_hoc'] ?? '',
-                'link_so_do'     => $record['link_so_do'] ?? '',
+                'ban_nhap_hoc'   => $banNhapHoc,
+                'vi_tri_nhap_hoc'=> $viTriNhapHoc,
+                'link_so_do'     => !empty($linkSoDo) ? (strpos($linkSoDo, 'http') === 0 ? $linkSoDo : 'https://tuyensinh.hvu.edu.vn/' . ltrim($linkSoDo, '/')) : '',
                 'gvcn'           => $record['gvcn'] ?? '',
                 'kinh_phi'       => $record['kinh_phi'] ?? '',
-                'anh_the'        => !empty($record['anh_dai_dien']) ? (strpos($record['anh_dai_dien'], 'http') === 0 ? $record['anh_dai_dien'] : url($record['anh_dai_dien'])) : '',
+                'anh_the'        => !empty($record['anh_dai_dien']) ? (strpos($record['anh_dai_dien'], 'http') === 0 ? $record['anh_dai_dien'] : 'https://tuyensinh.hvu.edu.vn/' . ltrim($record['anh_dai_dien'], '/')) : '',
             ]
         ]);
     }

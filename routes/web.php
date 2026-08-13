@@ -529,6 +529,9 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/enrollment/print', 'EnrollmentController@printReceipt');
     $router->get('/admin/enrollment/stats', 'EnrollmentController@stats');
     $router->get('/admin/enrollment/overview-stats', 'EnrollmentController@overviewStats');
+    $router->get('/admin/enrollment/export-confirmed', 'EnrollmentController@exportConfirmed');
+    $router->get('/admin/enrollment/export-unconfirmed', 'EnrollmentController@exportUnconfirmed');
+    $router->get('/admin/enrollment/export-enrolled', 'EnrollmentController@exportEnrolled');
     
     // New Dashboard APIs
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
