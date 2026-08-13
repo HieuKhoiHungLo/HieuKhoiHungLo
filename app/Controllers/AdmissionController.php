@@ -448,6 +448,8 @@ class AdmissionController extends Controller {
         $colNote    = trim($_GET['col_note'] ?? '');
         $colXnBo    = trim($_GET['col_xn_bo'] ?? '');
         $colXnTruong= trim($_GET['col_xn_truong'] ?? '');
+        $colBanNhapHoc = trim($_GET['col_ban_nhap_hoc'] ?? '');
+        $colGvcn       = trim($_GET['col_gvcn'] ?? '');
 
         if ($length < 1) $length = 50;
         if ($length > 200) $length = 200;
@@ -507,6 +509,15 @@ class AdmissionController extends Controller {
         if (!empty($colNote)) {
             $baseFrom .= " AND k.ghi_chu ILIKE ?";
             $params[] = "%{$colNote}%";
+        }
+        if (!empty($colBanNhapHoc)) {
+            $baseFrom .= " AND (k.ban_nhap_hoc ILIKE ? OR k.vi_tri_nhap_hoc ILIKE ?)";
+            $params[] = "%{$colBanNhapHoc}%";
+            $params[] = "%{$colBanNhapHoc}%";
+        }
+        if (!empty($colGvcn)) {
+            $baseFrom .= " AND k.gvcn ILIKE ?";
+            $params[] = "%{$colGvcn}%";
         }
         if ($colXnBo !== '') {
             if ($colXnBo === '1') {
@@ -641,6 +652,8 @@ class AdmissionController extends Controller {
         $colNote    = trim($_GET['col_note'] ?? '');
         $colXnBo    = trim($_GET['col_xn_bo'] ?? '');
         $colXnTruong= trim($_GET['col_xn_truong'] ?? '');
+        $colBanNhapHoc = trim($_GET['col_ban_nhap_hoc'] ?? '');
+        $colGvcn       = trim($_GET['col_gvcn'] ?? '');
 
         // Fetch session info
         $sessionStmt = $db->prepare("SELECT ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
@@ -730,6 +743,15 @@ class AdmissionController extends Controller {
         if (!empty($colNote)) {
             $sql .= " AND k.ghi_chu ILIKE ?";
             $params[] = "%{$colNote}%";
+        }
+        if (!empty($colBanNhapHoc)) {
+            $sql .= " AND (k.ban_nhap_hoc ILIKE ? OR k.vi_tri_nhap_hoc ILIKE ?)";
+            $params[] = "%{$colBanNhapHoc}%";
+            $params[] = "%{$colBanNhapHoc}%";
+        }
+        if (!empty($colGvcn)) {
+            $sql .= " AND k.gvcn ILIKE ?";
+            $params[] = "%{$colGvcn}%";
         }
         if ($colXnBo !== '') {
             if ($colXnBo === '1') {

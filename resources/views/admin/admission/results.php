@@ -293,6 +293,9 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         <th class="text-center" data-col="ut_quy_doi">UTQĐ</th>
                         <th data-col="kinh_phi">Nội dung Kinh phí</th>
                         <th class="text-center w-20" data-col="ket_qua">Kết quả</th>
+                        <th data-col="link_so_do" class="text-center">Sơ đồ</th>
+                        <th data-col="ban_nhap_hoc" class="text-center">Bàn nhập học</th>
+                        <th data-col="gvcn">GVCN</th>
                         <th data-col="ghi_chu">Ghi chú</th>
                     </tr>
                     <!-- Sub-Header Row: Per-column Quick Search & Filter Inputs -->
@@ -344,6 +347,9 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                         <td data-col="ut_quy_doi"></td>
                         <td data-col="kinh_phi"></td>
                         <td data-col="ket_qua"></td>
+                        <td data-col="link_so_do"></td>
+                        <td data-col="ban_nhap_hoc" class="p-1"><input type="text" id="col_filter_ban_nhap_hoc" aria-label="Lọc theo bàn nhập học" placeholder="Bàn..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
+                        <td data-col="gvcn" class="p-1"><input type="text" id="col_filter_gvcn" aria-label="Lọc theo GVCN" placeholder="GVCN..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
                         <td data-col="ghi_chu" class="p-1"><input type="text" id="col_filter_note" aria-label="Lọc theo ghi chú" placeholder="Ghi chú..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
                     </tr>
                 </thead>
@@ -1071,6 +1077,9 @@ const allCols = [
     { key: 'ut_quy_doi', label: 'Điểm UT Quy đổi' },
     { key: 'kinh_phi', label: 'Nội dung Kinh phí' },
     { key: 'ket_qua', label: 'Kết quả' },
+    { key: 'link_so_do', label: 'Link sơ đồ' },
+    { key: 'ban_nhap_hoc', label: 'Bàn nhập học' },
+    { key: 'gvcn', label: 'GVCN' },
     { key: 'ghi_chu', label: 'Ghi chú' }
 ];
 
@@ -1152,6 +1161,8 @@ function reloadTable() {
     const colNote = document.getElementById('col_filter_note')?.value || '';
     const colXnBo = document.getElementById('col_filter_xn_bo')?.value || '';
     const colXnTruong = document.getElementById('col_filter_xn_truong')?.value || '';
+    const colBanNhapHoc = document.getElementById('col_filter_ban_nhap_hoc')?.value || '';
+    const colGvcn = document.getElementById('col_filter_gvcn')?.value || '';
 
     const params = new URLSearchParams({
         draw: drawCounter, start, length: pageLength, search,
@@ -1164,7 +1175,9 @@ function reloadTable() {
         col_gb: colGb,
         col_note: colNote,
         col_xn_bo: colXnBo,
-        col_xn_truong: colXnTruong
+        col_xn_truong: colXnTruong,
+        col_ban_nhap_hoc: colBanNhapHoc,
+        col_gvcn: colGvcn
     });
 
     document.getElementById('tableInfo').textContent = 'Đang tải...';
@@ -1268,6 +1281,13 @@ function renderTable(rows, startIndex) {
             <td class="text-center text-slate-600 font-normal" data-col="ut_quy_doi">${row.ut_quy_doi != null && parseFloat(row.ut_quy_doi) > 0 ? '+' + parseFloat(row.ut_quy_doi).toFixed(2) : '-'}</td>
             <td class="max-w-[150px] text-slate-600 font-normal truncate" data-col="kinh_phi" title="${escHtml(row.kinh_phi || '')}">${escHtml(row.kinh_phi || '-')}</td>
             <td class="text-center text-slate-600 font-normal" data-col="ket_qua">${isPass ? 'Đỗ' : 'Trượt'}</td>
+            <td class="text-center" data-col="link_so_do">
+                ${row.link_so_do ? `<a href="${escHtml(row.link_so_do)}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[10px] font-semibold bg-slate-50 px-2 py-0.5 rounded border border-slate-200"><i class="fas fa-map-marked-alt"></i> Sơ đồ</a>` : '-'}
+            </td>
+            <td class="text-slate-600 font-normal text-center" data-col="ban_nhap_hoc">
+                ${escHtml(row.ban_nhap_hoc || '')} ${row.vi_tri_nhap_hoc ? `(${escHtml(row.vi_tri_nhap_hoc)})` : ''} ${(!row.ban_nhap_hoc && !row.vi_tri_nhap_hoc) ? '-' : ''}
+            </td>
+            <td class="text-slate-600 font-normal" data-col="gvcn">${escHtml(row.gvcn || '-')}</td>
             <td class="text-slate-600 font-normal max-w-[120px] truncate" data-col="ghi_chu">${escHtml(row.ghi_chu || '')}</td>
         </tr>`;
     });
@@ -2148,6 +2168,8 @@ function exportResultsExcel(type = 'full') {
     const colNote = document.getElementById('col_filter_note')?.value || '';
     const colXnBo = document.getElementById('col_filter_xn_bo')?.value || '';
     const colXnTruong = document.getElementById('col_filter_xn_truong')?.value || '';
+    const colBanNhapHoc = document.getElementById('col_filter_ban_nhap_hoc')?.value || '';
+    const colGvcn = document.getElementById('col_filter_gvcn')?.value || '';
     
     let exportUrl = '<?= url('/admin/admission/results/export') ?>?session_id=' + encodeURIComponent(sessionId) + '&export_type=' + encodeURIComponent(type);
     if (major) exportUrl += '&major=' + encodeURIComponent(major);
@@ -2161,6 +2183,8 @@ function exportResultsExcel(type = 'full') {
     if (colNote) exportUrl += '&col_note=' + encodeURIComponent(colNote);
     if (colXnBo !== '') exportUrl += '&col_xn_bo=' + encodeURIComponent(colXnBo);
     if (colXnTruong !== '') exportUrl += '&col_xn_truong=' + encodeURIComponent(colXnTruong);
+    if (colBanNhapHoc) exportUrl += '&col_ban_nhap_hoc=' + encodeURIComponent(colBanNhapHoc);
+    if (colGvcn) exportUrl += '&col_gvcn=' + encodeURIComponent(colGvcn);
     
     window.location.href = exportUrl;
 }

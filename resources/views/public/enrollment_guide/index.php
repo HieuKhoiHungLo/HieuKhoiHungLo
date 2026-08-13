@@ -229,6 +229,18 @@
                                 <span class="w-[135px] text-slate-500 text-sm shrink-0">Ngành trúng tuyển:</span>
                                 <span id="cand-major" class="font-black text-red-600 text-base md:text-lg leading-tight">--</span>
                             </div>
+                            <div class="flex items-center">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Bàn nhập học:</span>
+                                <span id="cand-desk" class="font-bold text-red-600 text-base">--</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">Vị trí:</span>
+                                <span id="cand-location" class="font-bold text-red-600 text-base">--</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-[135px] text-slate-500 text-sm shrink-0">GVCN:</span>
+                                <span id="cand-gvcn" class="font-bold text-red-600 text-base">--</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -648,6 +660,10 @@
             const nganhEl = document.getElementById('cand-major');
             nganhEl.innerText = student.ten_nganh || '--';
 
+            document.getElementById('cand-desk').innerText = student.ban_nhap_hoc || '--';
+            document.getElementById('cand-location').innerText = student.vi_tri_nhap_hoc || '--';
+            document.getElementById('cand-gvcn').innerText = student.gvcn || '--';
+
             // Set avatar photo
             const imgEl = document.getElementById('cand-avatar');
             if (student.anh_the) {
@@ -711,6 +727,10 @@
             // Clean input values
             const cccdInput = document.getElementById('cccd-input');
             if (cccdInput) cccdInput.value = '';
+
+            document.getElementById('cand-desk').innerText = '--';
+            document.getElementById('cand-location').innerText = '--';
+            document.getElementById('cand-gvcn').innerText = '--';
             
             const mapImg = document.getElementById('map-image');
             if (mapImg) mapImg.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
