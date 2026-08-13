@@ -1,5 +1,7 @@
 <?php
 // Màn hình in phiếu khổ A4, không có layout
+$advisorInfo = $enrollment['thong_tin_gv_ho_tro'] ?? 'Vui lòng liên hệ Hotline: 0866993468 để được hỗ trợ.';
+$isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enrollment['ngay_nhap_hoc_bo_sung'])); 
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -7,118 +9,251 @@
     <meta charset="UTF-8">
     <title><?= $title ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+        
         @media print {
-            @page { size: A4; margin: 20mm; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white !important; }
+            @page { size: A4; margin: 15mm; }
+            body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                background-color: white !important;
+            }
             .no-print { display: none !important; }
         }
-        body { font-family: 'Times New Roman', Times, serif; font-size: 14pt; line-height: 1.5; color: black; background-color: #f1f5f9; }
-        .a4-container { max-w-4xl mx-auto bg-white p-[20mm] shadow-lg my-8; width: 210mm; min-height: 297mm; }
-        .text-justify { text-align: justify; }
+        
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 13pt; 
+            line-height: 1.4; 
+            color: #000; 
+            background-color: #f1f5f9; 
+        }
+        
+        .a4-container { 
+            max-width: 210mm; 
+            margin: 20px auto; 
+            background: white; 
+            padding: 15mm 20mm; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+            min-height: 297mm;
+            position: relative;
+        }
+        
+        /* Chữ ký số / mộc */
+        .stamp {
+            color: #dc2626;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 2px solid #dc2626;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 10px;
+            transform: rotate(-15deg);
+            opacity: 0.8;
+            position: absolute;
+            bottom: 60px;
+            right: 40px;
+            pointer-events: none;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 13pt;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        
+        .doc-table th, .doc-table td {
+            border: 1px solid #000;
+            padding: 6px 10px;
+        }
+        
+        .doc-table th {
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Custom checkbox for printing */
+        .print-checkbox {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 1px solid #000;
+            text-align: center;
+            line-height: 14px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
     
-    <div class="fixed top-4 right-4 no-print flex gap-2">
-        <button onclick="window.close()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded shadow text-sm font-sans">Đóng</button>
-        <button onclick="window.print()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow text-sm font-sans">In Phiếu</button>
+    <div class="fixed top-4 right-4 no-print flex gap-2 z-50">
+        <button onclick="window.close()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded shadow text-sm font-sans font-bold transition-colors">
+            <i class="fas fa-times mr-1"></i> Đóng
+        </button>
+        <button onclick="window.print()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow text-sm font-sans font-bold transition-colors">
+            <i class="fas fa-print mr-1"></i> In Phiếu
+        </button>
     </div>
 
-    <div class="a4-container mx-auto bg-white p-[20mm] shadow-lg my-8" style="width: 210mm; min-height: 297mm; box-sizing: border-box;">
-        <!-- Header -->
+    <div class="a4-container">
+        <!-- HEADER -->
         <div class="flex justify-between items-start mb-6">
-            <div class="text-center w-5/12">
-                <p class="font-bold text-sm uppercase">UBND TỈNH PHÚ THỌ</p>
-                <p class="font-bold text-sm uppercase border-b border-black inline-block pb-1 mb-1">TRƯỜNG ĐẠI HỌC HÙNG VƯƠNG</p>
-                <p class="text-xs">Số: <?= $enrollment['ma_phieu'] ?? '......' ?>/PNH-ĐHHV</p>
+            <div class="text-center w-5/12 flex flex-col items-center">
+                <div class="font-bold text-[12pt] uppercase mb-1">TRƯỜNG ĐẠI HỌC HÙNG VƯƠNG</div>
+                <div class="font-bold text-[13pt] uppercase border-b border-black pb-0.5 inline-block">HỘI ĐỒNG TUYỂN SINH</div>
+                <div class="mt-2 text-[12pt]">Số: <span class="font-bold"><?= $enrollment['ma_phieu'] ?? '......' ?></span>/PNH</div>
             </div>
             <div class="text-center w-7/12">
-                <p class="font-bold text-sm uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-                <p class="font-bold text-sm border-b border-black inline-block pb-1 mb-1">Độc lập - Tự do - Hạnh phúc</p>
+                <div class="font-bold text-[12pt] uppercase mb-1">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold text-[13pt] border-b border-black pb-0.5 inline-block">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="mt-2 italic text-[12pt]">Phú Thọ, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?></div>
             </div>
         </div>
 
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold uppercase mb-2">PHIẾU TIẾP NHẬN HỒ SƠ NHẬP HỌC</h1>
-            <p class="italic">Năm tuyển sinh <?= date('Y') ?></p>
-        </div>
+        <!-- TITLE & QR -->
+        <div class="text-center mb-6 relative">
+            <h1 class="text-[18pt] font-bold uppercase mb-1">PHIẾU TIẾP NHẬN HỒ SƠ & NHẬP HỌC</h1>
+            <p class="text-[13pt] italic">Đại học hệ chính quy năm 2026</p>
+            
+            <!-- Mục đích phiếu -->
+            <div class="mt-3 flex justify-center gap-8 text-[12pt]">
+                <div><span class="print-checkbox">✓</span> Nhập học lần đầu</div>
+                <div><span class="print-checkbox"> </span> Nộp bổ sung hồ sơ</div>
+            </div>
 
-        <!-- Student Info -->
-        <div class="mb-6">
-            <p>Trường Đại học Hùng Vương đã tiếp nhận hồ sơ nhập học của sinh viên:</p>
-            <div class="grid grid-cols-2 gap-2 mt-2 ml-4">
-                <p>Họ và tên: <span class="font-bold uppercase"><?= htmlspecialchars($enrollment['ho_ten'] ?? '') ?></span></p>
-                <p>Ngày sinh: <?= date('d/m/Y', strtotime($enrollment['ngay_sinh'] ?? '')) ?></p>
-                <p>Số CCCD: <?= htmlspecialchars($enrollment['so_cccd'] ?? '') ?></p>
-                <p>Điện thoại: <?= htmlspecialchars($enrollment['dien_thoai'] ?? '') ?></p>
-                <p class="col-span-2">Ngành trúng tuyển: <span class="font-bold"><?= htmlspecialchars($enrollment['ten_nganh'] ?? '') ?></span></p>
+            <!-- QR Code Góc phải -->
+            <div class="absolute top-0 right-0 p-1 border border-gray-300">
+                <img src="https://chart.googleapis.com/chart?chs=80x80&cht=qr&chl=HVU-<?= htmlspecialchars($enrollment['so_cccd']) ?>" alt="QR Code" width="80" height="80" />
             </div>
         </div>
 
-        <!-- Documents -->
-        <div class="mb-6">
-            <p class="font-bold mb-2">Danh mục hồ sơ sinh viên đã nộp:</p>
-            <table class="w-full border-collapse border border-black text-sm">
-                <thead>
-                    <tr>
-                        <th class="border border-black p-2 w-12 text-center">STT</th>
-                        <th class="border border-black p-2 text-center">Loại Giấy Tờ</th>
-                        <th class="border border-black p-2 w-32 text-center">Tình Trạng</th>
-                        <th class="border border-black p-2 w-48 text-center">Ghi Chú</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($documents)): ?>
-                        <tr><td colspan="4" class="border border-black p-2 text-center italic">Chưa có thông tin hồ sơ</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($documents as $i => $doc): ?>
-                            <tr>
-                                <td class="border border-black p-2 text-center"><?= $i + 1 ?></td>
-                                <td class="border border-black p-2"><?= htmlspecialchars($doc['ten_ho_so'] ?? '') ?></td>
-                                <td class="border border-black p-2 text-center"><?= htmlspecialchars($doc['gia_tri'] ?? '') ?></td>
-                                <td class="border border-black p-2"><?= htmlspecialchars($doc['ghi_chu'] ?? '') ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+        <!-- I. THÔNG TIN THÍ SINH -->
+        <div class="section-title">I. THÔNG TIN THÍ SINH</div>
+        <div class="flex gap-6 mb-4">
+            <!-- Khung ảnh 3x4 -->
+            <div class="w-[3cm] h-[4cm] border border-dashed border-gray-400 flex items-center justify-center text-gray-500 text-[10pt] italic">
+                Ảnh 3x4
+            </div>
+            
+            <div class="flex-1 text-[13pt] leading-loose">
+                <div class="grid grid-cols-5 gap-x-2">
+                    <div class="col-span-3">Họ và tên: <span class="font-bold uppercase text-[14pt]"><?= htmlspecialchars($enrollment['ho_ten'] ?? '') ?></span></div>
+                    <div class="col-span-2">Ngày sinh: <span class="font-bold"><?= date('d/m/Y', strtotime($enrollment['ngay_sinh'] ?? '')) ?></span></div>
+                    
+                    <div class="col-span-3">Số CCCD: <span class="font-bold"><?= htmlspecialchars($enrollment['so_cccd'] ?? '') ?></span></div>
+                    <div class="col-span-2">Điện thoại: <span class="font-bold"><?= htmlspecialchars($enrollment['dien_thoai'] ?? '') ?></span></div>
+                    
+                    <div class="col-span-5">Ngành trúng tuyển: <span class="font-bold text-[14pt]"><?= htmlspecialchars($enrollment['ten_nganh'] ?? '') ?></span> (Mã ngành: <?= htmlspecialchars($enrollment['ma_nganh'] ?? '') ?>)</div>
+                </div>
+            </div>
         </div>
 
-        <!-- Payment Info -->
-        <div class="mb-6">
-            <p class="font-bold mb-1">Tình trạng tài chính:</p>
-            <p class="ml-4">
-                - Học phí, lệ phí nhập học: 
-                <span class="font-bold"><?= ($enrollment['da_nop_tien'] ?? 0) == 1 ? 'Đã thanh toán đủ' : 'Chưa thanh toán' ?></span>
-            </p>
+        <!-- II. TÌNH TRẠNG HỒ SƠ & TÀI CHÍNH -->
+        <div class="section-title">II. TÌNH TRẠNG HỒ SƠ & TÀI CHÍNH</div>
+        
+        <div class="font-bold mb-2">1. Danh mục hồ sơ:</div>
+        <table class="w-full doc-table mb-4 text-[12pt]">
+            <thead>
+                <tr>
+                    <th class="w-10">TT</th>
+                    <th>Nội dung hồ sơ</th>
+                    <th class="w-24">Tình trạng</th>
+                    <th class="w-48">Ghi chú / Hạn nộp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($documents)): ?>
+                    <tr><td colspan="4" class="text-center italic text-gray-500">Chưa cấu hình hồ sơ</td></tr>
+                <?php else: ?>
+                    <?php foreach ($documents as $i => $doc): 
+                        $isSubmitted = in_array(strtolower(trim($doc['gia_tri'] ?? '')), ['có', 'đã nộp', 'bản gốc', 'bản sao']);
+                        $isMissing = in_array(strtolower(trim($doc['gia_tri'] ?? '')), ['chưa nộp', 'thiếu']);
+                    ?>
+                        <tr>
+                            <td class="text-center"><?= $i + 1 ?></td>
+                            <td><?= htmlspecialchars($doc['ten_ho_so'] ?? '') ?></td>
+                            <td class="text-center whitespace-nowrap">
+                                <?php if ($isSubmitted): ?>
+                                    <span class="print-checkbox">✓</span> Đã nộp
+                                <?php elseif ($isMissing): ?>
+                                    <span class="print-checkbox"> </span> Chưa nộp
+                                <?php else: ?>
+                                    <span class="print-checkbox">✓</span> <?= htmlspecialchars($doc['gia_tri'] ?? '') ?>
+                                <?php endif; ?>
+                            </td>
+                            <td class="italic text-[11pt]"><?= htmlspecialchars($doc['ghi_chu'] ?? '') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <div class="italic text-[11pt] text-gray-700 mb-4 pl-4">
+            - Sinh viên có trách nhiệm nộp bổ sung các giấy tờ "Chưa nộp" về phòng Công tác Sinh viên chậm nhất sau 30 ngày kể từ ngày nhập học.<br/>
+            - Nhà trường chỉ tiếp nhận những thí sinh có đủ điều kiện trúng tuyển theo quy chế.
         </div>
 
-        <!-- Signatures -->
-        <div class="flex justify-between mt-12 text-center">
+        <div class="font-bold mb-1">2. Tình trạng tài chính:</div>
+        <div class="pl-4 mb-6">
+            - Học phí, lệ phí nhập học: 
+            <span class="font-bold ml-2">
+                <span class="print-checkbox"><?= ($enrollment['da_nop_tien'] ?? 0) == 1 ? '✓' : ' ' ?></span> Đã thu
+                <span class="print-checkbox ml-6"><?= ($enrollment['da_nop_tien'] ?? 0) != 1 ? '✓' : ' ' ?></span> Chưa nộp
+            </span>
+        </div>
+
+        <!-- III. HỖ TRỢ SINH VIÊN -->
+        <div class="section-title">III. THÔNG TIN HỖ TRỢ SINH VIÊN</div>
+        <div class="bg-gray-100 p-3 border border-gray-400 rounded-sm italic text-[12pt] mb-8 leading-relaxed">
+            Nhằm hỗ trợ sinh viên trong quá trình làm thủ tục và làm quen với môi trường đại học, Nhà trường cử cán bộ tư vấn riêng cho sinh viên ngành <strong><?= htmlspecialchars($enrollment['ten_nganh'] ?? '') ?></strong>.<br/>
+            Sinh viên có thắc mắc vui lòng liên hệ: <strong><?= htmlspecialchars($advisorInfo) ?></strong>
+        </div>
+
+        <!-- CHỮ KÝ -->
+        <div class="flex justify-between mt-8 text-center text-[13pt]">
             <div class="w-1/2">
-                <p class="font-bold">Sinh viên nộp hồ sơ</p>
-                <p class="italic text-sm">(Ký và ghi rõ họ tên)</p>
-                <div class="h-24"></div>
+                <p class="font-bold uppercase">SINH VIÊN NỘP HỒ SƠ</p>
+                <p class="italic text-[11pt]">(Ký và ghi rõ họ tên)</p>
+                <div class="h-28"></div>
                 <p class="font-bold"><?= htmlspecialchars($enrollment['ho_ten'] ?? '') ?></p>
             </div>
-            <div class="w-1/2">
-                <p class="italic mb-1">Phú Thọ, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?></p>
-                <p class="font-bold">Cán bộ tiếp nhận</p>
-                <p class="italic text-sm">(Ký và ghi rõ họ tên)</p>
-                <div class="h-24"></div>
+            <div class="w-1/2 relative">
+                <p class="font-bold uppercase">CÁN BỘ TIẾP NHẬN</p>
+                <p class="italic text-[11pt]">(Ký và ghi rõ họ tên)</p>
+                <div class="h-28"></div>
                 <p class="font-bold"><?= htmlspecialchars($enrollment['ten_can_bo'] ?? '') ?></p>
+
+                <!-- Stamp (Chỉ hiển thị khi đã nộp hồ sơ hợp lệ) -->
+                <?php if($enrollment['trang_thai'] === 'da_nhap_hoc'): ?>
+                <div class="stamp">
+                    ĐÃ TIẾP NHẬN<br/><br/>
+                    <?= date('d/m/Y') ?>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
-        <div class="mt-16 text-xs text-center italic">
-            <p>Phiếu này được in trực tiếp từ Hệ thống Quản lý Tuyển sinh Trường Đại học Hùng Vương.</p>
+        <!-- FOOTER -->
+        <div class="mt-16 pt-4 border-t border-gray-400 text-[11pt] text-center italic text-gray-600 flex justify-between">
+            <span>Mã hồ sơ: <?= htmlspecialchars($enrollment['id'] ?? '') ?>-<?= htmlspecialchars($enrollment['so_cccd'] ?? '') ?></span>
+            <span>Sinh viên giữ phiếu này để đối chiếu khi cần thiết.</span>
         </div>
     </div>
     
     <script>
-        // Tự động mở hộp thoại in nếu người dùng muốn
-        // window.onload = function() { window.print(); }
+        // Optional: Auto print
+        // window.onload = function() { setTimeout(() => window.print(), 500); }
     </script>
 </body>
 </html>

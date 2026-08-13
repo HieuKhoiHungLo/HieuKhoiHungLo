@@ -1,0 +1,1 @@
+ALTER TABLE dm_nganh ADD COLUMN IF NOT EXISTS thong_tin_gv_ho_tro VARCHAR(255) DEFAULT NULL;

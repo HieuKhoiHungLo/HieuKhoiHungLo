@@ -317,7 +317,7 @@ class EnrollmentController extends Controller {
         $nhapHocId = $_GET['id'] ?? 0;
         
         $stmt = $this->db->prepare("
-            SELECT nh.*, kq.ho_ten, kq.ngay_sinh, kq.so_cccd, kq.sdt as dien_thoai, kq.ma_nganh, n.ten_nganh,
+            SELECT nh.*, kq.ho_ten, kq.ngay_sinh, kq.so_cccd, kq.sdt as dien_thoai, kq.ma_nganh, n.ten_nganh, n.thong_tin_gv_ho_tro,
                    qv.ho_ten as ten_can_bo
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
