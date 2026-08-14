@@ -228,6 +228,9 @@ class EnrollmentController extends Controller {
                     if (isset($valMap[$doc['id']])) {
                         $doc['selected_value'] = $valMap[$doc['id']]['gia_tri'];
                         $doc['ghi_chu_val'] = $valMap[$doc['id']]['ghi_chu'];
+                    } else {
+                        $doc['selected_value'] = $doc['gia_tri_mac_dinh'];
+                        $doc['ghi_chu_val'] = '';
                     }
                 }
             } else {
@@ -659,7 +662,7 @@ class EnrollmentController extends Controller {
 
             $valMap = [];
             foreach ($values as $v) {
-                if (!empty($v['gia_tri'])) {
+                if (!empty($v['gia_tri']) && !in_array($v['gia_tri'], ['Chưa nộp', 'Không có', 'Thiếu'])) {
                     $valMap[$v['nhap_hoc_id']][$v['ho_so_id']] = true;
                 }
             }
