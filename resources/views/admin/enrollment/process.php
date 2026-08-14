@@ -688,7 +688,7 @@ ob_start();
 
                                 <!-- Cảnh báo nhập trùng -->
                                 <template x-if="selectedCandidate.trang_thai_nhap_hoc === 'da_nhap_hoc' && selectedCandidate.ten_can_bo_nhap">
-                                    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5;color:#991b1b;display:flex;align-items:start;gap:10px;">
+                                    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;line-height:1.4;color:#991b1b;display:flex;align-items:start;gap:10px;">
                                         <i class="fas fa-exclamation-triangle" style="font-size:16px;color:#dc2626;margin-top:2px;"></i>
                                         <div>
                                             <strong style="display:block;margin-bottom:4px;font-size:14px;">Thí sinh này đã được nhập học!</strong>
@@ -698,7 +698,7 @@ ob_start();
                                     </div>
                                 </template>
 
-                                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;color:#334155;">
+                                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.6;color:#334155;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                         <span>Xác nhận hệ thống Bộ GD&ĐT:</span>
                                         <label style="display:flex;align-items:center;cursor:pointer;gap:6px;margin:0;">
@@ -730,9 +730,6 @@ ob_start();
 
                                 <div class="ep-section-title" style="display:flex; justify-content:space-between; align-items:center;">
                                     <span><i class="fas fa-folder-check"></i> Danh sách hồ sơ cần nộp</span>
-                                    <button class="ep-btn ep-btn-ghost" style="padding:4px 8px; font-size:11px;" @click="markAllDocs()" title="Đánh dấu tất cả là Đã nộp">
-                                        <i class="fas fa-check-double"></i> Đánh dấu tất cả
-                                    </button>
                                 </div>
 
                                 <template x-if="!selectedCandidate.documents || selectedCandidate.documents.length === 0">
