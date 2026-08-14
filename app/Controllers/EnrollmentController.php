@@ -290,10 +290,12 @@ class EnrollmentController extends Controller {
 
             $ghiChuCanBo = json_encode($extraData, JSON_UNESCAPED_UNICODE);
 
+            $daNopTien = $kqKinhPhi === 1 ? 'true' : 'false';
+
             if ($existing) {
                 $nhapHocId = $existing['id'];
-                $upd = $this->db->prepare("UPDATE nhap_hoc SET trang_thai = ?, nguoi_nhap = ?, ghi_chu_can_bo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-                $upd->execute([$trangThai, $adminId, $ghiChuCanBo, $nhapHocId]);
+                $upd = $this->db->prepare("UPDATE nhap_hoc SET trang_thai = ?, nguoi_nhap = ?, ghi_chu_can_bo = ?, updated_at = CURRENT_TIMESTAMP, da_nop_tien = ? WHERE id = ?");
+                $upd->execute([$trangThai, $adminId, $ghiChuCanBo, $daNopTien, $nhapHocId]);
                 $del = $this->db->prepare("DELETE FROM nhap_hoc_ho_so_gia_tri WHERE nhap_hoc_id = ?");
                 $del->execute([$nhapHocId]);
             } else {
@@ -307,19 +309,29 @@ class EnrollmentController extends Controller {
                 $count = $countStmt->fetchColumn() + 1;
                 $maPhieu = "NH{$year}-" . str_pad($count, 4, '0', STR_PAD_LEFT);
 
-                $ins = $this->db->prepare("INSERT INTO nhap_hoc (ket_qua_id, session_id, so_cccd, nguoi_nhap, ma_phieu, trang_thai, ghi_chu_can_bo) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id");
-                $ins->execute([$ketQuaId, $sessionId, $soCccd, $adminId, $maPhieu, $trangThai, $ghiChuCanBo]);
+                $ins = $this->db->prepare("INSERT INTO nhap_hoc (ket_qua_id, session_id, so_cccd, nguoi_nhap, ma_phieu, trang_thai, ghi_chu_can_bo, da_nop_tien) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id");
+                $ins->execute([$ketQuaId, $sessionId, $soCccd, $adminId, $maPhieu, $trangThai, $ghiChuCanBo, $daNopTien]);
                 $nhapHocId = $ins->fetchColumn();
             }
 
             // Update ket_qua_trung_tuyen booleans
-            $updKq = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = ?, xac_nhan_truong = ?, xac_nhan_kinh_phi = ? WHERE id = ?");
-            $updKq->execute([
-                $kqBo === 1 ? 'true' : 'false', 
-                $kqTruong === 1 ? 'true' : 'false', 
-                $kqKinhPhi === 1 ? 'true' : 'false', 
-                $ketQuaId
-            ]);
+            if ($kqKinhPhi === 0) {
+                $updKq = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = ?, xac_nhan_truong = ?, xac_nhan_kinh_phi = ?, so_tien = 0 WHERE id = ?");
+                $updKq->execute([
+                    $kqBo === 1 ? 'true' : 'false', 
+                    $kqTruong === 1 ? 'true' : 'false', 
+                    $kqKinhPhi === 1 ? 'true' : 'false', 
+                    $ketQuaId
+                ]);
+            } else {
+                $updKq = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = ?, xac_nhan_truong = ?, xac_nhan_kinh_phi = ? WHERE id = ?");
+                $updKq->execute([
+                    $kqBo === 1 ? 'true' : 'false', 
+                    $kqTruong === 1 ? 'true' : 'false', 
+                    $kqKinhPhi === 1 ? 'true' : 'false', 
+                    $ketQuaId
+                ]);
+            }
 
             if (!empty($docs)) {
                 $insVal = $this->db->prepare("INSERT INTO nhap_hoc_ho_so_gia_tri (nhap_hoc_id, ho_so_id, gia_tri, ghi_chu) VALUES (?, ?, ?, ?)");

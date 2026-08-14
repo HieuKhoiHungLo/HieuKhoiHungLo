@@ -144,11 +144,11 @@ if (!empty(trim(strip_tags($tplHtml ?? '')))) {
             <div class="section-title">3. TÌNH TRẠNG XÁC NHẬN HỒ SƠ VÀ KINH PHÍ <span style="font-weight: normal; font-style: italic;">(Thí sinh tự kê khai)</span></div>
             <div class="flex-cols">
                 <div class="col-half">
-                    Xác nhận hệ thống Bộ GD&ĐT: <span class="text-red bold"><span class="checkbox-box">✓</span></span><br>
-                    Xác nhận nộp kinh phí: <span class="bold text-red">Đã nộp</span>
+                    Xác nhận hệ thống Bộ GD&ĐT: <span class="text-red bold"><span class="checkbox-box"><?= ($enrollment['xac_nhan_bo'] === true || $enrollment['xac_nhan_bo'] === '1' || $enrollment['xac_nhan_bo'] === 'true') ? '✓' : '' ?></span></span><br>
+                    Xác nhận nộp kinh phí: <span class="bold text-red"><?= ($enrollment['xac_nhan_kinh_phi'] === true || $enrollment['xac_nhan_kinh_phi'] === '1' || $enrollment['xac_nhan_kinh_phi'] === 'true' || floatval($enrollment['so_tien'] ?? 0) > 0) ? 'Đã nộp' : 'Chưa nộp' ?></span>
                 </div>
                 <div class="col-half">
-                    Xác nhận trên hệ thống trường: <span class="text-red bold"><span class="checkbox-box">✓</span></span>
+                    Xác nhận trên hệ thống trường: <span class="text-red bold"><span class="checkbox-box"><?= ($enrollment['xac_nhan_truong'] === true || $enrollment['xac_nhan_truong'] === '1' || $enrollment['xac_nhan_truong'] === 'true') ? '✓' : '' ?></span></span>
                 </div>
             </div>
 
