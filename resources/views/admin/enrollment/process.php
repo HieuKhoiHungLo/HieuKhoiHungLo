@@ -431,13 +431,13 @@ ob_start();
     display: inline-flex; align-items: center; justify-content: center;
     width: 20px; height: 20px; border-radius: 50%;
     font-size: 9px; font-weight: 700;
-    border: 1px solid;
+    border: 1.5px solid;
     margin: 1px;
 }
-.ep-doc-dot.submitted { background: #dcfce7; color: #15803d; border-color: #86efac; }
-.ep-doc-dot.copy      { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
-.ep-doc-dot.both      { background: #f3e8ff; color: #6d28d9; border-color: #d8b4fe; }
-.ep-doc-dot.missing   { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; }
+.ep-doc-dot.submitted { background: #dcfce7; color: #15803d; border-color: #4ade80; }
+.ep-doc-dot.copy      { background: #e0f2fe; color: #0369a1; border-color: #38bdf8; }
+.ep-doc-dot.both      { background: #f3e8ff; color: #6d28d9; border-color: #c084fc; }
+.ep-doc-dot.missing   { background: #f1f5f9; color: #94a3b8; border-color: #cbd5e1; }
 /* STATUS BADGE */
 .ep-status {
     display: inline-flex; align-items: center; gap: 4px;
