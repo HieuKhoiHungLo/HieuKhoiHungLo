@@ -14,19 +14,25 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
         @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
         
         @media print {
-            @page { size: A4; margin: 15mm; }
+            @page { size: A4; margin: 20mm 20mm 20mm 30mm; }
             body { 
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact; 
                 background-color: white !important;
             }
             .no-print { display: none !important; }
+            .a4-container { 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                box-shadow: none !important; 
+                min-height: auto !important;
+            }
         }
         
         body { 
             font-family: 'Times New Roman', Times, serif; 
             font-size: 13pt; 
-            line-height: 1.4; 
+            line-height: 1.15; 
             color: #000; 
             background-color: #f1f5f9; 
         }
@@ -35,7 +41,7 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
             max-width: 210mm; 
             margin: 20px auto; 
             background: white; 
-            padding: 15mm 20mm; 
+            padding: 20mm 20mm 20mm 30mm; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
             min-height: 297mm;
             position: relative;
@@ -66,7 +72,7 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
         .section-title {
             font-weight: bold;
             font-size: 13pt;
-            margin-top: 1.5rem;
+            margin-top: 1.25rem;
             margin-bottom: 0.5rem;
             text-transform: uppercase;
         }
@@ -111,24 +117,24 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
         <!-- HEADER -->
         <div class="flex justify-between items-start mb-6">
             <div class="text-center w-5/12 flex flex-col items-center">
-                <div class="font-bold text-[12pt] uppercase mb-1">TRƯỜNG ĐẠI HỌC HÙNG VƯƠNG</div>
-                <div class="font-bold text-[13pt] uppercase border-b border-black pb-0.5 inline-block">HỘI ĐỒNG TUYỂN SINH</div>
-                <div class="mt-2 text-[12pt]">Số: <span class="font-bold"><?= $enrollment['ma_phieu'] ?? '......' ?></span>/PNH</div>
+                <div class="text-[13pt] uppercase mb-1">TRƯỜNG ĐẠI HỌC HÙNG VƯƠNG</div>
+                <div class="font-bold text-[13pt] uppercase border-b-2 border-black pb-0.5 inline-block">HỘI ĐỒNG TUYỂN SINH</div>
+                <div class="mt-2 text-[13pt]">Số: <?= $enrollment['ma_phieu'] ?? '......' ?>/PNH</div>
             </div>
             <div class="text-center w-7/12">
-                <div class="font-bold text-[12pt] uppercase mb-1">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-                <div class="font-bold text-[13pt] border-b border-black pb-0.5 inline-block">Độc lập - Tự do - Hạnh phúc</div>
-                <div class="mt-2 italic text-[12pt]">Phú Thọ, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?></div>
+                <div class="font-bold text-[13pt] uppercase mb-1">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                <div class="font-bold text-[13pt] border-b-2 border-black pb-0.5 inline-block">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="mt-2 italic text-[13pt]">Phú Thọ, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?></div>
             </div>
         </div>
 
         <!-- TITLE & QR -->
         <div class="text-center mb-6 relative">
-            <h1 class="text-[18pt] font-bold uppercase mb-1">PHIẾU TIẾP NHẬN HỒ SƠ & NHẬP HỌC</h1>
+            <h1 class="text-[14pt] font-bold uppercase mb-1">PHIẾU TIẾP NHẬN HỒ SƠ & NHẬP HỌC</h1>
             <p class="text-[13pt] italic">Đại học hệ chính quy năm 2026</p>
             
             <!-- Mục đích phiếu -->
-            <div class="mt-3 flex justify-center gap-8 text-[12pt]">
+            <div class="mt-3 flex justify-center gap-8 text-[13pt]">
                 <div><span class="print-checkbox">✓</span> Nhập học lần đầu</div>
                 <div><span class="print-checkbox"> </span> Nộp bổ sung hồ sơ</div>
             </div>
@@ -147,7 +153,7 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
                 Ảnh 3x4
             </div>
             
-            <div class="flex-1 text-[13pt] leading-loose">
+            <div class="flex-1 text-[13pt] leading-relaxed">
                 <div class="grid grid-cols-5 gap-x-2">
                     <div class="col-span-3">Họ và tên: <span class="font-bold uppercase text-[14pt]"><?= htmlspecialchars($enrollment['ho_ten'] ?? '') ?></span></div>
                     <div class="col-span-2">Ngày sinh: <span class="font-bold"><?= date('d/m/Y', strtotime($enrollment['ngay_sinh'] ?? '')) ?></span></div>
@@ -164,12 +170,12 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
         <div class="section-title">II. TÌNH TRẠNG HỒ SƠ & TÀI CHÍNH</div>
         
         <div class="font-bold mb-2">1. Danh mục hồ sơ:</div>
-        <table class="w-full doc-table mb-4 text-[12pt]">
+        <table class="w-full doc-table mb-4 text-[13pt]">
             <thead>
                 <tr>
                     <th class="w-10">TT</th>
                     <th>Nội dung hồ sơ</th>
-                    <th class="w-24">Tình trạng</th>
+                    <th class="w-48">Tình trạng</th>
                     <th class="w-48">Ghi chú / Hạn nộp</th>
                 </tr>
             </thead>
@@ -178,22 +184,21 @@ $isNhapHocLanDau = ($enrollment['trang_thai'] === 'da_nhap_hoc' && empty($enroll
                     <tr><td colspan="4" class="text-center italic text-gray-500">Chưa cấu hình hồ sơ</td></tr>
                 <?php else: ?>
                     <?php foreach ($documents as $i => $doc): 
-                        $isSubmitted = in_array(strtolower(trim($doc['gia_tri'] ?? '')), ['có', 'đã nộp', 'bản gốc', 'bản sao']);
-                        $isMissing = in_array(strtolower(trim($doc['gia_tri'] ?? '')), ['chưa nộp', 'thiếu']);
+                        $val = trim($doc['gia_tri'] ?? '');
+                        if (empty($val)) $val = 'Chưa nộp';
+                        $isMissing = in_array(strtolower($val), ['chưa nộp', 'thiếu', 'không có']);
                     ?>
                         <tr>
                             <td class="text-center"><?= $i + 1 ?></td>
                             <td><?= htmlspecialchars($doc['ten_ho_so'] ?? '') ?></td>
                             <td class="text-center whitespace-nowrap">
-                                <?php if ($isSubmitted): ?>
-                                    <span class="print-checkbox">✓</span> Đã nộp
-                                <?php elseif ($isMissing): ?>
+                                <?php if ($isMissing): ?>
                                     <span class="print-checkbox"> </span> Chưa nộp
                                 <?php else: ?>
-                                    <span class="print-checkbox">✓</span> <?= htmlspecialchars($doc['gia_tri'] ?? '') ?>
+                                    <span class="print-checkbox">✓</span> <?= htmlspecialchars($val) ?>
                                 <?php endif; ?>
                             </td>
-                            <td class="italic text-[11pt]"><?= htmlspecialchars($doc['ghi_chu'] ?? '') ?></td>
+                            <td class="italic text-[12pt]"><?= htmlspecialchars($doc['ghi_chu'] ?? '') ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
