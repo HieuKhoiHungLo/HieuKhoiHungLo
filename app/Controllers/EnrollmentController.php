@@ -394,7 +394,9 @@ class EnrollmentController extends Controller {
         $stmtTpl->execute();
         $filePath = $stmtTpl->fetchColumn();
 
-        if ($filePath) {
+        $type = $_GET['type'] ?? 'html';
+
+        if ($type === 'word' && $filePath) {
             $templatePath = __DIR__ . '/../../storage/templates/' . $filePath;
             if (file_exists($templatePath)) {
                 $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);

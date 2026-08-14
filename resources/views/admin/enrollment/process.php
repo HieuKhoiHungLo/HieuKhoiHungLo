@@ -819,8 +819,13 @@ ob_start();
 
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
                     <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
-                        <button class="ep-btn ep-btn-print" @click="printReceipt()" id="btn-print">
+                        <button class="ep-btn ep-btn-print" @click="printReceipt('html')" id="btn-print">
                             In phiếu
+                        </button>
+                    </template>
+                    <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
+                        <button class="ep-btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" @click="printReceipt('word')" id="btn-print-word">
+                            In Word
                         </button>
                     </template>
 
@@ -1170,9 +1175,9 @@ document.addEventListener('alpine:init', () => {
             .finally(() => { this.isSaving = false; });
         },
 
-        printReceipt() {
+        printReceipt(type = 'html') {
             if (!this.selectedCandidate || !this.selectedCandidate.nhap_hoc_id) return;
-            window.open(`<?= url("/admin/enrollment/print") ?>?id=${this.selectedCandidate.nhap_hoc_id}`, '_blank');
+            window.open(`<?= url("/admin/enrollment/print") ?>?id=${this.selectedCandidate.nhap_hoc_id}&type=${type}`, '_blank');
         },
 
         // ── In Word ──────────────────────────────────────────────

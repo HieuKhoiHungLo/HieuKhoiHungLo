@@ -71,7 +71,8 @@ if (!empty(trim(strip_tags($tplHtml ?? '')))) {
         </button>
     </div>
 
-    <div class="a4-container">
+    <?php for ($copy = 0; $copy < 2; $copy++): ?>
+    <div class="a4-container" <?= $copy === 0 ? 'style="page-break-after: always;"' : '' ?>>
         <?php if (!empty(trim(strip_tags($tplHtml ?? '')))): ?>
             <?= $finalHtml ?>
         <?php else: ?>
@@ -198,5 +199,6 @@ if (!empty(trim(strip_tags($tplHtml ?? '')))) {
             </div>
         <?php endif; ?>
     </div>
+    <?php endfor; ?>
 </body>
 </html>
