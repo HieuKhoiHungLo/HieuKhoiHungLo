@@ -154,7 +154,7 @@ class EnrollmentController extends Controller {
         $stmt = $this->db->prepare("
             SELECT kq.id as ket_qua_id, kq.ho_ten, kq.so_cccd, kq.sbd as so_bao_danh, kq.ngay_sinh, 
                    kq.ma_nganh, n.ten_nganh, kq.diem_xt as diem_xet_tuyen, kq.sdt as dien_thoai_kq, kq.email as email_kq,
-                   kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, kq.diem_to_hop, kq.phuong_thuc, kq.xac_nhan_bo, kq.xac_nhan_truong,
+                   kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, kq.diem_to_hop, kq.phuong_thuc, kq.xac_nhan_bo, kq.xac_nhan_truong, kq.xac_nhan_kinh_phi,
                    kq.so_tai_khoan, kq.ngan_hang, kq.so_tien, kq.noi_dung_ck,
                    ts.gioi_tinh, ts.dan_toc, ts.anh_dai_dien, ts.dia_chi_chi_tiet, ts.nam_tot_nghiep, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts, ts.ma_truong_lop_12,
                    tr.ten_truong as ten_truong_thpt,
@@ -662,18 +662,22 @@ class EnrollmentController extends Controller {
 
             $valMap = [];
             foreach ($values as $v) {
-                if (!empty($v['gia_tri']) && !in_array($v['gia_tri'], ['Chưa nộp', 'Không có', 'Thiếu'])) {
-                    $valMap[$v['nhap_hoc_id']][$v['ho_so_id']] = true;
-                }
+                $valMap[$v['nhap_hoc_id']][$v['ho_so_id']] = $v['gia_tri'];
             }
 
             foreach ($rows as &$r) {
                 $r['documents'] = [];
                 foreach ($requiredDocs as $doc) {
+                    $val = $valMap[$r['nhap_hoc_id']][$doc['id']] ?? 'Chưa nộp';
+                    if (empty($val)) $val = 'Chưa nộp';
+                    
+                    $isSubmitted = !in_array($val, ['Chưa nộp', 'Không có', 'Thiếu']);
+                    
                     $r['documents'][] = [
                         'id' => $doc['id'],
                         'ten_ho_so' => $doc['ten_ho_so'],
-                        'submitted' => isset($valMap[$r['nhap_hoc_id']][$doc['id']])
+                        'gia_tri' => $val,
+                        'submitted' => $isSubmitted
                     ];
                 }
             }
