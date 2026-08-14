@@ -435,6 +435,8 @@ ob_start();
     margin: 1px;
 }
 .ep-doc-dot.submitted { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.ep-doc-dot.copy      { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+.ep-doc-dot.both      { background: #f3e8ff; color: #6d28d9; border-color: #d8b4fe; }
 .ep-doc-dot.missing   { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; }
 /* STATUS BADGE */
 .ep-status {
@@ -866,9 +868,21 @@ ob_start();
                                             <span style="font-size:10px;color:#cbd5e1;">–</span>
                                         </template>
                                         <template x-for="doc in row.documents" :key="doc.id">
-                                            <span class="ep-doc-dot" :class="doc.submitted ? 'submitted' : 'missing'"
-                                                :title="doc.ten_ho_so + (doc.submitted ? ' ✓' : ' (chưa nộp)')">
-                                                <i class="fas" :class="doc.submitted ? 'fa-check' : 'fa-times'"></i>
+                                            <span class="ep-doc-dot" 
+                                                :class="{
+                                                    'submitted': doc.gia_tri === 'Bản gốc' || doc.gia_tri === 'Đã nộp',
+                                                    'copy': doc.gia_tri === 'Bản sao' || doc.gia_tri === 'Bản sao chứng thực',
+                                                    'both': doc.gia_tri === 'Bản gốc + sao chứng thực',
+                                                    'missing': !doc.gia_tri || doc.gia_tri === 'Chưa nộp' || doc.gia_tri === 'Không có' || doc.gia_tri === 'Thiếu'
+                                                }"
+                                                :title="doc.ten_ho_so + ': ' + (doc.gia_tri || 'Chưa nộp')">
+                                                <i class="fas" 
+                                                    :class="{
+                                                        'fa-check': doc.gia_tri === 'Bản gốc' || doc.gia_tri === 'Đã nộp',
+                                                        'fa-copy': doc.gia_tri === 'Bản sao' || doc.gia_tri === 'Bản sao chứng thực',
+                                                        'fa-check-double': doc.gia_tri === 'Bản gốc + sao chứng thực',
+                                                        'fa-times': !doc.gia_tri || doc.gia_tri === 'Chưa nộp' || doc.gia_tri === 'Không có' || doc.gia_tri === 'Thiếu'
+                                                    }"></i>
                                             </span>
                                         </template>
                                     </div>
