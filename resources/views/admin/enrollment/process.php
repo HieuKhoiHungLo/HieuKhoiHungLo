@@ -698,16 +698,33 @@ ob_start();
                                     </div>
                                 </template>
 
-                                <!-- Admission Info Quick View Replacement -->
                                 <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;color:#334155;">
-                                    <div>Xác nhận hệ thống Bộ GD&ĐT: 
-                                        <span style="font-weight:700;" :class="(selectedCandidate.xac_nhan_bo === true || selectedCandidate.xac_nhan_bo === 1 || selectedCandidate.xac_nhan_bo === '1' || selectedCandidate.xac_nhan_bo === 'true') ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_bo === true || selectedCandidate.xac_nhan_bo === 1 || selectedCandidate.xac_nhan_bo === '1' || selectedCandidate.xac_nhan_bo === 'true') ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                        <span>Xác nhận hệ thống Bộ GD&ĐT:</span>
+                                        <label style="display:flex;align-items:center;cursor:pointer;gap:6px;margin:0;">
+                                            <input type="checkbox" style="accent-color:#2563eb; width:16px; height:16px; cursor:pointer;"
+                                                :checked="(selectedCandidate.xac_nhan_bo === true || selectedCandidate.xac_nhan_bo === 1 || selectedCandidate.xac_nhan_bo === '1' || selectedCandidate.xac_nhan_bo === 'true')" 
+                                                @change="selectedCandidate.xac_nhan_bo = $event.target.checked">
+                                            <span style="font-weight:700; width:95px;" :class="(selectedCandidate.xac_nhan_bo === true || selectedCandidate.xac_nhan_bo === 1 || selectedCandidate.xac_nhan_bo === '1' || selectedCandidate.xac_nhan_bo === 'true') ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_bo === true || selectedCandidate.xac_nhan_bo === 1 || selectedCandidate.xac_nhan_bo === '1' || selectedCandidate.xac_nhan_bo === 'true') ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
+                                        </label>
                                     </div>
-                                    <div>Xác nhận trên hệ thống trường: 
-                                        <span style="font-weight:700;" :class="(selectedCandidate.xac_nhan_truong === true || selectedCandidate.xac_nhan_truong === 1 || selectedCandidate.xac_nhan_truong === '1' || selectedCandidate.xac_nhan_truong === 'true') ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_truong === true || selectedCandidate.xac_nhan_truong === 1 || selectedCandidate.xac_nhan_truong === '1' || selectedCandidate.xac_nhan_truong === 'true') ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                        <span>Xác nhận trên hệ thống trường:</span>
+                                        <label style="display:flex;align-items:center;cursor:pointer;gap:6px;margin:0;">
+                                            <input type="checkbox" style="accent-color:#2563eb; width:16px; height:16px; cursor:pointer;"
+                                                :checked="(selectedCandidate.xac_nhan_truong === true || selectedCandidate.xac_nhan_truong === 1 || selectedCandidate.xac_nhan_truong === '1' || selectedCandidate.xac_nhan_truong === 'true')" 
+                                                @change="selectedCandidate.xac_nhan_truong = $event.target.checked">
+                                            <span style="font-weight:700; width:95px;" :class="(selectedCandidate.xac_nhan_truong === true || selectedCandidate.xac_nhan_truong === 1 || selectedCandidate.xac_nhan_truong === '1' || selectedCandidate.xac_nhan_truong === 'true') ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_truong === true || selectedCandidate.xac_nhan_truong === 1 || selectedCandidate.xac_nhan_truong === '1' || selectedCandidate.xac_nhan_truong === 'true') ? 'Đã xác nhận' : 'Chưa xác nhận'"></span>
+                                        </label>
                                     </div>
-                                    <div>Xác nhận nộp kinh phí: 
-                                        <span style="font-weight:700;" :class="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(selectedCandidate.so_tien) > 0) ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(selectedCandidate.so_tien) > 0) ? 'Đã nộp' : 'Chưa nộp'"></span>
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <span>Xác nhận nộp kinh phí:</span>
+                                        <label style="display:flex;align-items:center;cursor:pointer;gap:6px;margin:0;">
+                                            <input type="checkbox" style="accent-color:#2563eb; width:16px; height:16px; cursor:pointer;"
+                                                :checked="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(selectedCandidate.so_tien) > 0)" 
+                                                @change="selectedCandidate.xac_nhan_kinh_phi = $event.target.checked; selectedCandidate.so_tien = $event.target.checked ? selectedCandidate.so_tien : 0;">
+                                            <span style="font-weight:700; width:95px;" :class="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(selectedCandidate.so_tien) > 0) ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(selectedCandidate.so_tien) > 0) ? 'Đã nộp' : 'Chưa nộp'"></span>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -1107,6 +1124,14 @@ document.addEventListener('alpine:init', () => {
             payload.append('ket_qua_id', this.selectedCandidate.ket_qua_id);
             payload.append('so_cccd', this.selectedCandidate.so_cccd);
             payload.append('action', action);
+            
+            const kqBo = (this.selectedCandidate.xac_nhan_bo === true || this.selectedCandidate.xac_nhan_bo === 1 || this.selectedCandidate.xac_nhan_bo === '1' || this.selectedCandidate.xac_nhan_bo === 'true') ? 1 : 0;
+            const kqTruong = (this.selectedCandidate.xac_nhan_truong === true || this.selectedCandidate.xac_nhan_truong === 1 || this.selectedCandidate.xac_nhan_truong === '1' || this.selectedCandidate.xac_nhan_truong === 'true') ? 1 : 0;
+            const kqKinhPhi = (this.selectedCandidate.xac_nhan_kinh_phi === true || this.selectedCandidate.xac_nhan_kinh_phi === 1 || this.selectedCandidate.xac_nhan_kinh_phi === '1' || this.selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(this.selectedCandidate.so_tien) > 0) ? 1 : 0;
+            
+            payload.append('xac_nhan_bo', kqBo);
+            payload.append('xac_nhan_truong', kqTruong);
+            payload.append('xac_nhan_kinh_phi', kqKinhPhi);
 
             if (this.selectedCandidate.extra_info) {
                 for (let key in this.selectedCandidate.extra_info) {

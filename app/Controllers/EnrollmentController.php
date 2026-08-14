@@ -260,6 +260,10 @@ class EnrollmentController extends Controller {
         $action = $_POST['action'] ?? 'nhap_hoc'; // 'nhap_hoc', 'luu_tam', 'huy'
         $extraData = $_POST['extra'] ?? []; 
         $docs = $_POST['documents'] ?? []; 
+        
+        $kqBo = isset($_POST['xac_nhan_bo']) ? (int)$_POST['xac_nhan_bo'] : 0;
+        $kqTruong = isset($_POST['xac_nhan_truong']) ? (int)$_POST['xac_nhan_truong'] : 0;
+        $kqKinhPhi = isset($_POST['xac_nhan_kinh_phi']) ? (int)$_POST['xac_nhan_kinh_phi'] : 0;
 
         try {
             $this->db->beginTransaction();
@@ -297,6 +301,15 @@ class EnrollmentController extends Controller {
                 $ins->execute([$ketQuaId, $sessionId, $soCccd, $adminId, $maPhieu, $trangThai, $ghiChuCanBo]);
                 $nhapHocId = $ins->fetchColumn();
             }
+
+            // Update ket_qua_trung_tuyen booleans
+            $updKq = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = ?, xac_nhan_truong = ?, xac_nhan_kinh_phi = ? WHERE id = ?");
+            $updKq->execute([
+                $kqBo === 1 ? 'true' : 'false', 
+                $kqTruong === 1 ? 'true' : 'false', 
+                $kqKinhPhi === 1 ? 'true' : 'false', 
+                $ketQuaId
+            ]);
 
             if (!empty($docs)) {
                 $insVal = $this->db->prepare("INSERT INTO nhap_hoc_ho_so_gia_tri (nhap_hoc_id, ho_so_id, gia_tri, ghi_chu) VALUES (?, ?, ?, ?)");
