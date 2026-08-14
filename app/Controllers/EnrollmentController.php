@@ -401,10 +401,17 @@ class EnrollmentController extends Controller {
             }
         }
 
-        // Check if there is an uploaded Word template
-        $stmtTpl = $this->db->prepare("SELECT file_path FROM mau_in WHERE ma_mau = 'PHIEU_NHAP_HOC'");
+        // Check if there is an uploaded Word template in mau_phieu
+        $stmtTpl = $this->db->prepare("SELECT ten_file FROM mau_phieu WHERE loai_mau = 'phieu_nhap_hoc' AND is_active = TRUE ORDER BY created_at DESC LIMIT 1");
         $stmtTpl->execute();
         $filePath = $stmtTpl->fetchColumn();
+        
+        // Fallback to old mau_in if not found
+        if (!$filePath) {
+            $stmtTplOld = $this->db->prepare("SELECT file_path FROM mau_in WHERE ma_mau = 'PHIEU_NHAP_HOC'");
+            $stmtTplOld->execute();
+            $filePath = $stmtTplOld->fetchColumn();
+        }
 
         $type = $_GET['type'] ?? 'html';
 
