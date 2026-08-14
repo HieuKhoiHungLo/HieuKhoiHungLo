@@ -400,7 +400,21 @@ class EnrollmentController extends Controller {
                 $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
 
                 $templateProcessor->setValue('hoten', htmlspecialchars($enrollment['ho_ten'] ?? ''));
-                $templateProcessor->setValue('ngay_sinh', !empty($enrollment['ngay_sinh']) ? date('d/m/Y', strtotime($enrollment['ngay_sinh'])) : '');
+                
+                // Fix ngay_sinh format (handle both Y-m-d and d/m/Y)
+                $ngaySinh = trim($enrollment['ngay_sinh'] ?? '');
+                $ngaySinhStr = '';
+                if (!empty($ngaySinh)) {
+                    if (strpos($ngaySinh, '/') !== false) {
+                        $parsedDate = strtotime(str_replace('/', '-', $ngaySinh));
+                        $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
+                    } else {
+                        $parsedDate = strtotime($ngaySinh);
+                        $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
+                    }
+                }
+                $templateProcessor->setValue('ngay_sinh', $ngaySinhStr);
+                
                 $templateProcessor->setValue('gioi_tinh', $gioiTinh);
                 $templateProcessor->setValue('so_cccd', htmlspecialchars($enrollment['so_cccd'] ?? ''));
                 $templateProcessor->setValue('dien_thoai', htmlspecialchars($enrollment['dien_thoai'] ?? ''));
