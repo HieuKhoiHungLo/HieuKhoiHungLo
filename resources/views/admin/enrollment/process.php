@@ -814,9 +814,7 @@ ob_start();
                     <button class="ep-btn ep-btn-cancel" @click="submitEnrollment('huy')" :disabled="isSaving" id="btn-cancel-enroll">
                         Hủy nhập học
                     </button>
-                    <button class="ep-btn ep-btn-save" @click="submitEnrollment('luu_tam')" :disabled="isSaving" id="btn-save-draft">
-                        <span x-text="isSaving ? 'Đang lưu...' : 'Lưu tạm'"></span>
-                    </button>
+
                 </div>
 
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
@@ -825,11 +823,7 @@ ob_start();
                             In phiếu
                         </button>
                     </template>
-                    <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
-                        <button class="ep-btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" @click="openPrintWordModal()" id="btn-print-word">
-                            In Word
-                        </button>
-                    </template>
+
 
                     <button class="ep-btn-enroll-hero" @click="submitEnrollment('nhap_hoc')" :disabled="isSaving" id="btn-enroll">
                         <span x-text="isSaving ? 'Đang xử lý...' : 'Xác nhận nhập học'"></span>
