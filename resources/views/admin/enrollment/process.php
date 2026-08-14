@@ -815,11 +815,7 @@ ob_start();
                 </div>
 
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
-                    <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
-                        <button class="ep-btn ep-btn-print" @click="printReceipt('html')" id="btn-print">
-                            In phiếu
-                        </button>
-                    </template>
+
                     <template x-if="selectedCandidate && selectedCandidate.nhap_hoc_id">
                         <button class="ep-btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" @click="printReceipt('word')" id="btn-print-word">
                             In Word
@@ -1153,7 +1149,10 @@ document.addEventListener('alpine:init', () => {
                     this.showToast(data.message || 'Cập nhật thành công!', 'success');
                     this.selectedCandidate.nhap_hoc_id = data.nhap_hoc_id;
                     this.selectedCandidate.ma_phieu = data.ma_phieu || this.selectedCandidate.ma_phieu;
-                    if (action === 'nhap_hoc')  this.selectedCandidate.trang_thai_nhap_hoc = 'da_nhap_hoc';
+                    if (action === 'nhap_hoc') {
+                        this.selectedCandidate.trang_thai_nhap_hoc = 'da_nhap_hoc';
+                        this.printReceipt('word');
+                    }
                     if (action === 'luu_tam')   this.selectedCandidate.trang_thai_nhap_hoc = 'cho_xet_duyet';
                     if (action === 'huy')       this.selectedCandidate.trang_thai_nhap_hoc = 'da_huy';
                     this.loadStats();
