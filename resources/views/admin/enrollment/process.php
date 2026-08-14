@@ -918,8 +918,26 @@ ob_start();
             </div>
 
             <!-- PAGINATION -->
-            <div class="ep-pagination">
-                <span>Tổng <strong x-text="totalEnrolled"></strong> bản ghi</span>
+            <div class="ep-pagination" style="flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap;">
+                    <span>Tổng <strong x-text="totalEnrolled"></strong> bản ghi</span>
+                    
+                    <div style="display:flex; align-items:center; gap:8px; font-size:11px; color:#64748b; margin-left:8px; border-left:1px solid #e2e8f0; padding-left:12px;">
+                        <span style="display:inline-flex; align-items:center; gap:4px;" title="Bản gốc / Đã nộp">
+                            <span class="ep-doc-dot submitted" style="width:16px;height:16px;font-size:8px;margin:0;"><i class="fas fa-check"></i></span> Gốc
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:4px;" title="Bản sao / Bản sao chứng thực">
+                            <span class="ep-doc-dot copy" style="width:16px;height:16px;font-size:8px;margin:0;"><i class="fas fa-copy"></i></span> Sao
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:4px;" title="Bản gốc + sao chứng thực">
+                            <span class="ep-doc-dot both" style="width:16px;height:16px;font-size:8px;margin:0;"><i class="fas fa-check-double"></i></span> Cả 2
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:4px;" title="Chưa nộp / Không có / Thiếu">
+                            <span class="ep-doc-dot missing" style="width:16px;height:16px;font-size:8px;margin:0;"><i class="fas fa-times"></i></span> Thiếu
+                        </span>
+                    </div>
+                </div>
+
                 <div style="display:flex;gap:5px;align-items:center;">
                     <button class="ep-page-btn" id="btn-prev-page"
                         @click="currentPage > 1 && (currentPage--, loadEnrolledList())"
