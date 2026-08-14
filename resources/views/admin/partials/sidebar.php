@@ -43,6 +43,13 @@
             <span class="font-bold text-sm">Hàng đợi Email</span>
         </a>
 
+        <?php if(\App\Models\QuanTriVien::hasPermission($user, 'settings.view')): ?>
+        <a href="<?= url('/admin/templates') ?>" class="flex items-center space-x-3 p-3 <?= strpos($_SERVER['REQUEST_URI'], '/admin/templates') !== false ? 'bg-white/20 shadow-inner' : 'rounded-xl transition hover:bg-white/10 opacity-70 hover:opacity-100' ?>">
+            <i class="fas fa-file-invoice text-sm"></i>
+            <span class="font-bold text-sm">Cấu hình Mẫu In</span>
+        </a>
+        <?php endif; ?>
+
         <?php if(\App\Models\QuanTriVien::hasPermission($user, 'accounts')): ?>
         <a href="<?= url('/admin/accounts') ?>" class="flex items-center space-x-3 p-3 <?= strpos($_SERVER['REQUEST_URI'], '/admin/accounts') !== false ? 'bg-white/20 shadow-inner' : 'rounded-xl transition hover:bg-white/10 opacity-70 hover:opacity-100' ?>">
             <i class="fas fa-user-shield text-sm"></i>

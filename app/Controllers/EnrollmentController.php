@@ -41,9 +41,19 @@ class EnrollmentController extends Controller {
         $this->db = \App\Core\Database::getInstance()->getConnection();
     }
 
+    private function getDefaultSession($sessions) {
+        if (empty($sessions)) return 0;
+        foreach ($sessions as $s) {
+            if (stripos($s['ten_dot'], 'đợt 1') !== false) {
+                return $s['id'];
+            }
+        }
+        return $sessions[0]['id'];
+    }
+
     public function setup() {
         $sessions = $this->masterData->getSessions();
-        $sessionId = $_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0);
+        $sessionId = $_GET['session_id'] ?? $this->getDefaultSession($sessions);
 
         // Fetch setup for this session
         $stmt = $this->db->prepare("SELECT * FROM nhap_hoc_ho_so WHERE session_id = ? ORDER BY thu_tu ASC, id ASC");
@@ -115,7 +125,7 @@ class EnrollmentController extends Controller {
 
     public function process() {
         $sessions = $this->masterData->getSessions();
-        $sessionId = $_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0);
+        $sessionId = $_GET['session_id'] ?? $this->getDefaultSession($sessions);
 
         // Config QR code parameters (can be moved to DB settings later)
         $qrConfig = [
@@ -333,10 +343,11 @@ class EnrollmentController extends Controller {
         $nhapHocId = $_GET['id'] ?? 0;
         
         $stmt = $this->db->prepare("
-            SELECT nh.*, kq.ho_ten, kq.ngay_sinh, kq.so_cccd, kq.sdt as dien_thoai, kq.ma_nganh, n.ten_nganh, n.thong_tin_gv_ho_tro,
-                   qv.ho_ten as ten_can_bo
+            SELECT nh.*, kq.ho_ten, kq.ngay_sinh, kq.so_cccd, kq.sdt as dien_thoai, kq.ma_nganh, n.ten_nganh, n.thong_tin_gv_ho_tro, kq.sbd, kq.to_hop, kq.diem_xt, kq.xac_nhan_bo, kq.xac_nhan_truong, kq.xac_nhan_kinh_phi, kq.so_giay_bao, kq.gvcn,
+                   qv.ho_ten as ten_can_bo, ts.anh_dai_dien
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
             LEFT JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
             WHERE nh.id = ?
@@ -348,6 +359,146 @@ class EnrollmentController extends Controller {
             die("Không tìm thấy thông tin nhập học.");
         }
 
+        // Calculate GT from CCCD
+        $gioiTinh = '';
+        if (!empty($enrollment['so_cccd']) && strlen($enrollment['so_cccd']) == 12) {
+            $genderCode = (int)substr($enrollment['so_cccd'], 3, 1);
+            $gioiTinh = ($genderCode % 2 == 0) ? 'Nam' : 'Nữ';
+        }
+
+        // Fetch documents for the template
+        $valStmt = $this->db->prepare("
+            SELECT v.gia_tri, v.ghi_chu, h.ten_ho_so, h.thu_tu 
+            FROM nhap_hoc_ho_so_gia_tri v
+            JOIN nhap_hoc_ho_so h ON v.ho_so_id = h.id
+            WHERE v.nhap_hoc_id = ?
+            ORDER BY h.thu_tu ASC
+        ");
+        $valStmt->execute([$nhapHocId]);
+        $documents = $valStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $hs_giay_cn = 'Chưa nộp';
+        $hs_hoc_ba = 'Chưa nộp';
+        foreach ($documents as $doc) {
+            $docName = mb_strtolower($doc['ten_ho_so'], 'UTF-8');
+            if (strpos($docName, 'giấy chứng nhận') !== false || strpos($docName, 'giay chung nhan') !== false) {
+                $hs_giay_cn = $doc['gia_tri'];
+            }
+            if (strpos($docName, 'học bạ') !== false || strpos($docName, 'hoc ba') !== false) {
+                $hs_hoc_ba = $doc['gia_tri'];
+            }
+        }
+
+        // Check if there is an uploaded Word template
+        $stmtTpl = $this->db->prepare("SELECT file_path FROM mau_in WHERE ma_mau = 'PHIEU_NHAP_HOC'");
+        $stmtTpl->execute();
+        $filePath = $stmtTpl->fetchColumn();
+
+        if ($filePath) {
+            $templatePath = __DIR__ . '/../../storage/templates/' . $filePath;
+            if (file_exists($templatePath)) {
+                $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+
+                $templateProcessor->setValue('hoten', htmlspecialchars($enrollment['ho_ten'] ?? ''));
+                $templateProcessor->setValue('ngay_sinh', !empty($enrollment['ngay_sinh']) ? date('d/m/Y', strtotime($enrollment['ngay_sinh'])) : '');
+                $templateProcessor->setValue('gioi_tinh', $gioiTinh);
+                $templateProcessor->setValue('so_cccd', htmlspecialchars($enrollment['so_cccd'] ?? ''));
+                $templateProcessor->setValue('dien_thoai', htmlspecialchars($enrollment['dien_thoai'] ?? ''));
+                $templateProcessor->setValue('sbd', htmlspecialchars($enrollment['sbd'] ?? ''));
+                $templateProcessor->setValue('nganh', htmlspecialchars($enrollment['ten_nganh'] ?? ''));
+                $templateProcessor->setValue('ma_nganh', htmlspecialchars($enrollment['ma_nganh'] ?? ''));
+                $templateProcessor->setValue('khoi', htmlspecialchars($enrollment['to_hop'] ?? ''));
+                $templateProcessor->setValue('diem_tong', htmlspecialchars($enrollment['diem_xt'] ?? ''));
+                $templateProcessor->setValue('gvcn', htmlspecialchars($enrollment['gvcn'] ?? ''));
+                
+                $templateProcessor->setValue('xac_nhan_bo', $enrollment['xac_nhan_bo'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
+                $templateProcessor->setValue('xac_nhan_truong', $enrollment['xac_nhan_truong'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
+                $templateProcessor->setValue('nop_kinh_phi', $enrollment['xac_nhan_kinh_phi'] == 1 ? 'Đã nộp' : 'Chưa nộp');
+                $templateProcessor->setValue('so_giay_bao', htmlspecialchars($enrollment['so_giay_bao'] ?? ''));
+                
+                $templateProcessor->setValue('hs_giay_cn', htmlspecialchars($hs_giay_cn));
+                $templateProcessor->setValue('hs_hoc_ba', htmlspecialchars($hs_hoc_ba));
+
+                // Các biến về thời gian in
+                $templateProcessor->setValue('ngay_in', date('d/m/Y'));
+                $templateProcessor->setValue('ngay', date('d'));
+                $templateProcessor->setValue('thang', date('m'));
+                $templateProcessor->setValue('nam', date('Y'));
+
+                // Process Avatar
+                $avatarTempFile = '';
+                $avatarPath = $enrollment['anh_dai_dien'] ?? '';
+                if (!empty($avatarPath)) {
+                    try {
+                        if (strpos($avatarPath, 'http') === 0) {
+                            $avatarData = @file_get_contents($avatarPath);
+                            if ($avatarData) {
+                                $avatarTempFile = tempnam(sys_get_temp_dir(), 'AVT_') . '.png';
+                                file_put_contents($avatarTempFile, $avatarData);
+                                $templateProcessor->setImageValue('anh_the', array('path' => $avatarTempFile, 'width' => 90, 'height' => 120, 'ratio' => false));
+                            } else {
+                                $templateProcessor->setValue('anh_the', '');
+                            }
+                        } else {
+                            // Local file
+                            $localPath = dirname(__DIR__, 2) . '/' . ltrim($avatarPath, '/');
+                            if (file_exists($localPath)) {
+                                $templateProcessor->setImageValue('anh_the', array('path' => $localPath, 'width' => 90, 'height' => 120, 'ratio' => false));
+                            } else {
+                                $templateProcessor->setValue('anh_the', '');
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $templateProcessor->setValue('anh_the', '');
+                    }
+                } else {
+                    $templateProcessor->setValue('anh_the', '');
+                }
+
+                // Process QR Code
+                $qrTempFile = '';
+                try {
+                    $cccdStr = !empty($enrollment['so_cccd']) ? $enrollment['so_cccd'] : 'NO_CCCD';
+                    $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($cccdStr);
+                    $qrData = @file_get_contents($qrApiUrl);
+                    if ($qrData) {
+                        $qrTempFile = tempnam(sys_get_temp_dir(), 'QR_') . '.png';
+                        file_put_contents($qrTempFile, $qrData);
+                        $templateProcessor->setImageValue('qr_cccd', array('path' => $qrTempFile, 'width' => 75, 'height' => 75, 'ratio' => false));
+                    } else {
+                        $templateProcessor->setValue('qr_cccd', '');
+                    }
+                } catch (\Exception $e) {
+                    $templateProcessor->setValue('qr_cccd', '');
+                }
+
+                // Save temp file and download
+                $tempFile = tempnam(sys_get_temp_dir(), 'PHIEU_');
+                $templateProcessor->saveAs($tempFile);
+
+                $downloadName = 'PhieuNhapHoc_' . str_replace(' ', '', $enrollment['so_cccd'] ?? $nhapHocId) . '.docx';
+
+                if (ob_get_length()) ob_clean();
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($tempFile));
+                readfile($tempFile);
+                unlink($tempFile);
+                if (!empty($qrTempFile) && file_exists($qrTempFile)) {
+                    unlink($qrTempFile);
+                }
+                if (!empty($avatarTempFile) && file_exists($avatarTempFile)) {
+                    unlink($avatarTempFile);
+                }
+                exit;
+            }
+        }
+
+        // Fallback to HTML
         $valStmt = $this->db->prepare("
             SELECT v.gia_tri, v.ghi_chu, h.ten_ho_so, h.thu_tu 
             FROM nhap_hoc_ho_so_gia_tri v
@@ -372,7 +523,7 @@ class EnrollmentController extends Controller {
 
     public function stats($isReadOnly = false) {
         $sessions = $this->masterData->getSessions();
-        $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
+        $sessionId = intval($_GET['session_id'] ?? $this->getDefaultSession($sessions));
 
         // Get basic stats
         $stmtCheck = $this->db->prepare("SELECT COUNT(*) FROM ket_qua_loc_ao_bo_gd WHERE dot_tuyen_sinh_id = ?");

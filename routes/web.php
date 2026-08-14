@@ -537,6 +537,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
     $router->get('/admin/enrollment/api/list', 'EnrollmentController@apiListEnrolled');
 
+    // Print Templates (WYSIWYG)
+    $router->get('/admin/templates', 'TemplateController@index');
+    $router->post('/admin/templates/save', 'TemplateController@save');
+
     // ─── Phiếu In (Word Template) ────────────────────────────────────────────
     $router->get('/admin/phieu/templates',          'PhieuController@templates');
     $router->post('/admin/phieu/templates/upload',  'PhieuController@uploadTemplate');
