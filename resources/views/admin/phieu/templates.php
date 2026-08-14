@@ -240,4 +240,4 @@ function showToast(msg, type='success') {
 </script>
 
 <?php $content = ob_get_clean(); ?>
-<?php include resource_path('views/layouts/' . $layout . '.php'); ?>
+<?php include __DIR__ . '/../../layouts/admin.php'; ?>
