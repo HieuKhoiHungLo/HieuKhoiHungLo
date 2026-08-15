@@ -402,9 +402,15 @@ class EnrollmentController extends Controller {
         }
 
         // Check if there is an uploaded Word template in mau_phieu
-        $stmtTpl = $this->db->prepare("SELECT ten_file FROM mau_phieu WHERE loai_mau = 'phieu_nhap_hoc' AND is_active = TRUE ORDER BY created_at DESC LIMIT 1");
-        $stmtTpl->execute();
-        $filePath = $stmtTpl->fetchColumn();
+        $filePath = null;
+        try {
+            $stmtTpl = $this->db->prepare("SELECT ten_file FROM mau_phieu WHERE loai_mau = 'phieu_nhap_hoc' AND is_active = TRUE ORDER BY created_at DESC LIMIT 1");
+            $stmtTpl->execute();
+            $filePath = $stmtTpl->fetchColumn();
+        } catch (\PDOException $e) {
+            // Table mau_phieu might not exist yet
+            $filePath = null;
+        }
         
         // Fallback to old mau_in if not found
         if (!$filePath) {
