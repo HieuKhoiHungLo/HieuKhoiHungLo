@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'hvu-ts-v5';
+const CACHE_VERSION = 'hvu-ts-v6';
 const STATIC_ASSETS = [
     './',
     './assets/css/tailwind.min.css',
