@@ -36,14 +36,30 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     .premium-table tbody tr:hover td {
         background-color: #f8fafc !important;
     }
+    /* Custom Scrollbar for overflow areas */
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
 </style>
 
-<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() }); setTimeout(() => window.location.reload(), 30000);">
+<div class="h-full flex flex-col p-4 lg:p-6 pb-24 bg-slate-50/50" id="statsApp" x-data="{ activeTab: 'stats', initCharts() { setTimeout(() => { renderEnrollmentCharts(); }, 100); } }" x-init="$watch('activeTab', value => { if(value === 'charts') initCharts() }); setTimeout(() => window.location.reload(), 120000);">
 
     <!-- Header Row -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 class="text-lg md:text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <i class="fas fa-chart-pie text-purple-600"></i> <?= $title ?>
             </h1>
         </div>
@@ -97,7 +113,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     </div>
 
     <!-- Tab Navigation -->
-    <div class="flex bg-slate-50 p-1 rounded-xl mb-6 border border-slate-200 shadow-sm w-max">
+    <div class="flex bg-slate-50 p-1 rounded-xl mb-6 border border-slate-200 shadow-sm w-max max-w-full overflow-x-auto custom-scrollbar">
         <button @click="activeTab = 'stats'"
             :class="activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-600'"
             class="px-4 py-2.5 rounded-lg font-bold text-xs transition duration-200 uppercase tracking-wider flex items-center">
@@ -144,7 +160,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
             <h3 class="text-lg font-black text-blue-700 leading-tight"><?= number_format($kioskSearchTotal ?? 0) ?></h3>
         </div>
 
-        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">
+        <div class="col-span-2 md:col-span-1 bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">
             <div class="flex items-center justify-between mb-1">
                 <p class="text-[9px] font-black text-purple-500 uppercase tracking-wider">Thủ khoa trường</p>
                 <i class="fas fa-crown text-purple-300"></i>
@@ -355,44 +371,44 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-pink-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Phân bố Giới tính</h3>
-                <div class="relative h-64"><canvas id="genderChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="genderChart"></canvas></div>
             </div>
 
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Khu vực ưu tiên</h3>
-                <div class="relative h-64"><canvas id="areaChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="areaChart"></canvas></div>
             </div>
 
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Đối tượng ưu tiên</h3>
-                <div class="relative h-64"><canvas id="objectChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="objectChart"></canvas></div>
             </div>
             
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Xác nhận Hệ thống Bộ</h3>
-                <div class="relative h-64"><canvas id="xnBoChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="xnBoChart"></canvas></div>
             </div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-indigo-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Theo Bàn nhập học (Cán bộ)</h3>
-                <div class="relative h-64"><canvas id="userChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="userChart"></canvas></div>
             </div>
 
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Timeline Nhập học (Trong ngày)</h3>
-                <div class="relative h-64"><canvas id="hourlyChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="hourlyChart"></canvas></div>
             </div>
 
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-green-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Tình trạng Nộp Kinh phí</h3>
-                <div class="relative h-64"><canvas id="feeChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="feeChart"></canvas></div>
             </div>
             
             <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500">
                 <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-6">Tỉnh / Thành phố</h3>
-                <div class="relative h-64"><canvas id="provinceChart"></canvas></div>
+                <div class="relative h-48 lg:h-64"><canvas id="provinceChart"></canvas></div>
             </div>
         </div>
 
@@ -404,7 +420,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                     <span id="btnToggleSchoolsText">Xem thêm</span>
                 </button>
             </div>
-            <div class="relative h-64"><canvas id="schoolChart"></canvas></div>
+            <div class="relative h-48 lg:h-64"><canvas id="schoolChart"></canvas></div>
         </div>
     </div>
 
@@ -413,8 +429,8 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
         <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-4">
             <i class="fas fa-history text-indigo-500 mr-2"></i> 5 Hồ sơ mới nhập học gần nhất
         </h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full min-w-[600px] text-left border-collapse">
                 <thead>
                     <tr class="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-50">
                         <th class="px-3 py-2 font-bold">Thí sinh</th>
