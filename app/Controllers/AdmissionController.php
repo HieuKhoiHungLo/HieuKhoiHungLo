@@ -32,6 +32,19 @@ class AdmissionController extends Controller {
              session_destroy();
              $this->redirect(url('/admin/login'));
         }
+
+        // Validate permissions
+        $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        if (strpos($currentUri, '/admin/admission/overview-results') !== false) {
+             if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'stats')) {
+                 $this->redirect(url('/admin/dashboard'));
+             }
+        } else {
+             if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view') &&
+                 !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit')) {
+                 $this->redirect(url('/admin/dashboard'));
+             }
+        }
     }
 
     public function benchmarks() {
