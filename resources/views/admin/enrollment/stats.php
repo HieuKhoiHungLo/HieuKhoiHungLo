@@ -301,6 +301,63 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                             </td>
                         </tr>
                     </tfoot>
+                 </table>
+            </div>
+        </div>
+
+        <!-- Thống kê theo Bàn và Cán bộ -->
+        <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 mt-6">
+            <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-6">
+                <span class="w-1.5 h-4 bg-blue-500 rounded-full mr-2"></span>
+                Thống kê tiến độ nhập học theo bàn & cán bộ
+            </h3>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="premium-table min-w-[600px] lg:min-w-full">
+                    <thead>
+                        <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center bg-slate-100">
+                            <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100 text-center font-bold">Bàn nhập học</th>
+                            <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100 text-left font-bold">Cán bộ xử lý</th>
+                            <th style="width: 150px;" class="py-3 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800 font-bold">Số lượng nhập</th>
+                            <th style="width: 150px;" class="py-3 border-b-2 border-slate-200 bg-emerald-50 text-emerald-800 font-bold">Số lượng xác nhận</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        $totalNH_off = 0;
+                        $totalXN_off = 0;
+                        if (empty($statsByOfficer)): ?>
+                            <tr><td colspan="4" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($statsByOfficer as $row): 
+                                $totalNH_off += intval($row['so_luong_nhap']);
+                                $totalXN_off += intval($row['so_luong_xac_nhan']);
+                            ?>
+                            <tr class="hover:bg-slate-50 text-center">
+                                <td class="px-3 py-2.5 font-bold text-slate-700"><?= htmlspecialchars($row['ban_nhap_hoc']) ?></td>
+                                <td class="px-3 py-2.5 text-left text-slate-600 font-medium">
+                                    <?php if ($row['ten_can_bo'] === 'Chưa nhập học'): ?>
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[10px] uppercase">
+                                            <i class="fas fa-clock"></i> Chưa nhập học (Còn lại)
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-semibold">
+                                            <i class="fas fa-user-circle"></i> <?= htmlspecialchars($row['ten_can_bo']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-3 py-2.5 bg-blue-50/30 text-blue-700 font-black text-sm"><?= number_format($row['so_luong_nhap']) ?></td>
+                                <td class="px-3 py-2.5 bg-emerald-50/30 text-emerald-700 font-black text-sm"><?= number_format($row['so_luong_xac_nhan']) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-slate-100 font-black text-center text-xs text-slate-700 border-t-2 border-slate-200">
+                            <td class="py-3 border-r border-slate-200 text-center font-black" colspan="2">TỔNG CỘNG</td>
+                            <td class="py-3 border-r border-slate-200 bg-blue-100 text-blue-800 text-sm font-black"><?= number_format($totalNH_off) ?></td>
+                            <td class="py-3 bg-emerald-100 text-emerald-800 text-sm font-black"><?= number_format($totalXN_off) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

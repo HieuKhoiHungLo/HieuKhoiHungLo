@@ -797,12 +797,30 @@ class EnrollmentController extends Controller {
         $stmtKiosk->execute([$sessionId]);
         $kioskSearchTotal = (int)$stmtKiosk->fetchColumn();
 
+        // Thống kê theo Bàn và Cán bộ
+        $stmtOfficer = $this->db->prepare("
+            SELECT 
+                COALESCE(NULLIF(TRIM(kq.ban_nhap_hoc), ''), 'Chưa xác định') as ban_nhap_hoc,
+                COALESCE(qv.ho_ten, 'Chưa nhập học') as ten_can_bo,
+                COUNT(CASE WHEN nh.trang_thai = 'da_nhap_hoc' THEN 1 END) as so_luong_nhap,
+                COUNT(CASE WHEN kq.xac_nhan_bo = true OR kq.xac_nhan_truong = true OR kq.xac_nhan_kinh_phi = true THEN 1 END) as so_luong_xac_nhan
+            FROM ket_qua_trung_tuyen kq
+            LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
+            LEFT JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
+            WHERE kq.session_id = ?
+            GROUP BY COALESCE(NULLIF(TRIM(kq.ban_nhap_hoc), ''), 'Chưa xác định'), COALESCE(qv.ho_ten, 'Chưa nhập học')
+            ORDER BY ban_nhap_hoc, so_luong_nhap DESC
+        ");
+        $stmtOfficer->execute([$sessionId]);
+        $statsByOfficer = $stmtOfficer->fetchAll(PDO::FETCH_ASSOC);
+
         $this->view('admin/enrollment/stats', [
             'isReadOnly' => $isReadOnly,
             'title' => 'Thống kê nhập học',
             'totalTrungTuyen' => $totalTrungTuyen,
             'totalNhapHoc' => $totalNhapHoc,
             'statsByMajor' => $statsByMajor,
+            'statsByOfficer' => $statsByOfficer,
             'topStudent' => $topStudent,
             'chartDist' => $chartDist,
             'sessions' => $sessions,
