@@ -537,7 +537,7 @@ class EnrollmentController extends Controller {
                         unlink($avatarTempFile);
                     }
                     exit;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     die("Lỗi khi tạo file Word: " . $e->getMessage() . ". Vui lòng kiểm tra lại file mẫu xem có hợp lệ không (có thể là file .doc đổi đuôi, hoặc lỗi biến trong file).");
                 }
             }
