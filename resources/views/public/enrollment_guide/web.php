@@ -200,7 +200,7 @@ if ($testHour !== null) {
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
                 <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
-                    <img id="img-idle-left" src="<?= url("/uploads") ?>/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
+                    <img id="img-idle-left" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
                 </div>
 
                 <!-- Result State (Hidden by default, shown via JS) -->
@@ -327,7 +327,7 @@ if ($testHour !== null) {
         <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <!-- Initial State (Waiting to scan) -->
             <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
-                <img id="img-idle-right" src="<?= url("/uploads") ?>/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-[80%] max-h-[300px] object-contain rounded-xl shadow-sm border border-slate-100">
+                <img id="img-idle-right" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-[80%] max-h-[300px] object-contain rounded-xl shadow-sm border border-slate-100">
             </div>
 
             <!-- Result State (Shown when student data is loaded) -->
@@ -366,7 +366,7 @@ if ($testHour !== null) {
 
     <!-- Attract Mode / Screensaver Overlay (Hidden normally, shown on Kiosk idle) -->
     <div id="attract-overlay" class="fixed inset-0 z-50 cursor-pointer transition-all duration-500 hidden bg-[#0D47A1]" onclick="dismissAttractMode()">
-        <img src="<?= url("/uploads") ?>/media/1786768072_6a7feac885b63.jpg" alt="Chào mừng Tân Sinh viên" class="w-full h-full object-fill">
+        <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786768072_6a7feac885b63.jpg" alt="Chào mừng Tân Sinh viên" class="w-full h-full object-fill">
     </div>
 
     <!-- Status Bar (Desktop Only, Hidden on Portrait) -->
@@ -439,8 +439,8 @@ if ($testHour !== null) {
         function switchDirectoryTab(session) {
             const morningTab = document.getElementById('dir-tab-morning');
             const afternoonTab = document.getElementById('dir-tab-afternoon');
-            const morningList = document.getElementById('dir-list-morning');
-            const afternoonList = document.getElementById('dir-list-afternoon');
+            const morningList = document.getElementById('dir-panel-morning');
+            const afternoonList = document.getElementById('dir-panel-afternoon');
 
             if (session === 'morning') {
                 if(morningTab) { morningTab.classList.replace('border-transparent', 'border-blue-600'); morningTab.classList.replace('text-slate-400', 'text-blue-600'); }
