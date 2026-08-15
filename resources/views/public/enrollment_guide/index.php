@@ -363,8 +363,8 @@ if ($testHour !== null) {
                 <!-- Top Header: Invitation -->
                 <div class="text-center mb-4 shrink-0">
                     <h3 class="text-xs md:text-sm font-black text-slate-400 uppercase tracking-widest">MỜI BẠN LÀM THỦ TỤC TẠI:</h3>
-                    <div id="res-desk-num" class="text-2xl md:text-3xl font-black text-red-600 mt-2 leading-tight">--</div>
-                    <div id="res-location-name" class="text-lg md:text-xl font-black text-blue-900 mt-1 leading-tight">--</div>
+                    <div id="res-location-name" class="text-2xl md:text-3xl font-black text-red-600 mt-2 leading-tight">--</div>
+                    <div id="res-desk-num" class="text-lg md:text-xl font-black text-blue-900 mt-1 leading-tight">--</div>
                 </div>
 
                 <!-- Middle: Map Image -->
@@ -865,7 +865,7 @@ if ($testHour !== null) {
                     canvas.height = rect.height;
                     var myConfetti = confetti.create(canvas, { resize: true, useWorker: false });
                     
-                    var duration = 4000;
+                    var duration = 2000;
                     var end = Date.now() + duration;
                     (function frame() {
                         myConfetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors: ['#dc2626','#f59e0b','#10b981','#3b82f6','#ec4899'] });
