@@ -8,7 +8,8 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
 ?>
 
 <!-- Assets -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
 <style>
     .premium-table {
@@ -512,6 +513,12 @@ function renderEnrollmentCharts() {
     Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
     Chart.defaults.plugins.tooltip.padding = 10;
     Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+    // Register and configure Datalabels plugin globally to be disabled by default
+    Chart.register(ChartDataLabels);
+    Chart.defaults.plugins.datalabels = {
+        display: false
+    };
     
     // Major Fill Chart
     new Chart(document.getElementById('majorFillChart'), {
@@ -539,10 +546,22 @@ function renderEnrollmentCharts() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                y: { beginAtZero: true, grace: '10%', grid: { borderDash: [4, 4] } },
                 x: { grid: { display: false } }
             },
-            plugins: { legend: { position: 'top' } }
+            plugins: { 
+                legend: { position: 'top' },
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#475569',
+                    font: { weight: 'bold', size: 9 },
+                    formatter: function(value) {
+                        return value > 0 ? value : '';
+                    }
+                }
+            }
         }
     });
 
@@ -632,10 +651,22 @@ function renderEnrollmentCharts() {
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                y: { beginAtZero: true, grace: '10%', grid: { borderDash: [4, 4] } },
                 x: { grid: { display: false }, ticks: { font: {size: 10} } }
             },
-            plugins: { legend: { display: false } }
+            plugins: { 
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#475569',
+                    font: { weight: 'bold', size: 9 },
+                    formatter: function(value) {
+                        return value > 0 ? value : '';
+                    }
+                }
+            }
         }
     });
 
@@ -680,10 +711,22 @@ function renderEnrollmentCharts() {
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                y: { beginAtZero: true, grace: '10%', grid: { borderDash: [4, 4] } },
                 x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, font: {size: 9} } }
             },
-            plugins: { legend: { display: false } }
+            plugins: { 
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#475569',
+                    font: { weight: 'bold', size: 9 },
+                    formatter: function(value) {
+                        return value > 0 ? value : '';
+                    }
+                }
+            }
         }
     });
 
@@ -711,10 +754,22 @@ function renderSchoolChart(showAll) {
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                y: { beginAtZero: true, grace: '10%', grid: { borderDash: [4, 4] } },
                 x: { grid: { display: false }, ticks: { maxRotation: 90, minRotation: 45, font: {size: 9} } }
             },
-            plugins: { legend: { display: false } }
+            plugins: { 
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#475569',
+                    font: { weight: 'bold', size: 9 },
+                    formatter: function(value) {
+                        return value > 0 ? value : '';
+                    }
+                }
+            }
         }
     });
 }
