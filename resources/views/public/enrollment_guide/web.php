@@ -532,6 +532,15 @@ if ($testHour !== null) {
                 avatarEl.src = student.anh_the || '<?= url("/assets/img/default-avatar.png") ?>';
             }
 
+            const mapImage = document.getElementById('map-image');
+            if (mapImage) {
+                if (student.link_so_do) {
+                    mapImage.src = student.link_so_do;
+                } else {
+                    mapImage.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
+                }
+            }
+
             document.querySelectorAll('.map-highlight').forEach(el => el.classList.remove('map-highlight'));
             if (student.ban_nhap_hoc) {
                 const mapRowId = 'map-row-' + String(student.ban_nhap_hoc).trim();
@@ -560,6 +569,11 @@ if ($testHour !== null) {
             const avatarEl = document.getElementById('cand-avatar');
             if (avatarEl) {
                 avatarEl.src = '<?= url("/assets/img/default-avatar.png") ?>';
+            }
+            
+            const mapImage = document.getElementById('map-image');
+            if (mapImage) {
+                mapImage.src = '<?= url("/assets/img/so_do_nhap_hoc.jpg") ?>';
             }
             
             document.querySelectorAll('.map-highlight').forEach(el => el.classList.remove('map-highlight'));
