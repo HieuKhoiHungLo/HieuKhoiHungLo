@@ -458,7 +458,14 @@ if ($testHour !== null) {
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Thời gian chờ về màn hình quảng cáo (phút)</label>
                     <input type="number" id="kiosk_idle_minutes_input" min="1" max="60" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                    <p class="text-[10px] text-slate-400 mt-1">Khi thiết bị hoàn toàn không có tương tác sau số phút này, màn hình quảng cáo chào mừng sẽ hiện lên.</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Khi thiết bị không tương tác sau số phút này, màn hình quảng cáo sẽ hiện lên.</p>
+                </div>
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="flex items-center gap-2 cursor-pointer mt-2">
+                        <input type="checkbox" id="kiosk_tts_enabled_input" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Phát âm thanh chào mừng (Giọng đọc)</span>
+                    </label>
+                    <p class="text-[10px] text-slate-400 mt-1">Tự động đọc lời chào "Xin chào [Tên]". (Mặc định: Tắt)</p>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
@@ -480,6 +487,7 @@ if ($testHour !== null) {
         let attractTimer = null;
         let IDLE_RESET_MS = parseInt(localStorage.getItem('kiosk_display_seconds') || '10') * 1000; // default 10 seconds
         let ATTRACT_TIMEOUT_MS = parseInt(localStorage.getItem('kiosk_idle_minutes') || '2') * 60 * 1000; // default 2 minutes
+        let ENABLE_TTS = localStorage.getItem('kiosk_tts_enabled') === 'true'; // default false
 
         // Device display configuration check
         const isKioskMode = window.location.search.includes('mode=kiosk') || window.innerHeight > window.innerWidth;
@@ -884,7 +892,7 @@ if ($testHour !== null) {
             
             // Trigger TTS greeting
             try {
-                if ('speechSynthesis' in window) {
+                if (ENABLE_TTS && 'speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                     const msg = new SpeechSynthesisUtterance("Xin chào " + (student.ho_ten || 'Thí sinh'));
                     msg.lang = 'vi-VN';
@@ -1044,6 +1052,7 @@ if ($testHour !== null) {
         function openKioskSettingsModal() {
             document.getElementById('kiosk_display_seconds_input').value = Math.round(IDLE_RESET_MS / 1000);
             document.getElementById('kiosk_idle_minutes_input').value = Math.round(ATTRACT_TIMEOUT_MS / 60000);
+            document.getElementById('kiosk_tts_enabled_input').checked = ENABLE_TTS;
             
             const modal = document.getElementById('kioskSettingsModal');
             modal.classList.remove('hidden');
@@ -1059,12 +1068,15 @@ if ($testHour !== null) {
         function saveKioskSettings() {
             const displaySecs = parseInt(document.getElementById('kiosk_display_seconds_input').value) || 10;
             const idleMins = parseInt(document.getElementById('kiosk_idle_minutes_input').value) || 2;
+            const ttsEnabled = document.getElementById('kiosk_tts_enabled_input').checked;
             
             localStorage.setItem('kiosk_display_seconds', displaySecs.toString());
             localStorage.setItem('kiosk_idle_minutes', idleMins.toString());
+            localStorage.setItem('kiosk_tts_enabled', ttsEnabled.toString());
             
             IDLE_RESET_MS = displaySecs * 1000;
             ATTRACT_TIMEOUT_MS = idleMins * 60 * 1000;
+            ENABLE_TTS = ttsEnabled;
             
             resetTimers();
             closeKioskSettingsModal();
