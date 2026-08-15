@@ -110,36 +110,7 @@ class EnrollmentGuideController extends Controller
         $viTriNhapHoc = $record['vi_tri_nhap_hoc'] ?? '';
         $linkSoDo = $record['link_so_do'] ?? '';
 
-        // Override logic for different schedule on 16/8/2026
-        $thoiGianNhap = $record['thoi_gian_nhap'] ?? '';
-        
-        // Determine session time (Morning vs Afternoon) based on absolute boundary: 12:00 on 16/8/2026
-        // Check if test_hour query param is passed
-        $testHour = isset($_REQUEST['test_hour']) ? (int)$_REQUEST['test_hour'] : null;
-        
-        if ($testHour !== null) {
-            $isAfternoonSession = ($testHour >= 12);
-        } else {
-            // Real absolute system time check
-            $boundaryTimestamp = strtotime('2026-08-16 12:00:00');
-            $currentTimestamp = time();
-            $isAfternoonSession = ($currentTimestamp >= $boundaryTimestamp);
-        }
 
-        // Apply override conditions
-        if (strpos($thoiGianNhap, '16/8/2026') !== false) {
-            if (!$isAfternoonSession && strpos($thoiGianNhap, '13h30') !== false) {
-                // Morning lookup, but afternoon scheduled -> wrong schedule!
-                $banNhapHoc = 'Bàn 10, Bàn 11, Bàn 12';
-                $viTriNhapHoc = 'Hội trường Tầng 3';
-                $linkSoDo = '/uploads/media/1786629203_6a7dcc5318a94.jpg'; // Specific map S_vt5.jpg
-            } else if ($isAfternoonSession && strpos($thoiGianNhap, '7h30') !== false) {
-                // Afternoon lookup, but morning scheduled -> wrong schedule!
-                $banNhapHoc = 'Bàn 10, Bàn 11, Bàn 12';
-                $viTriNhapHoc = 'Hội trường Tầng 3';
-                $linkSoDo = '/uploads/media/1786629203_6a7dcc5318a94.jpg'; // Specific map S_vt5.jpg
-            }
-        }
 
         // Format response data
         return $this->json([
