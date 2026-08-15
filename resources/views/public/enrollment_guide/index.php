@@ -881,6 +881,14 @@ if ($testHour !== null) {
                     window.speechSynthesis.cancel();
                     const msg = new SpeechSynthesisUtterance("Xin chào " + (student.ho_ten || 'Thí sinh'));
                     msg.lang = 'vi-VN';
+                    
+                    // Force select Vietnamese voice if available
+                    let voices = window.speechSynthesis.getVoices();
+                    let viVoice = voices.find(v => v.lang.includes('vi') || v.name.includes('Vietnamese'));
+                    if (viVoice) {
+                        msg.voice = viVoice;
+                    }
+                    
                     msg.rate = 1.0;
                     window.speechSynthesis.speak(msg);
                 }
