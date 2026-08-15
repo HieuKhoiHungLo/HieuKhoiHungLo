@@ -337,6 +337,7 @@ if ($testHour !== null) {
                     <h3 class="text-xs md:text-sm font-black text-slate-400 uppercase tracking-widest">MỜI BẠN LÀM THỦ TỤC TẠI:</h3>
                     <div id="res-location-name" class="text-2xl md:text-3xl font-black text-red-600 mt-2 leading-tight">--</div>
                     <div id="res-desk-num" class="text-lg md:text-xl font-black text-blue-900 mt-1 leading-tight">--</div>
+                    <div id="res-time-num" class="text-sm md:text-base font-bold text-slate-500 mt-1 hidden">--</div>
                 </div>
 
                 <!-- Middle: Map Image -->
@@ -516,7 +517,24 @@ if ($testHour !== null) {
             if (mapResultState) mapResultState.classList.remove('hidden');
 
             const resDesk = document.getElementById('res-desk-num');
-            if (resDesk) resDesk.innerText = student.ban_nhap_hoc ? "BÀN " + student.ban_nhap_hoc : '--';
+            if (resDesk) {
+                let deskText = student.ban_nhap_hoc || '--';
+                if (deskText !== '--' && !deskText.toUpperCase().includes('BÀN') && !deskText.toUpperCase().includes('BAN')) {
+                    deskText = 'BÀN ' + deskText;
+                }
+                resDesk.innerText = deskText;
+            }
+
+            const resTime = document.getElementById('res-time-num');
+            if (resTime) {
+                if (student.thoi_gian_nhap) {
+                    resTime.innerText = 'Thời gian: ' + student.thoi_gian_nhap;
+                    resTime.classList.remove('hidden');
+                } else {
+                    resTime.classList.add('hidden');
+                }
+            }
+
             const resLoc = document.getElementById('res-location-name');
             if (resLoc) resLoc.innerText = student.vi_tri_nhap_hoc || student.dia_diem || '--';
             const resGvcn = document.getElementById('res-gvcn-info');
