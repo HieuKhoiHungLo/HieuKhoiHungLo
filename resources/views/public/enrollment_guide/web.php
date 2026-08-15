@@ -173,6 +173,10 @@ if ($testHour !== null) {
                     </div>
                 </div>
 
+                <a href="https://tuyensinh.hvu.edu.vn" class="flex items-center gap-2 bg-blue-700/50 hover:bg-blue-600 transition-colors px-3 py-1.5 rounded-lg border border-blue-500/30 text-white shadow-sm">
+                    <i class="fa-solid fa-house text-sm"></i>
+                    <span class="font-semibold text-xs md:text-sm hidden sm:inline">Trang chủ</span>
+                </a>
             </div>
         </div>
     </header>
