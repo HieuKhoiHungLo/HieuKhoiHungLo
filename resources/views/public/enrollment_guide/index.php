@@ -875,6 +875,17 @@ if ($testHour !== null) {
                 }
             } catch(e) { console.log('Confetti error:', e); }
             
+            // Trigger TTS greeting
+            try {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const msg = new SpeechSynthesisUtterance("Xin chào " + (student.ho_ten || 'Thí sinh'));
+                    msg.lang = 'vi-VN';
+                    msg.rate = 1.0;
+                    window.speechSynthesis.speak(msg);
+                }
+            } catch(e) { console.log('TTS error:', e); }
+
             // Reset timers to start the 10s countdown from this moment!
             resetTimers();
         }
