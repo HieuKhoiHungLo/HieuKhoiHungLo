@@ -206,10 +206,8 @@ if ($testHour !== null) {
             <!-- Candidate Data section -->
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
-                <div id="waiting-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 text-slate-400 transition-opacity duration-300">
-                    <i class="fa-solid fa-id-card text-6xl mb-4 text-slate-200"></i>
-                    <p class="font-bold text-xl uppercase text-slate-300">THÔNG TIN THÍ SINH</p>
-                    <p class="font-medium text-sm mt-2">Vui lòng quét QR hoặc nhập CCCD</p>
+                <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white">
+                    <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="w-full h-full object-contain">
                 </div>
 
                 <!-- Result State (Hidden by default, shown via JS) -->
@@ -356,8 +354,8 @@ if ($testHour !== null) {
         <!-- COLUMN 3: Right 3 cols (Image Map & Guide Details) -->
         <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <!-- Initial State (Waiting to scan) -->
-            <div id="map-waiting-state" class="flex-1 flex flex-col items-center justify-center p-6 text-slate-400 bg-slate-50/50">
-                <p class="font-bold text-2xl text-slate-400 text-center tracking-wide uppercase">Sơ đồ vị trí bàn nhập học</p>
+            <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white">
+                <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="w-full h-full object-contain">
             </div>
 
             <!-- Result State (Shown when student data is loaded) -->
