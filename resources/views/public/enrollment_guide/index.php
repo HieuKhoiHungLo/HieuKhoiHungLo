@@ -878,7 +878,7 @@ if ($testHour !== null) {
             // Trigger TTS greeting (Using Google Translate TTS for reliable Vietnamese voice)
             try {
                 const text = "Xin chào " + (student.ho_ten || 'Thí sinh');
-                const url = "https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=" + encodeURIComponent(text);
+                const url = "https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=vi&q=" + encodeURIComponent(text);
                 const audio = new Audio(url);
                 audio.play().catch(e => console.log('Audio autoplay blocked:', e));
             } catch(e) { console.log('TTS error:', e); }
