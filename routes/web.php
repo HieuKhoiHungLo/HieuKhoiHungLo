@@ -117,6 +117,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
         $redirectUrl = url('/admin/dashboard');
         if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 2) {
             $redirectUrl = url('/admin/review-management');
+        } else if (isset($_SESSION['admin_role_id']) && $_SESSION['admin_role_id'] == 3) {
+            $redirectUrl = url('/admin/enrollment/overview-stats');
         } else if (!empty($_SESSION['admin_id'])) {
             $adminModel = new \App\Models\QuanTriVien();
             $user = $adminModel->find($_SESSION['admin_id']);

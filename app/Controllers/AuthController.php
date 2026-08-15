@@ -187,6 +187,8 @@ class AuthController extends Controller
                 $redirectUrl = url('/admin/dashboard');
                 if (($_SESSION['admin_role_id'] ?? 1) == 2) {
                     $redirectUrl = url('/admin/review-management');
+                } elseif (($_SESSION['admin_role_id'] ?? 1) == 3) {
+                    $redirectUrl = url('/admin/enrollment/overview-stats');
                 } elseif (\App\Models\QuanTriVien::hasPermission($admin, 'enrollment.process') && !\App\Models\QuanTriVien::hasPermission($admin, 'dashboard') && !\App\Models\QuanTriVien::hasPermission($admin, 'stats')) {
                     $redirectUrl = url('/admin/enrollment/process');
                 }
