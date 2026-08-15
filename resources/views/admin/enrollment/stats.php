@@ -158,47 +158,6 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
         </div>
     </div>
 
-    <!-- 5 Hồ sơ mới nhập học gần nhất -->
-    <div class="mb-6 bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">
-        <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-4">
-            <i class="fas fa-history text-indigo-500 mr-2"></i> 5 Hồ sơ mới nhập học gần nhất
-        </h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-50">
-                        <th class="px-3 py-2 font-bold">Thí sinh</th>
-                        <th class="px-3 py-2 font-bold">CCCD</th>
-                        <th class="px-3 py-2 font-bold">Ngành</th>
-                        <th class="px-3 py-2 font-bold">Thời gian</th>
-                        <th class="px-3 py-2 font-bold">Bàn nhập học (Cán bộ)</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-xs">
-                    <?php if (empty($recent)): ?>
-                        <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu nhập học</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($recent as $r): ?>
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-3 py-2.5 font-bold text-slate-700"><?= htmlspecialchars($r['ho_ten'] ?? '') ?></td>
-                            <td class="px-3 py-2.5 font-mono text-slate-500"><?= htmlspecialchars($r['so_cccd'] ?? '') ?></td>
-                            <td class="px-3 py-2.5 text-slate-600"><?= htmlspecialchars($r['ten_nganh'] ?? '') ?></td>
-                            <td class="px-3 py-2.5 text-slate-500">
-                                <?= date('d/m/Y H:i', strtotime($r['updated_at'] ?? $r['ngay_nhap_hoc'])) ?>
-                            </td>
-                            <td class="px-3 py-2.5">
-                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-medium">
-                                    <i class="fas fa-user-circle"></i> <?= htmlspecialchars($r['ten_can_bo'] ?? 'Hệ thống') ?>
-                                </span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
     <!-- TAB: STATS (Thống kê chi tiết) -->
     <div x-show="activeTab === 'stats'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;" class="space-y-6">
         <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -445,6 +404,47 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                 </button>
             </div>
             <div class="relative h-64"><canvas id="schoolChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- 5 Hồ sơ mới nhập học gần nhất -->
+    <div class="mt-6 bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs flex items-center mb-4">
+            <i class="fas fa-history text-indigo-500 mr-2"></i> 5 Hồ sơ mới nhập học gần nhất
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-50">
+                        <th class="px-3 py-2 font-bold">Thí sinh</th>
+                        <th class="px-3 py-2 font-bold">CCCD</th>
+                        <th class="px-3 py-2 font-bold">Ngành</th>
+                        <th class="px-3 py-2 font-bold">Thời gian</th>
+                        <th class="px-3 py-2 font-bold">Bàn nhập học (Cán bộ)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    <?php if (empty($recent)): ?>
+                        <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu nhập học</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($recent as $r): ?>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-3 py-2.5 font-bold text-slate-700"><?= htmlspecialchars($r['ho_ten'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 font-mono text-slate-500"><?= htmlspecialchars($r['so_cccd'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 text-slate-600"><?= htmlspecialchars($r['ten_nganh'] ?? '') ?></td>
+                            <td class="px-3 py-2.5 text-slate-500">
+                                <?= date('d/m/Y H:i', strtotime($r['updated_at'] ?? $r['ngay_nhap_hoc'])) ?>
+                            </td>
+                            <td class="px-3 py-2.5">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-medium">
+                                    <i class="fas fa-user-circle"></i> <?= htmlspecialchars($r['ten_can_bo'] ?? 'Hệ thống') ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
