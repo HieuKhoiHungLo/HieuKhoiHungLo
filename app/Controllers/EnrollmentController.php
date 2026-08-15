@@ -785,6 +785,14 @@ class EnrollmentController extends Controller {
         $recent = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch kiosk search count from the database
+        $this->db->exec("CREATE TABLE IF NOT EXISTS kiosk_lookups (
+            id SERIAL PRIMARY KEY,
+            kiosk_id VARCHAR(100) NOT NULL,
+            so_cccd VARCHAR(50) NOT NULL,
+            session_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+
         $stmtKiosk = $this->db->prepare("SELECT COUNT(*) FROM kiosk_lookups WHERE session_id = ?");
         $stmtKiosk->execute([$sessionId]);
         $kioskSearchTotal = (int)$stmtKiosk->fetchColumn();

@@ -117,6 +117,15 @@ class EnrollmentGuideController extends Controller
         $kioskId = trim($_REQUEST['kiosk_id'] ?? 'web');
 
         if ($soCccd && $sessionId) {
+            // Lazy migration: Ensure table exists
+            $db->exec("CREATE TABLE IF NOT EXISTS kiosk_lookups (
+                id SERIAL PRIMARY KEY,
+                kiosk_id VARCHAR(100) NOT NULL,
+                so_cccd VARCHAR(50) NOT NULL,
+                session_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )");
+
             // Check if already logged for this CCCD in this session
             $checkStmt = $db->prepare("SELECT COUNT(*) FROM kiosk_lookups WHERE so_cccd = ? AND session_id = ?");
             $checkStmt->execute([$soCccd, $sessionId]);
