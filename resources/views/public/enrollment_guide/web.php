@@ -196,7 +196,7 @@ if ($testHour !== null) {
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
                 <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
-                    <img id="img-idle-left" src="<?= url("") ?>/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
+                    <img id="img-idle-left" src="<?= url("/uploads") ?>/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
                 </div>
 
                 <!-- Result State (Hidden by default, shown via JS) -->
@@ -323,7 +323,7 @@ if ($testHour !== null) {
         <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <!-- Initial State (Waiting to scan) -->
             <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
-                <img id="img-idle-right" src="<?= url("") ?>/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-[80%] max-h-[300px] object-contain rounded-xl shadow-sm border border-slate-100">
+                <img id="img-idle-right" src="<?= url("/uploads") ?>/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-[80%] max-h-[300px] object-contain rounded-xl shadow-sm border border-slate-100">
             </div>
 
             <!-- Result State (Shown when student data is loaded) -->
@@ -337,7 +337,7 @@ if ($testHour !== null) {
 
                 <!-- Middle: Map Image -->
                 <div class="flex-1 min-h-0 w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group cursor-pointer" onclick="zoomMap()">
-                    <img id="map-image" src="<?= url("") ?>/assets/img/so_do_nhap_hoc.jpg" alt="Sơ đồ nhập học" class="w-full h-full object-contain bg-slate-50">
+                    <img id="map-image" src="<?= url("/assets") ?>/img/so_do_nhap_hoc.jpg" alt="Sơ đồ nhập học" class="w-full h-full object-contain bg-slate-50">
                     <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <span class="bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
                             <i class="fa-solid fa-magnifying-glass-plus"></i> Phóng to sơ đồ
@@ -362,7 +362,7 @@ if ($testHour !== null) {
 
     <!-- Attract Mode / Screensaver Overlay (Hidden normally, shown on Kiosk idle) -->
     <div id="attract-overlay" class="fixed inset-0 z-50 cursor-pointer transition-all duration-500 hidden bg-[#0D47A1]" onclick="dismissAttractMode()">
-        <img src="<?= url("") ?>/uploads/media/1786768072_6a7feac885b63.jpg" alt="Chào mừng Tân Sinh viên" class="w-full h-full object-fill">
+        <img src="<?= url("/uploads") ?>/media/1786768072_6a7feac885b63.jpg" alt="Chào mừng Tân Sinh viên" class="w-full h-full object-fill">
     </div>
 
     <!-- Status Bar (Desktop Only, Hidden on Portrait) -->
