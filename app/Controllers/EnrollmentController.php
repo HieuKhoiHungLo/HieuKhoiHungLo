@@ -393,7 +393,7 @@ class EnrollmentController extends Controller {
         $hs_hoc_ba = 'Chưa nộp';
         foreach ($documents as $doc) {
             $docName = mb_strtolower($doc['ten_ho_so'], 'UTF-8');
-            if (strpos($docName, 'giấy chứng nhận') !== false || strpos($docName, 'giay chung nhan') !== false) {
+            if (strpos($docName, 'giấy chứng nhận') !== false || strpos($docName, 'giay chung nhan') !== false || strpos($docName, 'giấy cn') !== false || strpos($docName, 'giay cn') !== false) {
                 $hs_giay_cn = $doc['gia_tri'];
             }
             if (strpos($docName, 'học bạ') !== false || strpos($docName, 'hoc ba') !== false) {
@@ -425,9 +425,17 @@ class EnrollmentController extends Controller {
 
         $type = $_GET['type'] ?? 'html';
 
-        if ($type === 'word' && $filePath) {
-            $templatePath = __DIR__ . '/../../storage/templates/' . $filePath;
-            if (file_exists($templatePath)) {
+        if ($type === 'word') {
+            if (!$filePath) {
+                die("Debug Local: Bạn chưa cấu hình mẫu in Word (Bảng mau_in và mau_phieu đều trống). Vui lòng upload file mẫu lên Local.");
+            }
+
+            if ($filePath) {
+                $templatePath = __DIR__ . '/../../storage/templates/' . $filePath;
+                if (!file_exists($templatePath)) {
+                    die("Debug Local: File $templatePath không tồn tại trên ổ cứng. Vui lòng upload lại file mẫu lên Local.");
+                }
+                
                 try {
                     $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
 
