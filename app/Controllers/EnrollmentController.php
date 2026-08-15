@@ -832,6 +832,32 @@ class EnrollmentController extends Controller {
             'kioskSearchTotal' => $kioskSearchTotal,
         ]);
     }
+
+    public function resetKioskLookups() {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json');
+
+        $roleId = intval($this->currentUser['role_id'] ?? 0);
+        if ($roleId === 3) {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thực hiện thao tác này.']);
+            return;
+        }
+
+        $sessionId = intval($_POST['session_id'] ?? 0);
+        if (!$sessionId) {
+            echo json_encode(['success' => false, 'message' => 'Thiếu ID đợt tuyển sinh.']);
+            return;
+        }
+
+        try {
+            $stmt = $this->db->prepare("DELETE FROM kiosk_lookups WHERE session_id = ?");
+            $stmt->execute([$sessionId]);
+            echo json_encode(['success' => true, 'message' => 'Đã reset số lượt tra cứu về 0 thành công.']);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+        }
+    }
+
     public function apiStats() {
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json');

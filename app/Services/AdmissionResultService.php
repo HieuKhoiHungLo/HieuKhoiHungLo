@@ -152,7 +152,7 @@ class AdmissionResultService {
         $parseBool = function($val) {
             if ($val === null || $val === '') return null;
             $str = mb_strtolower(trim((string)$val));
-            return in_array($str, ['1', 'true', 'x', 'có', 'co', 'đã xác nhận', 'da xac nhan', 'rồi', 'roi', 'đã nhập học', 'da nhap hoc', 'đã nộp', 'da nop']);
+            return in_array($str, ['1', 'true', 'x', 'có', 'co', 'đã xác nhận', 'da xac nhan', 'đã xn', 'da xn', 'rồi', 'roi', 'đã nhập học', 'da nhap hoc', 'đã nộp', 'da nop']);
         };
 
         $insertRows = [];
@@ -295,8 +295,8 @@ class AdmissionResultService {
                 $chunks = array_chunk($insertRows, $batchSize);
                 foreach ($chunks as $chunk) {
                     $placeholders = array_fill(0, $colCount, '?');
-                    $placeholders[30] = "NULLIF(?::text, '')::boolean"; // xac_nhan_bo
-                    $placeholders[31] = "NULLIF(?::text, '')::boolean"; // xac_nhan_truong
+                    $placeholders[30] = "?::boolean"; // xac_nhan_bo
+                    $placeholders[31] = "?::boolean"; // xac_nhan_truong
                     $placeholderRow = '(' . implode(',', $placeholders) . ')';
                     $sql = $baseSql . implode(',', array_fill(0, count($chunk), $placeholderRow));
                     
@@ -357,8 +357,8 @@ class AdmissionResultService {
                 $updateChunks = array_chunk($updateRows, $updateChunkSize);
                 foreach ($updateChunks as $chunk) {
                     $placeholders = array_fill(0, $updateColCount, '?');
-                    $placeholders[17] = "NULLIF(?::text, '')::boolean"; // xac_nhan_bo
-                    $placeholders[18] = "NULLIF(?::text, '')::boolean"; // xac_nhan_truong
+                    $placeholders[17] = "?::boolean"; // xac_nhan_bo
+                    $placeholders[18] = "?::boolean"; // xac_nhan_truong
                     $placeholderRow = '(' . implode(',', $placeholders) . ')';
                     $sql = $updateBaseSql . implode(',', array_fill(0, count($chunk), $placeholderRow));
                     
@@ -382,8 +382,8 @@ class AdmissionResultService {
                             $r['hoten'],
                             $r['ngaysinh'],
                             $r['phuongthuc'],
-                            $r['xacnhanbo'] !== null ? ($r['xacnhanbo'] ? true : false) : null,
-                            $r['xacnhantruong'] !== null ? ($r['xacnhantruong'] ? true : false) : null,
+                            $r['xacnhanbo'] !== null ? ($r['xacnhanbo'] ? 1 : 0) : null,
+                            $r['xacnhantruong'] !== null ? ($r['xacnhantruong'] ? 1 : 0) : null,
                             $r['bannhaphoc'],
                             $r['vitri'],
                             $r['linksodo'],
@@ -452,11 +452,11 @@ class AdmissionResultService {
                     $placeholders = [];
                     $flat = [];
                     foreach ($chunk as $nh) {
-                        $placeholders[] = "(?::integer, ?::varchar, NULLIF(?::text, '')::varchar, NULLIF(?::text, '')::boolean, NULLIF(?::text, '')::numeric)";
+                        $placeholders[] = "(?::integer, ?::varchar, NULLIF(?::text, '')::varchar, ?::boolean, NULLIF(?::text, '')::numeric)";
                         $flat[] = $nh['session_id'];
                         $flat[] = $nh['so_cccd'];
                         $flat[] = $nh['trang_thai'];
-                        $flat[] = $nh['da_nop'] !== null ? ($nh['da_nop'] ? '1' : '0') : null;
+                        $flat[] = $nh['da_nop'] !== null ? ($nh['da_nop'] ? 1 : 0) : null;
                         $flat[] = $nh['so_tien'];
                     }
                     $sql = sprintf($nhBaseSql, implode(', ', $placeholders));

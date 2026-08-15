@@ -152,12 +152,22 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
             <h3 class="text-lg font-black text-amber-700 leading-tight"><?= number_format($totalTrungTuyen - $totalNhapHoc) ?></h3>
         </div>
 
-        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-blue-100 relative overflow-hidden group">
-            <div class="flex justify-between items-center mb-0.5">
-                <p class="text-[9px] font-black text-blue-500 uppercase tracking-wider">Lượt tra cứu hướng dẫn nhập học</p>
-                <i class="fa-solid fa-users-viewfinder text-blue-300"></i>
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-blue-100 relative overflow-hidden group flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-0.5">
+                    <p class="text-[9px] font-black text-blue-500 uppercase tracking-wider">Lượt tra cứu hướng dẫn nhập học</p>
+                    <i class="fa-solid fa-users-viewfinder text-blue-300"></i>
+                </div>
+                <h3 class="text-lg font-black text-blue-700 leading-tight"><?= number_format($kioskSearchTotal ?? 0) ?></h3>
             </div>
-            <h3 class="text-lg font-black text-blue-700 leading-tight"><?= number_format($kioskSearchTotal ?? 0) ?></h3>
+            <?php if (!$isReadOnly): ?>
+                <div class="mt-2 text-right">
+                    <button type="button" onclick="resetKioskLookups(<?= $activeSessionId ?>)" 
+                            class="text-[9px] font-bold text-red-600 hover:text-red-700 hover:underline flex items-center justify-end gap-1 ml-auto transition">
+                        <i class="fas fa-undo-alt"></i> Reset số lượt
+                    </button>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="col-span-2 md:col-span-1 bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">
@@ -794,6 +804,40 @@ function toggleShowAllSchools() {
     showingAllSchools = !showingAllSchools;
     document.getElementById('btnToggleSchoolsText').innerText = showingAllSchools ? 'Thu gọn (Top 20)' : 'Xem thêm';
     renderSchoolChart(showingAllSchools);
+}
+
+function resetKioskLookups(sessionId) {
+    if (!confirm('Bạn có chắc chắn muốn reset số lượt tra cứu của đợt này về 0? Hành động này sẽ xoá lịch sử tra cứu của đợt này và không thể hoàn tác.')) {
+        return;
+    }
+    
+    // Disable current button
+    const btn = event ? event.currentTarget : null;
+    if (btn) btn.disabled = true;
+    
+    fetch('<?= url("/admin/enrollment/reset-kiosk-lookups") ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: 'session_id=' + sessionId + '&_csrf_token=<?= csrf_token() ?>'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message || 'Có lỗi xảy ra');
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Lỗi kết nối máy chủ.');
+        if (btn) btn.disabled = false;
+    });
 }
 </script>
 
