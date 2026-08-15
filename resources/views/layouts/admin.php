@@ -320,6 +320,11 @@
                 $userRole = mb_strtolower(trim($_SESSION['admin_role'] ?? ''), 'UTF-8');
                 $userRoleId = $_SESSION['admin_role_id'] ?? 0;
                 $isCanBo = ($userRoleId == 2 || in_array($userRole, ['cán bộ xét tuyển', 'can bo xet tuyen']));
+                $isLeadership = ($userRoleId == 3 || in_array($userRole, ['lãnh đạo', 'lanh dao']));
+
+                if ($isLeadership && mb_strtoupper($group['group'], 'UTF-8') !== 'TỔNG QUAN') {
+                    continue;
+                }
 
                 if ($isCanBo && in_array(mb_strtoupper($group['group'], 'UTF-8'), [
                     'XÉT TUYỂN LỌC ẢO', 

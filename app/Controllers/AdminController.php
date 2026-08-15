@@ -631,6 +631,42 @@ class AdminController extends Controller
     {
         $this->checkPermission('stats');
 
+        // Auto sync Leadership Menu items
+        try {
+            $dbConn = \App\Core\Database::getInstance()->getConnection();
+            
+            // 1. Tìm hoặc tạo nhóm "TỔNG QUAN"
+            $stmtGroup = $dbConn->prepare("SELECT id FROM menus WHERE title = 'TỔNG QUAN' AND parent_id IS NULL AND position = 'admin_sidebar' LIMIT 1");
+            $stmtGroup->execute();
+            $groupId = $stmtGroup->fetchColumn();
+
+            if (!$groupId) {
+                $insGroup = $dbConn->prepare("INSERT INTO menus (title, icon, position, order_index, is_active) VALUES ('TỔNG QUAN', 'fa-chart-line', 'admin_sidebar', 10, TRUE)");
+                $insGroup->execute();
+                $groupId = $dbConn->lastInsertId();
+            }
+
+            // 2. Thêm menu "Tổng quan trúng tuyển" 
+            $checkTT = $dbConn->prepare("SELECT id FROM menus WHERE url = '/admin/admission/overview-results' LIMIT 1");
+            $checkTT->execute();
+            $menuTT = $checkTT->fetchColumn();
+
+            if (!$menuTT) {
+                $insTT = $dbConn->prepare("INSERT INTO menus (parent_id, title, url, icon, permission_required, order_index, position, is_active) VALUES (?, 'Tổng quan trúng tuyển', '/admin/admission/overview-results', 'fa-chart-bar', 'stats', 40, 'admin_sidebar', TRUE)");
+                $insTT->execute([$groupId]);
+            }
+
+            // 3. Thêm menu "Tổng quan nhập học"
+            $checkNH = $dbConn->prepare("SELECT id FROM menus WHERE url = '/admin/enrollment/overview-stats' LIMIT 1");
+            $checkNH->execute();
+            $menuNH = $checkNH->fetchColumn();
+
+            if (!$menuNH) {
+                $insNH = $dbConn->prepare("INSERT INTO menus (parent_id, title, url, icon, permission_required, order_index, position, is_active) VALUES (?, 'Tổng quan nhập học', '/admin/enrollment/overview-stats', 'fa-chart-pie', 'stats', 50, 'admin_sidebar', TRUE)");
+                $insNH->execute([$groupId]);
+            }
+        } catch (\Exception $e) {}
+
         $sessionModel = new AdmissionSession();
         $sessions = \App\Core\Cache::remember('all_sessions', 30, fn() => $sessionModel->getAll());
 
