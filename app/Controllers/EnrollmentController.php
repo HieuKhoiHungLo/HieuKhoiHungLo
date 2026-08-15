@@ -204,6 +204,11 @@ class EnrollmentController extends Controller {
 
         // Process extra fields
         foreach ($candidates as &$candidate) {
+            // Standardize booleans for AlpineJS
+            $candidate['xac_nhan_bo'] = in_array($candidate['xac_nhan_bo'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($candidate['xac_nhan_bo']) === 'true' || strtolower($candidate['xac_nhan_bo']) === 't';
+            $candidate['xac_nhan_truong'] = in_array($candidate['xac_nhan_truong'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($candidate['xac_nhan_truong']) === 'true' || strtolower($candidate['xac_nhan_truong']) === 't';
+            $candidate['xac_nhan_kinh_phi'] = in_array($candidate['xac_nhan_kinh_phi'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($candidate['xac_nhan_kinh_phi']) === 'true' || strtolower($candidate['xac_nhan_kinh_phi']) === 't';
+
             // Merge emails/phones
             $candidate['dien_thoai'] = $candidate['dien_thoai_ts'] ?: $candidate['dien_thoai_kq'];
             $candidate['email'] = $candidate['email_ts'] ?: $candidate['email_kq'];
@@ -465,9 +470,13 @@ class EnrollmentController extends Controller {
                     $templateProcessor->setValue('diem_tong', htmlspecialchars($enrollment['diem_xt'] ?? ''));
                     $templateProcessor->setValue('gvcn', htmlspecialchars($enrollment['gvcn'] ?? ''));
                     
-                    $templateProcessor->setValue('xac_nhan_bo', $enrollment['xac_nhan_bo'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
-                    $templateProcessor->setValue('xac_nhan_truong', $enrollment['xac_nhan_truong'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
-                    $templateProcessor->setValue('nop_kinh_phi', $enrollment['xac_nhan_kinh_phi'] == 1 ? 'Đã nộp' : 'Chưa nộp');
+                    $isBo = in_array($enrollment['xac_nhan_bo'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_bo']) === 'true' || strtolower($enrollment['xac_nhan_bo']) === 't';
+                    $isTruong = in_array($enrollment['xac_nhan_truong'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_truong']) === 'true' || strtolower($enrollment['xac_nhan_truong']) === 't';
+                    $isNopTien = in_array($enrollment['xac_nhan_kinh_phi'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_kinh_phi']) === 'true' || strtolower($enrollment['xac_nhan_kinh_phi']) === 't';
+
+                    $templateProcessor->setValue('xac_nhan_bo', $isBo ? 'Đã xác nhận' : 'Chưa xác nhận');
+                    $templateProcessor->setValue('xac_nhan_truong', $isTruong ? 'Đã xác nhận' : 'Chưa xác nhận');
+                    $templateProcessor->setValue('nop_kinh_phi', $isNopTien ? 'Đã nộp' : 'Chưa nộp');
                     $templateProcessor->setValue('so_giay_bao', htmlspecialchars($enrollment['so_giay_bao'] ?? ''));
                     
                     $templateProcessor->setValue('hs_giay_cn', htmlspecialchars($hs_giay_cn));
