@@ -875,23 +875,12 @@ if ($testHour !== null) {
                 }
             } catch(e) { console.log('Confetti error:', e); }
             
-            // Trigger TTS greeting
+            // Trigger TTS greeting (Using Google Translate TTS for reliable Vietnamese voice)
             try {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const msg = new SpeechSynthesisUtterance("Xin chào " + (student.ho_ten || 'Thí sinh'));
-                    msg.lang = 'vi-VN';
-                    
-                    // Force select Vietnamese voice if available
-                    let voices = window.speechSynthesis.getVoices();
-                    let viVoice = voices.find(v => v.lang.includes('vi') || v.name.includes('Vietnamese'));
-                    if (viVoice) {
-                        msg.voice = viVoice;
-                    }
-                    
-                    msg.rate = 1.0;
-                    window.speechSynthesis.speak(msg);
-                }
+                const text = "Xin chào " + (student.ho_ten || 'Thí sinh');
+                const url = "https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=" + encodeURIComponent(text);
+                const audio = new Audio(url);
+                audio.play().catch(e => console.log('Audio autoplay blocked:', e));
             } catch(e) { console.log('TTS error:', e); }
 
             // Reset timers to start the 10s countdown from this moment!
