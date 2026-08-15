@@ -480,6 +480,7 @@ if ($testHour !== null) {
             const formData = new FormData();
             formData.append('keyword', keyword);
             formData.append('csrf_token', '<?= csrf_token() ?? '' ?>');
+            formData.append('kiosk_id', 'web');
 
             fetch('<?= url("/huong-dan-nhap-hoc/search") ?>', {
                 method: 'POST',

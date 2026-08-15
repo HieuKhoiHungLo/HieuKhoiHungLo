@@ -785,6 +785,7 @@ if ($testHour !== null) {
             const formData = new FormData();
             formData.append('keyword', keyword);
             formData.append('csrf_token', '<?= csrf_token() ?? '' ?>');
+            formData.append('kiosk_id', kiosk_id);
 
             const urlParams = new URLSearchParams(window.location.search);
             const testHour = urlParams.get('test_hour');

@@ -784,14 +784,10 @@ class EnrollmentController extends Controller {
         $stmtRecent->execute([$sessionId]);
         $recent = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
-        $kioskFilePath = __DIR__ . '/../../storage/kiosk_counters.json';
-        $kioskSearchTotal = 0;
-        if (file_exists($kioskFilePath)) {
-            $counters = json_decode(file_get_contents($kioskFilePath), true);
-            if (is_array($counters)) {
-                $kioskSearchTotal = array_sum($counters);
-            }
-        }
+        // Fetch kiosk search count from the database
+        $stmtKiosk = $this->db->prepare("SELECT COUNT(*) FROM kiosk_lookups WHERE session_id = ?");
+        $stmtKiosk->execute([$sessionId]);
+        $kioskSearchTotal = (int)$stmtKiosk->fetchColumn();
 
         $this->view('admin/enrollment/stats', [
             'isReadOnly' => $isReadOnly,

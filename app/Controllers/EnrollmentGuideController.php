@@ -70,6 +70,7 @@ class EnrollmentGuideController extends Controller
         $stmt = $db->prepare("
             SELECT 
                 kq.id as ket_qua_id,
+                kq.session_id,
                 kq.ho_ten,
                 kq.so_cccd,
                 kq.sbd,
@@ -109,6 +110,23 @@ class EnrollmentGuideController extends Controller
         $banNhapHoc = $record['ban_nhap_hoc'] ?? '';
         $viTriNhapHoc = $record['vi_tri_nhap_hoc'] ?? '';
         $linkSoDo = $record['link_so_do'] ?? '';
+
+        // Log kiosk lookup with anti-spam check
+        $soCccd = $record['so_cccd'] ?? '';
+        $sessionId = $record['session_id'] ?? null;
+        $kioskId = trim($_REQUEST['kiosk_id'] ?? 'web');
+
+        if ($soCccd && $sessionId) {
+            // Check if already logged for this CCCD in this session
+            $checkStmt = $db->prepare("SELECT COUNT(*) FROM kiosk_lookups WHERE so_cccd = ? AND session_id = ?");
+            $checkStmt->execute([$soCccd, $sessionId]);
+            $exists = $checkStmt->fetchColumn() > 0;
+
+            if (!$exists) {
+                $logStmt = $db->prepare("INSERT INTO kiosk_lookups (kiosk_id, so_cccd, session_id) VALUES (?, ?, ?)");
+                $logStmt->execute([$kioskId, $soCccd, $sessionId]);
+            }
+        }
 
 
 
