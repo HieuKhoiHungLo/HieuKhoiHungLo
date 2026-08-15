@@ -851,6 +851,9 @@ class EnrollmentController extends Controller {
         $offset = ($page - 1) * $limit;
         
         $adminId = $_SESSION['admin_id'] ?? 0;
+        
+        $hasViewAll = \App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.view_all');
+        $userCondition = $hasViewAll ? "" : " AND nh.nguoi_nhap = " . intval($adminId);
 
         $stmt = $this->db->prepare("
             SELECT nh.id as nhap_hoc_id, kq.ho_ten, kq.so_cccd, kq.ma_nganh, n.ten_nganh, nh.ngay_nhap_hoc, nh.trang_thai, nh.ket_qua_id
@@ -858,11 +861,11 @@ class EnrollmentController extends Controller {
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
             WHERE nh.session_id = ? AND nh.trang_thai != 'chua_nhap_hoc' AND nh.trang_thai IS NOT NULL
-            AND nh.nguoi_nhap = ?
+            $userCondition
             ORDER BY nh.updated_at DESC, nh.ngay_nhap_hoc DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$sessionId, $adminId, $limit, $offset]);
+        $stmt->execute([$sessionId, $limit, $offset]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $docStmt = $this->db->prepare("SELECT id, ten_ho_so FROM nhap_hoc_ho_so WHERE session_id = ? ORDER BY thu_tu ASC");
@@ -903,8 +906,8 @@ class EnrollmentController extends Controller {
             $r['ngay_nhap_hoc_format'] = date('d/m/Y', strtotime($r['ngay_nhap_hoc']));
         }
 
-        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND trang_thai != 'chua_nhap_hoc' AND trang_thai IS NOT NULL AND nguoi_nhap = ?");
-        $stmtTotal->execute([$sessionId, $adminId]);
+        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND trang_thai != 'chua_nhap_hoc' AND trang_thai IS NOT NULL $userCondition");
+        $stmtTotal->execute([$sessionId]);
         $total = $stmtTotal->fetchColumn();
 
         echo json_encode([
