@@ -906,7 +906,7 @@ class EnrollmentController extends Controller {
             $r['ngay_nhap_hoc_format'] = date('d/m/Y', strtotime($r['ngay_nhap_hoc']));
         }
 
-        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND nh.trang_thai NOT IN ('chua_nhap_hoc', 'da_huy') AND trang_thai IS NOT NULL $userCondition");
+        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc nh WHERE nh.session_id = ? AND nh.trang_thai NOT IN ('chua_nhap_hoc', 'da_huy') AND nh.trang_thai IS NOT NULL $userCondition");
         $stmtTotal->execute([$sessionId]);
         $total = $stmtTotal->fetchColumn();
 
