@@ -175,7 +175,7 @@ class AdmissionController extends Controller {
         
         // Session selector: allow viewing any session, default to active
         $allSessions = $sessionModel->getAll();
-        $selectedSessionId = $_GET['session_id'] ?? null;
+        $selectedSessionId = $_GET['session_id'] ?? 9;
         
         if ($selectedSessionId) {
             $activeSession = null;
