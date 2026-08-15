@@ -734,6 +734,13 @@ if ($testHour !== null) {
         // Form search actions
         function handleQuerySubmit(e, inputId) {
             e.preventDefault();
+            
+            // Unlock audio context for mobile/kiosk autoplay policy
+            try {
+                const unlockAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+                unlockAudio.play().catch(e => {});
+            } catch(e) {}
+
             const keyword = document.getElementById(inputId).value.trim();
             if (!keyword) {
                 showFormError("Vui lòng nhập số CCCD hoặc Số báo danh.");
@@ -1010,6 +1017,12 @@ if ($testHour !== null) {
                 overlay.classList.add('hidden');
                 overlay.classList.remove('flex');
             }
+            
+            // Unlock audio context for mobile/kiosk autoplay policy
+            try {
+                const unlockAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+                unlockAudio.play().catch(e => {});
+            } catch(e) {}
             
             // Clean/Reset all search criteria
             resetSearchForm();
