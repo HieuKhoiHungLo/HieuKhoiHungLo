@@ -424,118 +424,122 @@ class EnrollmentController extends Controller {
         if ($type === 'word' && $filePath) {
             $templatePath = __DIR__ . '/../../storage/templates/' . $filePath;
             if (file_exists($templatePath)) {
-                $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+                try {
+                    $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
 
-                $templateProcessor->setValue('hoten', htmlspecialchars($enrollment['ho_ten'] ?? ''));
-                
-                // Fix ngay_sinh format (handle both Y-m-d and d/m/Y)
-                $ngaySinh = trim($enrollment['ngay_sinh'] ?? '');
-                $ngaySinhStr = '';
-                if (!empty($ngaySinh)) {
-                    if (strpos($ngaySinh, '/') !== false) {
-                        $parsedDate = strtotime(str_replace('/', '-', $ngaySinh));
-                        $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
-                    } else {
-                        $parsedDate = strtotime($ngaySinh);
-                        $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
-                    }
-                }
-                $templateProcessor->setValue('ngay_sinh', $ngaySinhStr);
-                
-                $templateProcessor->setValue('gioi_tinh', $gioiTinh);
-                $templateProcessor->setValue('so_cccd', htmlspecialchars($enrollment['so_cccd'] ?? ''));
-                $templateProcessor->setValue('dien_thoai', htmlspecialchars($enrollment['dien_thoai'] ?? ''));
-                $templateProcessor->setValue('sbd', htmlspecialchars($enrollment['sbd'] ?? ''));
-                $templateProcessor->setValue('nganh', htmlspecialchars($enrollment['ten_nganh'] ?? ''));
-                $templateProcessor->setValue('ma_nganh', htmlspecialchars($enrollment['ma_nganh'] ?? ''));
-                $templateProcessor->setValue('khoi', htmlspecialchars($enrollment['to_hop'] ?? ''));
-                $templateProcessor->setValue('diem_tong', htmlspecialchars($enrollment['diem_xt'] ?? ''));
-                $templateProcessor->setValue('gvcn', htmlspecialchars($enrollment['gvcn'] ?? ''));
-                
-                $templateProcessor->setValue('xac_nhan_bo', $enrollment['xac_nhan_bo'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
-                $templateProcessor->setValue('xac_nhan_truong', $enrollment['xac_nhan_truong'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
-                $templateProcessor->setValue('nop_kinh_phi', $enrollment['xac_nhan_kinh_phi'] == 1 ? 'Đã nộp' : 'Chưa nộp');
-                $templateProcessor->setValue('so_giay_bao', htmlspecialchars($enrollment['so_giay_bao'] ?? ''));
-                
-                $templateProcessor->setValue('hs_giay_cn', htmlspecialchars($hs_giay_cn));
-                $templateProcessor->setValue('hs_hoc_ba', htmlspecialchars($hs_hoc_ba));
-
-                // Các biến về thời gian in
-                $templateProcessor->setValue('ngay_in', date('d/m/Y'));
-                $templateProcessor->setValue('ngay', date('d'));
-                $templateProcessor->setValue('thang', date('m'));
-                $templateProcessor->setValue('nam', date('Y'));
-
-                // Process Avatar
-                $avatarTempFile = '';
-                $avatarPath = $enrollment['anh_dai_dien'] ?? '';
-                if (!empty($avatarPath)) {
-                    try {
-                        if (strpos($avatarPath, 'http') === 0) {
-                            $avatarData = @file_get_contents($avatarPath);
-                            if ($avatarData) {
-                                $avatarTempFile = tempnam(sys_get_temp_dir(), 'AVT_') . '.png';
-                                file_put_contents($avatarTempFile, $avatarData);
-                                $templateProcessor->setImageValue('anh_the', array('path' => $avatarTempFile, 'width' => 90, 'height' => 120, 'ratio' => false));
-                            } else {
-                                $templateProcessor->setValue('anh_the', '');
-                            }
+                    $templateProcessor->setValue('hoten', htmlspecialchars($enrollment['ho_ten'] ?? ''));
+                    
+                    // Fix ngay_sinh format (handle both Y-m-d and d/m/Y)
+                    $ngaySinh = trim($enrollment['ngay_sinh'] ?? '');
+                    $ngaySinhStr = '';
+                    if (!empty($ngaySinh)) {
+                        if (strpos($ngaySinh, '/') !== false) {
+                            $parsedDate = strtotime(str_replace('/', '-', $ngaySinh));
+                            $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
                         } else {
-                            // Local file
-                            $localPath = dirname(__DIR__, 2) . '/' . ltrim($avatarPath, '/');
-                            if (file_exists($localPath)) {
-                                $templateProcessor->setImageValue('anh_the', array('path' => $localPath, 'width' => 90, 'height' => 120, 'ratio' => false));
-                            } else {
-                                $templateProcessor->setValue('anh_the', '');
-                            }
+                            $parsedDate = strtotime($ngaySinh);
+                            $ngaySinhStr = $parsedDate ? date('d/m/Y', $parsedDate) : htmlspecialchars($ngaySinh);
                         }
-                    } catch (\Exception $e) {
+                    }
+                    $templateProcessor->setValue('ngay_sinh', $ngaySinhStr);
+                    
+                    $templateProcessor->setValue('gioi_tinh', $gioiTinh);
+                    $templateProcessor->setValue('so_cccd', htmlspecialchars($enrollment['so_cccd'] ?? ''));
+                    $templateProcessor->setValue('dien_thoai', htmlspecialchars($enrollment['dien_thoai'] ?? ''));
+                    $templateProcessor->setValue('sbd', htmlspecialchars($enrollment['sbd'] ?? ''));
+                    $templateProcessor->setValue('nganh', htmlspecialchars($enrollment['ten_nganh'] ?? ''));
+                    $templateProcessor->setValue('ma_nganh', htmlspecialchars($enrollment['ma_nganh'] ?? ''));
+                    $templateProcessor->setValue('khoi', htmlspecialchars($enrollment['to_hop'] ?? ''));
+                    $templateProcessor->setValue('diem_tong', htmlspecialchars($enrollment['diem_xt'] ?? ''));
+                    $templateProcessor->setValue('gvcn', htmlspecialchars($enrollment['gvcn'] ?? ''));
+                    
+                    $templateProcessor->setValue('xac_nhan_bo', $enrollment['xac_nhan_bo'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
+                    $templateProcessor->setValue('xac_nhan_truong', $enrollment['xac_nhan_truong'] == 1 ? 'Đã xác nhận' : 'Chưa xác nhận');
+                    $templateProcessor->setValue('nop_kinh_phi', $enrollment['xac_nhan_kinh_phi'] == 1 ? 'Đã nộp' : 'Chưa nộp');
+                    $templateProcessor->setValue('so_giay_bao', htmlspecialchars($enrollment['so_giay_bao'] ?? ''));
+                    
+                    $templateProcessor->setValue('hs_giay_cn', htmlspecialchars($hs_giay_cn));
+                    $templateProcessor->setValue('hs_hoc_ba', htmlspecialchars($hs_hoc_ba));
+
+                    // Các biến về thời gian in
+                    $templateProcessor->setValue('ngay_in', date('d/m/Y'));
+                    $templateProcessor->setValue('ngay', date('d'));
+                    $templateProcessor->setValue('thang', date('m'));
+                    $templateProcessor->setValue('nam', date('Y'));
+
+                    // Process Avatar
+                    $avatarTempFile = '';
+                    $avatarPath = $enrollment['anh_dai_dien'] ?? '';
+                    if (!empty($avatarPath)) {
+                        try {
+                            if (strpos($avatarPath, 'http') === 0) {
+                                $avatarData = @file_get_contents($avatarPath);
+                                if ($avatarData) {
+                                    $avatarTempFile = tempnam(sys_get_temp_dir(), 'AVT_') . '.png';
+                                    file_put_contents($avatarTempFile, $avatarData);
+                                    $templateProcessor->setImageValue('anh_the', array('path' => $avatarTempFile, 'width' => 90, 'height' => 120, 'ratio' => false));
+                                } else {
+                                    $templateProcessor->setValue('anh_the', '');
+                                }
+                            } else {
+                                // Local file
+                                $localPath = dirname(__DIR__, 2) . '/' . ltrim($avatarPath, '/');
+                                if (file_exists($localPath)) {
+                                    $templateProcessor->setImageValue('anh_the', array('path' => $localPath, 'width' => 90, 'height' => 120, 'ratio' => false));
+                                } else {
+                                    $templateProcessor->setValue('anh_the', '');
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            $templateProcessor->setValue('anh_the', '');
+                        }
+                    } else {
                         $templateProcessor->setValue('anh_the', '');
                     }
-                } else {
-                    $templateProcessor->setValue('anh_the', '');
-                }
 
-                // Process QR Code
-                $qrTempFile = '';
-                try {
-                    $cccdStr = !empty($enrollment['so_cccd']) ? $enrollment['so_cccd'] : 'NO_CCCD';
-                    $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($cccdStr);
-                    $qrData = @file_get_contents($qrApiUrl);
-                    if ($qrData) {
-                        $qrTempFile = tempnam(sys_get_temp_dir(), 'QR_') . '.png';
-                        file_put_contents($qrTempFile, $qrData);
-                        $templateProcessor->setImageValue('qr_cccd', array('path' => $qrTempFile, 'width' => 75, 'height' => 75, 'ratio' => false));
-                    } else {
+                    // Process QR Code
+                    $qrTempFile = '';
+                    try {
+                        $cccdStr = !empty($enrollment['so_cccd']) ? $enrollment['so_cccd'] : 'NO_CCCD';
+                        $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($cccdStr);
+                        $qrData = @file_get_contents($qrApiUrl);
+                        if ($qrData) {
+                            $qrTempFile = tempnam(sys_get_temp_dir(), 'QR_') . '.png';
+                            file_put_contents($qrTempFile, $qrData);
+                            $templateProcessor->setImageValue('qr_cccd', array('path' => $qrTempFile, 'width' => 75, 'height' => 75, 'ratio' => false));
+                        } else {
+                            $templateProcessor->setValue('qr_cccd', '');
+                        }
+                    } catch (\Exception $e) {
                         $templateProcessor->setValue('qr_cccd', '');
                     }
+
+                    // Save temp file and download
+                    $tempFile = tempnam(sys_get_temp_dir(), 'PHIEU_');
+                    $templateProcessor->saveAs($tempFile);
+
+                    $downloadName = 'PhieuNhapHoc_' . str_replace(' ', '', $enrollment['so_cccd'] ?? $nhapHocId) . '.docx';
+
+                    if (ob_get_length()) ob_clean();
+                    header('Content-Description: File Transfer');
+                    header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+                    header('Expires: 0');
+                    header('Cache-Control: must-revalidate');
+                    header('Pragma: public');
+                    header('Content-Length: ' . filesize($tempFile));
+                    readfile($tempFile);
+                    unlink($tempFile);
+                    if (!empty($qrTempFile) && file_exists($qrTempFile)) {
+                        unlink($qrTempFile);
+                    }
+                    if (!empty($avatarTempFile) && file_exists($avatarTempFile)) {
+                        unlink($avatarTempFile);
+                    }
+                    exit;
                 } catch (\Exception $e) {
-                    $templateProcessor->setValue('qr_cccd', '');
+                    die("Lỗi khi tạo file Word: " . $e->getMessage() . ". Vui lòng kiểm tra lại file mẫu xem có hợp lệ không (có thể là file .doc đổi đuôi, hoặc lỗi biến trong file).");
                 }
-
-                // Save temp file and download
-                $tempFile = tempnam(sys_get_temp_dir(), 'PHIEU_');
-                $templateProcessor->saveAs($tempFile);
-
-                $downloadName = 'PhieuNhapHoc_' . str_replace(' ', '', $enrollment['so_cccd'] ?? $nhapHocId) . '.docx';
-
-                if (ob_get_length()) ob_clean();
-                header('Content-Description: File Transfer');
-                header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-                header('Content-Disposition: attachment; filename="' . $downloadName . '"');
-                header('Expires: 0');
-                header('Cache-Control: must-revalidate');
-                header('Pragma: public');
-                header('Content-Length: ' . filesize($tempFile));
-                readfile($tempFile);
-                unlink($tempFile);
-                if (!empty($qrTempFile) && file_exists($qrTempFile)) {
-                    unlink($qrTempFile);
-                }
-                if (!empty($avatarTempFile) && file_exists($avatarTempFile)) {
-                    unlink($avatarTempFile);
-                }
-                exit;
             }
         }
 
