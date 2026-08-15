@@ -797,21 +797,24 @@ class EnrollmentController extends Controller {
         $stmtKiosk->execute([$sessionId]);
         $kioskSearchTotal = (int)$stmtKiosk->fetchColumn();
 
-        // Thống kê theo Bàn và Cán bộ
+        // Thống kê theo Cán bộ
         $stmtOfficer = $this->db->prepare("
             SELECT 
-                COALESCE(NULLIF(TRIM(kq.ban_nhap_hoc), ''), 'Chưa xác định') as ban_nhap_hoc,
-                COALESCE(qv.ho_ten, 'Chưa nhập học') as ten_can_bo,
-                COUNT(CASE WHEN nh.trang_thai = 'da_nhap_hoc' THEN 1 END) as so_luong_nhap,
-                COUNT(CASE WHEN kq.xac_nhan_bo = true OR kq.xac_nhan_truong = true OR kq.xac_nhan_kinh_phi = true THEN 1 END) as so_luong_xac_nhan
-            FROM ket_qua_trung_tuyen kq
-            LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id
-            LEFT JOIN quan_tri_vien qv ON nh.nguoi_nhap = qv.id
-            WHERE kq.session_id = ?
-            GROUP BY COALESCE(NULLIF(TRIM(kq.ban_nhap_hoc), ''), 'Chưa xác định'), COALESCE(qv.ho_ten, 'Chưa nhập học')
-            ORDER BY ban_nhap_hoc, so_luong_nhap DESC
+                qv.id as can_bo_id,
+                qv.ho_ten as ten_can_bo,
+                qv.ten_dang_nhap,
+                COUNT(nh.id) as so_luong_nhap,
+                SUM(CASE WHEN kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1' THEN 1 ELSE 0 END) as xn_bo,
+                SUM(CASE WHEN kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1' THEN 1 ELSE 0 END) as xn_truong,
+                SUM(CASE WHEN kq.xac_nhan_kinh_phi = true OR kq.xac_nhan_kinh_phi::text = '1' THEN 1 ELSE 0 END) as xn_kinh_phi
+            FROM quan_tri_vien qv
+            LEFT JOIN nhap_hoc nh ON qv.id = nh.nguoi_nhap AND nh.session_id = ? AND nh.trang_thai = 'da_nhap_hoc'
+            LEFT JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            WHERE qv.role_id = 4 OR qv.id IN (SELECT DISTINCT nguoi_nhap FROM nhap_hoc WHERE session_id = ? AND trang_thai = 'da_nhap_hoc')
+            GROUP BY qv.id, qv.ho_ten, qv.ten_dang_nhap
+            ORDER BY qv.ten_dang_nhap ASC
         ");
-        $stmtOfficer->execute([$sessionId]);
+        $stmtOfficer->execute([$sessionId, $sessionId]);
         $statsByOfficer = $stmtOfficer->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('admin/enrollment/stats', [

@@ -305,57 +305,61 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
             </div>
         </div>
 
-        <!-- Thống kê theo Bàn và Cán bộ -->
+        <!-- Thống kê theo Cán bộ xử lý -->
         <div class="bg-white p-5 lg:p-6 rounded-2xl shadow-sm border border-slate-100 mt-6">
             <h3 class="font-bold text-slate-800 tracking-tight uppercase text-xs lg:text-sm flex items-center mb-6">
-                <span class="w-1.5 h-4 bg-blue-500 rounded-full mr-2"></span>
-                Thống kê tiến độ nhập học theo bàn & cán bộ
+                <span class="w-1.5 h-4 bg-indigo-500 rounded-full mr-2"></span>
+                Thống kê hiệu suất xử lý của Cán bộ
             </h3>
             <div class="overflow-x-auto custom-scrollbar">
-                <table class="premium-table min-w-[600px] lg:min-w-full">
+                <table class="premium-table min-w-[700px] lg:min-w-full">
                     <thead>
                         <tr class="text-slate-600 uppercase tracking-wider text-[10px] text-center bg-slate-100">
-                            <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100 text-center font-bold">Bàn nhập học</th>
                             <th class="py-3 border-b-2 border-r border-slate-200 bg-slate-100 text-left font-bold">Cán bộ xử lý</th>
-                            <th style="width: 150px;" class="py-3 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800 font-bold">Số lượng nhập</th>
-                            <th style="width: 150px;" class="py-3 border-b-2 border-slate-200 bg-emerald-50 text-emerald-800 font-bold">Số lượng xác nhận</th>
+                            <th style="width: 130px;" class="py-3 border-b-2 border-r border-slate-200 bg-blue-50 text-blue-800 font-bold">Số lượng nhập</th>
+                            <th style="width: 140px;" class="py-3 border-b-2 border-r border-slate-200 bg-emerald-50 text-emerald-800 font-bold">XN Bộ GD&ĐT</th>
+                            <th style="width: 140px;" class="py-3 border-b-2 border-r border-slate-200 bg-teal-50 text-teal-800 font-bold">XN Trường</th>
+                            <th style="width: 140px;" class="py-3 border-b-2 border-slate-200 bg-amber-50 text-amber-800 font-bold">XN Kinh phí</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php 
                         $totalNH_off = 0;
-                        $totalXN_off = 0;
+                        $totalXN_bo = 0;
+                        $totalXN_truong = 0;
+                        $totalXN_kinhphi = 0;
                         if (empty($statsByOfficer)): ?>
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu</td></tr>
+                            <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 font-medium">Chưa có dữ liệu</td></tr>
                         <?php else: ?>
                             <?php foreach ($statsByOfficer as $row): 
                                 $totalNH_off += intval($row['so_luong_nhap']);
-                                $totalXN_off += intval($row['so_luong_xac_nhan']);
+                                $totalXN_bo += intval($row['xn_bo']);
+                                $totalXN_truong += intval($row['xn_truong']);
+                                $totalXN_kinhphi += intval($row['xn_kinh_phi']);
                             ?>
                             <tr class="hover:bg-slate-50 text-center">
-                                <td class="px-3 py-2.5 font-bold text-slate-700"><?= htmlspecialchars($row['ban_nhap_hoc']) ?></td>
-                                <td class="px-3 py-2.5 text-left text-slate-600 font-medium">
-                                    <?php if ($row['ten_can_bo'] === 'Chưa nhập học'): ?>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[10px] uppercase">
-                                            <i class="fas fa-clock"></i> Chưa nhập học (Còn lại)
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-semibold">
-                                            <i class="fas fa-user-circle"></i> <?= htmlspecialchars($row['ten_can_bo']) ?>
-                                        </span>
-                                    <?php endif; ?>
+                                <td class="px-3 py-2.5 text-left text-slate-700 font-medium">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs">
+                                        <i class="fas fa-user-circle text-slate-500"></i> 
+                                        <?= htmlspecialchars($row['ten_can_bo']) ?> 
+                                        <span class="text-[10px] text-slate-400 font-normal lowercase ml-1">(<?= htmlspecialchars($row['ten_dang_nhap']) ?>)</span>
+                                    </span>
                                 </td>
                                 <td class="px-3 py-2.5 bg-blue-50/30 text-blue-700 font-black text-sm"><?= number_format($row['so_luong_nhap']) ?></td>
-                                <td class="px-3 py-2.5 bg-emerald-50/30 text-emerald-700 font-black text-sm"><?= number_format($row['so_luong_xac_nhan']) ?></td>
+                                <td class="px-3 py-2.5 bg-emerald-50/30 text-emerald-700 font-black text-sm"><?= number_format($row['xn_bo']) ?></td>
+                                <td class="px-3 py-2.5 bg-teal-50/30 text-teal-700 font-black text-sm"><?= number_format($row['xn_truong']) ?></td>
+                                <td class="px-3 py-2.5 bg-amber-50/30 text-amber-700 font-black text-sm"><?= number_format($row['xn_kinh_phi']) ?></td>
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                     <tfoot>
                         <tr class="bg-slate-100 font-black text-center text-xs text-slate-700 border-t-2 border-slate-200">
-                            <td class="py-3 border-r border-slate-200 text-center font-black" colspan="2">TỔNG CỘNG</td>
+                            <td class="py-3 border-r border-slate-200 text-left px-4 font-black">TỔNG CỘNG</td>
                             <td class="py-3 border-r border-slate-200 bg-blue-100 text-blue-800 text-sm font-black"><?= number_format($totalNH_off) ?></td>
-                            <td class="py-3 bg-emerald-100 text-emerald-800 text-sm font-black"><?= number_format($totalXN_off) ?></td>
+                            <td class="py-3 border-r border-slate-200 bg-emerald-100 text-emerald-800 text-sm font-black"><?= number_format($totalXN_bo) ?></td>
+                            <td class="py-3 border-r border-slate-200 bg-teal-100 text-teal-800 text-sm font-black"><?= number_format($totalXN_truong) ?></td>
+                            <td class="py-3 bg-amber-100 text-amber-800 text-sm font-black"><?= number_format($totalXN_kinhphi) ?></td>
                         </tr>
                     </tfoot>
                 </table>
