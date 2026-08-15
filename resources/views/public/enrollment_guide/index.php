@@ -207,7 +207,7 @@ if ($testHour !== null) {
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
                 <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-end justify-center p-8">
-                    <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
+                    <img id="img-idle-left" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100" onload="if(document.getElementById('img-idle-right')) document.getElementById('img-idle-right').style.height = this.clientHeight + 'px';">
                 </div>
 
                 <!-- Result State (Hidden by default, shown via JS) -->
@@ -354,8 +354,8 @@ if ($testHour !== null) {
         <!-- COLUMN 3: Right 3 cols (Image Map & Guide Details) -->
         <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <!-- Initial State (Waiting to scan) -->
-            <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-center justify-center p-8">
-                <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
+            <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-end justify-center p-8">
+                <img id="img-idle-right" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-full object-contain rounded-xl shadow-sm border border-slate-100" style="max-height: 100%;">
             </div>
 
             <!-- Result State (Shown when student data is loaded) -->
@@ -1037,6 +1037,16 @@ if ($testHour !== null) {
             resetTimers();
             closeKioskSettingsModal();
         }
+    </script>
+<script>
+        // Sync idle image heights on resize
+        window.addEventListener('resize', function() {
+            const leftImg = document.getElementById('img-idle-left');
+            const rightImg = document.getElementById('img-idle-right');
+            if (leftImg && rightImg) {
+                rightImg.style.height = leftImg.clientHeight + 'px';
+            }
+        });
     </script>
 </body>
 </html>
