@@ -1151,7 +1151,7 @@ if ($testHour !== null) {
         }
         
         function syncKioskCounter(count) {
-            fetch('/api/enrollment/kiosk-sync', {
+            fetch('<?= url("/api/enrollment/kiosk-sync") ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
