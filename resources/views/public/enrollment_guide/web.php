@@ -547,7 +547,7 @@ if ($testHour !== null) {
             const cccdEl = document.getElementById('cand-cccd');
             if (cccdEl) cccdEl.innerText = student.so_cccd || '';
             const majorEl = document.getElementById('cand-major');
-            if (majorEl) majorEl.innerText = student.nganh_trung_tuyen || '';
+            if (majorEl) majorEl.innerText = student.ten_nganh || '';
 
             const avatarEl = document.getElementById('cand-avatar');
             if (avatarEl) {
