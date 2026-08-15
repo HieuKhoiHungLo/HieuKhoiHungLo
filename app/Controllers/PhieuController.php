@@ -82,31 +82,39 @@ class PhieuController extends Controller {
             echo json_encode(['success' => false, 'message' => 'File quá lớn (tối đa 10MB)']); return;
         }
 
-        $this->ensureTableExists();
+        try {
+            $this->ensureTableExists();
 
-        $tenMau    = trim($_POST['ten_mau'] ?? '') ?: pathinfo($file['name'], PATHINFO_FILENAME);
-        $loaiMau   = $_POST['loai_mau'] ?? 'phieu_nhap_hoc';
-        $mota      = trim($_POST['mo_ta'] ?? '');
-        $sessionId = $_POST['session_id'] ? (int)$_POST['session_id'] : null;
+            $tenMau    = trim($_POST['ten_mau'] ?? '') ?: pathinfo($file['name'], PATHINFO_FILENAME);
+            $loaiMau   = $_POST['loai_mau'] ?? 'phieu_nhap_hoc';
+            $mota      = trim($_POST['mo_ta'] ?? '');
+            $sessionId = !empty($_POST['session_id']) ? (int)$_POST['session_id'] : null;
 
-        // Lưu file
-        $destDir = $this->printer->getTemplateDir();
-        $safeName = preg_replace('/[^a-z0-9_-]/i', '_', pathinfo($file['name'], PATHINFO_FILENAME));
-        $fileName = $loaiMau . '_' . $safeName . '_' . time() . '.docx';
-        $destPath = $destDir . $fileName;
+            // Lưu file
+            $destDir = $this->printer->getTemplateDir();
+            if (!is_dir($destDir)) {
+                @mkdir($destDir, 0777, true);
+            }
+            
+            $safeName = preg_replace('/[^a-z0-9_-]/i', '_', pathinfo($file['name'], PATHINFO_FILENAME));
+            $fileName = $loaiMau . '_' . $safeName . '_' . time() . '.docx';
+            $destPath = $destDir . $fileName;
 
-        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-            echo json_encode(['success' => false, 'message' => 'Lỗi lưu file lên server']); return;
+            if (!@move_uploaded_file($file['tmp_name'], $destPath)) {
+                echo json_encode(['success' => false, 'message' => 'Lỗi lưu file lên server. Vui lòng kiểm tra quyền ghi thư mục storage/templates.']); return;
+            }
+
+            // Lưu DB
+            $stmt = $this->db->prepare("
+                INSERT INTO mau_phieu (ten_mau, loai_mau, ten_file, mo_ta, session_id, created_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([$tenMau, $loaiMau, $fileName, $mota, $sessionId, $_SESSION['admin_id']]);
+
+            echo json_encode(['success' => true, 'message' => 'Upload mẫu thành công!']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()]);
         }
-
-        // Lưu DB
-        $stmt = $this->db->prepare("
-            INSERT INTO mau_phieu (ten_mau, loai_mau, ten_file, mo_ta, session_id, created_by)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$tenMau, $loaiMau, $fileName, $mota, $sessionId, $_SESSION['admin_id']]);
-
-        echo json_encode(['success' => true, 'message' => 'Upload mẫu thành công!']);
     }
 
     /** Xóa mẫu */
