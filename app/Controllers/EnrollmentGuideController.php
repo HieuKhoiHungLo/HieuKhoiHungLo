@@ -142,4 +142,30 @@ class EnrollmentGuideController extends Controller
             ]
         ]);
     }
+
+    /**
+     * API đồng bộ số lượng tra cứu từ các máy Kiosk
+     */
+    public function kioskSync()
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (empty($data['kiosk_id'])) {
+            return $this->json(['success' => false]);
+        }
+
+        $kioskId = trim($data['kiosk_id']);
+        $count = isset($data['count']) ? (int)$data['count'] : 0;
+
+        $filePath = __DIR__ . '/../../storage/kiosk_counters.json';
+        
+        $counters = [];
+        if (file_exists($filePath)) {
+            $counters = json_decode(file_get_contents($filePath), true) ?: [];
+        }
+
+        $counters[$kioskId] = $count;
+        file_put_contents($filePath, json_encode($counters));
+
+        return $this->json(['success' => true]);
+    }
 }

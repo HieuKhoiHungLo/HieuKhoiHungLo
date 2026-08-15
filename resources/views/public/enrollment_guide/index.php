@@ -165,6 +165,10 @@ if ($testHour !== null) {
                         <span class="font-bold text-white">0866 993 468</span>
                     </div>
                 </div>
+                <div class="hidden sm:flex items-center gap-2 bg-blue-900/40 px-2 py-1 rounded-md border border-blue-500/30">
+                    <i class="fa-solid fa-users-viewfinder text-blue-300 text-[10px]"></i>
+                    <span class="text-xs font-bold text-blue-100"><span id="kiosk-local-counter">0</span> lượt</span>
+                </div>
                 <div class="w-px h-5 bg-white/20"></div>
                 <div class="flex items-center gap-2">
                     <i class="fa-regular fa-clock text-amber-400"></i>
@@ -206,8 +210,8 @@ if ($testHour !== null) {
             <!-- Candidate Data section -->
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
-                <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-end justify-center p-8">
-                    <img id="img-idle-left" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100" onload="if(document.getElementById('img-idle-right')) document.getElementById('img-idle-right').style.height = this.clientHeight + 'px';">
+                <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
+                    <img id="img-idle-left" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
                 </div>
 
                 <!-- Result State (Hidden by default, shown via JS) -->
@@ -354,8 +358,8 @@ if ($testHour !== null) {
         <!-- COLUMN 3: Right 3 cols (Image Map & Guide Details) -->
         <div id="col-so-do" class="col-span-1 lg:col-span-3 flex flex-col h-full min-h-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <!-- Initial State (Waiting to scan) -->
-            <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-end justify-center p-8">
-                <img id="img-idle-right" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-full object-contain rounded-xl shadow-sm border border-slate-100" style="max-height: 100%;">
+            <div id="map-waiting-state" class="flex-1 transition-opacity duration-300 bg-white flex items-center justify-center p-4 md:p-8">
+                <img id="img-idle-right" src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762025_6a7fd329ed68b.jpg" alt="Sơ đồ vị trí bàn nhập học" class="max-w-[80%] max-h-[300px] object-contain rounded-xl shadow-sm border border-slate-100">
             </div>
 
             <!-- Result State (Shown when student data is loaded) -->
@@ -393,25 +397,8 @@ if ($testHour !== null) {
     </main>
 
     <!-- Attract Mode / Screensaver Overlay (Hidden normally, shown on Kiosk idle) -->
-    <div id="attract-overlay" class="fixed inset-0 bg-[#0D47A1] z-50 flex flex-col items-center justify-center p-6 text-white text-center cursor-pointer transition-all duration-500 hidden" onclick="dismissAttractMode()">
-        <div class="max-w-4xl flex flex-col items-center">
-            <!-- Animated HVU logo circle -->
-            <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center p-3 shadow-2xl mb-8 animate__animated animate__pulse animate__infinite">
-                <img src="<?= url('/assets/img/Logo.png') ?>" alt="HVU Logo" class="w-full h-full object-contain">
-            </div>
-            
-            <h2 class="text-3xl md:text-5xl font-black uppercase tracking-wider mb-2 animate__animated animate__fadeInDown whitespace-nowrap">CHÀO MỪNG TÂN SINH VIÊN</h2>
-            <h3 class="text-lg md:text-2xl text-blue-200 font-bold uppercase tracking-widest mb-12 animate__animated animate__fadeInUp whitespace-nowrap">Trường Đại học Hùng Vương</h3>
-
-            <div class="space-y-4 animate__animated animate__flash animate__infinite animate__slower">
-                <div class="w-16 h-16 rounded-full border-2 border-white/60 flex items-center justify-center mx-auto">
-                    <i class="fa-solid fa-hand-pointer text-2xl"></i>
-                </div>
-                <p class="text-xl md:text-2xl font-black uppercase tracking-widest text-yellow-300">Chạm vào màn hình để bắt đầu</p>
-            </div>
-            
-            <p class="text-xs md:text-sm text-blue-300/80 absolute bottom-6">Hội đồng Tuyển sinh Trường Đại học Hùng Vương</p>
-        </div>
+    <div id="attract-overlay" class="fixed inset-0 z-50 cursor-pointer transition-all duration-500 hidden bg-[#0D47A1]" onclick="dismissAttractMode()">
+        <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786768072_6a7feac885b63.jpg" alt="Chào mừng Tân Sinh viên" class="w-full h-full object-fill">
     </div>
 
     <!-- Status Bar (Desktop Only, Hidden on Portrait) -->
@@ -468,9 +455,12 @@ if ($testHour !== null) {
                     <p class="text-[10px] text-slate-400 mt-1">Tự động đọc lời chào "Xin chào [Tên]". (Mặc định: Tắt)</p>
                 </div>
             </div>
-            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-                <button type="button" onclick="closeKioskSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition">Hủy</button>
-                <button type="button" onclick="saveKioskSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-md transition">Lưu cấu hình</button>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center gap-2">
+                <button type="button" onclick="resetKioskCounter()" class="px-4 py-2 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-rotate-right"></i> Reset Số Đếm</button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeKioskSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition">Hủy</button>
+                    <button type="button" onclick="saveKioskSettings()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-md transition">Lưu cấu hình</button>
+                </div>
             </div>
         </div>
     </div>
@@ -488,14 +478,36 @@ if ($testHour !== null) {
         let IDLE_RESET_MS = parseInt(localStorage.getItem('kiosk_display_seconds') || '10') * 1000; // default 10 seconds
         let ATTRACT_TIMEOUT_MS = parseInt(localStorage.getItem('kiosk_idle_minutes') || '2') * 60 * 1000; // default 2 minutes
         let ENABLE_TTS = localStorage.getItem('kiosk_tts_enabled') === 'true'; // default false
+        
+        // Counter configuration
+        let kiosk_id = localStorage.getItem('kiosk_device_id');
+        if (!kiosk_id) {
+            kiosk_id = 'kiosk_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('kiosk_device_id', kiosk_id);
+        }
+        let kiosk_search_count = parseInt(localStorage.getItem('kiosk_search_count') || '0');
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            checkLayoutMode();
+        });
 
         // Device display configuration check
         const isKioskMode = window.location.search.includes('mode=kiosk') || window.innerHeight > window.innerWidth;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Preload TTS voices
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+                window.speechSynthesis.getVoices();
+            }
+
             initClock();
             checkLayoutMode();
             resetTimers();
+            updateKioskCounterUI();
+            syncKioskCounter(kiosk_search_count);
+
             
             // Initialize dynamic morning/afternoon directory tab
             switchDirectoryTab('<?= $defaultSession ?>');
@@ -804,6 +816,18 @@ if ($testHour !== null) {
         }
 
         function renderResult(student) {
+            // Anti-spam: Only increment counter if this CCCD hasn't been scanned recently
+            if (student && student.so_cccd) {
+                let scanned = JSON.parse(sessionStorage.getItem('kiosk_scanned_cccd') || '[]');
+                if (!scanned.includes(student.so_cccd)) {
+                    scanned.push(student.so_cccd);
+                    // Keep only last 50 to avoid filling storage
+                    if (scanned.length > 50) scanned.shift();
+                    sessionStorage.setItem('kiosk_scanned_cccd', JSON.stringify(scanned));
+                    incrementKioskCounter();
+                }
+            }
+
             const waitingState = document.getElementById('waiting-state');
             const resultState = document.getElementById('result-state');
             
@@ -894,17 +918,27 @@ if ($testHour !== null) {
             try {
                 if (ENABLE_TTS && 'speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
-                    const msg = new SpeechSynthesisUtterance("Xin chào " + (student.ho_ten || 'Thí sinh'));
-                    msg.lang = 'vi-VN';
                     
-                    // Force select Vietnamese voice if available
+                    const textToSpeak = "Chào mừng " + (student.ho_ten || 'tân sinh viên') + " đến với Trường Đại học Hùng Vương.";
+                    const msg = new SpeechSynthesisUtterance(textToSpeak);
+                    msg.lang = 'vi-VN';
+                    msg.volume = 1.0; // CRITICAL: Reset volume because unlocker uses volume 0
+                    msg.rate = 1.0;
+                    msg.pitch = 1.0;
+                    
+                    // Try to force select Vietnamese voice if available
                     let voices = window.speechSynthesis.getVoices();
-                    let viVoice = voices.find(v => v.lang.includes('vi') || v.name.includes('Vietnamese'));
+                    let viVoice = voices.find(v => 
+                        v.lang.toLowerCase().includes('vi') || 
+                        v.name.toLowerCase().includes('vietnamese') ||
+                        v.name.toLowerCase().includes('tiếng việt')
+                    );
+                    
                     if (viVoice) {
                         msg.voice = viVoice;
                     }
                     
-                    msg.rate = 1.0;
+                    // Fallback to HTML5 Audio Google TTS if synthesis fails immediately (optional, but speech API is preferred)
                     window.speechSynthesis.speak(msg);
                 }
             } catch(e) { console.log('TTS error:', e); }
@@ -1006,7 +1040,16 @@ if ($testHour !== null) {
         }
 
         // Active screensaver timers & Attract Mode logic
+        let isSpeechUnlocked = false;
         function resetTimers() {
+            // Unlock SpeechSynthesis on first user interaction to bypass Autoplay policies
+            if (!isSpeechUnlocked && 'speechSynthesis' in window) {
+                const unlockMsg = new SpeechSynthesisUtterance('');
+                unlockMsg.volume = 1.0; // Keep volume at 1.0, empty string makes no sound anyway
+                window.speechSynthesis.speak(unlockMsg);
+                isSpeechUnlocked = true;
+            }
+
             // Clear existing timers
             clearTimeout(idleTimer);
             clearTimeout(attractTimer);
@@ -1080,6 +1123,45 @@ if ($testHour !== null) {
             
             resetTimers();
             closeKioskSettingsModal();
+        }
+
+        // Kiosk Counter Logic
+        function updateKioskCounterUI() {
+            const counterEl = document.getElementById('kiosk-local-counter');
+            if (counterEl) {
+                counterEl.textContent = kiosk_search_count;
+            }
+        }
+        
+        function incrementKioskCounter() {
+            kiosk_search_count++;
+            localStorage.setItem('kiosk_search_count', kiosk_search_count.toString());
+            updateKioskCounterUI();
+            syncKioskCounter(kiosk_search_count);
+        }
+        
+        function resetKioskCounter() {
+            if(confirm("Bạn có chắc chắn muốn reset bộ đếm số lượng tra cứu của máy này về 0 không?")) {
+                kiosk_search_count = 0;
+                localStorage.setItem('kiosk_search_count', '0');
+                updateKioskCounterUI();
+                syncKioskCounter(0);
+                closeKioskSettingsModal();
+            }
+        }
+        
+        function syncKioskCounter(count) {
+            fetch('/api/enrollment/kiosk-sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    kiosk_id: kiosk_id,
+                    count: count
+                })
+            }).catch(e => console.log('Kiosk sync error:', e));
         }
     </script>
 <script>

@@ -110,7 +110,7 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
     </div>
 
     <!-- Compact Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
             <div class="flex justify-between items-center mb-0.5">
                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tổng trúng tuyển</p>
@@ -133,6 +133,14 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                 <i class="fas fa-user-clock text-amber-300"></i>
             </div>
             <h3 class="text-lg font-black text-amber-700 leading-tight"><?= number_format($totalTrungTuyen - $totalNhapHoc) ?></h3>
+        </div>
+
+        <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-blue-100 relative overflow-hidden group">
+            <div class="flex justify-between items-center mb-0.5">
+                <p class="text-[9px] font-black text-blue-500 uppercase tracking-wider">Lượt tra cứu Kiosk</p>
+                <i class="fa-solid fa-users-viewfinder text-blue-300"></i>
+            </div>
+            <h3 class="text-lg font-black text-blue-700 leading-tight"><?= number_format($kioskSearchTotal ?? 0) ?></h3>
         </div>
 
         <div class="bg-white px-3.5 py-2.5 rounded-xl shadow-sm border border-purple-100 relative overflow-hidden group">

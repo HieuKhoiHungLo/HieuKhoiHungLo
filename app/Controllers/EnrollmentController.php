@@ -784,6 +784,15 @@ class EnrollmentController extends Controller {
         $stmtRecent->execute([$sessionId]);
         $recent = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 
+        $kioskFilePath = __DIR__ . '/../../storage/kiosk_counters.json';
+        $kioskSearchTotal = 0;
+        if (file_exists($kioskFilePath)) {
+            $counters = json_decode(file_get_contents($kioskFilePath), true);
+            if (is_array($counters)) {
+                $kioskSearchTotal = array_sum($counters);
+            }
+        }
+
         $this->view('admin/enrollment/stats', [
             'isReadOnly' => $isReadOnly,
             'title' => 'Thống kê nhập học',
@@ -795,6 +804,7 @@ class EnrollmentController extends Controller {
             'sessions' => $sessions,
             'activeSessionId' => $sessionId,
             'recent' => $recent,
+            'kioskSearchTotal' => $kioskSearchTotal,
         ]);
     }
     public function apiStats() {
