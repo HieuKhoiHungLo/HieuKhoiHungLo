@@ -31,6 +31,27 @@ class EnrollmentGuideController extends Controller
         ]);
     }
 
+    public function webIndex()
+    {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE (kich_hoat IS TRUE OR is_published_results IS TRUE) ORDER BY id DESC LIMIT 1");
+        $activeSession = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$activeSession) {
+            $stmt = $db->query("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh ORDER BY id DESC LIMIT 1");
+            $activeSession = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        $sessionName = !empty($activeSession['ten_dot']) ? $activeSession['ten_dot'] : 'Tuyển sinh Đại học Hùng Vương';
+        $year = !empty($activeSession['nam_tuyen_sinh']) ? $activeSession['nam_tuyen_sinh'] : date('Y');
+
+        $this->view('public/enrollment_guide/web', [
+            'title'       => 'Hướng dẫn Nhập học - ' . $sessionName,
+            'sessionName' => $sessionName,
+            'year'        => $year,
+        ]);
+    }
+
     /**
      * API tra cứu thông tin hướng dẫn nhập học theo CCCD / SBD
      */

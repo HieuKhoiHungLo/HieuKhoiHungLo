@@ -108,6 +108,7 @@ $router->post('/tra-cuu-nang-khieu/search', 'TalentTestPublicController@search')
 // Enrollment Guide Public Lookup (không cần đăng nhập - Quét QR/CCCD)
 $router->get('/huong-dan-nhap-hoc', 'EnrollmentGuideController@index');
 $router->post('/huong-dan-nhap-hoc/search', 'EnrollmentGuideController@search');
+$router->get('/huong-dan-nhap-hoc-k24', 'EnrollmentGuideController@webIndex');
 $router->post('/api/enrollment/kiosk-sync', 'EnrollmentGuideController@kioskSync');
 
 // Nhóm các route bảo mật bằng AuthMiddleware
