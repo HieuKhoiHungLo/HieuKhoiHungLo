@@ -460,8 +460,16 @@ class AdmissionResultService {
                         $flat[] = $nh['so_tien'];
                     }
                     $sql = sprintf($nhBaseSql, implode(', ', $placeholders));
-                    $this->db->prepare($sql)->execute($flat);
                 }
+
+                // Sync back to ket_qua_trung_tuyen.xac_nhan_kinh_phi to ensure stats and lists match
+                $this->db->prepare("
+                    UPDATE ket_qua_trung_tuyen k
+                    SET xac_nhan_kinh_phi = nh.da_nop_tien
+                    FROM nhap_hoc nh
+                    WHERE k.session_id = nh.session_id AND k.so_cccd = nh.so_cccd
+                    AND k.session_id = ?
+                ")->execute([$batchId]);
             }
 
             // 5d. Cập nhật Dân tộc, Email, SĐT vào bảng thi_sinh bằng temp table (tối ưu hóa bulk update)
