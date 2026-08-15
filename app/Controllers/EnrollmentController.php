@@ -860,7 +860,7 @@ class EnrollmentController extends Controller {
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
-            WHERE nh.session_id = ? AND nh.trang_thai != 'chua_nhap_hoc' AND nh.trang_thai IS NOT NULL
+            WHERE nh.session_id = ? AND nh.trang_thai NOT IN ('chua_nhap_hoc', 'da_huy') AND nh.trang_thai IS NOT NULL
             $userCondition
             ORDER BY nh.updated_at DESC, nh.ngay_nhap_hoc DESC
             LIMIT ? OFFSET ?
@@ -906,7 +906,7 @@ class EnrollmentController extends Controller {
             $r['ngay_nhap_hoc_format'] = date('d/m/Y', strtotime($r['ngay_nhap_hoc']));
         }
 
-        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND trang_thai != 'chua_nhap_hoc' AND trang_thai IS NOT NULL $userCondition");
+        $stmtTotal = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ? AND nh.trang_thai NOT IN ('chua_nhap_hoc', 'da_huy') AND trang_thai IS NOT NULL $userCondition");
         $stmtTotal->execute([$sessionId]);
         $total = $stmtTotal->fetchColumn();
 
