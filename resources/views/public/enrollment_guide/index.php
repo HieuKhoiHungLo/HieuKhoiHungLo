@@ -206,7 +206,7 @@ if ($testHour !== null) {
             <!-- Candidate Data section -->
             <div class="p-6 flex-1 bg-white relative min-h-[300px]">
                 <!-- Initial State (Waiting to scan) -->
-                <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-center justify-center p-8">
+                <div id="waiting-state" class="absolute inset-0 z-10 transition-opacity duration-300 bg-white flex items-end justify-center p-8">
                     <img src="https://tuyensinh.hvu.edu.vn/uploads/media/1786762752_6a7fd600ab089.jpg" alt="Hướng dẫn nhập học" class="max-w-full max-h-full object-contain rounded-xl shadow-sm border border-slate-100">
                 </div>
 
