@@ -1230,4 +1230,73 @@ class EnrollmentController extends Controller {
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, 'danh_sach_chua_xac_nhan_nhap_hoc_' . $sessionId . '.xls', true);
     }
+
+    public function exportUnenrolled() {
+        $sessions = $this->masterData->getSessions();
+        $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
+
+        $stmt = $this->db->prepare("
+            SELECT kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
+                   kq.ma_nganh, n.ten_nganh, kq.diem_xt as diem_xet_tuyen, kq.sdt as dien_thoai_kq, kq.email as email_kq,
+                   kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, 
+                   kq.xac_nhan_bo, kq.xac_nhan_truong, kq.xac_nhan_kinh_phi,
+                   ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet, ts.dien_thoai as dien_thoai_ts, ts.email as email_ts,
+                   tr.ten_truong as ten_truong_thpt,
+                   nh.trang_thai as trang_thai_nhap_hoc
+            FROM ket_qua_trung_tuyen kq
+            LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+            LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+            LEFT JOIN dm_truong_thpt tr ON ts.ma_truong_lop_12 = tr.ma_truong
+            LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = kq.session_id
+            WHERE kq.session_id = ? 
+              AND (nh.id IS NULL OR nh.trang_thai != 'da_nhap_hoc')
+            ORDER BY n.ten_nganh ASC, kq.ho_ten ASC
+        ");
+        $stmt->execute([$sessionId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $data = [];
+        $stt = 1;
+        foreach ($rows as $r) {
+            $ngaySinh = '';
+            if (!empty($r['ngay_sinh'])) {
+                $time = strtotime($r['ngay_sinh']);
+                $ngaySinh = $time ? date('d/m/Y', $time) : $r['ngay_sinh'];
+            }
+
+            $trangThaiTxt = 'Chưa làm thủ tục';
+            if (($r['trang_thai_nhap_hoc'] ?? '') === 'cho_xet_duyet') {
+                $trangThaiTxt = 'Chờ xét duyệt';
+            } elseif (($r['trang_thai_nhap_hoc'] ?? '') === 'da_huy') {
+                $trangThaiTxt = 'Đã hủy';
+            }
+
+            $data[] = [
+                'STT' => $stt++,
+                'Số CCCD' => $r['so_cccd'],
+                'Họ và tên' => mb_strtoupper($r['ho_ten'] ?? '', 'UTF-8'),
+                'Số báo danh' => $r['so_bao_danh'] ?? '',
+                'Ngày sinh' => $ngaySinh,
+                'Giới tính' => $r['gioi_tinh'] ?? '',
+                'Dân tộc' => $r['dan_toc'] ?? '',
+                'Điện thoại' => !empty($r['dien_thoai_ts']) ? $r['dien_thoai_ts'] : ($r['dien_thoai_kq'] ?? ''),
+                'Email' => !empty($r['email_ts']) ? $r['email_ts'] : ($r['email_kq'] ?? ''),
+                'Địa chỉ liên hệ' => $r['dia_chi_chi_tiet'] ?? '',
+                'Trường THPT' => $r['ten_truong_thpt'] ?? '',
+                'Khu vực' => $r['khu_vuc_kq'] ?? '',
+                'Đối tượng' => $r['doi_tuong_kq'] ?? '',
+                'Mã ngành trúng tuyển' => $r['ma_nganh'] ?? '',
+                'Tên ngành' => $r['ten_nganh'] ?? '',
+                'Tổ hợp xét tuyển' => $r['to_hop'] ?? '',
+                'Điểm xét tuyển' => floatval($r['diem_xet_tuyen'] ?? 0),
+                'Xác nhận Bộ' => (!empty($r['xac_nhan_bo']) && $r['xac_nhan_bo'] !== 'false' && $r['xac_nhan_bo'] != '0') ? 'Đã XN' : 'Chưa XN',
+                'Xác nhận Trường' => (!empty($r['xac_nhan_truong']) && $r['xac_nhan_truong'] !== 'false' && $r['xac_nhan_truong'] != '0') ? 'Đã XN' : 'Chưa XN',
+                'Xác nhận Kinh phí' => (!empty($r['xac_nhan_kinh_phi']) && $r['xac_nhan_kinh_phi'] !== 'false' && $r['xac_nhan_kinh_phi'] != '0') ? 'Đã XN' : 'Chưa XN',
+                'Trạng thái nhập học' => $trangThaiTxt,
+            ];
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'danh_sach_chua_nhap_hoc_' . $sessionId . '.xls', true);
+    }
 }

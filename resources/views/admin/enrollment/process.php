@@ -546,6 +546,18 @@ ob_start();
                             <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Chi tiết thí sinh đã hoàn tất</div>
                         </div>
                     </a>
+                    <a :href="'<?= url('/admin/enrollment/export-unenrolled') ?>?session_id=' + sessionId"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;border-top:1px solid #f1f5f9;"
+                       onmouseover="this.style.background='#fffbeb';this.style.color='#b45309';"
+                       onmouseout="this.style.background='transparent';this.style.color='#1e293b';">
+                        <span style="width:24px;height:24px;border-radius:6px;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                            <i class="fas fa-user-slash"></i>
+                        </span>
+                        <div>
+                            <div>Danh sách chưa nhập học</div>
+                            <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Trúng tuyển nhưng chưa nhập học</div>
+                        </div>
+                    </a>
                     <a :href="'<?= url('/admin/enrollment/export-confirmed') ?>?session_id=' + sessionId"
                        style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;border-top:1px solid #f1f5f9;"
                        onmouseover="this.style.background='#eff6ff';this.style.color='#1d4ed8';"

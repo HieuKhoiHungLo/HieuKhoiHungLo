@@ -537,6 +537,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/enrollment/export-confirmed', 'EnrollmentController@exportConfirmed');
     $router->get('/admin/enrollment/export-unconfirmed', 'EnrollmentController@exportUnconfirmed');
     $router->get('/admin/enrollment/export-enrolled', 'EnrollmentController@exportEnrolled');
+    $router->get('/admin/enrollment/export-unenrolled', 'EnrollmentController@exportUnenrolled');
     
     // New Dashboard APIs
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
