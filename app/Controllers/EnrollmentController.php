@@ -472,7 +472,7 @@ class EnrollmentController extends Controller {
                     
                     $isBo = in_array($enrollment['xac_nhan_bo'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_bo']) === 'true' || strtolower($enrollment['xac_nhan_bo']) === 't';
                     $isTruong = in_array($enrollment['xac_nhan_truong'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_truong']) === 'true' || strtolower($enrollment['xac_nhan_truong']) === 't';
-                    $isNopTien = in_array($enrollment['xac_nhan_kinh_phi'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower($enrollment['xac_nhan_kinh_phi']) === 'true' || strtolower($enrollment['xac_nhan_kinh_phi']) === 't';
+                    $isNopTien = in_array($enrollment['da_nop_tien'] ?? $enrollment['xac_nhan_kinh_phi'], [true, 1, '1', 'true', 't', 'T'], true) || strtolower((string)($enrollment['da_nop_tien'] ?? $enrollment['xac_nhan_kinh_phi'])) === 'true' || strtolower((string)($enrollment['da_nop_tien'] ?? $enrollment['xac_nhan_kinh_phi'])) === 't';
 
                     $templateProcessor->setValue('xac_nhan_bo', $isBo ? 'Đã xác nhận' : 'Chưa xác nhận');
                     $templateProcessor->setValue('xac_nhan_truong', $isTruong ? 'Đã xác nhận' : 'Chưa xác nhận');
