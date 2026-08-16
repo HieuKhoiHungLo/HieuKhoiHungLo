@@ -722,7 +722,7 @@ ob_start();
                                         <label style="display:flex;align-items:center;cursor:pointer;gap:6px;margin:0;">
                                             <input type="checkbox" style="accent-color:#2563eb; width:16px; height:16px; cursor:pointer;"
                                                 :checked="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true')" 
-                                                @change="selectedCandidate.xac_nhan_kinh_phi = $event.target.checked; selectedCandidate.so_tien = $event.target.checked ? selectedCandidate.so_tien : 0;">
+                                                @change="selectedCandidate.xac_nhan_kinh_phi = $event.target.checked">
                                             <span style="font-weight:700; width:95px;" :class="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true') ? 'text-green-600' : 'text-red-600'" x-text="(selectedCandidate.xac_nhan_kinh_phi === true || selectedCandidate.xac_nhan_kinh_phi === 1 || selectedCandidate.xac_nhan_kinh_phi === '1' || selectedCandidate.xac_nhan_kinh_phi === 'true') ? 'Đã nộp' : 'Chưa nộp'"></span>
                                         </label>
                                     </div>
@@ -1119,7 +1119,7 @@ document.addEventListener('alpine:init', () => {
             
             const kqBo = (this.selectedCandidate.xac_nhan_bo === true || this.selectedCandidate.xac_nhan_bo === 1 || this.selectedCandidate.xac_nhan_bo === '1' || this.selectedCandidate.xac_nhan_bo === 'true') ? 1 : 0;
             const kqTruong = (this.selectedCandidate.xac_nhan_truong === true || this.selectedCandidate.xac_nhan_truong === 1 || this.selectedCandidate.xac_nhan_truong === '1' || this.selectedCandidate.xac_nhan_truong === 'true') ? 1 : 0;
-            const kqKinhPhi = (this.selectedCandidate.xac_nhan_kinh_phi === true || this.selectedCandidate.xac_nhan_kinh_phi === 1 || this.selectedCandidate.xac_nhan_kinh_phi === '1' || this.selectedCandidate.xac_nhan_kinh_phi === 'true' || parseFloat(this.selectedCandidate.so_tien) > 0) ? 1 : 0;
+            const kqKinhPhi = (this.selectedCandidate.xac_nhan_kinh_phi === true || this.selectedCandidate.xac_nhan_kinh_phi === 1 || this.selectedCandidate.xac_nhan_kinh_phi === '1' || this.selectedCandidate.xac_nhan_kinh_phi === 'true') ? 1 : 0;
             
             payload.append('xac_nhan_bo', kqBo);
             payload.append('xac_nhan_truong', kqTruong);
