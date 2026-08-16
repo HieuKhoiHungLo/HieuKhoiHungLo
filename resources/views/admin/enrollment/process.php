@@ -523,17 +523,68 @@ ob_start();
 
         </div>
 
-        <!-- SESSION SELECTOR -->
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px;">
-            <i class="fas fa-calendar-alt" style="color:#64748b;font-size:13px;"></i>
-            <select id="session-selector" x-model="sessionId" @change="loadAllData()"
-                style="border:none;background:transparent;outline:none;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">
-                <?php foreach ($sessions as $s): ?>
-                    <option value="<?= $s['id'] ?>">
-                        <?= htmlspecialchars($s['ten_dot']) ?> (<?= $s['nam_tuyen_sinh'] ?>)
-                    </option>
-                <?php endforeach; ?>
-            </select>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <!-- EXCEL EXPORT DROPDOWN (TOP BAR) -->
+            <div x-data="{ exportOpen: false }" class="relative" style="position:relative;">
+                <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false"
+                    style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.06);transition:all 0.15s;white-space:nowrap;">
+                    <i class="fas fa-file-excel" style="font-size:13px;"></i>
+                    <span>Xuất Excel</span>
+                    <i class="fas fa-chevron-down" style="font-size:9px;opacity:0.8;margin-left:2px;"></i>
+                </button>
+                <div x-show="exportOpen" x-cloak
+                     style="position:absolute;right:0;top:calc(100% + 6px);width:260px;background:#fff;border-radius:10px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);border:1px solid #e2e8f0;z-index:100;overflow:hidden;padding:4px 0;">
+                    <a :href="'<?= url('/admin/enrollment/export-enrolled') ?>?session_id=' + sessionId"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;"
+                       onmouseover="this.style.background='#f0fdf4';this.style.color='#15803d';"
+                       onmouseout="this.style.background='transparent';this.style.color='#1e293b';">
+                        <span style="width:24px;height:24px;border-radius:6px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                            <i class="fas fa-user-check"></i>
+                        </span>
+                        <div>
+                            <div>Danh sách đã nhập học</div>
+                            <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Chi tiết thí sinh đã hoàn tất</div>
+                        </div>
+                    </a>
+                    <a :href="'<?= url('/admin/enrollment/export-confirmed') ?>?session_id=' + sessionId"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;border-top:1px solid #f1f5f9;"
+                       onmouseover="this.style.background='#eff6ff';this.style.color='#1d4ed8';"
+                       onmouseout="this.style.background='transparent';this.style.color='#1e293b';">
+                        <span style="width:24px;height:24px;border-radius:6px;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                            <i class="fas fa-check-double"></i>
+                        </span>
+                        <div>
+                            <div>Danh sách xác nhận nhập học</div>
+                            <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Đã XN Bộ/Trường/Kinh phí</div>
+                        </div>
+                    </a>
+                    <a :href="'<?= url('/admin/enrollment/export-unconfirmed') ?>?session_id=' + sessionId"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;border-top:1px solid #f1f5f9;"
+                       onmouseover="this.style.background='#fef2f2';this.style.color='#b91c1c';"
+                       onmouseout="this.style.background='transparent';this.style.color='#1e293b';">
+                        <span style="width:24px;height:24px;border-radius:6px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <div>
+                            <div>Danh sách chưa xác nhận</div>
+                            <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Chưa xác nhận nhập học</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- SESSION SELECTOR -->
+            <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:6px 12px;">
+                <i class="fas fa-calendar-alt" style="color:#64748b;font-size:13px;"></i>
+                <select id="session-selector" x-model="sessionId" @change="loadAllData()"
+                    style="border:none;background:transparent;outline:none;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">
+                    <?php foreach ($sessions as $s): ?>
+                        <option value="<?= $s['id'] ?>">
+                            <?= htmlspecialchars($s['ten_dot']) ?> (<?= $s['nam_tuyen_sinh'] ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -840,12 +891,23 @@ ob_start();
                         Tổng <strong x-text="totalEnrolled">0</strong> thí sinh &nbsp;·&nbsp; Trang <span x-text="currentPage"></span>/<span x-text="lastPage"></span>
                     </div>
                 </div>
-                <button @click="loadEnrolledList()" title="Làm mới danh sách" id="btn-refresh-list"
-                    style="width:32px;height:32px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;transition:all 0.15s;"
-                    onmouseover="this.style.color='#2563eb';this.style.borderColor='#93c5fd';"
-                    onmouseout="this.style.color='#64748b';this.style.borderColor='#e2e8f0';">
-                    <i class="fas fa-sync-alt" :class="isLoadingList ? 'fa-spin' : ''" style="font-size:12px;"></i>
-                </button>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <a :href="'<?= url('/admin/enrollment/export-enrolled') ?>?session_id=' + sessionId"
+                       title="Xuất file Excel danh sách đã nhập học"
+                       id="btn-export-enrolled-quick"
+                       style="height:32px;padding:0 10px;border-radius:8px;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#16a34a;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;text-decoration:none;transition:all 0.15s;"
+                       onmouseover="this.style.background='#dcfce7';this.style.borderColor='#86efac';"
+                       onmouseout="this.style.background='#f0fdf4';this.style.borderColor='#bbf7d0';">
+                        <i class="fas fa-file-excel" style="font-size:13px;"></i>
+                        <span>Xuất Excel</span>
+                    </a>
+                    <button @click="loadEnrolledList()" title="Làm mới danh sách" id="btn-refresh-list"
+                        style="width:32px;height:32px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;transition:all 0.15s;"
+                        onmouseover="this.style.color='#2563eb';this.style.borderColor='#93c5fd';"
+                        onmouseout="this.style.color='#64748b';this.style.borderColor='#e2e8f0';">
+                        <i class="fas fa-sync-alt" :class="isLoadingList ? 'fa-spin' : ''" style="font-size:12px;"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- TABLE -->

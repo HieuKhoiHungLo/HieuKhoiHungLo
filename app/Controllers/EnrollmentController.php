@@ -1061,8 +1061,30 @@ class EnrollmentController extends Controller {
         $sessions = $this->masterData->getSessions();
         $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
 
+        // Fetch required documents configured for this session
+        $docStmt = $this->db->prepare("SELECT id, ten_ho_so FROM nhap_hoc_ho_so WHERE session_id = ? ORDER BY thu_tu ASC");
+        $docStmt->execute([$sessionId]);
+        $sessionDocs = $docStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fetch all document values for enrolled students in this session
+        $valStmt = $this->db->prepare("
+            SELECT v.nhap_hoc_id, v.ho_so_id, v.gia_tri, v.ghi_chu
+            FROM nhap_hoc_ho_so_gia_tri v
+            JOIN nhap_hoc nh ON v.nhap_hoc_id = nh.id
+            WHERE nh.session_id = ?
+        ");
+        $valStmt->execute([$sessionId]);
+        $docValues = [];
+        while ($v = $valStmt->fetch(PDO::FETCH_ASSOC)) {
+            $valText = $v['gia_tri'];
+            if (!empty($v['ghi_chu'])) {
+                $valText .= " ({$v['ghi_chu']})";
+            }
+            $docValues[$v['nhap_hoc_id']][$v['ho_so_id']] = $valText;
+        }
+
         $stmt = $this->db->prepare("
-            SELECT nh.ma_phieu, nh.ngay_nhap_hoc, nh.da_nop_tien, nh.so_tien_da_nop, nh.ghi_chu_can_bo,
+            SELECT nh.id as nhap_hoc_id, nh.ma_phieu, nh.ngay_nhap_hoc, nh.da_nop_tien, nh.so_tien_da_nop, nh.ghi_chu_can_bo,
                    kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
                    kq.ma_nganh, n.ten_nganh, kq.diem_xt as diem_xet_tuyen, kq.sdt as dien_thoai_kq, kq.email as email_kq,
                    kq.khu_vuc as khu_vuc_kq, kq.doi_tuong as doi_tuong_kq, kq.to_hop, 
@@ -1106,7 +1128,7 @@ class EnrollmentController extends Controller {
                 $ngayNhapHoc = $time ? date('d/m/Y H:i', $time) : $r['ngay_nhap_hoc'];
             }
 
-            $data[] = [
+            $rowItem = [
                 'STT' => $stt++,
                 'Mã phiếu nhập học' => $r['ma_phieu'] ?? '',
                 'Số CCCD' => $r['so_cccd'],
@@ -1131,9 +1153,17 @@ class EnrollmentController extends Controller {
                 'Ngày nhập học' => $ngayNhapHoc,
                 'Đã nộp kinh phí' => (!empty($r['da_nop_tien']) && $r['da_nop_tien'] !== 'false' && $r['da_nop_tien'] != '0') ? 'Đã nộp' : 'Chưa nộp',
                 'Số tiền đã nộp' => floatval($r['so_tien_da_nop'] ?? 0),
-                'Cán bộ tiếp nhận' => $r['ten_can_bo'] ?? '',
-                'Ghi chú' => $ghiChuKhac,
             ];
+
+            // Add document columns
+            foreach ($sessionDocs as $sd) {
+                $rowItem['Hồ sơ: ' . $sd['ten_ho_so']] = $docValues[$r['nhap_hoc_id']][$sd['id']] ?? 'Chưa nộp';
+            }
+
+            $rowItem['Cán bộ tiếp nhận'] = $r['ten_can_bo'] ?? '';
+            $rowItem['Ghi chú'] = $ghiChuKhac;
+
+            $data[] = $rowItem;
         }
 
         $exportService = new \App\Services\ExportService();
