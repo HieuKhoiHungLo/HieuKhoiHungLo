@@ -86,6 +86,9 @@ class AdmissionResultService {
                 'sotien' => 'sotien',
                 'sotiennop' => 'sotiennop',
                 'sotiendanop' => 'sotiennop',
+                'tiendanop' => 'sotiennop',
+                'tienthu' => 'sotiennop',
+                'sotienthu' => 'sotiennop',
                 'noidung' => 'noidung',
                 'noidungck' => 'noidung',
                 'noidungchuyenkhoan' => 'noidung',
@@ -110,9 +113,17 @@ class AdmissionResultService {
                 'xntruong' => 'xacnhantruong',
                 'trangthaixntruong' => 'xacnhantruong',
                 'nhaphoc' => 'nhaphoc',
+                'danhaphoc' => 'nhaphoc',
                 'trangthainhaphoc' => 'nhaphoc',
+                'xnnhaphoc' => 'nhaphoc',
                 'nopkinhphi' => 'nopkinhphi',
+                'danopkinhphi' => 'nopkinhphi',
                 'trangthainopkinhphi' => 'nopkinhphi',
+                'xacnhankinhphi' => 'nopkinhphi',
+                'xnkp' => 'nopkinhphi',
+                'danoptien' => 'nopkinhphi',
+                'danop' => 'nopkinhphi',
+                'noptien' => 'nopkinhphi',
                 'filegiaybao' => 'filegiaybao',
                 'linkgiaybao' => 'filegiaybao',
                 'anhgiaybao' => 'filegiaybao',
@@ -460,6 +471,7 @@ class AdmissionResultService {
                         $flat[] = $nh['so_tien'];
                     }
                     $sql = sprintf($nhBaseSql, implode(', ', $placeholders));
+                    $this->db->prepare($sql)->execute($flat);
                 }
 
                 // Sync back to ket_qua_trung_tuyen.xac_nhan_kinh_phi to ensure stats and lists match
