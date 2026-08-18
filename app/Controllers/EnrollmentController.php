@@ -1301,8 +1301,8 @@ class EnrollmentController extends Controller {
     }
 
     /**
-     * Xuất dữ liệu làm thẻ ngân hàng cho sinh viên
-     * Cột yêu cầu: STT, Họ Và Tên, CCCD, NGÀY CẤP, NGÀY HẾT HẠN, NƠI CẤP, GIỚI TÍNH, NGÀY SINH, ĐỊA CHỈ, SĐT, MÃ SỐ SV, LỚP, KHOA
+     * Xuất dữ liệu làm thẻ ngân hàng (17 cột tiêu chuẩn)
+     * Cột yêu cầu: STT, Họ Và Tên, CCCD, NGÀY CẤP, NGÀY HẾT HẠN, NƠI CẤP, GIỚI TÍNH, NGÀY SINH, ĐỊA CHỈ, SĐT, EMAIL, MÃ NGÀNH, TÊN NGÀNH, KHÓA HỌC, MÃ SỐ SV, LỚP, KHOA
      */
     public function exportBankCards() {
         $sessions = $this->masterData->getSessions();
@@ -1312,12 +1312,15 @@ class EnrollmentController extends Controller {
         $stmt = $this->db->prepare("
             SELECT nh.id as nhap_hoc_id, nh.ma_phieu, nh.ngay_nhap_hoc, nh.ghi_chu_can_bo,
                    kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
-                   kq.ma_nganh, n.ten_nganh, n.nhom_nganh,
-                   ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet,
+                   kq.ma_nganh, COALESCE(NULLIF(n.ten_nganh, ''), kq.ten_nganh) as ten_nganh, n.nhom_nganh,
+                   kq.ten_khoa, kq.email as email_kq,
+                   ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet, ts.email as email_ts,
                    ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
-                   p.ten_tinh, x.ten_xa
+                   p.ten_tinh, x.ten_xa,
+                   COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            LEFT JOIN dot_tuyen_sinh dt ON nh.session_id = dt.id
             LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
             LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
             LEFT JOIN dm_tinh p ON ts.ma_tinh_thuong_tru = p.ma_tinh
@@ -1334,11 +1337,14 @@ class EnrollmentController extends Controller {
             $stmtFallback = $this->db->prepare("
                 SELECT NULL as nhap_hoc_id, NULL as ma_phieu, NULL as ngay_nhap_hoc, NULL as ghi_chu_can_bo,
                        kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
-                       kq.ma_nganh, n.ten_nganh, n.nhom_nganh,
-                       ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet,
+                       kq.ma_nganh, COALESCE(NULLIF(n.ten_nganh, ''), kq.ten_nganh) as ten_nganh, n.nhom_nganh,
+                       kq.ten_khoa, kq.email as email_kq,
+                       ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet, ts.email as email_ts,
                        ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
-                       p.ten_tinh, x.ten_xa
+                       p.ten_tinh, x.ten_xa,
+                       COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
                 FROM ket_qua_trung_tuyen kq
+                LEFT JOIN dot_tuyen_sinh dt ON kq.session_id = dt.id
                 LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
                 LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
                 LEFT JOIN dm_tinh p ON ts.ma_tinh_thuong_tru = p.ma_tinh
@@ -1411,6 +1417,18 @@ class EnrollmentController extends Controller {
             // SĐT
             $sdt = !empty($r['dien_thoai_ts']) ? (string)$r['dien_thoai_ts'] : (string)($r['dien_thoai_kq'] ?? '');
 
+            // Email
+            $email = !empty($r['email_ts']) ? (string)$r['email_ts'] : (string)($r['email_kq'] ?? '');
+
+            // Mã ngành & Tên ngành
+            $maNganh = (string)($r['ma_nganh'] ?? '');
+            $tenNganh = (string)($r['ten_nganh'] ?? '');
+
+            // Khóa học (K24, 2026-2030...)
+            $namTuyenSinh = intval($r['nam_tuyen_sinh'] ?? 0);
+            $kPrefix = ($namTuyenSinh > 2002) ? ('K' . ($namTuyenSinh - 2002)) : '';
+            $khoaHoc = $extra['khoa_hoc'] ?? (!empty($r['ten_khoa']) ? ($kPrefix ? "$kPrefix ({$r['ten_khoa']})" : $r['ten_khoa']) : $kPrefix);
+
             // Mã số SV
             $mssv = $extra['ma_sinh_vien'] ?? ($extra['mssv'] ?? ($extra['ma_sv'] ?? ''));
 
@@ -1418,7 +1436,7 @@ class EnrollmentController extends Controller {
             $lop = $extra['lop'] ?? ($extra['ten_lop'] ?? '');
 
             // Khoa
-            $khoa = $r['nhom_nganh'] ?? ($r['ten_khoa'] ?? ($r['ten_nganh'] ?? ''));
+            $khoa = $r['nhom_nganh'] ?? '';
 
             $data[] = [
                 'STT'           => $stt++,
@@ -1431,6 +1449,10 @@ class EnrollmentController extends Controller {
                 'NGÀY SINH'     => $ngaySinh,
                 'ĐỊA CHỈ'       => $diaChi,
                 'SĐT'           => $sdt,
+                'EMAIL'         => $email,
+                'MÃ NGÀNH'      => $maNganh,
+                'TÊN NGÀNH'     => $tenNganh,
+                'KHÓA HỌC'      => $khoaHoc,
                 'MÃ SỐ SV'      => $mssv,
                 'LỚP'           => $lop,
                 'KHOA'          => $khoa,
