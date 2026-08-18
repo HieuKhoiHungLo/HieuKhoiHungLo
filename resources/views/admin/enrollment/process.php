@@ -602,7 +602,7 @@ ob_start();
                             <i class="fas fa-id-card"></i>
                         </span>
                         <div>
-                            <div style="color:#1d4ed8;font-weight:700;">Xuất ảnh CCCD (Mặt 1)</div>
+                            <div style="color:#1d4ed8;font-weight:700;">Xuất ảnh CCCD (2 mặt)</div>
                             <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Tải file ZIP ảnh CCCD thí sinh</div>
                         </div>
                     </a>

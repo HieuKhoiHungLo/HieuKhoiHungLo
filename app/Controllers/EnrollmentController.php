@@ -1467,7 +1467,7 @@ class EnrollmentController extends Controller {
     }
 
     /**
-     * Xuất file ZIP chứa ảnh mặt 1 CCCD của thí sinh đã có trong hệ thống
+     * Xuất file ZIP chứa ảnh CCCD mặt trước + mặt sau của thí sinh đã có trong hệ thống
      */
     public function exportCccdPhotos() {
         if (!class_exists('\ZipArchive')) {
@@ -1481,16 +1481,18 @@ class EnrollmentController extends Controller {
         $sessions = $this->masterData->getSessions();
         $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
 
-        // 1. Lấy danh sách thí sinh trong đợt kèm ảnh CCCD mặt trước
+        // 1. Lấy danh sách thí sinh trong đợt kèm ảnh CCCD mặt trước + sau
         $stmt = $this->db->prepare("
             SELECT kq.so_cccd, kq.ho_ten, 
-                   COALESCE(NULLIF(ts.anh_cccd_truoc, ''), NULLIF(ts_alt.anh_cccd_truoc, '')) as anh_cccd_truoc
+                   COALESCE(NULLIF(ts.anh_cccd_truoc, ''), NULLIF(ts_alt.anh_cccd_truoc, '')) as anh_cccd_truoc,
+                   COALESCE(NULLIF(ts.anh_cccd_sau, ''), NULLIF(ts_alt.anh_cccd_sau, '')) as anh_cccd_sau
             FROM ket_qua_trung_tuyen kq
             LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
             LEFT JOIN (
-                SELECT DISTINCT ON (so_cccd) so_cccd, anh_cccd_truoc
+                SELECT DISTINCT ON (so_cccd) so_cccd, anh_cccd_truoc, anh_cccd_sau
                 FROM thi_sinh
-                WHERE anh_cccd_truoc IS NOT NULL AND anh_cccd_truoc != ''
+                WHERE (anh_cccd_truoc IS NOT NULL AND anh_cccd_truoc != '')
+                   OR (anh_cccd_sau IS NOT NULL AND anh_cccd_sau != '')
                 ORDER BY so_cccd, id DESC
             ) ts_alt ON kq.so_cccd = ts_alt.so_cccd
             WHERE kq.session_id = ?
@@ -1509,30 +1511,45 @@ class EnrollmentController extends Controller {
             die('Không có dữ liệu thí sinh trong đợt xét tuyển này.');
         }
 
-        // Lọc các thí sinh có ảnh CCCD
+        // Lọc các thí sinh có ảnh CCCD (mặt trước hoặc mặt sau)
         $itemsWithPhoto = [];
         foreach ($candidates as $c) {
-            $url = trim($c['anh_cccd_truoc'] ?? '');
-            if (!empty($url)) {
+            $urlTruoc = trim($c['anh_cccd_truoc'] ?? '');
+            $urlSau   = trim($c['anh_cccd_sau'] ?? '');
+
+            if (!empty($urlTruoc)) {
                 $itemsWithPhoto[] = [
                     'so_cccd' => $c['so_cccd'],
                     'ho_ten'  => $c['ho_ten'],
-                    'url'     => $url
+                    'url'     => $urlTruoc,
+                    'side'    => 'mat_truoc'
+                ];
+            }
+            if (!empty($urlSau)) {
+                $itemsWithPhoto[] = [
+                    'so_cccd' => $c['so_cccd'],
+                    'ho_ten'  => $c['ho_ten'],
+                    'url'     => $urlSau,
+                    'side'    => 'mat_sau'
                 ];
             }
         }
 
         if (empty($itemsWithPhoto)) {
-            die('Không tìm thấy ảnh mặt 1 CCCD của thí sinh nào trong đợt này.');
+            die('Không tìm thấy ảnh CCCD của thí sinh nào trong đợt này.');
         }
 
-        $zipFileName = 'anh_cccd_mat_1_dot_' . $sessionId . '_' . date('Ymd_His') . '.zip';
+        $zipFileName = 'anh_cccd_dot_' . $sessionId . '_' . date('Ymd_His') . '.zip';
         $zipFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
 
         $zip = new \ZipArchive();
         if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             die('Không thể tạo tệp nén ZIP trên máy chủ.');
         }
+
+        // Tạo 2 thư mục con trong ZIP
+        $zip->addEmptyDir('mat_truoc');
+        $zip->addEmptyDir('mat_sau');
 
         $publicPath = __DIR__ . '/../../public';
         $addedFiles = 0;
@@ -1553,7 +1570,7 @@ class EnrollmentController extends Controller {
             $fullPath = $publicPath . (strpos($item['url'], '/') === 0 ? '' : '/') . $item['url'];
             if (file_exists($fullPath) && is_file($fullPath)) {
                 $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg');
-                $zipName = "{$item['so_cccd']}.{$ext}";
+                $zipName = "{$item['side']}/{$item['so_cccd']}.{$ext}";
                 $zip->addFile($fullPath, $zipName);
                 $addedFiles++;
             }
@@ -1561,11 +1578,11 @@ class EnrollmentController extends Controller {
 
         // Xử lý tệp từ xa (Google Drive / HTTP) bằng curl_multi tải nhanh theo lô
         if (!empty($remoteItems)) {
-            $batchSize = 80; // Mỗi lô 80 ảnh cho tốc độ tối ưu
+            $batchSize = 80;
             $chunks = array_chunk($remoteItems, $batchSize);
 
             foreach ($chunks as $batchIdx => $chunk) {
-                set_time_limit(120); // Reset PHP timeout mỗi lô
+                set_time_limit(120);
                 $urls = [];
                 foreach ($chunk as $idx => $it) {
                     $urls[$idx] = $this->getCccdFastDownloadUrl($it['url']);
@@ -1575,8 +1592,7 @@ class EnrollmentController extends Controller {
                 foreach ($contents as $idx => $content) {
                     if (!$content) continue;
                     $it = $chunk[$idx];
-                    $ext = 'jpg';
-                    $zipName = "{$it['so_cccd']}.{$ext}";
+                    $zipName = "{$it['side']}/{$it['so_cccd']}.jpg";
                     $zip->addFromString($zipName, $content);
                     $addedFiles++;
                 }
