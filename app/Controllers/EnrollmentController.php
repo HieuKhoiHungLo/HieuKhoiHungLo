@@ -1465,4 +1465,213 @@ class EnrollmentController extends Controller {
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, 'du_lieu_lam_the_ngan_hang_' . $sessionId . '.xls', true);
     }
+
+    /**
+     * Xuất file ZIP chứa ảnh mặt 1 CCCD của thí sinh đã có trong hệ thống
+     */
+    public function exportCccdPhotos() {
+        if (!class_exists('\ZipArchive')) {
+            die('Máy chủ chưa cài đặt tiện ích mở rộng ZipArchive PHP.');
+        }
+
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '1024M');
+
+        $sessions = $this->masterData->getSessions();
+        $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
+
+        // 1. Lấy danh sách thí sinh trong đợt kèm ảnh CCCD mặt trước
+        $stmt = $this->db->prepare("
+            SELECT kq.so_cccd, kq.ho_ten, 
+                   COALESCE(NULLIF(ts.anh_cccd_truoc, ''), NULLIF(ts_alt.anh_cccd_truoc, '')) as anh_cccd_truoc
+            FROM ket_qua_trung_tuyen kq
+            LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+            LEFT JOIN (
+                SELECT DISTINCT ON (so_cccd) so_cccd, anh_cccd_truoc
+                FROM thi_sinh
+                WHERE anh_cccd_truoc IS NOT NULL AND anh_cccd_truoc != ''
+                ORDER BY so_cccd, id DESC
+            ) ts_alt ON kq.so_cccd = ts_alt.so_cccd
+            WHERE kq.session_id = ?
+              AND (
+                  EXISTS (SELECT 1 FROM nhap_hoc nh WHERE nh.session_id = kq.session_id AND nh.so_cccd = kq.so_cccd AND nh.trang_thai = 'da_nhap_hoc')
+                  OR kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1'
+                  OR kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1'
+                  OR kq.xac_nhan_kinh_phi = true OR kq.xac_nhan_kinh_phi::text = '1'
+              )
+            ORDER BY kq.ho_ten ASC
+        ");
+        $stmt->execute([$sessionId]);
+        $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($candidates)) {
+            die('Không có dữ liệu thí sinh trong đợt xét tuyển này.');
+        }
+
+        // Lọc các thí sinh có ảnh CCCD
+        $itemsWithPhoto = [];
+        foreach ($candidates as $c) {
+            $url = trim($c['anh_cccd_truoc'] ?? '');
+            if (!empty($url)) {
+                $itemsWithPhoto[] = [
+                    'so_cccd' => $c['so_cccd'],
+                    'ho_ten'  => $c['ho_ten'],
+                    'url'     => $url
+                ];
+            }
+        }
+
+        if (empty($itemsWithPhoto)) {
+            die('Không tìm thấy ảnh mặt 1 CCCD của thí sinh nào trong đợt này.');
+        }
+
+        $zipFileName = 'anh_cccd_mat_1_dot_' . $sessionId . '_' . date('Ymd_His') . '.zip';
+        $zipFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            die('Không thể tạo tệp nén ZIP trên máy chủ.');
+        }
+
+        $publicPath = __DIR__ . '/../../public';
+        $addedFiles = 0;
+        $remoteItems = [];
+        $localItems = [];
+
+        foreach ($itemsWithPhoto as $item) {
+            $path = $item['url'];
+            if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+                $remoteItems[] = $item;
+            } else {
+                $localItems[] = $item;
+            }
+        }
+
+        // Xử lý tệp cục bộ
+        foreach ($localItems as $item) {
+            $fullPath = $publicPath . (strpos($item['url'], '/') === 0 ? '' : '/') . $item['url'];
+            if (file_exists($fullPath) && is_file($fullPath)) {
+                $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpg');
+                $zipName = "{$item['so_cccd']}.{$ext}";
+                $zip->addFile($fullPath, $zipName);
+                $addedFiles++;
+            }
+        }
+
+        // Xử lý tệp từ xa (Google Drive / HTTP) bằng curl_multi tải nhanh theo lô
+        if (!empty($remoteItems)) {
+            $batchSize = 30; // Mỗi lô 30 ảnh
+            $chunks = array_chunk($remoteItems, $batchSize);
+
+            foreach ($chunks as $chunk) {
+                $urls = [];
+                foreach ($chunk as $idx => $it) {
+                    $urls[$idx] = $this->getCccdFastDownloadUrl($it['url']);
+                }
+
+                $contents = $this->fetchCccdUrlsParallel($urls);
+                foreach ($contents as $idx => $content) {
+                    if (!$content) continue;
+                    $it = $chunk[$idx];
+                    $ext = 'jpg';
+                    $zipName = "{$it['so_cccd']}.{$ext}";
+                    $zip->addFromString($zipName, $content);
+                    $addedFiles++;
+                }
+            }
+        }
+
+        $zip->close();
+
+        if ($addedFiles === 0) {
+            @unlink($zipFilePath);
+            die('Không thể tải hoặc nén được tệp ảnh CCCD nào.');
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $zipFileName . '"');
+        header('Content-Length: ' . filesize($zipFilePath));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($zipFilePath);
+        @unlink($zipFilePath);
+        exit;
+    }
+
+    /**
+     * Chuyển link Google Drive sang định dạng tải nhanh chất lượng cao
+     */
+    private function getCccdFastDownloadUrl($originalUrl): string {
+        if (strpos($originalUrl, 'drive.google.com') !== false) {
+            $id = '';
+            if (preg_match('/d\/([a-zA-Z0-9_-]+)/', $originalUrl, $matches)) {
+                $id = $matches[1];
+            } elseif (preg_match('/id=([a-zA-Z0-9_-]+)/', $originalUrl, $matches)) {
+                $id = $matches[1];
+            }
+            if ($id) {
+                return 'https://drive.google.com/thumbnail?id=' . $id . '&sz=w1600';
+            }
+        }
+        return $originalUrl;
+    }
+
+    /**
+     * Tải song song nhiều ảnh từ xa
+     */
+    private function fetchCccdUrlsParallel(array $urls): array {
+        if (!function_exists('curl_multi_init')) {
+            $results = [];
+            foreach ($urls as $key => $url) {
+                $results[$key] = @file_get_contents($url);
+            }
+            return $results;
+        }
+
+        $mh = curl_multi_init();
+        $handles = [];
+        $results = [];
+
+        foreach ($urls as $key => $url) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+            curl_setopt($ch, CURLOPT_ENCODING, '');
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdmissionsPortal/1.0');
+            curl_multi_add_handle($mh, $ch);
+            $handles[$key] = $ch;
+        }
+
+        $active = null;
+        do {
+            $mrc = curl_multi_exec($mh, $active);
+        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+
+        while ($active && $mrc == CURLM_OK) {
+            if (curl_multi_select($mh) === -1) {
+                usleep(10000);
+            }
+            do {
+                $mrc = curl_multi_exec($mh, $active);
+            } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+        }
+
+        foreach ($handles as $key => $ch) {
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($code === 200) {
+                $results[$key] = curl_multi_getcontent($ch);
+            } else {
+                $results[$key] = null;
+            }
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($mh);
+
+        return $results;
+    }
 }

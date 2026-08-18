@@ -540,6 +540,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/enrollment/export-enrolled', 'EnrollmentController@exportEnrolled');
     $router->get('/admin/enrollment/export-unenrolled', 'EnrollmentController@exportUnenrolled');
     $router->get('/admin/enrollment/export-bank-cards', 'EnrollmentController@exportBankCards');
+    $router->get('/admin/enrollment/export-cccd-photos', 'EnrollmentController@exportCccdPhotos');
     
     // New Dashboard APIs
     $router->get('/admin/enrollment/api/stats', 'EnrollmentController@apiStats');
