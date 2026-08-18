@@ -30,7 +30,7 @@
                                         <label class="flex items-center cursor-pointer scale-75 origin-right mr-[-10px] gap-1" title="Nhập điểm thi THPT">
                                             <span class="text-[9px] text-slate-400 font-normal">Có điểm:</span>
                                             <div class="relative">
-                                                <input type="checkbox" name="has_scores" value="1" <?= $hasScores ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
+                                                <input type="checkbox" id="has_scores_checkbox" name="has_scores" value="1" <?= $hasScores ? 'checked' : '' ?> class="sr-only peer" onchange="toggleThptInputs(this.checked)">
                                                 <div class="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#0066FF]"></div>
                                             </div>
                                         </label>
@@ -39,7 +39,7 @@
                                 <th style="padding: 5px 6px; text-align: center; font-weight: 700; font-size: 10px; color:#000; width: 120px;">Điểm số</th>
                             </tr>
                         </thead>
-                        <tbody id="thpt_input_container" class="<?= $hasScores ? '' : 'opacity-40 pointer-events-none' ?> transition-all duration-300">
+                        <tbody id="thpt_input_container" class="transition-all duration-300">
                             <?php 
                                 $thptSubjects = [
                                     'toan'=>'Toán học', 'van'=>'Ngữ văn', 'ly'=>'Vật lý', 'hoa'=>'Hóa học', 
@@ -115,13 +115,26 @@
 
 <script>
 function toggleThptInputs(checked) {
-    const container = document.getElementById('thpt_input_container');
-    if (checked) {
-        container.classList.remove('opacity-40', 'pointer-events-none');
-    } else {
-        container.classList.add('opacity-40', 'pointer-events-none');
+    const inputs = document.querySelectorAll('#thpt_input_container input[type="number"]');
+    if (!checked) {
+        // If user explicitly unchecks "Có điểm", clear or dim
+        inputs.forEach(input => {
+            // Optional: keep values or reset
+        });
     }
 }
+
+// Auto-check "Có điểm" toggle whenever admin types a score
+document.querySelectorAll('#thpt_input_container input[type="number"]').forEach(input => {
+    input.addEventListener('input', function() {
+        if (this.value !== '') {
+            const chk = document.getElementById('has_scores_checkbox');
+            if (chk && !chk.checked) {
+                chk.checked = true;
+            }
+        }
+    });
+});
 
 function previewThptCert(input) {
     const preview = document.getElementById('preview_thpt_cert');

@@ -114,12 +114,13 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
+            $sessionScope = $sessionId ? " AND hs_st.dot_tuyen_sinh_id = " . (int)$sessionId : "";
             if ($status === 'Đã duyệt') {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
             } elseif ($status === 'Chờ duyệt') {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
             } else {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND hs_st.trang_thai ILIKE ?)";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND hs_st.trang_thai ILIKE ?)";
                 $params[] = "%$status%";
             }
         }
@@ -500,12 +501,13 @@ class ThiSinh extends Model {
         }
 
         if (!empty($status)) {
+            $sessionScope = $sessionId ? " AND hs_st.dot_tuyen_sinh_id = " . (int)$sessionId : "";
             if ($status === 'Đã duyệt') {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND (hs_st.trang_thai ILIKE 'Đã duyệt%' OR hs_st.trang_thai ILIKE 'approved%' OR hs_st.trang_thai ILIKE 'DaDuyet%'))";
             } elseif ($status === 'Chờ duyệt') {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND (hs_st.trang_thai ILIKE 'Chờ duyệt%' OR hs_st.trang_thai ILIKE 'pending%' OR hs_st.trang_thai ILIKE 'ChoDuyet%'))";
             } else {
-                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL AND hs_st.trang_thai ILIKE ?)";
+                $sql .= " AND EXISTS (SELECT 1 FROM ho_so_xet_tuyen hs_st WHERE hs_st.so_cccd = t.so_cccd AND hs_st.deleted_at IS NULL$sessionScope AND hs_st.trang_thai ILIKE ?)";
                 $params[] = "%$status%";
             }
         }

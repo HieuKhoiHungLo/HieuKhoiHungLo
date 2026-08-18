@@ -145,6 +145,40 @@ class ThiSinhRepository
         return $this->model->findByEmail($email);
     }
 
+    /**
+     * Kiểm tra xem điểm của thí sinh có bị khóa chỉnh sửa hay không
+     * (Khóa khi: đợt xét tuyển có khoa_chinh_sua_diem=true hoặc la_du_lieu_bo=true,
+     * hoặc thí sinh này đã từng nộp hồ sơ ở đợt có dữ liệu Bộ la_du_lieu_bo=true)
+     */
+    public function isScoreLockedForCandidate($cccd, $sessionId = null)
+    {
+        if (empty($cccd)) return false;
+
+        // 1. Kiểm tra đợt tuyển sinh cụ thể / hiện tại
+        if ($sessionId) {
+            $stmt = $this->db->prepare("SELECT khoa_chinh_sua_diem, la_du_lieu_bo FROM dot_tuyen_sinh WHERE id = ?");
+            $stmt->execute([(int)$sessionId]);
+            $session = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($session && (!empty($session['khoa_chinh_sua_diem']) || !empty($session['la_du_lieu_bo']))) {
+                return true;
+            }
+        }
+
+        // 2. Kiểm tra xem thí sinh có hồ sơ ở bất kỳ đợt nào có la_du_lieu_bo = true không
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 1 FROM ho_so_xet_tuyen hs
+                JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
+                WHERE hs.so_cccd = ? AND (dt.la_du_lieu_bo = true OR dt.khoa_chinh_sua_diem = true)
+                LIMIT 1
+            ");
+            $stmt->execute([$cccd]);
+            return (bool) $stmt->fetchColumn();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
     public function create(array $data)
     {
         return $this->model->create($data);

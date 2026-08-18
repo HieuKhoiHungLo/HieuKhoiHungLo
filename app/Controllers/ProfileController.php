@@ -233,6 +233,8 @@ class ProfileController extends Controller
     {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
+        $isScoreLocked = $appStatus['isScoreLocked'] ?? false;
+        $isMinistryData = $appStatus['isMinistryData'] ?? false;
 
         $academicModel = new \App\Models\AcademicRecord();
         $masterData = new \App\Models\MasterData();
@@ -274,6 +276,12 @@ class ProfileController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($isLocked) {
                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
+
+            if ($isScoreLocked) {
+                // If score is locked, do not allow changing academic scores, skip to step 3
+                $this->redirect(url('/profile/step3'));
                 return;
             }
 
@@ -348,6 +356,8 @@ class ProfileController extends Controller
                     'subjects' => $subjects,
                     'error' => 'Lỗi lưu học bạ.',
                     'isLocked' => $isLocked,
+                    'isScoreLocked' => $isScoreLocked,
+                    'isMinistryData' => $isMinistryData,
                     'editRequestPending' => $appStatus['editRequestPending'],
                     'applicationStatus' => $appStatus['status'],
                     'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
@@ -360,6 +370,8 @@ class ProfileController extends Controller
                 'records' => $records,
                 'subjects' => $subjects,
                 'isLocked' => $isLocked,
+                'isScoreLocked' => $isScoreLocked,
+                'isMinistryData' => $isMinistryData,
                 'editRequestPending' => $appStatus['editRequestPending'],
                 'applicationStatus' => $appStatus['status'],
                 'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
@@ -457,6 +469,8 @@ class ProfileController extends Controller
     {
         $appStatus = $this->getApplicationStatus();
         $isLocked = $appStatus['isLocked'];
+        $isScoreLocked = $appStatus['isScoreLocked'] ?? false;
+        $isMinistryData = $appStatus['isMinistryData'] ?? false;
 
         $masterData = new \App\Models\MasterData();
         $enableTHPT = $masterData->getSetting('enable_thpt_step');
@@ -472,6 +486,12 @@ class ProfileController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($isLocked) {
                 $this->view('application/error', ['error' => 'Hồ sơ đã được duyệt. Bạn không thể chỉnh sửa.']);
+                return;
+            }
+
+            if ($isScoreLocked) {
+                // If score is locked, do not allow changing THPT scores, skip to step 5
+                $this->redirect(url('/profile/step5'));
                 return;
             }
 
@@ -532,6 +552,8 @@ class ProfileController extends Controller
                     'subjects' => $subjects, // Add missing subjects var logic 
                     'error' => 'Lỗi lưu thông tin.',
                     'isLocked' => $isLocked,
+                    'isScoreLocked' => $isScoreLocked,
+                    'isMinistryData' => $isMinistryData,
                     'editRequestPending' => $appStatus['editRequestPending'],
                     'applicationStatus' => $appStatus['status'],
                     'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,
@@ -544,6 +566,8 @@ class ProfileController extends Controller
                 'scores' => $scores,
                 'subjects' => $subjects, // Add missing subjects var logic
                 'isLocked' => $isLocked,
+                'isScoreLocked' => $isScoreLocked,
+                'isMinistryData' => $isMinistryData,
                 'editRequestPending' => $appStatus['editRequestPending'],
                 'applicationStatus' => $appStatus['status'],
                 'isSessionClosed' => $appStatus['isSessionClosed'] ?? false,

@@ -39,11 +39,13 @@ class VirtualFilterService {
 
             // Bước 2: Lấy tất cả nguyện vọng CỦA ĐỢT NÀY kèm điểm từ bảng summary
             // Sửa lỗi: Cần lấy thêm `trang_thai_do` để loại bỏ thí sinh không đạt ngưỡng học lực/ngành (SP)
+            // Chỉ lấy nguyện vọng có trạng thái ĐÃ DUYỆT (đồng bộ với Review Management)
             $stmtGetAll = $this->db->prepare("
                 SELECT nv.id as nv_id, nv.so_cccd, nv.ma_nganh, nv.thu_tu_nguyen_vong, nv.thu_tu_nv_bo, cs.diem_xet_tuyen, cs.trang_thai_do 
                 FROM nguyen_vong nv
                 JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 WHERE nv.dot_tuyen_sinh_id = ?
+                AND (nv.trang_thai IN ('DaDuyet', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')
                 ORDER BY nv.so_cccd ASC, COALESCE(nv.thu_tu_nv_bo, nv.thu_tu_nguyen_vong) ASC
             ");
             $stmtGetAll->execute([$batchId]);
@@ -336,7 +338,7 @@ class VirtualFilterService {
                 $this->db->exec("CREATE INDEX IF NOT EXISTS idx_hoso_cccd_dot ON ho_so_xet_tuyen(so_cccd, dot_tuyen_sinh_id)");
             } catch (\Exception $e) { /* Bỏ qua nếu user không đủ quyền admin */ }
 
-            // 2. Query 1: Cập nhật sang Đã duyệt (Dùng `UPDATE ... FROM` để ép Postgres sử dụng Hash Join thần tốc)
+            // 2. Query 1: Cập nhật sang Đã duyệt (chỉ hồ sơ thực sự "Đã duyệt", không tính "Yêu cầu sửa")
             $sqlSetDaDuyet = "
                 UPDATE nguyen_vong nv
                 SET trang_thai = 'DaDuyet'
@@ -344,12 +346,12 @@ class VirtualFilterService {
                 WHERE nv.dot_tuyen_sinh_id = ?
                 AND nv.ho_so_id = hs.id 
                 AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id
-                AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet', 'Yêu cầu sửa') OR hs.trang_thai LIKE '%Đã duyệt%')
+                AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 AND (nv.trang_thai IS NULL OR nv.trang_thai <> 'DaDuyet')
             ";
             $this->db->prepare($sqlSetDaDuyet)->execute([(int)$batchId]);
 
-            // 3. Query 2: Giáng cấp hồ sơ lỗi/chưa duyệt sang Chờ Duyệt (Dùng Anti-Join bằng NOT EXISTS)
+            // 3. Query 2: Giáng cấp hồ sơ lỗi/chưa duyệt/yêu cầu sửa sang Chờ Duyệt
             $sqlSetChoDuyet = "
                 UPDATE nguyen_vong nv
                 SET trang_thai = 'ChoDuyet'
@@ -358,7 +360,7 @@ class VirtualFilterService {
                 AND NOT EXISTS (
                     SELECT 1 FROM ho_so_xet_tuyen hs 
                     WHERE hs.id = nv.ho_so_id AND hs.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id
-                    AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet', 'Yêu cầu sửa') OR hs.trang_thai LIKE '%Đã duyệt%')
+                    AND (hs.trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet') OR hs.trang_thai LIKE '%Đã duyệt%')
                 )
             ";
             $this->db->prepare($sqlSetChoDuyet)->execute([(int)$batchId]);

@@ -1305,6 +1305,12 @@ class CandidateController extends Controller
                     }
 
                 case 'academic':
+                    $sessionCheckId = $_POST['session_id'] ?? null;
+                    if ($this->thiSinhRepo->isScoreLockedForCandidate($cccd, $sessionCheckId)) {
+                        $this->json(['success' => false, 'error' => 'Điểm học bạ của thí sinh đã bị khóa (Dữ liệu Bộ GD&ĐT hoặc Đợt tuyển sinh đã khóa chỉnh sửa điểm).']);
+                        return;
+                    }
+
                     $academicRepo = new \App\Repositories\AcademicRepository();
                     $hasAcademicFiles = false;
                     foreach ($_FILES as $key => $file) {
@@ -1430,18 +1436,29 @@ class CandidateController extends Controller
                     break;
 
                 case 'thpt':
+                    $sessionCheckId = $_POST['session_id'] ?? null;
+                    if ($this->thiSinhRepo->isScoreLockedForCandidate($cccd, $sessionCheckId)) {
+                        $this->json(['success' => false, 'error' => 'Điểm thi THPT của thí sinh đã bị khóa (Dữ liệu Bộ GD&ĐT hoặc Đợt tuyển sinh đã khóa chỉnh sửa điểm).']);
+                        return;
+                    }
+
                     // THPT Scores Update
                     $fields = ['toan', 'van', 'ly', 'hoa', 'sinh', 'su', 'dia', 'gdcd', 'tieng_anh', 'tieng_trung', 'ktpl', 'tin_hoc', 'cnnn', 'diem_xet_tot_nghiep'];
                     $scores = [];
 
+                    $hasAnyScore = false;
                     // Review.php uses thpt_ prefix for these inputs
                     foreach ($fields as $f) {
                         $key = "thpt_$f";
                         if (isset($_POST[$key])) {
-                            $scores[$f] = $_POST[$key] !== '' ? (float)$_POST[$key] : null;
+                            $val = $_POST[$key] !== '' ? (float)$_POST[$key] : null;
+                            $scores[$f] = $val;
+                            if ($val !== null) {
+                                $hasAnyScore = true;
+                            }
                         }
                     }
-                    $scores['da_co_diem'] = ($_POST['has_scores'] ?? '0') === '1';
+                    $scores['da_co_diem'] = (($_POST['has_scores'] ?? '0') === '1') || $hasAnyScore;
 
                     // Handle File Upload
                     if (!empty($_FILES['thpt_file_evidence']['name'])) {

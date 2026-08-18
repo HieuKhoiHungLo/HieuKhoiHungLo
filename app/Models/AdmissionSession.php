@@ -86,6 +86,20 @@ class AdmissionSession extends \App\Core\Model {
         $session = $this->find($id);
         return $session && !empty($session['is_locked']);
     }
+
+    // Check if score editing is locked for a session
+    public function isScoreLocked($id) {
+        if (!$id) return false;
+        $session = $this->find($id);
+        return $session && (!empty($session['khoa_chinh_sua_diem']) || !empty($session['la_du_lieu_bo']));
+    }
+
+    // Check if a session uses Ministry data
+    public function isMinistryData($id) {
+        if (!$id) return false;
+        $session = $this->find($id);
+        return $session && !empty($session['la_du_lieu_bo']);
+    }
     
     public function getAll() {
         $sql = "

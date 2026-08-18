@@ -147,6 +147,8 @@ class Controller
         $editRequestPending = false;
         $isSessionClosed = false;
         $sessionName = '';
+        $isScoreLocked = false;
+        $isMinistryData = false;
 
         if ($activeSession) {
             $app = $applicationModel->findByCCCDAndSession($_SESSION['cccd'], $activeSession['id']);
@@ -160,11 +162,18 @@ class Controller
             $isExpiredSession = strtotime($activeSession['ngay_ket_thuc']) < time();
             $isSessionClosed = $isLockedSession || $isExpiredSession;
             $sessionName = $activeSession['ten_dot'] ?? '';
+
+            // Check if score editing is locked for this session or candidate has ministry data
+            $thiSinhRepo = new \App\Repositories\ThiSinhRepository();
+            $isScoreLocked = $thiSinhRepo->isScoreLockedForCandidate($_SESSION['cccd'], $activeSession['id']);
+            $isMinistryData = !empty($activeSession['la_du_lieu_bo']);
         }
 
         $result = [
             'status' => $status,
             'isLocked' => $isLocked,
+            'isScoreLocked' => $isScoreLocked,
+            'isMinistryData' => $isMinistryData,
             'editRequestPending' => $editRequestPending,
             'isSessionClosed' => $isSessionClosed,
             'sessionName' => $sessionName

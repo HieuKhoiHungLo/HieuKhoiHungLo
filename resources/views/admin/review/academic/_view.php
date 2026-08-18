@@ -111,10 +111,16 @@
                             </label>
                         </div>
                     </div>
-                    <button type="button" onclick="toggleEdit('academic')"
-                        class="px-4 py-1.5 bg-white text-[#0066FF] border border-[#0066FF]/20 rounded-xl shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-                        <i class="fas fa-edit"></i> Sửa thông tin
-                    </button>
+                    <?php if (!empty($isScoreLocked)): ?>
+                        <span class="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold flex items-center gap-1.5" title="Đợt này đã khóa chỉnh sửa điểm hoặc hồ sơ có điểm từ Bộ">
+                            <i class="fas fa-lock text-slate-400"></i> Đã khóa điểm
+                        </span>
+                    <?php else: ?>
+                        <button type="button" onclick="toggleEdit('academic')"
+                            class="px-4 py-1.5 bg-white text-[#0066FF] border border-[#0066FF]/20 rounded-xl shadow-sm hover:bg-[#0066FF] hover:text-white transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                            <i class="fas fa-edit"></i> Sửa thông tin
+                        </button>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Lý do từ chối -->

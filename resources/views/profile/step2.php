@@ -180,7 +180,19 @@ $getVal = function ($grade, $field) use ($records) {
                     </div>
                 <?php endif; ?>
 
-                <fieldset <?= (!empty($isLocked)) ? 'disabled' : '' ?> class="group/locked contents">
+                <?php if (!empty($isScoreLocked)): ?>
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-xl text-indigo-800" role="alert">
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt text-indigo-600 text-xl mr-3 flex-shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-bold">Dữ liệu điểm học bạ đã được đồng bộ từ Bộ GD&ĐT (hoặc đã khóa chỉnh sửa).</p>
+                                <p class="text-xs text-indigo-600 mt-0.5">Điểm học bạ của bạn được bảo lưu chính thức theo đợt xét tuyển và không thể tự chỉnh sửa.</p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <fieldset <?= (!empty($isLocked) || !empty($isScoreLocked)) ? 'disabled' : '' ?> class="group/locked contents">
 
                     <div class="bg-white border text-center p-5 rounded-lg mb-6 shadow-sm border-gray-200">
                         <h3 class="text-[15px] font-bold text-gray-800 mb-4 uppercase tracking-wide">Bạn đã có Điểm trung bình cả năm Lớp 12 chưa?</h3>

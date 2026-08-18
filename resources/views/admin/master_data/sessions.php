@@ -65,24 +65,36 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-6">
-                                    <?php if ($session['kich_hoat']): ?>
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-100 text-amber-700 uppercase tracking-wider">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
-                                            Đang kích hoạt
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-400 uppercase tracking-wider">
-                                            Không kích hoạt
-                                        </span>
-                                    <?php endif; ?>
-                                    
-                                    <?php if (!empty($session['is_locked'])): ?>
-                                        <div class="mt-2">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-wider">
-                                                <i class="fas fa-lock mr-1"></i> Đã khóa
+                                    <div class="flex flex-wrap gap-1.5 items-center">
+                                        <?php if ($session['kich_hoat']): ?>
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-100 text-amber-700 uppercase tracking-wider">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
+                                                Kích hoạt
                                             </span>
-                                        </div>
-                                    <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-400 uppercase tracking-wider">
+                                                Tắt
+                                            </span>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!empty($session['la_du_lieu_bo'])): ?>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black bg-blue-100 text-blue-800 uppercase tracking-wider" title="Đợt sử dụng dữ liệu chính thức từ Bộ GD&ĐT">
+                                                <i class="fas fa-university mr-1"></i> Dữ liệu Bộ
+                                            </span>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($session['khoa_chinh_sua_diem'])): ?>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black bg-purple-100 text-purple-800 uppercase tracking-wider" title="Khóa chỉnh sửa điểm học bạ & THPT">
+                                                <i class="fas fa-lock mr-1"></i> Khóa điểm
+                                            </span>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($session['is_locked'])): ?>
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-wider" title="Đóng băng lọc ảo & xét tuyển">
+                                                <i class="fas fa-lock mr-1"></i> Đã khóa xét tuyển
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-6 pr-8 text-center text-xs opacity-0 group-hover:opacity-100 transition">
                                     <button onclick='editSession(<?= json_encode($session) ?>)' class="font-black uppercase tracking-widest text-[#0066FF] hover:text-blue-800 hover:underline">
@@ -156,6 +168,26 @@
                 </div>
                 <span class="text-sm font-bold text-slate-700">Kích hoạt đợt này</span>
             </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer p-4 bg-blue-50 rounded-2xl hover:bg-blue-100 transition border border-blue-100">
+                <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-blue-200 rounded-full">
+                    <input type="checkbox" name="la_du_lieu_bo" id="la_du_lieu_bo" class="absolute w-6 h-6 bg-white border-2 border-blue-200 rounded-full appearance-none cursor-pointer checked:right-0 checked:border-blue-600 right-6 focus:outline-none transition-all duration-200 shadow-sm" style="top: 0;">
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-blue-700">Đợt dữ liệu từ Bộ GD&ĐT</div>
+                    <div class="text-[10px] text-blue-500 mt-0.5">Đánh dấu đợt này dùng dữ liệu điểm chính thức từ Bộ</div>
+                </div>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer p-4 bg-purple-50 rounded-2xl hover:bg-purple-100 transition border border-purple-100">
+                <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-purple-200 rounded-full">
+                    <input type="checkbox" name="khoa_chinh_sua_diem" id="khoa_chinh_sua_diem" class="absolute w-6 h-6 bg-white border-2 border-purple-200 rounded-full appearance-none cursor-pointer checked:right-0 checked:border-purple-600 right-6 focus:outline-none transition-all duration-200 shadow-sm" style="top: 0;">
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-purple-700">Khóa chỉnh sửa điểm</div>
+                    <div class="text-[10px] text-purple-500 mt-0.5">Khóa sửa điểm học bạ & THPT cho tất cả hồ sơ trong đợt này</div>
+                </div>
+            </label>
             
             <label class="flex items-center space-x-3 cursor-pointer p-4 bg-rose-50 rounded-2xl hover:bg-rose-100 transition border border-rose-100">
                 <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out bg-rose-200 rounded-full">
@@ -194,6 +226,8 @@
         document.getElementById('ngay_bat_dau').value = '';
         document.getElementById('ngay_ket_thuc').value = '';
         document.getElementById('kich_hoat').checked = true;
+        document.getElementById('la_du_lieu_bo').checked = false;
+        document.getElementById('khoa_chinh_sua_diem').checked = false;
         document.getElementById('is_locked').checked = false;
     }
     function closeModal() {
@@ -209,8 +243,10 @@
         document.getElementById('nam_tuyen_sinh').value = s.nam_tuyen_sinh;
         document.getElementById('ngay_bat_dau').value = s.ngay_bat_dau;
         document.getElementById('ngay_ket_thuc').value = s.ngay_ket_thuc;
-        document.getElementById('kich_hoat').checked = parseInt(s.kich_hoat) === 1;
-        document.getElementById('is_locked').checked = parseInt(s.is_locked) === 1;
+        document.getElementById('kich_hoat').checked = parseInt(s.kich_hoat) === 1 || s.kich_hoat === true || s.kich_hoat === 't';
+        document.getElementById('la_du_lieu_bo').checked = parseInt(s.la_du_lieu_bo) === 1 || s.la_du_lieu_bo === true || s.la_du_lieu_bo === 't';
+        document.getElementById('khoa_chinh_sua_diem').checked = parseInt(s.khoa_chinh_sua_diem) === 1 || s.khoa_chinh_sua_diem === true || s.khoa_chinh_sua_diem === 't';
+        document.getElementById('is_locked').checked = parseInt(s.is_locked) === 1 || s.is_locked === true || s.is_locked === 't';
     }
     
     function deleteSession(id) {

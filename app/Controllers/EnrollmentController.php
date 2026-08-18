@@ -1299,4 +1299,145 @@ class EnrollmentController extends Controller {
         $exportService = new \App\Services\ExportService();
         $exportService->toExcel($data, 'danh_sach_chua_nhap_hoc_' . $sessionId . '.xls', true);
     }
+
+    /**
+     * Xuất dữ liệu làm thẻ ngân hàng cho sinh viên
+     * Cột yêu cầu: STT, Họ Và Tên, CCCD, NGÀY CẤP, NGÀY HẾT HẠN, NƠI CẤP, GIỚI TÍNH, NGÀY SINH, ĐỊA CHỈ, SĐT, MÃ SỐ SV, LỚP, KHOA
+     */
+    public function exportBankCards() {
+        $sessions = $this->masterData->getSessions();
+        $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
+
+        // 1. Thử lấy danh sách thí sinh đã hoàn tất nhập học
+        $stmt = $this->db->prepare("
+            SELECT nh.id as nhap_hoc_id, nh.ma_phieu, nh.ngay_nhap_hoc, nh.ghi_chu_can_bo,
+                   kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
+                   kq.ma_nganh, n.ten_nganh, n.nhom_nganh,
+                   ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet,
+                   ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
+                   p.ten_tinh, x.ten_xa
+            FROM nhap_hoc nh
+            JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+            LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+            LEFT JOIN dm_tinh p ON ts.ma_tinh_thuong_tru = p.ma_tinh
+            LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+            WHERE nh.session_id = ? 
+              AND nh.trang_thai = 'da_nhap_hoc'
+            ORDER BY n.ten_nganh ASC, kq.ho_ten ASC
+        ");
+        $stmt->execute([$sessionId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 2. Nếu đợt chưa có ai bấm hoàn tất nhập học, lấy từ danh sách trúng tuyển đã xác nhận
+        if (empty($rows)) {
+            $stmtFallback = $this->db->prepare("
+                SELECT NULL as nhap_hoc_id, NULL as ma_phieu, NULL as ngay_nhap_hoc, NULL as ghi_chu_can_bo,
+                       kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
+                       kq.ma_nganh, n.ten_nganh, n.nhom_nganh,
+                       ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet,
+                       ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
+                       p.ten_tinh, x.ten_xa
+                FROM ket_qua_trung_tuyen kq
+                LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+                LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+                LEFT JOIN dm_tinh p ON ts.ma_tinh_thuong_tru = p.ma_tinh
+                LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+                WHERE kq.session_id = ? 
+                  AND (kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1'
+                       OR kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1'
+                       OR kq.xac_nhan_kinh_phi = true OR kq.xac_nhan_kinh_phi::text = '1')
+                ORDER BY n.ten_nganh ASC, kq.ho_ten ASC
+            ");
+            $stmtFallback->execute([$sessionId]);
+            $rows = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $data = [];
+        $stt = 1;
+        foreach ($rows as $r) {
+            $extra = [];
+            if (!empty($r['ghi_chu_can_bo'])) {
+                $extra = json_decode($r['ghi_chu_can_bo'], true) ?: [];
+            }
+
+            // Họ Và Tên
+            $hoTen = mb_strtoupper(trim($r['ho_ten'] ?: ($r['ho_va_ten'] ?? '')), 'UTF-8');
+
+            // Số CCCD
+            $soCccd = (string)($r['so_cccd'] ?? '');
+
+            // Ngày cấp
+            $ngayCap = $extra['ngay_cap_cccd'] ?? ($extra['ngay_cap'] ?? '');
+            if (!empty($ngayCap) && strpos($ngayCap, '-') !== false) {
+                $time = strtotime($ngayCap);
+                if ($time) $ngayCap = date('d/m/Y', $time);
+            }
+
+            // Ngày hết hạn
+            $ngayHetHan = $extra['ngay_het_han_cccd'] ?? ($extra['ngay_het_han'] ?? '');
+            if (!empty($ngayHetHan) && strpos($ngayHetHan, '-') !== false) {
+                $time = strtotime($ngayHetHan);
+                if ($time) $ngayHetHan = date('d/m/Y', $time);
+            }
+
+            // Nơi cấp
+            $noiCap = $extra['noi_cap_cccd'] ?? ($extra['noi_cap'] ?? '');
+
+            // Giới tính
+            $gt = $r['gioi_tinh'] ?? '';
+            if ($gt === '1' || strcasecmp($gt, 'nam') === 0) {
+                $gioiTinh = 'Nam';
+            } elseif ($gt === '0' || strcasecmp($gt, 'nữ') === 0 || strcasecmp($gt, 'nu') === 0) {
+                $gioiTinh = 'Nữ';
+            } else {
+                $gioiTinh = $gt;
+            }
+
+            // Ngày sinh
+            $ngaySinh = '';
+            if (!empty($r['ngay_sinh'])) {
+                $time = strtotime($r['ngay_sinh']);
+                $ngaySinh = $time ? date('d/m/Y', $time) : $r['ngay_sinh'];
+            }
+
+            // Địa chỉ
+            $diaChi = $r['dia_chi_chi_tiet'] ?? '';
+            if (empty($diaChi)) {
+                $parts = array_filter([$r['ten_xa'] ?? '', $r['ten_tinh'] ?? '']);
+                $diaChi = implode(', ', $parts);
+            }
+
+            // SĐT
+            $sdt = !empty($r['dien_thoai_ts']) ? (string)$r['dien_thoai_ts'] : (string)($r['dien_thoai_kq'] ?? '');
+
+            // Mã số SV
+            $mssv = $extra['ma_sinh_vien'] ?? ($extra['mssv'] ?? ($extra['ma_sv'] ?? ''));
+
+            // Lớp
+            $lop = $extra['lop'] ?? ($extra['ten_lop'] ?? '');
+
+            // Khoa
+            $khoa = $r['nhom_nganh'] ?? ($r['ten_khoa'] ?? ($r['ten_nganh'] ?? ''));
+
+            $data[] = [
+                'STT'           => $stt++,
+                'Họ Và Tên'     => $hoTen,
+                'CCCD'          => $soCccd,
+                'NGÀY CẤP'      => $ngayCap,
+                'NGÀY HẾT HẠN'  => $ngayHetHan,
+                'NƠI CẤP'       => $noiCap,
+                'GIỚI TÍNH'     => $gioiTinh,
+                'NGÀY SINH'     => $ngaySinh,
+                'ĐỊA CHỈ'       => $diaChi,
+                'SĐT'           => $sdt,
+                'MÃ SỐ SV'      => $mssv,
+                'LỚP'           => $lop,
+                'KHOA'          => $khoa,
+            ];
+        }
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->toExcel($data, 'du_lieu_lam_the_ngan_hang_' . $sessionId . '.xls', true);
+    }
 }

@@ -78,7 +78,19 @@ include __DIR__ . '/../layouts/header.php';
                     </div>
                 <?php endif; ?>
 
-                <fieldset <?= (!empty($isLocked)) ? 'disabled' : '' ?> class="contents group/locked">
+                <?php if (!empty($isScoreLocked)): ?>
+                    <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-xl text-indigo-800" role="alert">
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt text-indigo-600 text-xl mr-3 flex-shrink-0"></i>
+                            <div>
+                                <p class="text-sm font-bold">Dữ liệu điểm thi THPT đã được đồng bộ từ Bộ GD&ĐT (hoặc đã khóa chỉnh sửa).</p>
+                                <p class="text-xs text-indigo-600 mt-0.5">Điểm thi tốt nghiệp THPT của bạn được bảo lưu chính thức và không thể tự chỉnh sửa.</p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <fieldset <?= (!empty($isLocked) || !empty($isScoreLocked)) ? 'disabled' : '' ?> class="contents group/locked">
 
                     <div class="max-w-4xl mx-auto space-y-10">
                         <!-- Choice Section -->

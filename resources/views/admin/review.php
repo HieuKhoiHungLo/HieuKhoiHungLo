@@ -46,34 +46,41 @@
                 'qualified'  => 'Đủ điều kiện',
                 'admitted'   => 'Trúng tuyển',
             ];
-            $rawStatus = $user['trang_thai'] ?? 'Chờ duyệt';
-            $statusLabel = $statusMap[strtolower($rawStatus)] ?? $rawStatus;
-            $statusStyleMap = [
-                'Đã duyệt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                'Từ chối'    => 'bg-rose-50 text-rose-700 border-rose-200',
-                'Yêu cầu bổ sung' => 'bg-blue-50 text-blue-700 border-blue-200',
-                'Đã nộp'     => 'bg-sky-50 text-sky-700 border-sky-200',
-                'Đang xác minh' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                'Đã xác minh'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
-                'Đang tính điểm' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                'Đủ điều kiện'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
-                'Trúng tuyển'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            ];
-            $statusStyles = $statusStyleMap[$statusLabel] ?? 'bg-amber-50 text-amber-700 border-amber-200';
+            $rawStatus = $user['trang_thai'] ?? '';
+            if (isset($hasApplicationInCurrentSession) && !$hasApplicationInCurrentSession) {
+                $statusLabel = 'Không có hồ sơ đợt này';
+                $statusStyles = 'bg-rose-50 text-rose-700 border-rose-200';
+                $statusIcon = 'fa-exclamation-triangle';
+            } else {
+                $rawStatus = $rawStatus ?: 'Chờ duyệt';
+                $statusLabel = $statusMap[strtolower($rawStatus)] ?? $rawStatus;
+                $statusStyleMap = [
+                    'Đã duyệt'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    'Từ chối'    => 'bg-rose-50 text-rose-700 border-rose-200',
+                    'Yêu cầu bổ sung' => 'bg-blue-50 text-blue-700 border-blue-200',
+                    'Đã nộp'     => 'bg-sky-50 text-sky-700 border-sky-200',
+                    'Đang xác minh' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                    'Đã xác minh'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                    'Đang tính điểm' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    'Đủ điều kiện'   => 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                    'Trúng tuyển'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                ];
+                $statusStyles = $statusStyleMap[$statusLabel] ?? 'bg-amber-50 text-amber-700 border-amber-200';
 
-            $statusIconMap = [
-                'Đã duyệt' => 'fa-check-circle',
-                'Trúng tuyển' => 'fa-check-circle',
-                'Từ chối'    => 'fa-times-circle',
-                'Yêu cầu bổ sung' => 'fa-edit',
-                'Đã nộp'     => 'fa-paper-plane',
-                'Đang xác minh' => 'fa-spinner fa-spin',
-                'Đang tính điểm' => 'fa-spinner fa-spin',
-                'Đã xác minh' => 'fa-clipboard-check',
-                'Đủ điều kiện' => 'fa-clipboard-check',
-                'Nháp'       => 'fa-file-alt',
-            ];
-            $statusIcon = $statusIconMap[$statusLabel] ?? 'fa-clock';
+                $statusIconMap = [
+                    'Đã duyệt' => 'fa-check-circle',
+                    'Trúng tuyển' => 'fa-check-circle',
+                    'Từ chối'    => 'fa-times-circle',
+                    'Yêu cầu bổ sung' => 'fa-edit',
+                    'Đã nộp'     => 'fa-paper-plane',
+                    'Đang xác minh' => 'fa-spinner fa-spin',
+                    'Đang tính điểm' => 'fa-spinner fa-spin',
+                    'Đã xác minh' => 'fa-clipboard-check',
+                    'Đủ điều kiện' => 'fa-clipboard-check',
+                    'Nháp'       => 'fa-file-alt',
+                ];
+                $statusIcon = $statusIconMap[$statusLabel] ?? 'fa-clock';
+            }
             ?>
             <span class="inline-flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-full border <?= $statusStyles ?>">
                 <i class="fas <?= $statusIcon ?>"></i> <?= $statusLabel ?>
@@ -112,6 +119,51 @@
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (isset($hasApplicationInCurrentSession) && !$hasApplicationInCurrentSession): ?>
+    <div class="mb-4 bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl p-4 shadow-md">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm text-lg font-bold">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-amber-900 uppercase tracking-wide flex items-center gap-2">
+                        CẢNH BÁO: Thí sinh KHÔNG ĐĂNG KÝ hồ sơ trong đợt này!
+                    </h3>
+                    <p class="text-xs text-amber-800 mt-1 leading-relaxed">
+                        Thí sinh <b><?= htmlspecialchars($user['ho_va_ten'] ?? '') ?></b> (CCCD: <span class="font-mono font-bold"><?= htmlspecialchars($user['so_cccd']) ?></span>) 
+                        không có hồ sơ đăng ký xét tuyển trong <b><?= htmlspecialchars($currentSessionInfo['ten_dot'] ?? ('Đợt #' . ($sessionId ?? ''))) ?></b>.
+                    </p>
+                    <?php if (!empty($registeredSessions)): ?>
+                        <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-bold text-amber-900">Hồ sơ đã nộp ở các đợt khác:</span>
+                            <?php foreach ($registeredSessions as $rs): ?>
+                                <a href="<?= url('/admin/review?cccd=' . $user['so_cccd'] . '&session_id=' . $rs['dot_tuyen_sinh_id']) ?>" 
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all hover:scale-105">
+                                    <i class="fas fa-folder-open"></i>
+                                    <span><?= htmlspecialchars($rs['ten_dot'] ?? ('Đợt #' . $rs['dot_tuyen_sinh_id'])) ?></span>
+                                    <span class="bg-emerald-800/60 px-1.5 py-0.5 rounded text-[10px]"><?= $rs['choices_count'] ?> NV</span>
+                                    <span class="text-[10px] opacity-90">(<?= htmlspecialchars($rs['trang_thai'] ?? 'Chờ duyệt') ?>)</span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="mt-2 text-xs text-amber-700 italic">
+                            <i class="fas fa-info-circle"></i> Thí sinh chưa có hồ sơ đăng ký xét tuyển ở bất kỳ đợt nào.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div>
+                <a href="<?= url('/admin/review-management' . ($sessParam ? '?' . ltrim($sessParam, '&') : '')) ?>" 
+                   class="px-3 py-1.5 bg-white border border-amber-300 text-amber-800 hover:bg-amber-100 rounded-xl text-xs font-bold transition-all shadow-sm whitespace-nowrap">
+                    <i class="fas fa-arrow-left mr-1"></i> Danh sách đợt
+                </a>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <form id="reviewForm" action="<?= url('/admin/review/submit') ?>" method="POST" class="pb-20">
     <input type="hidden" name="cccd" value="<?= $user['so_cccd'] ?>">
@@ -236,8 +288,9 @@
 
         <!-- Quick Search CCCD (Refined Outline Style) -->
         <input type="text" placeholder="Tìm CCCD..." 
+               id="quickSearchCccdInput"
                class="py-3.5 bg-white border-2 border-[#0066FF] text-slate-800 placeholder-black font-medium rounded-xl shadow-sm focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-sm w-32 text-center"
-               onkeydown="if(event.key === 'Enter') { event.preventDefault(); const cccd = this.value.trim(); if(cccd) window.location.href = '<?= url('/admin/review') ?>?cccd=' + cccd + '<?= $sessParam ?>'; }">
+               onkeydown="if(event.key === 'Enter') { event.preventDefault(); searchCandidateByCCCD(this.value); }">
 
         <!-- Zalo Button -->
         <?php
@@ -670,6 +723,11 @@ updateActionBarOffset();
     });
 
     function openReviewModal() {
+        <?php if (isset($hasApplicationInCurrentSession) && !$hasApplicationInCurrentSession): ?>
+        if (!confirm('CẢNH BÁO: Thí sinh này KHÔNG CÓ hồ sơ đăng ký trong đợt xét hiện tại (<?= htmlspecialchars($currentSessionInfo['ten_dot'] ?? ('Đợt #' . ($sessionId ?? ''))) ?>).\nThao tác duyệt đợt này sẽ không cập nhật được hồ sơ nào.\n\nBạn có chắc chắn vẫn muốn mở xác nhận duyệt?')) {
+            return;
+        }
+        <?php endif; ?>
         const modal = document.getElementById('reviewModal');
         modal.classList.remove('hidden');
         
@@ -1527,7 +1585,119 @@ updateActionBarOffset();
     window.v5_update_combo = v5_update_combo;
     window.v5_refresh_orders = v5_refresh_orders;
     window.confirmResetReviewStatus = confirmResetReviewStatus;
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async function searchCandidateByCCCD(cccdInput) {
+        const cccd = (cccdInput || '').trim();
+        if (!cccd) return;
+        
+        const currentSessionId = '<?= $sessionId ?? '' ?>';
+        const baseUrl = '<?= url('/admin/review') ?>';
+        
+        if (typeof Swal === 'undefined') {
+            window.location.href = `${baseUrl}?cccd=${encodeURIComponent(cccd)}${currentSessionId ? '&session_id=' + currentSessionId : ''}`;
+            return;
+        }
+        
+        Swal.fire({
+            title: 'Đang tra cứu...',
+            text: 'Đang kiểm tra hồ sơ CCCD ' + cccd,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        
+        try {
+            const res = await fetch(`<?= url('/admin/review/check-candidate') ?>?cccd=${encodeURIComponent(cccd)}&session_id=${encodeURIComponent(currentSessionId)}`);
+            const data = await res.json();
+            
+            if (!data.success || !data.exists) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Không tìm thấy thí sinh',
+                    html: `Không tìm thấy thí sinh có số CCCD <b class="font-mono text-rose-600">${escapeHtml(cccd)}</b> trong hệ thống.`,
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#0066FF'
+                });
+                return;
+            }
+            
+            // If in current session, navigate directly
+            if (data.in_current_session) {
+                window.location.href = `${baseUrl}?cccd=${encodeURIComponent(cccd)}${currentSessionId ? '&session_id=' + currentSessionId : ''}`;
+                return;
+            }
+            
+            // If NOT in current session
+            let sessionsHtml = '';
+            if (data.registered_sessions && data.registered_sessions.length > 0) {
+                sessionsHtml = `
+                    <div class="mt-4 text-left p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                        <div class="font-bold text-slate-700"><i class="fas fa-folder-open text-blue-600 mr-1"></i> Hồ sơ của thí sinh ở các đợt khác:</div>
+                        ${data.registered_sessions.map(s => `
+                            <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 transition-all">
+                                <div>
+                                    <div class="font-bold text-blue-600">${escapeHtml(s.ten_dot || ('Đợt #' + s.dot_tuyen_sinh_id))}</div>
+                                    <div class="text-[11px] text-slate-500 mt-0.5">
+                                        <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">${escapeHtml(s.trang_thai || 'Chờ duyệt')}</span>
+                                        <span class="ml-1 text-slate-600 font-semibold">• ${s.choices_count || 0} nguyện vọng</span>
+                                    </div>
+                                </div>
+                                <a href="${baseUrl}?cccd=${encodeURIComponent(cccd)}&session_id=${s.dot_tuyen_sinh_id}" 
+                                   class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1 transition-all">
+                                    <i class="fas fa-arrow-right"></i> Xem đợt này
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                sessionsHtml = `
+                    <div class="mt-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl text-left">
+                        <i class="fas fa-info-circle mr-1"></i> Thí sinh này mới chỉ có thông tin cá nhân trong hệ thống, chưa đăng ký nộp hồ sơ vào đợt nào.
+                    </div>
+                `;
+            }
+            
+            const currentDotName = data.current_session ? escapeHtml(data.current_session.ten_dot) : ('Đợt #' + currentSessionId);
+            
+            Swal.fire({
+                icon: 'warning',
+                title: '<span class="text-amber-600 text-lg font-bold">Thí sinh không thuộc đợt này</span>',
+                html: `
+                    <div class="text-sm text-slate-700">
+                        Thí sinh <b class="text-slate-900">${escapeHtml(data.ho_va_ten)}</b> (CCCD: <b class="font-mono text-slate-900">${escapeHtml(cccd)}</b>) <br>
+                        <span class="text-rose-600 font-bold">KHÔNG ĐĂNG KÝ HỒ SƠ</span> trong đợt đang xem: <b class="text-blue-600">${currentDotName}</b>.
+                        ${sessionsHtml}
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-search mr-1"></i> Vẫn xem tại đợt này',
+                cancelButtonText: 'Hủy bỏ',
+                confirmButtonColor: '#64748b',
+                cancelButtonColor: '#0066FF',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `${baseUrl}?cccd=${encodeURIComponent(cccd)}${currentSessionId ? '&session_id=' + currentSessionId : ''}`;
+                }
+            });
+            
+        } catch (e) {
+            window.location.href = `${baseUrl}?cccd=${encodeURIComponent(cccd)}${currentSessionId ? '&session_id=' + currentSessionId : ''}`;
+        }
+    }
+    window.searchCandidateByCCCD = searchCandidateByCCCD;
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
 <?php

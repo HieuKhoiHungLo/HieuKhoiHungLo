@@ -103,9 +103,13 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                         <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px]">3</span>
                         Danh sách đã nhập học
                     </a>
-                    <a href="<?= url('/admin/enrollment/export-unenrolled?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-2">
+                    <a href="<?= url('/admin/enrollment/export-unenrolled?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-slate-700 text-xs font-semibold border-b border-slate-100 transition-colors flex items-center gap-2">
                         <span class="w-5 h-5 rounded bg-amber-100 text-amber-700 flex items-center justify-center text-[10px]">4</span>
                         Danh sách chưa nhập học
+                    </a>
+                    <a href="<?= url('/admin/enrollment/export-bank-cards?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-purple-50 text-purple-700 text-xs font-bold transition-colors flex items-center gap-2 bg-purple-50/40">
+                        <span class="w-5 h-5 rounded bg-purple-100 text-purple-700 flex items-center justify-center text-[10px]"><i class="fas fa-credit-card"></i></span>
+                        Xuất dữ liệu làm thẻ ngân hàng
                     </a>
                 </div>
             </div>

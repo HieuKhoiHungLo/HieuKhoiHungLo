@@ -582,6 +582,18 @@ ob_start();
                             <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Chưa xác nhận nhập học</div>
                         </div>
                     </a>
+                    <a :href="'<?= url('/admin/enrollment/export-bank-cards') ?>?session_id=' + sessionId"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:#1e293b;font-size:12.5px;font-weight:600;text-decoration:none;transition:background 0.15s;border-top:1px solid #f1f5f9;background:#f8fafc;"
+                       onmouseover="this.style.background='#f5f3ff';this.style.color='#7c3aed';"
+                       onmouseout="this.style.background='#f8fafc';this.style.color='#1e293b';">
+                        <span style="width:24px;height:24px;border-radius:6px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">
+                            <i class="fas fa-credit-card"></i>
+                        </span>
+                        <div>
+                            <div style="color:#6d28d9;font-weight:700;">Dữ liệu làm thẻ ngân hàng</div>
+                            <div style="font-size:10.5px;color:#94a3b8;font-weight:400;">Xuất mẫu chuẩn làm thẻ SV</div>
+                        </div>
+                    </a>
                 </div>
             </div>
 

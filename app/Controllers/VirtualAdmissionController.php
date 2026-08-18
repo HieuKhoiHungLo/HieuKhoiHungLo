@@ -137,11 +137,40 @@ class VirtualAdmissionController extends Controller {
             $stmtC->execute([$sessionId]);
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
-            // 5b. Tổng hồ sơ đã duyệt từ ho_so_xet_tuyen (bao gồm cả TS chưa đăng ký NV)
-            $stmtHoso = $this->db->prepare("SELECT COUNT(*) FROM ho_so_xet_tuyen WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('Đã duyệt', 'approved', 'DaDuyet', 'Yêu cầu sửa') OR trang_thai LIKE '%Đã duyệt%')");
+            // 5b. Tổng hồ sơ đã duyệt — đồng bộ logic với Review Management (getStats)
+            // Điều kiện: deleted_at IS NULL ở cả 2 bảng, có nguyện vọng, chỉ đếm trạng thái "Đã duyệt" (không tính "Yêu cầu sửa")
+            $stmtHoso = $this->db->prepare("
+                SELECT COUNT(*) FROM ho_so_xet_tuyen hs
+                INNER JOIN thi_sinh t ON t.so_cccd = hs.so_cccd
+                WHERE hs.dot_tuyen_sinh_id = ?
+                  AND hs.deleted_at IS NULL
+                  AND t.deleted_at IS NULL
+                  AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')
+                  AND EXISTS (
+                      SELECT 1 FROM nguyen_vong nv_check
+                      WHERE nv_check.ho_so_id = hs.id
+                         OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_check.ho_so_id IS NULL)
+                  )
+            ");
             $stmtHoso->execute([$sessionId]);
             $totalApprovedHoso = $stmtHoso->fetchColumn() ?: 0;
-            $noAspirationCount = max(0, $totalApprovedHoso - $candidateCount);
+
+            // 5c. Đếm riêng TS đã duyệt nhưng chưa đăng ký nguyện vọng (hiển thị cảnh báo)
+            $stmtNoNV = $this->db->prepare("
+                SELECT COUNT(*) FROM ho_so_xet_tuyen hs
+                INNER JOIN thi_sinh t ON t.so_cccd = hs.so_cccd
+                WHERE hs.dot_tuyen_sinh_id = ?
+                  AND hs.deleted_at IS NULL
+                  AND t.deleted_at IS NULL
+                  AND (hs.trang_thai ILIKE 'Đã duyệt%' OR hs.trang_thai ILIKE 'approved%' OR hs.trang_thai ILIKE 'DaDuyet%')
+                  AND NOT EXISTS (
+                      SELECT 1 FROM nguyen_vong nv_check
+                      WHERE nv_check.ho_so_id = hs.id
+                         OR (nv_check.so_cccd = hs.so_cccd AND nv_check.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id AND nv_check.ho_so_id IS NULL)
+                  )
+            ");
+            $stmtNoNV->execute([$sessionId]);
+            $noAspirationCount = $stmtNoNV->fetchColumn() ?: 0;
 
             // 6. Truy vấn Dữ liệu Phân trang (OFFSET & LIMIT) trực tiếp trên Database
             // Cố định Order By cấu trúc để đảm bảo DataTables luôn hiện đúng

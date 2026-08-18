@@ -439,6 +439,81 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * AJAX endpoint to check candidate existance and session registration before review navigation
+     */
+    public function checkCandidateSession()
+    {
+        $this->checkPermission('review');
+        header('Content-Type: application/json');
+        $cccd = trim($_GET['cccd'] ?? '');
+        $sessionId = isset($_GET['session_id']) && $_GET['session_id'] !== '' ? (int)$_GET['session_id'] : null;
+
+        if (empty($cccd)) {
+            echo json_encode(['success' => false, 'error' => 'Thiếu số CCCD']);
+            return;
+        }
+
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmtTs = $db->prepare("SELECT so_cccd, ho_va_ten FROM thi_sinh WHERE so_cccd = ?");
+            $stmtTs->execute([$cccd]);
+            $thiSinh = $stmtTs->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$thiSinh) {
+                echo json_encode([
+                    'success' => true,
+                    'exists' => false,
+                    'message' => 'Không tìm thấy thí sinh có số CCCD này trong hệ thống.'
+                ]);
+                return;
+            }
+
+            $stmtSessions = $db->prepare("
+                SELECT hs.id as application_id, hs.dot_tuyen_sinh_id, hs.trang_thai, hs.created_at, dt.ten_dot, dt.nam_tuyen_sinh,
+                       (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.so_cccd = hs.so_cccd AND (nv.ho_so_id = hs.id OR (nv.ho_so_id IS NULL AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))) as choices_count
+                FROM ho_so_xet_tuyen hs
+                LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
+                WHERE hs.so_cccd = ?
+                ORDER BY hs.created_at DESC
+            ");
+            $stmtSessions->execute([$cccd]);
+            $registeredSessions = $stmtSessions->fetchAll(\PDO::FETCH_ASSOC);
+
+            $currentSessionInfo = null;
+            if ($sessionId) {
+                $stmtCur = $db->prepare("SELECT id, ten_dot, nam_tuyen_sinh FROM dot_tuyen_sinh WHERE id = ?");
+                $stmtCur->execute([$sessionId]);
+                $currentSessionInfo = $stmtCur->fetch(\PDO::FETCH_ASSOC);
+            }
+
+            $inCurrentSession = false;
+            if ($sessionId) {
+                foreach ($registeredSessions as $rs) {
+                    if ((int)$rs['dot_tuyen_sinh_id'] === (int)$sessionId) {
+                        $inCurrentSession = true;
+                        break;
+                    }
+                }
+            } else {
+                $inCurrentSession = !empty($registeredSessions);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'exists' => true,
+                'cccd' => $thiSinh['so_cccd'],
+                'ho_va_ten' => $thiSinh['ho_va_ten'],
+                'in_current_session' => $inCurrentSession,
+                'current_session' => $currentSessionInfo,
+                'registered_sessions' => $registeredSessions
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+
     private function prepareReviewData($cccd, $sessionId = null)
     {
         // SINGLE query: candidate + academic + nguyen_vong + certificates + diemThi
@@ -547,6 +622,37 @@ class AdminController extends Controller
         $schoolName = $user['ten_truong_lop_12'] ?? '';
         $hasEditRequest = !empty($user['yeu_cau_chinh_sua']);
 
+        // Check registered sessions for this candidate across all admission sessions
+        $dbConn = \App\Core\Database::getInstance()->getConnection();
+        $stmtSessions = $dbConn->prepare("
+            SELECT hs.id as application_id, hs.dot_tuyen_sinh_id, hs.trang_thai, hs.created_at, dt.ten_dot, dt.nam_tuyen_sinh,
+                   (SELECT COUNT(*) FROM nguyen_vong nv WHERE nv.so_cccd = hs.so_cccd AND (nv.ho_so_id = hs.id OR (nv.ho_so_id IS NULL AND nv.dot_tuyen_sinh_id = hs.dot_tuyen_sinh_id))) as choices_count
+            FROM ho_so_xet_tuyen hs
+            LEFT JOIN dot_tuyen_sinh dt ON hs.dot_tuyen_sinh_id = dt.id
+            WHERE hs.so_cccd = ?
+            ORDER BY hs.created_at DESC
+        ");
+        $stmtSessions->execute([$cccd]);
+        $registeredSessions = $stmtSessions->fetchAll(\PDO::FETCH_ASSOC);
+
+        $currentSessionInfo = null;
+        if ($sessionId) {
+            $stmtCur = $dbConn->prepare("SELECT id, ten_dot, nam_tuyen_sinh, khoa_chinh_sua_diem, la_du_lieu_bo FROM dot_tuyen_sinh WHERE id = ?");
+            $stmtCur->execute([$sessionId]);
+            $currentSessionInfo = $stmtCur->fetch(\PDO::FETCH_ASSOC);
+        }
+
+        $hasApplicationInCurrentSession = true;
+        if ($sessionId) {
+            $hasApplicationInCurrentSession = false;
+            foreach ($registeredSessions as $rs) {
+                if ((int)$rs['dot_tuyen_sinh_id'] === (int)$sessionId) {
+                    $hasApplicationInCurrentSession = true;
+                    break;
+                }
+            }
+        }
+
         return [
             'user' => $user,
             'wardName' => $wardName,
@@ -569,7 +675,12 @@ class AdminController extends Controller
             'nextCCCD' => $adjacent['next'],
             'navPosition' => $adjacent['position'],
             'navTotal' => $adjacent['total'],
-            'emailTemplates' => $emailTemplates
+            'emailTemplates' => $emailTemplates,
+            'sessionId' => $sessionId,
+            'registeredSessions' => $registeredSessions,
+            'hasApplicationInCurrentSession' => $hasApplicationInCurrentSession,
+            'currentSessionInfo' => $currentSessionInfo,
+            'isScoreLocked' => $this->thiSinhRepo->isScoreLockedForCandidate($cccd, $sessionId)
         ];
     }
 
