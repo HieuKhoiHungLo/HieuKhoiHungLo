@@ -1561,10 +1561,11 @@ class EnrollmentController extends Controller {
 
         // Xử lý tệp từ xa (Google Drive / HTTP) bằng curl_multi tải nhanh theo lô
         if (!empty($remoteItems)) {
-            $batchSize = 30; // Mỗi lô 30 ảnh
+            $batchSize = 80; // Mỗi lô 80 ảnh cho tốc độ tối ưu
             $chunks = array_chunk($remoteItems, $batchSize);
 
-            foreach ($chunks as $chunk) {
+            foreach ($chunks as $batchIdx => $chunk) {
+                set_time_limit(120); // Reset PHP timeout mỗi lô
                 $urls = [];
                 foreach ($chunk as $idx => $it) {
                     $urls[$idx] = $this->getCccdFastDownloadUrl($it['url']);
@@ -1611,7 +1612,7 @@ class EnrollmentController extends Controller {
                 $id = $matches[1];
             }
             if ($id) {
-                return 'https://drive.google.com/thumbnail?id=' . $id . '&sz=w1600';
+                return 'https://drive.google.com/thumbnail?id=' . $id . '&sz=w800';
             }
         }
         return $originalUrl;
@@ -1637,7 +1638,8 @@ class EnrollmentController extends Controller {
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
             curl_setopt($ch, CURLOPT_ENCODING, '');
