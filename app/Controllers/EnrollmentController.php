@@ -1417,8 +1417,11 @@ class EnrollmentController extends Controller {
             // SĐT
             $sdt = !empty($r['dien_thoai_ts']) ? (string)$r['dien_thoai_ts'] : (string)($r['dien_thoai_kq'] ?? '');
 
-            // Email
+            // Email (chỉ lấy email cá nhân thực tế)
             $email = !empty($r['email_ts']) ? (string)$r['email_ts'] : (string)($r['email_kq'] ?? '');
+            if (strpos($email, '@student.hvu.edu.vn') !== false) {
+                $email = '';
+            }
 
             // Mã ngành & Tên ngành
             $maNganh = (string)($r['ma_nganh'] ?? '');

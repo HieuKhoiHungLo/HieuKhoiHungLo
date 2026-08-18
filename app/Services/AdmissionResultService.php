@@ -184,10 +184,8 @@ class AdmissionResultService {
                 continue; 
             }
 
-            $email = trim(isset($colMap['email']) ? ($rowData[$colMap['email']] ?? '') : '');
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $email = $cccd . '@student.hvu.edu.vn';
-            }
+            $rawEmail = trim(isset($colMap['email']) ? ($rowData[$colMap['email']] ?? '') : '');
+            $email = filter_var($rawEmail, FILTER_VALIDATE_EMAIL) ? $rawEmail : '';
 
             if (isset($seenInFile[$cccd])) { 
                 $ignored++; 
