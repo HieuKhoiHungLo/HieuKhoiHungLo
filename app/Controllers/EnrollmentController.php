@@ -1819,7 +1819,7 @@ class EnrollmentController extends Controller {
     }
 
     /**
-     * Chuyển link Google Drive sang định dạng tải nhanh chất lượng cao
+     * Chuyển link Google Drive sang định dạng tải trực tiếp từ Google CDN (bỏ qua 302 redirect)
      */
     private function getCccdFastDownloadUrl($originalUrl): string {
         if (strpos($originalUrl, 'drive.google.com') !== false) {
@@ -1830,14 +1830,14 @@ class EnrollmentController extends Controller {
                 $id = $matches[1];
             }
             if ($id) {
-                return 'https://drive.google.com/thumbnail?id=' . $id . '&sz=w800';
+                return 'https://lh3.googleusercontent.com/d/' . $id . '=w800';
             }
         }
         return $originalUrl;
     }
 
     /**
-     * Tải song song nhiều ảnh từ xa
+     * Tải song song nhiều ảnh từ xa với hiệu năng cao
      */
     private function fetchCccdUrlsParallel(array $urls): array {
         if (!function_exists('curl_multi_init')) {
@@ -1856,12 +1856,12 @@ class EnrollmentController extends Controller {
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
             curl_setopt($ch, CURLOPT_ENCODING, '');
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdmissionsPortal/1.0');
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
             curl_multi_add_handle($mh, $ch);
             $handles[$key] = $ch;
         }
@@ -1869,15 +1869,15 @@ class EnrollmentController extends Controller {
         $active = null;
         do {
             $mrc = curl_multi_exec($mh, $active);
-        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+        } while ($mrc === CURLM_CALL_MULTI_PERFORM);
 
-        while ($active && $mrc == CURLM_OK) {
-            if (curl_multi_select($mh) === -1) {
-                usleep(10000);
+        while ($active && $mrc === CURLM_OK) {
+            if (curl_multi_select($mh, 0.05) === -1) {
+                usleep(1000);
             }
             do {
                 $mrc = curl_multi_exec($mh, $active);
-            } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+            } while ($mrc === CURLM_CALL_MULTI_PERFORM);
         }
 
         foreach ($handles as $key => $ch) {
