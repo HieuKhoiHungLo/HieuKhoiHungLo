@@ -1467,7 +1467,7 @@ class EnrollmentController extends Controller {
     }
 
     /**
-     * Xuất danh sách Edusoft (34 cột chuẩn Edusoft + Mã ngành, Tên ngành)
+     * Xuất danh sách Edusoft (32 cột chuẩn Edusoft + Mã ngành, Tên ngành, Số CCCD, Tên trường THPT, Số điện thoại)
      * Sắp xếp tăng dần theo mã ngành, trong cùng 1 ngành sắp xếp theo TenSV - HoLotSV chuẩn tiếng Việt
      */
     public function exportEdusoft() {
@@ -1484,6 +1484,7 @@ class EnrollmentController extends Controller {
                    ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
                    COALESCE(NULLIF(p_tt.ten_tinh, ''), NULLIF(p_hk.ten_tinh, ''), NULLIF(p_12.ten_tinh, '')) as ten_tinh,
                    x.ten_xa,
+                   COALESCE(NULLIF(tr.ten_truong, ''), NULLIF(tr_extra.ten_truong, '')) as ten_truong_thpt,
                    COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
             FROM nhap_hoc nh
             JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
@@ -1494,6 +1495,8 @@ class EnrollmentController extends Controller {
             LEFT JOIN dm_tinh p_hk ON ts.ma_tinh_ho_khau = p_hk.ma_tinh
             LEFT JOIN dm_tinh p_12 ON ts.ma_tinh_lop_12 = p_12.ma_tinh
             LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+            LEFT JOIN dm_truong_thpt tr ON ts.ma_truong_lop_12 = tr.ma_truong
+            LEFT JOIN dm_truong_thpt tr_extra ON ts.ma_truong_lop_12 IS NULL AND tr_extra.ma_truong = (nh.ghi_chu_can_bo::json->>'truong_thpt')
             WHERE nh.session_id = ? 
               AND nh.trang_thai = 'da_nhap_hoc'
         ");
@@ -1511,6 +1514,7 @@ class EnrollmentController extends Controller {
                        ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
                        COALESCE(NULLIF(p_tt.ten_tinh, ''), NULLIF(p_hk.ten_tinh, ''), NULLIF(p_12.ten_tinh, '')) as ten_tinh,
                        x.ten_xa,
+                       COALESCE(NULLIF(tr.ten_truong, ''), '') as ten_truong_thpt,
                        COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
                 FROM ket_qua_trung_tuyen kq
                 LEFT JOIN dot_tuyen_sinh dt ON kq.session_id = dt.id
@@ -1520,6 +1524,7 @@ class EnrollmentController extends Controller {
                 LEFT JOIN dm_tinh p_hk ON ts.ma_tinh_ho_khau = p_hk.ma_tinh
                 LEFT JOIN dm_tinh p_12 ON ts.ma_tinh_lop_12 = p_12.ma_tinh
                 LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+                LEFT JOIN dm_truong_thpt tr ON ts.ma_truong_lop_12 = tr.ma_truong
                 WHERE kq.session_id = ? 
                   AND (kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1'
                        OR kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1'
@@ -1590,6 +1595,11 @@ class EnrollmentController extends Controller {
             $tenBH = 'Đại học, chính quy';
             $maNganh = (string)($r['ma_nganh'] ?? '');
 
+            // Thông tin bổ sung
+            $soCccd = (string)($r['so_cccd'] ?? '');
+            $tenTruongThpt = (string)($r['ten_truong_thpt'] ?? ($extra['ten_truong'] ?? ''));
+            $sdt = !empty($r['dien_thoai_ts']) ? (string)$r['dien_thoai_ts'] : (string)($r['dien_thoai_kq'] ?? '');
+
             $candidates[] = [
                 'ma_nganh'   => $maNganh,
                 'ten_sv'     => $tenSV,
@@ -1628,7 +1638,10 @@ class EnrollmentController extends Controller {
                     '0',
                     '0',
                     $maNganh,
-                    $tenNgChng
+                    $tenNgChng,
+                    $soCccd,
+                    $tenTruongThpt,
+                    $sdt
                 ]
             ];
         }
@@ -1659,7 +1672,7 @@ class EnrollmentController extends Controller {
             'TenLopEg2', 'SoQDKHDT', 'SoQDCTDT', 'SoTinChiCTDT', 'TenKhoa', 'TenKhoaEg', 
             'TenNgChng', 'TenNgChngEg', 'MaNgChngBo', 'MaVVFast', 'TenBH', 'TenBHEg', 
             '0', '0', '0', '0', '0', '0',
-            'Mã ngành', 'Tên ngành'
+            'Mã ngành', 'Tên ngành', 'Số CCCD', 'Tên trường THPT', 'Số điện thoại'
         ];
 
         $exportRows = array_column($candidates, 'row_data');
