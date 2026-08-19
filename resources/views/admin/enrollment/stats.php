@@ -111,6 +111,10 @@ $admitRate = $totalCandidates > 0 ? round(($totalNhapHoc / $totalCandidates) * 1
                         <span class="w-5 h-5 rounded bg-purple-100 text-purple-700 flex items-center justify-center text-[10px]"><i class="fas fa-credit-card"></i></span>
                         Xuất dữ liệu làm thẻ ngân hàng
                     </a>
+                    <a href="<?= url('/admin/enrollment/export-edusoft?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition-colors flex items-center gap-2 bg-emerald-50/40 border-b border-slate-100">
+                        <span class="w-5 h-5 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]"><i class="fas fa-file-excel"></i></span>
+                        Xuất danh sách Edusoft
+                    </a>
                     <a href="<?= url('/admin/enrollment/export-cccd-photos?session_id=' . $activeSessionId) ?>" class="block w-full text-left px-4 py-3 hover:bg-blue-50 text-blue-700 text-xs font-bold transition-colors flex items-center gap-2 bg-blue-50/40">
                         <span class="w-5 h-5 rounded bg-blue-100 text-blue-700 flex items-center justify-center text-[10px]"><i class="fas fa-id-card"></i></span>
                         Xuất ảnh CCCD (2 mặt)

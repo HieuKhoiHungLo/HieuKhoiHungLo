@@ -1026,6 +1026,55 @@ class ExportService {
     }
 
     /**
+     * Xuất file Excel đặc thù cho Edusoft (chấp nhận mảng headers riêng và dữ liệu mảng con theo thứ tự cột)
+     */
+    public function exportEdusoftXml(array $headers, array $rows, string $filename) {
+        $filename = str_replace(['.csv', '.xlsx', '.xls'], '', $filename) . '.xls';
+
+        ob_clean();
+        header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header("Cache-Control: no-cache, no-store, must-revalidate");
+
+        echo '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+        echo ' <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>Virtual Admission</Author></DocumentProperties>' . "\n";
+        echo ' <Styles>' . "\n";
+        echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#334155"/></Style>' . "\n";
+        echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#475569" ss:Bold="1"/><Interior ss:Color="#f8fafc" ss:Pattern="Solid"/></Style>' . "\n";
+        echo '  <Style ss:ID="sText"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#cbd5e1"/></Borders><NumberFormat ss:Format="@"/></Style>' . "\n";
+        echo ' </Styles>' . "\n";
+        echo ' <Worksheet ss:Name="Edusoft">' . "\n";
+        echo '  <Table>' . "\n";
+
+        foreach ($headers as $h) {
+            echo '   <Column ss:AutoFitWidth="1" ss:Width="110"/>' . "\n";
+        }
+
+        // Header Row
+        echo '   <Row ss:Height="25">' . "\n";
+        foreach ($headers as $label) {
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">' . htmlspecialchars((string)$label) . '</Data></Cell>' . "\n";
+        }
+        echo '   </Row>' . "\n";
+
+        // Data Rows
+        foreach ($rows as $row) {
+            echo '   <Row ss:AutoFitHeight="1">' . "\n";
+            foreach ($row as $cell) {
+                echo '    <Cell ss:StyleID="sText"><Data ss:Type="String">' . htmlspecialchars((string)($cell ?? '')) . '</Data></Cell>' . "\n";
+            }
+            echo '   </Row>' . "\n";
+        }
+
+        echo '  </Table>' . "\n";
+        echo ' </Worksheet>' . "\n";
+        echo '</Workbook>' . "\n";
+        exit;
+    }
+
+    /**
      * Stream CSV with UTF-8 BOM. 
      */
     public function toCsv($data, $filename) {

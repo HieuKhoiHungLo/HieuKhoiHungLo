@@ -1467,6 +1467,208 @@ class EnrollmentController extends Controller {
     }
 
     /**
+     * Xuất danh sách Edusoft (34 cột chuẩn Edusoft + Mã ngành, Tên ngành)
+     * Sắp xếp tăng dần theo mã ngành, trong cùng 1 ngành sắp xếp theo TenSV - HoLotSV chuẩn tiếng Việt
+     */
+    public function exportEdusoft() {
+        $sessions = $this->masterData->getSessions();
+        $sessionId = intval($_GET['session_id'] ?? (count($sessions) > 0 ? $sessions[0]['id'] : 0));
+
+        // 1. Lấy danh sách thí sinh đã nhập học
+        $stmt = $this->db->prepare("
+            SELECT nh.id as nhap_hoc_id, nh.ma_phieu, nh.ngay_nhap_hoc, nh.ghi_chu_can_bo,
+                   kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
+                   kq.ma_nganh, COALESCE(NULLIF(n.ten_nganh, ''), kq.ten_nganh) as ten_nganh, n.nhom_nganh,
+                   kq.ten_khoa, kq.email as email_kq,
+                   ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet, ts.email as email_ts,
+                   ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
+                   COALESCE(NULLIF(p_tt.ten_tinh, ''), NULLIF(p_hk.ten_tinh, ''), NULLIF(p_12.ten_tinh, '')) as ten_tinh,
+                   x.ten_xa,
+                   COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
+            FROM nhap_hoc nh
+            JOIN ket_qua_trung_tuyen kq ON nh.ket_qua_id = kq.id
+            LEFT JOIN dot_tuyen_sinh dt ON nh.session_id = dt.id
+            LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+            LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+            LEFT JOIN dm_tinh p_tt ON ts.ma_tinh_thuong_tru = p_tt.ma_tinh
+            LEFT JOIN dm_tinh p_hk ON ts.ma_tinh_ho_khau = p_hk.ma_tinh
+            LEFT JOIN dm_tinh p_12 ON ts.ma_tinh_lop_12 = p_12.ma_tinh
+            LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+            WHERE nh.session_id = ? 
+              AND nh.trang_thai = 'da_nhap_hoc'
+        ");
+        $stmt->execute([$sessionId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 2. Nếu đợt chưa có ai bấm hoàn tất nhập học, lấy từ danh sách trúng tuyển đã xác nhận
+        if (empty($rows)) {
+            $stmtFallback = $this->db->prepare("
+                SELECT NULL as nhap_hoc_id, NULL as ma_phieu, NULL as ngay_nhap_hoc, NULL as ghi_chu_can_bo,
+                       kq.so_cccd, kq.ho_ten, kq.sbd as so_bao_danh, kq.ngay_sinh, 
+                       kq.ma_nganh, COALESCE(NULLIF(n.ten_nganh, ''), kq.ten_nganh) as ten_nganh, n.nhom_nganh,
+                       kq.ten_khoa, kq.email as email_kq,
+                       ts.ho_va_ten, ts.gioi_tinh, ts.dan_toc, ts.dia_chi_chi_tiet, ts.email as email_ts,
+                       ts.dien_thoai as dien_thoai_ts, kq.sdt as dien_thoai_kq,
+                       COALESCE(NULLIF(p_tt.ten_tinh, ''), NULLIF(p_hk.ten_tinh, ''), NULLIF(p_12.ten_tinh, '')) as ten_tinh,
+                       x.ten_xa,
+                       COALESCE(dt.nam_tuyen_sinh, dt.dm_nam_tuyen_sinh_nam) as nam_tuyen_sinh
+                FROM ket_qua_trung_tuyen kq
+                LEFT JOIN dot_tuyen_sinh dt ON kq.session_id = dt.id
+                LEFT JOIN dm_nganh n ON kq.ma_nganh = n.ma_nganh
+                LEFT JOIN thi_sinh ts ON kq.so_cccd = ts.so_cccd
+                LEFT JOIN dm_tinh p_tt ON ts.ma_tinh_thuong_tru = p_tt.ma_tinh
+                LEFT JOIN dm_tinh p_hk ON ts.ma_tinh_ho_khau = p_hk.ma_tinh
+                LEFT JOIN dm_tinh p_12 ON ts.ma_tinh_lop_12 = p_12.ma_tinh
+                LEFT JOIN dm_xa x ON ts.ma_xa_thuong_tru = x.ma_xa
+                WHERE kq.session_id = ? 
+                  AND (kq.xac_nhan_bo = true OR kq.xac_nhan_bo::text = '1'
+                       OR kq.xac_nhan_truong = true OR kq.xac_nhan_truong::text = '1'
+                       OR kq.xac_nhan_kinh_phi = true OR kq.xac_nhan_kinh_phi::text = '1')
+            ");
+            $stmtFallback->execute([$sessionId]);
+            $rows = $stmtFallback->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $candidates = [];
+        foreach ($rows as $r) {
+            $extra = [];
+            if (!empty($r['ghi_chu_can_bo'])) {
+                $extra = json_decode($r['ghi_chu_can_bo'], true) ?: [];
+            }
+
+            // Tách Họ lót và Tên
+            $hoTenRaw = trim($r['ho_ten'] ?: ($r['ho_va_ten'] ?? ''));
+            $hoTenTitle = mb_convert_case($hoTenRaw, MB_CASE_TITLE, 'UTF-8');
+            $parts = preg_split('/\s+/u', trim($hoTenTitle));
+            if (count($parts) > 1) {
+                $tenSV = array_pop($parts);
+                $hoLotSV = implode(' ', $parts);
+            } else {
+                $tenSV = $parts[0] ?? '';
+                $hoLotSV = '';
+            }
+
+            // Ngày sinh (dd/mm/yyyy)
+            $ngaySinh = '';
+            $rawDob = trim($r['ngay_sinh'] ?? '');
+            if (!empty($rawDob)) {
+                if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $rawDob, $m)) {
+                    $ngaySinh = sprintf('%02d/%02d/%04d', $m[1], $m[2], $m[3]);
+                } elseif (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})/', $rawDob, $m)) {
+                    $ngaySinh = sprintf('%02d/%02d/%04d', $m[3], $m[2], $m[1]);
+                } else {
+                    $ts = strtotime($rawDob);
+                    if ($ts) $ngaySinh = date('d/m/Y', $ts);
+                }
+            }
+
+            // Giới tính (Phai: Nam = 0, Nữ = 1)
+            $gt = trim($r['gioi_tinh'] ?? '');
+            if (strcasecmp($gt, 'nữ') === 0 || strcasecmp($gt, 'nu') === 0 || $gt === '1') {
+                $phai = '1';
+            } elseif (strcasecmp($gt, 'nam') === 0 || $gt === '0') {
+                $phai = '0';
+            } else {
+                $phai = '0';
+            }
+
+            // Nơi sinh (bỏ tiền tố Tỉnh/Thành phố nếu có)
+            $noiSinh = $r['noi_sinh'] ?? '';
+            if (empty($noiSinh)) {
+                $noiSinh = $r['ten_tinh'] ?? '';
+            }
+            $noiSinh = preg_replace('/^(Tỉnh|Thành phố|TP\.?)\s+/ui', '', trim($noiSinh));
+
+            $maSV = (string)($extra['ma_sinh_vien'] ?? ($extra['mssv'] ?? ($extra['ma_sv'] ?? '')));
+            $maLop = (string)($extra['ma_lop'] ?? ($extra['lop'] ?? ($extra['ten_lop'] ?? '')));
+            $tenLop = (string)($extra['ten_lop'] ?? ($extra['lop'] ?? ''));
+            $maBH = 'D_1';
+            $maKhoa = (string)($extra['ma_khoa'] ?? '');
+            $maNgChng = (string)($extra['ma_chuyen_nganh'] ?? ($extra['ma_nganh_chuyen_nganh'] ?? ''));
+            $tenKhoa = (string)($extra['khoa'] ?? ($extra['ten_khoa'] ?? ($r['nhom_nganh'] ?? '')));
+            $tenNgChng = (string)($r['ten_nganh'] ?? '');
+            $tenBH = 'Đại học, chính quy';
+            $maNganh = (string)($r['ma_nganh'] ?? '');
+
+            $candidates[] = [
+                'ma_nganh'   => $maNganh,
+                'ten_sv'     => $tenSV,
+                'ho_lot_sv'  => $hoLotSV,
+                'row_data'   => [
+                    $maSV,
+                    $hoLotSV,
+                    $tenSV,
+                    $ngaySinh,
+                    $phai,
+                    $noiSinh,
+                    '0',
+                    $maLop,
+                    $maBH,
+                    $maKhoa,
+                    $maNgChng,
+                    '0',
+                    $tenLop,
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    $tenKhoa,
+                    '0',
+                    $tenNgChng,
+                    '0',
+                    '0',
+                    '0',
+                    $tenBH,
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    '0',
+                    $maNganh,
+                    $tenNgChng
+                ]
+            ];
+        }
+
+        // Sắp xếp: tăng dần theo mã ngành -> Tên tiếng Việt -> Họ lót tiếng Việt
+        $collator = class_exists('\Collator') ? new \Collator('vi_VN') : null;
+
+        usort($candidates, function($a, $b) use ($collator) {
+            $cmpMajor = strcmp($a['ma_nganh'], $b['ma_nganh']);
+            if ($cmpMajor !== 0) return $cmpMajor;
+
+            if ($collator) {
+                $cmpTen = $collator->compare($a['ten_sv'], $b['ten_sv']);
+            } else {
+                $cmpTen = strcmp($a['ten_sv'], $b['ten_sv']);
+            }
+            if ($cmpTen !== 0) return $cmpTen;
+
+            if ($collator) {
+                return $collator->compare($a['ho_lot_sv'], $b['ho_lot_sv']);
+            }
+            return strcmp($a['ho_lot_sv'], $b['ho_lot_sv']);
+        });
+
+        $headers = [
+            'MaSV', 'HoLotSV', 'TenSV', 'NgaySinhC', 'Phai', 'NoiSinh', 'DC_DT1HK', 
+            'MaLop', 'MaBH', 'MaKhoa', 'MaNgChng', 'IsDuThinh', 'TenLop', 'TenLopEg', 
+            'TenLopEg2', 'SoQDKHDT', 'SoQDCTDT', 'SoTinChiCTDT', 'TenKhoa', 'TenKhoaEg', 
+            'TenNgChng', 'TenNgChngEg', 'MaNgChngBo', 'MaVVFast', 'TenBH', 'TenBHEg', 
+            '0', '0', '0', '0', '0', '0',
+            'Mã ngành', 'Tên ngành'
+        ];
+
+        $exportRows = array_column($candidates, 'row_data');
+
+        $exportService = new \App\Services\ExportService();
+        $exportService->exportEdusoftXml($headers, $exportRows, 'danh_sach_edusoft_dot_' . $sessionId . '.xls');
+    }
+
+    /**
      * Xuất file ZIP chứa ảnh CCCD mặt trước + mặt sau của thí sinh đã có trong hệ thống
      */
     public function exportCccdPhotos() {
