@@ -524,6 +524,14 @@ ob_start();
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;">
+            <!-- BATCH ENROLL ALL BUTTON -->
+            <button type="button" @click="openBatchEnrollModal()"
+                style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:9px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,0.25);transition:all 0.15s;white-space:nowrap;"
+                title="Nhập học toàn bộ các thí sinh đã trúng tuyển">
+                <i class="fas fa-users-cog" style="font-size:13px;"></i>
+                <span>Nhập học toàn bộ</span>
+            </button>
+
             <!-- EXCEL EXPORT DROPDOWN (TOP BAR) -->
             <div x-data="{ exportOpen: false }" class="relative" style="position:relative;">
                 <button type="button" @click="exportOpen = !exportOpen" @click.away="exportOpen = false"
@@ -1078,6 +1086,134 @@ ob_start();
 
     </div><!-- end ep-body -->
 
+    <!-- ── Modal Nhập học toàn bộ ────────────────────────────────── -->
+    <template x-if="showBatchEnrollModal">
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;" @click.self="closeBatchEnrollModal()">
+            <div style="background:#fff;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:100%;max-width:540px;overflow:hidden;border:1px solid #e2e8f0;animation:ep-toast-in 0.25s ease;">
+                
+                <!-- Modal Header -->
+                <div style="background:linear-gradient(135deg,#1e40af 0%,#2563eb 100%);padding:18px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size:16px;font-weight:800;margin:0;line-height:1.3;">Nhập học Toàn bộ Thí sinh Trúng tuyển</h3>
+                            <p style="font-size:12px;color:rgba(255,255,255,0.85);margin:2px 0 0 0;">Áp dụng cho đợt tuyển sinh đang chọn</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="closeBatchEnrollModal()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:18px;padding:4px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div style="padding:20px 24px;">
+                    <!-- Stats Card -->
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+                        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Thống kê đợt tuyển sinh</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">
+                            <div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #e2e8f0;">
+                                <div style="font-size:11px;color:#64748b;">Trúng tuyển</div>
+                                <div style="font-size:16px;font-weight:800;color:#1e293b;" x-text="stats.tong_thi_sinh || 0">0</div>
+                            </div>
+                            <div style="background:#f0fdf4;padding:8px;border-radius:8px;border:1px solid #bbf7d0;">
+                                <div style="font-size:11px;color:#166534;">Đã nhập học</div>
+                                <div style="font-size:16px;font-weight:800;color:#15803d;" x-text="stats.da_nhap_hoc || 0">0</div>
+                            </div>
+                            <div style="background:#eff6ff;padding:8px;border-radius:8px;border:1px solid #bfdbfe;">
+                                <div style="font-size:11px;color:#1e40af;">Chưa nhập học</div>
+                                <div style="font-size:16px;font-weight:800;color:#2563eb;" x-text="Math.max(0, (stats.tong_thi_sinh || 0) - (stats.da_nhap_hoc || 0))">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config Summary -->
+                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;">
+                        <div style="font-weight:700;color:#1e293b;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-check-circle" style="color:#16a34a;"></i>
+                            <span>Thông tin sẽ được tự động thiết lập:</span>
+                        </div>
+                        <ul style="margin:0;padding-left:20px;color:#334155;display:flex;flex-direction:column;gap:5px;">
+                            <li><strong>Xác nhận Bộ GD&ĐT & Trường:</strong> <span style="color:#16a34a;font-weight:600;">Đã xác nhận</span></li>
+                            <li><strong>Học phí / Kinh phí:</strong> <span style="color:#64748b;font-weight:600;">Mặc định chưa nộp (0 VNĐ)</span></li>
+                            <li><strong>Giấy CN kết quả thi tốt nghiệp THPT năm 2026:</strong> <span style="color:#2563eb;font-weight:600;">Bản gốc</span></li>
+                            <li><strong>Học bạ Trung học phổ thông:</strong> <span style="color:#2563eb;font-weight:600;">Bản gốc</span></li>
+                            <li><strong>Mã phiếu nhập học:</strong> Tự động sinh liên tục dạng <code style="background:#f1f5f9;padding:2px 5px;border-radius:4px;color:#1e293b;">NH2026-xxxx</code></li>
+                        </ul>
+                    </div>
+
+                    <!-- Options -->
+                    <div style="margin-bottom:12px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#475569;user-select:none;">
+                            <input type="checkbox" x-model="batchOverwrite" style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;">
+                            <span>Ghi đè lại cả những thí sinh đã nhập học trước đó</span>
+                        </label>
+                    </div>
+
+                    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;display:flex;gap:8px;align-items:flex-start;">
+                        <i class="fas fa-exclamation-triangle" style="color:#d97706;margin-top:2px;flex-shrink:0;"></i>
+                        <span>Thao tác này sẽ cập nhật hàng loạt cho thí sinh trúng tuyển trong đợt tuyển sinh. Vui lòng kiểm tra kỹ trước khi bấm xác nhận.</span>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:14px 24px;display:flex;align-items:center;justify-content:flex-end;gap:10px;">
+                    <button type="button" @click="closeBatchEnrollModal()" :disabled="isBatchProcessing"
+                        style="padding:8px 16px;border-radius:9px;border:1px solid #cbd5e1;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;">
+                        Hủy bỏ
+                    </button>
+                    <button type="button" @click="executeBatchEnroll()" :disabled="isBatchProcessing"
+                        style="padding:8px 20px;border-radius:9px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:0 2px 8px rgba(37,99,235,0.3);transition:all 0.15s;">
+                        <template x-if="isBatchProcessing">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </template>
+                        <template x-if="!isBatchProcessing">
+                            <i class="fas fa-check-double"></i>
+                        </template>
+                        <span x-text="isBatchProcessing ? 'Đang xử lý...' : 'Xác nhận Nhập học Toàn bộ'"></span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
+    <!-- ── Modal Chọn Mẫu In Word ────────────────────────────────── -->
+    <template x-if="showPrintWordModal">
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;" @click.self="closePrintWordModal()">
+            <div style="background:#fff;border-radius:18px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:100%;max-width:400px;overflow:hidden;border:1px solid #e2e8f0;padding:24px;animation:ep-toast-in 0.25s ease;">
+                <h3 style="font-weight:800;color:#1e293b;font-size:16px;margin:0 0 4px 0;">🖨️ In Phiếu Nhập Học (Word)</h3>
+                <p style="font-size:12px;color:#64748b;margin:0 0 16px 0;">Chọn mẫu phiếu để xuất file .docx</p>
+                <template x-if="isLoadingTemplates">
+                    <div style="text-align:center;padding:24px;color:#94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Đang tải danh sách mẫu...</div>
+                </template>
+                <template x-if="!isLoadingTemplates && phieuTemplates.length === 0">
+                    <div style="text-align:center;padding:20px 0;">
+                        <p style="color:#64748b;font-size:13px;margin-bottom:12px;">Chưa có mẫu nào. Hãy upload mẫu trước.</p>
+                        <a href="<?= url('/admin/phieu/templates') ?>" target="_blank" style="color:#2563eb;text-decoration:underline;font-size:13px;font-weight:600;">Quản lý mẫu phiếu →</a>
+                    </div>
+                </template>
+                <template x-if="!isLoadingTemplates && phieuTemplates.length > 0">
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">Chọn mẫu phiếu</label>
+                        <select x-model="selectedTemplateId" style="width:100%;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:16px;outline:none;">
+                            <template x-for="t in phieuTemplates" :key="t.id">
+                                <option :value="t.id" x-text="t.ten_mau"></option>
+                            </template>
+                        </select>
+                        <div style="display:flex;gap:10px;">
+                            <button type="button" @click="closePrintWordModal()" style="flex:1;padding:8px 16px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:600;color:#475569;background:#fff;cursor:pointer;">Hủy</button>
+                            <button type="button" @click="downloadPhieuWord()" style="flex:1;padding:8px 16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">
+                                <i class="fas fa-download" style="margin-right:6px;"></i> Tải xuống
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
 </div><!-- end ep-wrapper -->
 
 <!-- TOAST CONTAINER -->
@@ -1094,6 +1230,11 @@ document.addEventListener('alpine:init', () => {
         activeTab: 'admission',
         isSaving: false,
 
+        // Batch Enrollment
+        showBatchEnrollModal: false,
+        isBatchProcessing: false,
+        batchOverwrite: false,
+
         stats: { tong_thi_sinh: 0, da_nhap_hoc: 0, cho_xet_duyet: 0, da_huy: 0, con_chi_tieu: 0 },
         enrolledList: [],
         isLoadingList: false,
@@ -1106,7 +1247,7 @@ document.addEventListener('alpine:init', () => {
             
             // Auto refresh stats mỗi 30 giây
             setInterval(() => {
-                if (!this.isSaving && !this.isSearching) {
+                if (!this.isSaving && !this.isSearching && !this.isBatchProcessing) {
                     this.loadStats();
                 }
             }, 30000);
@@ -1121,7 +1262,13 @@ document.addEventListener('alpine:init', () => {
                     document.getElementById('search-input')?.select();
                 }
                 if (e.key === 'Escape') {
-                    this.resetForm();
+                    if (this.showBatchEnrollModal) {
+                        this.closeBatchEnrollModal();
+                    } else if (this.showPrintWordModal) {
+                        this.closePrintWordModal();
+                    } else {
+                        this.resetForm();
+                    }
                 }
             });
         },
@@ -1286,6 +1433,51 @@ document.addEventListener('alpine:init', () => {
             window.open(`<?= url("/admin/enrollment/print") ?>?id=${this.selectedCandidate.nhap_hoc_id}&type=${type}`, '_blank');
         },
 
+        // ── Nhập học toàn bộ ─────────────────────────────────────
+        openBatchEnrollModal() {
+            this.batchOverwrite = false;
+            this.showBatchEnrollModal = true;
+        },
+
+        closeBatchEnrollModal() {
+            if (this.isBatchProcessing) return;
+            this.showBatchEnrollModal = false;
+        },
+
+        executeBatchEnroll() {
+            this.isBatchProcessing = true;
+            const payload = new URLSearchParams();
+            payload.append('csrf_token', '<?= \App\Middleware\SecurityMiddleware::generateCsrfToken() ?>');
+            payload.append('session_id', this.sessionId);
+            payload.append('overwrite', this.batchOverwrite ? '1' : '0');
+
+            fetch('<?= url("/admin/enrollment/batch-enroll") ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload.toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    this.showToast(data.message || 'Nhập học toàn bộ thành công!', 'success');
+                    this.showBatchEnrollModal = false;
+                    this.loadStats();
+                    this.loadEnrolledList();
+                    if (this.selectedCandidate) {
+                        this.selectedCandidate.trang_thai_nhap_hoc = 'da_nhap_hoc';
+                        this.selectedCandidate.xac_nhan_bo = true;
+                        this.selectedCandidate.xac_nhan_truong = true;
+                    }
+                } else {
+                    this.showToast(data.message || 'Có lỗi xảy ra khi nhập học hàng loạt', 'error');
+                }
+            })
+            .catch(() => this.showToast('Lỗi kết nối máy chủ khi xử lý nhập học hàng loạt.', 'error'))
+            .finally(() => {
+                this.isBatchProcessing = false;
+            });
+        },
+
         // ── In Word ──────────────────────────────────────────────
         phieuTemplates: [],
         selectedTemplateId: '',
@@ -1332,43 +1524,6 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 </script>
-
-<!-- ── Modal Chọn Mẫu In Word ────────────────────────────────── -->
-<div x-data="enrollmentProcess()" x-cloak>
-  <template x-if="showPrintWordModal">
-    <div class="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4" @click.self="closePrintWordModal()">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <h3 class="font-bold text-gray-800 text-lg mb-1">🖨️ In Phiếu Nhập Học (Word)</h3>
-        <p class="text-sm text-gray-500 mb-4">Chọn mẫu phiếu để xuất file .docx</p>
-        <template x-if="isLoadingTemplates">
-          <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải danh sách mẫu...</div>
-        </template>
-        <template x-if="!isLoadingTemplates && phieuTemplates.length === 0">
-          <div class="text-center py-6">
-            <p class="text-gray-500 text-sm mb-3">Chưa có mẫu nào. Hãy upload mẫu trước.</p>
-            <a href="<?= url('/admin/phieu/templates') ?>" target="_blank" class="text-blue-600 underline text-sm">Quản lý mẫu phiếu →</a>
-          </div>
-        </template>
-        <template x-if="!isLoadingTemplates && phieuTemplates.length > 0">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Chọn mẫu phiếu</label>
-            <select x-model="selectedTemplateId" class="w-full border rounded-lg px-3 py-2 text-sm mb-4">
-              <template x-for="t in phieuTemplates" :key="t.id">
-                <option :value="t.id" x-text="t.ten_mau"></option>
-              </template>
-            </select>
-            <div class="flex gap-2">
-              <button @click="closePrintWordModal()" class="flex-1 px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Hủy</button>
-              <button @click="downloadPhieuWord()" class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold">
-                <i class="fas fa-download mr-1"></i> Tải xuống
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-  </template>
-</div>
 
 <?php
 $content = ob_get_clean();

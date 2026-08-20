@@ -531,6 +531,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/admin/enrollment/process', 'EnrollmentController@process');
     $router->get('/admin/enrollment/search', 'EnrollmentController@searchCandidate');
     $router->post('/admin/enrollment/submit', 'EnrollmentController@submitEnrollment');
+    $router->post('/admin/enrollment/batch-enroll', 'EnrollmentController@batchEnrollAll');
     $router->get('/admin/enrollment/print', 'EnrollmentController@printReceipt');
     $router->get('/admin/enrollment/stats', 'EnrollmentController@stats');
     $router->post('/admin/enrollment/reset-kiosk-lookups', 'EnrollmentController@resetKioskLookups');

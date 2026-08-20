@@ -355,6 +355,152 @@ class EnrollmentController extends Controller {
         }
     }
 
+    /**
+     * Nhập học toàn bộ thí sinh đã trúng tuyển
+     */
+    public function batchEnrollAll() {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json');
+
+        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
+            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thực hiện thao tác này.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $sessionId = intval($_POST['session_id'] ?? 0);
+        $overwrite = !empty($_POST['overwrite']) && ($_POST['overwrite'] === 'true' || $_POST['overwrite'] === '1');
+        $adminId = $_SESSION['admin_id'] ?? 0;
+
+        if ($sessionId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Đợt tuyển sinh không hợp lệ.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Lấy danh sách hồ sơ cấu hình của đợt
+            $docStmt = $this->db->prepare("SELECT id, ten_ho_so, cac_gia_tri, gia_tri_mac_dinh FROM nhap_hoc_ho_so WHERE session_id = ? ORDER BY thu_tu ASC");
+            $docStmt->execute([$sessionId]);
+            $documents = $docStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Nếu chưa có cấu hình hồ sơ cho đợt, khởi tạo mặc định 2 hồ sơ
+            if (empty($documents)) {
+                $seedStmt = $this->db->prepare("INSERT INTO nhap_hoc_ho_so (session_id, ten_ho_so, cac_gia_tri, gia_tri_mac_dinh, bat_buoc, thu_tu) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, ten_ho_so, gia_tri_mac_dinh");
+                $seedStmt->execute([$sessionId, 'Giấy CN kết quả thi tốt nghiệp THPT năm 2026', json_encode(['Bản gốc', 'Bản sao', 'Chưa nộp'], JSON_UNESCAPED_UNICODE), 'Bản gốc', 'true', 1]);
+                $d1 = $seedStmt->fetch(PDO::FETCH_ASSOC);
+                $seedStmt->execute([$sessionId, 'Học bạ Trung học phổ thông', json_encode(['Bản gốc', 'Bản sao', 'Chưa nộp'], JSON_UNESCAPED_UNICODE), 'Bản gốc', 'true', 2]);
+                $d2 = $seedStmt->fetch(PDO::FETCH_ASSOC);
+                $documents = [$d1, $d2];
+            }
+
+            // Chuẩn hóa giá trị mặc định cho từng loại hồ sơ
+            $docValues = [];
+            foreach ($documents as $doc) {
+                $tenLower = mb_strtolower($doc['ten_ho_so'] ?? '', 'UTF-8');
+                if (strpos($tenLower, 'kết quả thi') !== false || strpos($tenLower, 'tốt nghiệp') !== false || strpos($tenLower, 'giấy cn') !== false || strpos($tenLower, 'giấy chứng nhận') !== false) {
+                    $docValues[$doc['id']] = 'Bản gốc';
+                } elseif (strpos($tenLower, 'học bạ') !== false) {
+                    $docValues[$doc['id']] = 'Bản gốc';
+                } else {
+                    $docValues[$doc['id']] = $doc['gia_tri_mac_dinh'] ?: 'Bản gốc';
+                }
+            }
+
+            // 2. Lấy danh sách thí sinh trúng tuyển
+            if ($overwrite) {
+                $candidateStmt = $this->db->prepare("
+                    SELECT kq.id as ket_qua_id, kq.so_cccd, nh.id as nhap_hoc_id, nh.ma_phieu
+                    FROM ket_qua_trung_tuyen kq
+                    LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = ?
+                    WHERE kq.session_id = ?
+                    ORDER BY kq.id ASC
+                ");
+                $candidateStmt->execute([$sessionId, $sessionId]);
+            } else {
+                $candidateStmt = $this->db->prepare("
+                    SELECT kq.id as ket_qua_id, kq.so_cccd, nh.id as nhap_hoc_id, nh.ma_phieu
+                    FROM ket_qua_trung_tuyen kq
+                    LEFT JOIN nhap_hoc nh ON kq.id = nh.ket_qua_id AND nh.session_id = ?
+                    WHERE kq.session_id = ? AND (nh.id IS NULL OR nh.trang_thai != 'da_nhap_hoc')
+                    ORDER BY kq.id ASC
+                ");
+                $candidateStmt->execute([$sessionId, $sessionId]);
+            }
+            $candidates = $candidateStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($candidates)) {
+                $this->db->commit();
+                echo json_encode([
+                    'success' => true,
+                    'count' => 0,
+                    'message' => 'Tất cả thí sinh trúng tuyển đã được nhập học trước đó.'
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // 3. Khóa bảng nhap_hoc để tạo ma_phieu liên tục không trùng lặp
+            $this->db->exec("LOCK TABLE nhap_hoc IN SHARE ROW EXCLUSIVE MODE");
+
+            $year = date('Y');
+            $countStmt = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ?");
+            $countStmt->execute([$sessionId]);
+            $currentCount = (int)$countStmt->fetchColumn();
+
+            // Prepare Statements
+            $updKq = $this->db->prepare("UPDATE ket_qua_trung_tuyen SET xac_nhan_bo = 'true', xac_nhan_truong = 'true', xac_nhan_kinh_phi = 'false', so_tien = 0 WHERE id = ?");
+            
+            $insNh = $this->db->prepare("INSERT INTO nhap_hoc (ket_qua_id, session_id, so_cccd, nguoi_nhap, ma_phieu, trang_thai, da_nop_tien, so_tien_da_nop, ngay_nhap_hoc, updated_at) VALUES (?, ?, ?, ?, ?, 'da_nhap_hoc', 'false', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id");
+            $updNh = $this->db->prepare("UPDATE nhap_hoc SET trang_thai = 'da_nhap_hoc', nguoi_nhap = ?, da_nop_tien = 'false', so_tien_da_nop = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            
+            $delDocVal = $this->db->prepare("DELETE FROM nhap_hoc_ho_so_gia_tri WHERE nhap_hoc_id = ?");
+            $insDocVal = $this->db->prepare("INSERT INTO nhap_hoc_ho_so_gia_tri (nhap_hoc_id, ho_so_id, gia_tri, ghi_chu) VALUES (?, ?, ?, ?)");
+
+            $processedCount = 0;
+
+            foreach ($candidates as $cand) {
+                $ketQuaId = $cand['ket_qua_id'];
+                $soCccd = $cand['so_cccd'] ?? '';
+                $nhapHocId = $cand['nhap_hoc_id'] ?? null;
+
+                // Cập nhật kết quả trúng tuyển
+                $updKq->execute([$ketQuaId]);
+
+                if ($nhapHocId) {
+                    $updNh->execute([$adminId, $nhapHocId]);
+                } else {
+                    $currentCount++;
+                    $maPhieu = "NH{$year}-" . str_pad($currentCount, 4, '0', STR_PAD_LEFT);
+                    $insNh->execute([$ketQuaId, $sessionId, $soCccd, $adminId, $maPhieu]);
+                    $nhapHocId = $insNh->fetchColumn();
+                }
+
+                // Xử lý giá trị hồ sơ
+                $delDocVal->execute([$nhapHocId]);
+                foreach ($docValues as $hoSoId => $giaTri) {
+                    $insDocVal->execute([$nhapHocId, $hoSoId, $giaTri, '']);
+                }
+
+                $processedCount++;
+            }
+
+            $this->db->commit();
+
+            echo json_encode([
+                'success' => true,
+                'count' => $processedCount,
+                'message' => "Đã nhập học thành công {$processedCount} thí sinh trúng tuyển!"
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            echo json_encode([
+                'success' => false,
+                'message' => 'Lỗi khi nhập học hàng loạt: ' . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    }
 
     public function printReceipt() {
         $nhapHocId = $_GET['id'] ?? 0;
