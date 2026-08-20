@@ -502,6 +502,63 @@ class EnrollmentController extends Controller {
         }
     }
 
+    /**
+     * Hủy nhập học toàn bộ thí sinh trong đợt tuyển sinh đang chọn
+     */
+    public function batchCancelAll() {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json');
+
+        if (!\App\Models\QuanTriVien::hasPermission($this->currentUser, 'admission.edit') &&
+            !\App\Models\QuanTriVien::hasPermission($this->currentUser, 'enrollment.process')) {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thực hiện thao tác này.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $sessionId = intval($_POST['session_id'] ?? 0);
+
+        if ($sessionId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Đợt tuyển sinh không hợp lệ.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Đếm số lượng bản ghi nhập học hiện tại của đợt
+            $countStmt = $this->db->prepare("SELECT COUNT(*) FROM nhap_hoc WHERE session_id = ?");
+            $countStmt->execute([$sessionId]);
+            $totalEnrolled = (int)$countStmt->fetchColumn();
+
+            // 2. Xóa các bản ghi nhập học của đợt (tự động CASCADE xóa bảng nhap_hoc_ho_so_gia_tri)
+            $delNh = $this->db->prepare("DELETE FROM nhap_hoc WHERE session_id = ?");
+            $delNh->execute([$sessionId]);
+
+            // 3. Reset lại trạng thái xác nhận trong ket_qua_trung_tuyen của đợt
+            $resetKq = $this->db->prepare("
+                UPDATE ket_qua_trung_tuyen 
+                SET xac_nhan_bo = 'false', xac_nhan_truong = 'false', xac_nhan_kinh_phi = 'false', so_tien = 0 
+                WHERE session_id = ?
+            ");
+            $resetKq->execute([$sessionId]);
+
+            $this->db->commit();
+
+            echo json_encode([
+                'success' => true,
+                'count' => $totalEnrolled,
+                'message' => "Đã hủy nhập học thành công cho toàn bộ thí sinh trong đợt ({$totalEnrolled} thí sinh)!"
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            echo json_encode([
+                'success' => false,
+                'message' => 'Lỗi khi hủy nhập học hàng loạt: ' . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
     public function printReceipt() {
         $nhapHocId = $_GET['id'] ?? 0;
         
