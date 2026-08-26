@@ -75,7 +75,9 @@ class BGDResultImportService {
         // --- Bước 0: Load thông tin đối chiếu vào bộ nhớ ---
         // Tải toàn bộ CCCD của thí sinh đăng ký trong đợt này
         $stmtCccds = $this->db->prepare("
-            SELECT DISTINCT so_cccd FROM nguyen_vong WHERE dot_tuyen_sinh_id = ?
+            SELECT DISTINCT nv.so_cccd FROM nguyen_vong nv
+            JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+            WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL
         ");
         $stmtCccds->execute([$sessionId]);
         $registeredCccds = array_flip($stmtCccds->fetchAll(PDO::FETCH_COLUMN));
@@ -84,8 +86,9 @@ class BGDResultImportService {
         $stmtAsps = $this->db->prepare("
             SELECT nv.so_cccd, TRIM(nv.ma_nganh) as ma_nganh, nv.thu_tu_nguyen_vong, cs.trang_thai_trung_tuyen
             FROM nguyen_vong nv
+            JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
             LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-            WHERE nv.dot_tuyen_sinh_id = ?
+            WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL
         ");
         $stmtAsps->execute([$sessionId]);
         $aspirationsMap = [];

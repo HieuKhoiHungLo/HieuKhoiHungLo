@@ -1270,6 +1270,271 @@ class AdmissionController extends Controller {
     }
 
     /**
+     * Lấy chi tiết 1 thí sinh trúng tuyển theo ID (cho Edit Modal)
+     */
+    public function getResultItem() {
+        header('Content-Type: application/json');
+        try {
+            $id = intval($_GET['id'] ?? 0);
+            if (!$id) {
+                echo json_encode(['success' => false, 'message' => 'ID không hợp lệ']);
+                return;
+            }
+            
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmt = $db->prepare("
+                SELECT k.*, 
+                       ts.gioi_tinh, ts.dan_toc, ts.nam_tot_nghiep, ts.dia_chi_chi_tiet, ts.ma_tinh_lop_12, ts.ma_truong_lop_12,
+                       ts.dien_thoai as ts_sdt, ts.email as ts_email, ts.ngay_sinh as ts_ngay_sinh
+                FROM ket_qua_trung_tuyen k
+                LEFT JOIN thi_sinh ts ON ts.so_cccd = k.so_cccd
+                WHERE k.id = ?
+            ");
+            $stmt->execute([$id]);
+            $item = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$item) {
+                echo json_encode(['success' => false, 'message' => 'Không tìm thấy thí sinh']);
+                return;
+            }
+            
+            echo json_encode(['success' => true, 'data' => $item]);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin 1 thí sinh trúng tuyển
+     */
+    public function updateResultItem() {
+        header('Content-Type: application/json');
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
+                return;
+            }
+
+            $id = intval($_POST['id'] ?? 0);
+            if (!$id) {
+                echo json_encode(['success' => false, 'message' => 'ID không hợp lệ']);
+                return;
+            }
+
+            $db = \App\Core\Database::getInstance()->getConnection();
+            
+            // Kiểm tra tồn tại và kiểm tra khóa đợt
+            $stmtCheck = $db->prepare("SELECT id, session_id, so_cccd FROM ket_qua_trung_tuyen WHERE id = ?");
+            $stmtCheck->execute([$id]);
+            $existing = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+            if (!$existing) {
+                echo json_encode(['success' => false, 'message' => 'Không tìm thấy bản ghi kết quả']);
+                return;
+            }
+
+            $sessionModel = new AdmissionSession();
+            if ($sessionModel->isLocked($existing['session_id'])) {
+                echo json_encode(['success' => false, 'message' => 'Đợt tuyển sinh này đã bị khóa, không thể chỉnh sửa.']);
+                return;
+            }
+
+            $hoTen = trim($_POST['ho_ten'] ?? '');
+            $soCccd = trim($_POST['so_cccd'] ?? '');
+            $ngaySinh = trim($_POST['ngay_sinh'] ?? '') ?: null;
+            $sbd = trim($_POST['sbd'] ?? '') ?: null;
+            $email = trim($_POST['email'] ?? '') ?: null;
+            $sdt = trim($_POST['sdt'] ?? '') ?: null;
+            $khuVuc = trim($_POST['khu_vuc'] ?? '') ?: null;
+            $doiTuong = trim($_POST['doi_tuong'] ?? '') ?: null;
+            
+            $maNganh = trim($_POST['ma_nganh'] ?? '');
+            $tenNganh = trim($_POST['ten_nganh'] ?? '');
+            $toHop = trim($_POST['to_hop'] ?? '') ?: null;
+            $phuongThuc = trim($_POST['phuong_thuc'] ?? '') ?: null;
+            
+            $diemM1 = isset($_POST['diem_mon_1']) && $_POST['diem_mon_1'] !== '' ? floatval($_POST['diem_mon_1']) : null;
+            $diemM2 = isset($_POST['diem_mon_2']) && $_POST['diem_mon_2'] !== '' ? floatval($_POST['diem_mon_2']) : null;
+            $diemM3 = isset($_POST['diem_mon_3']) && $_POST['diem_mon_3'] !== '' ? floatval($_POST['diem_mon_3']) : null;
+            $diemUt = isset($_POST['diem_ut']) && $_POST['diem_ut'] !== '' ? floatval($_POST['diem_ut']) : null;
+            $utQuyDoi = isset($_POST['ut_quy_doi']) && $_POST['ut_quy_doi'] !== '' ? floatval($_POST['ut_quy_doi']) : null;
+            $diemToHop = isset($_POST['diem_to_hop']) && $_POST['diem_to_hop'] !== '' ? floatval($_POST['diem_to_hop']) : null;
+            
+            // Tổng điểm xét tuyển
+            $diemXt = isset($_POST['diem_xt']) && $_POST['diem_xt'] !== '' ? floatval($_POST['diem_xt']) : null;
+            if ($diemXt === null && $diemM1 !== null && $diemM2 !== null && $diemM3 !== null) {
+                $diemXt = $diemM1 + $diemM2 + $diemM3 + ($utQuyDoi ?? 0);
+            }
+
+            $soGiayBao = trim($_POST['so_giay_bao'] ?? '') ?: null;
+            $thoiGianNhap = trim($_POST['thoi_gian_nhap'] ?? '') ?: null;
+            $nganhTt = trim($_POST['nganh_tt'] ?? '') ?: null;
+            $tenKhoa = trim($_POST['ten_khoa'] ?? '') ?: null;
+            $kinhPhi = trim($_POST['kinh_phi'] ?? '') ?: null;
+            $banNhapHoc = trim($_POST['ban_nhap_hoc'] ?? '') ?: null;
+            $viTriNhapHoc = trim($_POST['vi_tri_nhap_hoc'] ?? '') ?: null;
+            $gvcn = trim($_POST['gvcn'] ?? '') ?: null;
+            $linkSoDo = trim($_POST['link_so_do'] ?? '') ?: null;
+            $ghiChu = trim($_POST['ghi_chu'] ?? '') ?: null;
+
+            $xnBo = isset($_POST['xac_nhan_bo']) && ($_POST['xac_nhan_bo'] == '1' || $_POST['xac_nhan_bo'] === 'true' || $_POST['xac_nhan_bo'] === true);
+            $xnTruong = isset($_POST['xac_nhan_truong']) && ($_POST['xac_nhan_truong'] == '1' || $_POST['xac_nhan_truong'] === 'true' || $_POST['xac_nhan_truong'] === true);
+
+            if (empty($hoTen) || empty($soCccd) || empty($maNganh)) {
+                echo json_encode(['success' => false, 'message' => 'Họ tên, CCCD và Mã ngành không được để trống!']);
+                return;
+            }
+
+            $updateSql = "UPDATE ket_qua_trung_tuyen SET 
+                ho_ten = ?,
+                so_cccd = ?,
+                ngay_sinh = ?,
+                sbd = ?,
+                email = ?,
+                sdt = ?,
+                khu_vuc = ?,
+                doi_tuong = ?,
+                ma_nganh = ?,
+                ten_nganh = ?,
+                to_hop = ?,
+                phuong_thuc = ?,
+                diem_mon_1 = ?,
+                diem_mon_2 = ?,
+                diem_mon_3 = ?,
+                diem_to_hop = ?,
+                diem_ut = ?,
+                ut_quy_doi = ?,
+                diem_xt = ?,
+                so_giay_bao = ?,
+                thoi_gian_nhap = ?,
+                nganh_tt = ?,
+                ten_khoa = ?,
+                kinh_phi = ?,
+                ban_nhap_hoc = ?,
+                vi_tri_nhap_hoc = ?,
+                gvcn = ?,
+                link_so_do = ?,
+                ghi_chu = ?,
+                xac_nhan_bo = ?,
+                xac_nhan_truong = ?
+            WHERE id = ?";
+
+            $stmt = $db->prepare($updateSql);
+            $stmt->execute([
+                $hoTen, $soCccd, $ngaySinh, $sbd, $email, $sdt, $khuVuc, $doiTuong,
+                $maNganh, $tenNganh, $toHop, $phuongThuc,
+                $diemM1, $diemM2, $diemM3, $diemToHop, $diemUt, $utQuyDoi, $diemXt,
+                $soGiayBao, $thoiGianNhap, $nganhTt, $tenKhoa, $kinhPhi,
+                $banNhapHoc, $viTriNhapHoc, $gvcn, $linkSoDo, $ghiChu,
+                $xnBo ? 'true' : 'false',
+                $xnTruong ? 'true' : 'false',
+                $id
+            ]);
+
+            // Cập nhật thông tin trong bảng thi_sinh nếu tồn tại
+            try {
+                $stmtTs = $db->prepare("UPDATE thi_sinh SET ho_va_ten = ?, dien_thoai = COALESCE(?, dien_thoai), email = COALESCE(?, email), ngay_sinh = COALESCE(?, ngay_sinh) WHERE so_cccd = ?");
+                $stmtTs->execute([$hoTen, $sdt, $email, $ngaySinh, $soCccd]);
+            } catch (\Throwable $te) {
+                // Ignore thi_sinh update error
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Cập nhật thông tin thí sinh trúng tuyển thành công!']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi cập nhật: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Xóa 1 thí sinh trúng tuyển
+     */
+    public function deleteResultItem() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
+            return;
+        }
+
+        $id = intval($_POST['id'] ?? 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID không hợp lệ']);
+            return;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $stmtCheck = $db->prepare("SELECT id, session_id, ho_ten, so_cccd FROM ket_qua_trung_tuyen WHERE id = ?");
+        $stmtCheck->execute([$id]);
+        $item = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+        if (!$item) {
+            echo json_encode(['success' => false, 'message' => 'Không tìm thấy thí sinh trúng tuyển']);
+            return;
+        }
+
+        $sessionModel = new AdmissionSession();
+        if ($sessionModel->isLocked($item['session_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Đợt tuyển sinh này đã bị khóa, không thể xóa kết quả.']);
+            return;
+        }
+
+        try {
+            $stmt = $db->prepare("DELETE FROM ket_qua_trung_tuyen WHERE id = ?");
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true, 'message' => 'Đã xóa kết quả trúng tuyển của thí sinh ' . ($item['ho_ten'] ?? '') . ' (' . ($item['so_cccd'] ?? '') . ')']);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi khi xóa: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Xóa nhiều thí sinh trúng tuyển được chọn
+     */
+    public function deleteSelectedResults() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
+            return;
+        }
+
+        $idsRaw = $_POST['ids'] ?? '[]';
+        $ids = is_array($idsRaw) ? $idsRaw : json_decode($idsRaw, true);
+        if (empty($ids) || !is_array($ids)) {
+            echo json_encode(['success' => false, 'message' => 'Vui lòng chọn ít nhất một thí sinh để xóa']);
+            return;
+        }
+
+        $ids = array_map('intval', $ids);
+        $ids = array_filter($ids, function($id) { return $id > 0; });
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'message' => 'Danh sách ID không hợp lệ']);
+            return;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmtCheck = $db->prepare("SELECT DISTINCT session_id FROM ket_qua_trung_tuyen WHERE id IN ($placeholders)");
+        $stmtCheck->execute(array_values($ids));
+        $sessionIds = $stmtCheck->fetchAll(\PDO::FETCH_COLUMN);
+
+        $sessionModel = new AdmissionSession();
+        foreach ($sessionIds as $sId) {
+            if ($sessionModel->isLocked($sId)) {
+                echo json_encode(['success' => false, 'message' => 'Đợt tuyển sinh đang chứa thí sinh đã bị khóa. Không thể thực hiện thao tác xóa.']);
+                return;
+            }
+        }
+
+        try {
+            $delStmt = $db->prepare("DELETE FROM ket_qua_trung_tuyen WHERE id IN ($placeholders)");
+            $delStmt->execute(array_values($ids));
+            $count = $delStmt->rowCount();
+            echo json_encode(['success' => true, 'message' => "Đã xóa thành công {$count} thí sinh được chọn"]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi khi xóa: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Set Email template for session
      */
     public function setSessionTemplate() {

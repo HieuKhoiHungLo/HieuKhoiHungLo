@@ -248,6 +248,9 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
             <span id="tableInfo" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Đang tải...</span>
             <div class="flex items-center gap-2">
                 <span id="selectedCount" class="text-[10px] font-bold text-indigo-600 hidden">0 đã chọn</span>
+                <button type="button" id="btnDeleteSelected" onclick="deleteSelectedCandidates()" class="hidden px-2.5 py-1 text-xs font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 rounded-lg transition-colors items-center gap-1">
+                    <i class="fas fa-trash-alt text-[10px]"></i> Xóa các mục đã chọn
+                </button>
             </div>
         </div>
 
@@ -260,6 +263,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                             <input type="checkbox" id="selectAllInline" aria-label="Chọn tất cả" onchange="toggleSelectAll(this.checked)" class="w-3.5 h-3.5">
                         </th>
                         <th class="text-center w-10" data-col="stt">STT</th>
+                        <th class="text-center w-20" data-col="actions">Hành động</th>
                         <th data-col="cccd">CCCD</th>
                         <th data-col="ho_ten">Họ và Tên</th>
                         <th data-col="ma_nganh">Mã ngành</th>
@@ -302,6 +306,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     <tr class="bg-slate-50/90 border-t border-slate-200">
                         <td data-col="cb"></td>
                         <td data-col="stt"></td>
+                        <td data-col="actions" class="text-center"></td>
                         <td data-col="cccd" class="p-1"><input type="text" id="col_filter_cccd" aria-label="Lọc theo CCCD" placeholder="Tìm CCCD..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
                         <td data-col="ho_ten" class="p-1"><input type="text" id="col_filter_name" aria-label="Lọc theo họ tên" placeholder="Tìm Tên..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
                         <td data-col="ma_nganh" class="p-1"><input type="text" id="col_filter_ma" aria-label="Lọc theo mã ngành" placeholder="Mã..." onkeyup="debouncedReloadTable()" class="col-filter-input"></td>
@@ -354,7 +359,7 @@ $isSessionActive = !empty($activeSession) && !empty($activeSession['kich_hoat'])
                     </tr>
                 </thead>
                 <tbody id="tableBody" class="text-[11px]">
-                    <tr><td colspan="26" class="py-16 text-center border-b border-slate-100"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
+                    <tr><td colspan="40" class="py-16 text-center border-b border-slate-100"><i class="fas fa-spinner fa-spin text-slate-300 text-2xl"></i></td></tr>
                 </tbody>
             </table>
         </div>
@@ -1044,6 +1049,7 @@ function toTitleCase(str) {
 const allCols = [
     { key: 'cb', label: 'Chọn', fixed: true },
     { key: 'stt', label: 'STT', fixed: true },
+    { key: 'actions', label: 'Hành động', fixed: true },
     { key: 'cccd', label: 'CCCD', fixed: true },
     { key: 'ho_ten', label: 'Họ và Tên', fixed: true },
     { key: 'ma_nganh', label: 'Mã ngành', fixed: true },
@@ -1193,14 +1199,14 @@ function reloadTable() {
             applyColumnVisibility();
         })
         .catch(err => {
-            document.getElementById('tableBody').innerHTML = `<tr><td colspan="36" class="py-20 text-center text-rose-400 font-bold">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
+            document.getElementById('tableBody').innerHTML = `<tr><td colspan="40" class="py-20 text-center text-rose-400 font-bold">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
         });
 }
 
 function renderTable(rows, startIndex) {
     const tbody = document.getElementById('tableBody');
     if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="36" class="py-16 text-center border-b border-slate-100 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="40" class="py-16 text-center border-b border-slate-100 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>`;
         return;
     }
 
@@ -1230,12 +1236,22 @@ function renderTable(rows, startIndex) {
         const xnBoText = (row.xac_nhan_bo == 1 || row.xac_nhan_bo === true || row.xac_nhan_bo === 'true' || row.xac_nhan_nhap_hoc == 1 || row.is_confirm) ? 'Đã XN' : 'Chưa';
         const xnTruongText = (row.xac_nhan_truong == 1 || row.xac_nhan_truong === true || row.xac_nhan_truong === 'true') ? 'Đã XN' : 'Chưa';
 
-        // UNIFIED ORDER: cb, stt, cccd, ho_ten, ma_nganh, ten_nganh, diem_xt, gioi_tinh, dan_toc, ten_truong_thpt, ten_tinh, nam_tot_nghiep, hoc_luc_12, hanh_kiem_12, diem_tb_12, dia_chi_chi_tiet, so_giay_bao, file_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, anh_the, xn_bo, xn_truong, khu_vuc, doi_tuong, to_hop, phuong_thuc, mon1, mon2, mon3, diem_ut, ut_quy_doi, kinh_phi, ket_qua, ghi_chu
+        // UNIFIED ORDER: cb, stt, actions, cccd, ho_ten, ma_nganh, ten_nganh, diem_xt, gioi_tinh, dan_toc, ten_truong_thpt, ten_tinh, nam_tot_nghiep, hoc_luc_12, hanh_kiem_12, diem_tb_12, dia_chi_chi_tiet, so_giay_bao, file_giay_bao, thoi_gian_nhap, nganh_tt, ten_khoa, anh_the, xn_bo, xn_truong, khu_vuc, doi_tuong, to_hop, phuong_thuc, mon1, mon2, mon3, diem_ut, ut_quy_doi, kinh_phi, ket_qua, link_so_do, ban_nhap_hoc, gvcn, ghi_chu
         html += `<tr class="${rowBg} hover:bg-slate-50/80 transition-colors border-b border-slate-100">
             <td class="text-center" data-col="cb">
                 <input type="checkbox" class="rowCheck w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" data-id="${row.id}" ${checked} onchange="toggleRowSelect(${row.id}, this.checked)">
             </td>
             <td class="text-center text-slate-600 font-normal" data-col="stt">${startIndex + i + 1}</td>
+            <td class="text-center whitespace-nowrap" data-col="actions">
+                <div class="inline-flex items-center gap-1">
+                    <button type="button" onclick="openEditCandidateModal(${row.id})" class="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 p-1.5 rounded-lg transition-colors" title="Sửa thông tin">
+                        <i class="fas fa-edit text-xs"></i>
+                    </button>
+                    <button type="button" onclick="deleteCandidateItem(${row.id}, '${escHtml(row.ho_ten || '')}', '${escHtml(row.so_cccd || '')}')" class="text-rose-600 hover:text-rose-900 hover:bg-rose-50 p-1.5 rounded-lg transition-colors" title="Xóa kết quả">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            </td>
             <td class="text-slate-600 font-normal text-center" data-col="cccd">${escHtml(row.so_cccd)}</td>
             <td class="text-slate-700 font-normal" data-col="ho_ten">${escHtml(toTitleCase(row.ho_ten))}</td>
             <td class="text-slate-600 font-normal text-center" data-col="ma_nganh">${escHtml(row.ma_nganh)}</td>
@@ -1354,6 +1370,7 @@ function toggleSelectAll(checked) {
 
 function updateSelectedCount() {
     const el = document.getElementById('selectedCount');
+    const btnDelSelected = document.getElementById('btnDeleteSelected');
     const badgeBottom = document.getElementById('selectedCountBadgeBottom');
     const textBottom = document.getElementById('selectedCountTextBottom');
 
@@ -1364,6 +1381,15 @@ function updateSelectedCount() {
             el.classList.remove('hidden');
         } else {
             el.classList.add('hidden');
+        }
+    }
+    if (btnDelSelected) {
+        if (count > 0) {
+            btnDelSelected.classList.remove('hidden');
+            btnDelSelected.classList.add('inline-flex');
+        } else {
+            btnDelSelected.classList.add('hidden');
+            btnDelSelected.classList.remove('inline-flex');
         }
     }
     if (badgeBottom && textBottom) {
@@ -2034,7 +2060,440 @@ if (isset($_SESSION['avatar_import_result'])):
 </div>
 <?php endif; ?>
 
+<!-- ========================================================================= -->
+<!-- MODAL: CHỈNH SỬA THÔNG TIN THÍ SINH TRÚNG TUYỂN -->
+<!-- ========================================================================= -->
+<div id="modal-edit-candidate" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col relative z-10 animate-fade-in-up overflow-hidden border border-slate-100">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-base font-bold shadow-sm">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Chỉnh Sửa Thông Tin Thí Sinh Trúng Tuyển</h3>
+                    <p class="text-xs text-slate-500 font-medium">CCCD: <span id="edit-header-cccd" class="font-bold text-indigo-600 font-mono">-</span> | Họ tên: <span id="edit-header-name" class="font-bold text-slate-700">-</span></p>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('modal-edit-candidate')" class="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 p-2 rounded-xl border border-slate-200 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Body Form -->
+        <form id="formEditCandidate" onsubmit="submitEditCandidate(event)" class="flex flex-col flex-1 overflow-hidden">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" id="edit-candidate-id" value="">
+            <input type="hidden" name="session_id" value="<?= $sessionId ?>">
+
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5 text-xs">
+                
+                <!-- Section 1: Thông tin cá nhân & Liên hệ -->
+                <div class="bg-slate-50/60 p-4 rounded-xl border border-slate-200/80">
+                    <h4 class="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-2">
+                        <i class="fas fa-id-card text-indigo-500"></i> Thông tin cá nhân & Liên hệ
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Họ và Tên <span class="text-rose-500">*</span></label>
+                            <input type="text" name="ho_ten" id="edit-ho-ten" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Số CCCD / ĐDCN <span class="text-rose-500">*</span></label>
+                            <input type="text" name="so_cccd" id="edit-so-cccd" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold font-mono focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Ngày sinh</label>
+                            <input type="text" name="ngay_sinh" id="edit-ngay-sinh" placeholder="YYYY-MM-DD hoặc DD/MM/YYYY" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Số báo danh (SBD)</label>
+                            <input type="text" name="sbd" id="edit-sbd" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Số điện thoại</label>
+                            <input type="text" name="sdt" id="edit-sdt" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Email</label>
+                            <input type="email" name="email" id="edit-email" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Khu vực ưu tiên</label>
+                            <input type="text" name="khu_vuc" id="edit-khu-vuc" placeholder="KV1, KV2, KV2-NT, KV3" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Đối tượng ưu tiên</label>
+                            <input type="text" name="doi_tuong" id="edit-doi-tuong" placeholder="01, 02..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Thông tin Xét tuyển & Điểm số -->
+                <div class="bg-indigo-50/40 p-4 rounded-xl border border-indigo-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-bold text-indigo-900 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                            <i class="fas fa-graduation-cap text-indigo-600"></i> Ngành trúng tuyển & Điểm xét tuyển
+                        </h4>
+                        <button type="button" onclick="calcDiemXtInModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[10px] shadow-sm flex items-center gap-1">
+                            <i class="fas fa-calculator"></i> Tính lại điểm XT
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Mã ngành <span class="text-rose-500">*</span></label>
+                            <select id="edit-select-ma-nganh" onchange="handleMajorChangeInEditModal(this)" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                                <option value="">-- Chọn ngành --</option>
+                                <?php foreach ($majors as $m): ?>
+                                    <option value="<?= htmlspecialchars($m['ma_nganh']) ?>" data-ten="<?= htmlspecialchars($m['ten_nganh'] ?? '') ?>" data-khoa="<?= htmlspecialchars($m['ten_khoa'] ?? '') ?>">
+                                        <?= htmlspecialchars($m['ma_nganh'] . ' - ' . $m['ten_nganh']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="hidden" name="ma_nganh" id="edit-ma-nganh">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tên ngành</label>
+                            <input type="text" name="ten_nganh" id="edit-ten-nganh" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Khoa quản lý</label>
+                            <input type="text" name="ten_khoa" id="edit-ten-khoa" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tổ hợp xét tuyển</label>
+                            <input type="text" name="to_hop" id="edit-to-hop" placeholder="A00, A01, D01..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Phương thức xét tuyển</label>
+                            <input type="text" name="phuong_thuc" id="edit-phuong-thuc" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm tổ hợp</label>
+                            <input type="number" step="0.01" name="diem_to_hop" id="edit-diem-to-hop" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm Môn 1 (M1)</label>
+                            <input type="number" step="0.001" name="diem_mon_1" id="edit-diem-mon-1" oninput="calcDiemXtInModal()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm Môn 2 (M2)</label>
+                            <input type="number" step="0.001" name="diem_mon_2" id="edit-diem-mon-2" oninput="calcDiemXtInModal()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm Môn 3 (M3)</label>
+                            <input type="number" step="0.001" name="diem_mon_3" id="edit-diem-mon-3" oninput="calcDiemXtInModal()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm UT Thô</label>
+                            <input type="number" step="0.01" name="diem_ut" id="edit-diem-ut" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Điểm UT Quy đổi</label>
+                            <input type="number" step="0.01" name="ut_quy_doi" id="edit-ut-quy-doi" oninput="calcDiemXtInModal()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-indigo-900 mb-1">Tổng Điểm Xét Tuyển (Điểm XT) <span class="text-rose-500">*</span></label>
+                            <input type="number" step="0.01" name="diem_xt" id="edit-diem-xt" required class="w-full bg-indigo-50/50 border border-indigo-300 text-indigo-900 font-black rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-400 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Thông tin Giấy Báo & Nhập Học -->
+                <div class="bg-amber-50/40 p-4 rounded-xl border border-amber-100">
+                    <h4 class="font-bold text-amber-900 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-2">
+                        <i class="fas fa-file-invoice text-amber-600"></i> Thông tin Giấy báo & Nhập học
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Số Giấy Báo</label>
+                            <input type="text" name="so_giay_bao" id="edit-so-giay-bao" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Thời gian Nhập học</label>
+                            <input type="text" name="thoi_gian_nhap" id="edit-thoi-gian-nhap" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Ngành in trên Giấy báo</label>
+                            <input type="text" name="nganh_tt" id="edit-nganh-tt" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Bàn Nhập học</label>
+                            <input type="text" name="ban_nhap_hoc" id="edit-ban-nhap-hoc" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Vị trí Nhập học</label>
+                            <input type="text" name="vi_tri_nhap_hoc" id="edit-vi-tri-nhap-hoc" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">GVCN Phụ trách</label>
+                            <input type="text" name="gvcn" id="edit-gvcn" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block font-bold text-slate-700 mb-1">Link Sơ đồ nhập học</label>
+                            <input type="text" name="link_so_do" id="edit-link-so-do" placeholder="https://..." class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block font-bold text-slate-700 mb-1">Nội dung Kinh phí / Thu học phí</label>
+                            <textarea name="kinh_phi" id="edit-kinh-phi" rows="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none"></textarea>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block font-bold text-slate-700 mb-1">Ghi chú</label>
+                            <input type="text" name="ghi_chu" id="edit-ghi-chu" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Trạng thái Xác nhận -->
+                <div class="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="space-y-0.5">
+                        <h4 class="font-bold text-emerald-900 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                            <i class="fas fa-check-double text-emerald-600"></i> Trạng thái Xác nhận Nhập học
+                        </h4>
+                        <p class="text-[11px] text-emerald-700">Tích chọn để cập nhật trạng thái xác nhận từ Bộ GD&ĐT hoặc xác nhận trực tiếp tại Trường.</p>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer select-none">
+                            <input type="checkbox" name="xac_nhan_bo" id="edit-xn-bo" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                            <span>Xác nhận Bộ</span>
+                        </label>
+                        <label class="flex items-center gap-2 font-bold text-slate-700 cursor-pointer select-none">
+                            <input type="checkbox" name="xac_nhan_truong" id="edit-xn-truong" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                            <span>Xác nhận Trường</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3 rounded-b-2xl">
+                <button type="button" onclick="closeModal('modal-edit-candidate')" class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-sm">
+                    Hủy bỏ
+                </button>
+                <button type="submit" id="btnSubmitEditCandidate" class="px-6 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-save"></i>
+                    <span>Lưu Thay Đổi</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+// Edit candidate modal logic
+function openEditCandidateModal(id) {
+    if (!id) return;
+    const modal = document.getElementById('modal-edit-candidate');
+    if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+    
+    // Fetch details
+    fetch('<?= url("/admin/admission/results/get-item") ?>?id=' + id)
+        .then(async r => {
+            const text = await r.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error(text.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) || 'Lỗi phản hồi từ máy chủ');
+            }
+        })
+        .then(res => {
+            if (!res.success || !res.data) {
+                alert(res.message || 'Không thể tải thông tin thí sinh!');
+                return;
+            }
+            const d = res.data;
+            document.getElementById('edit-candidate-id').value = d.id;
+            document.getElementById('edit-header-cccd').textContent = d.so_cccd || '-';
+            document.getElementById('edit-header-name').textContent = d.ho_ten || '-';
+            
+            document.getElementById('edit-ho-ten').value = d.ho_ten || '';
+            document.getElementById('edit-so-cccd').value = d.so_cccd || '';
+            document.getElementById('edit-ngay-sinh').value = d.ngay_sinh || d.ts_ngay_sinh || '';
+            document.getElementById('edit-sbd').value = d.sbd || '';
+            document.getElementById('edit-sdt').value = d.sdt || d.ts_sdt || '';
+            document.getElementById('edit-email').value = d.email || d.ts_email || '';
+            document.getElementById('edit-khu-vuc').value = d.khu_vuc || '';
+            document.getElementById('edit-doi-tuong').value = d.doi_tuong || '';
+            
+            // Major
+            const selectMaNganh = document.getElementById('edit-select-ma-nganh');
+            if (selectMaNganh) {
+                selectMaNganh.value = d.ma_nganh || '';
+            }
+            document.getElementById('edit-ma-nganh').value = d.ma_nganh || '';
+            document.getElementById('edit-ten-nganh').value = d.ten_nganh || '';
+            document.getElementById('edit-ten-khoa').value = d.ten_khoa || '';
+            document.getElementById('edit-to-hop').value = d.to_hop || '';
+            document.getElementById('edit-phuong-thuc').value = d.phuong_thuc || '';
+            document.getElementById('edit-diem-to-hop').value = d.diem_to_hop != null ? d.diem_to_hop : '';
+            
+            // Scores
+            document.getElementById('edit-diem-mon-1').value = d.diem_mon_1 != null ? d.diem_mon_1 : '';
+            document.getElementById('edit-diem-mon-2').value = d.diem_mon_2 != null ? d.diem_mon_2 : '';
+            document.getElementById('edit-diem-mon-3').value = d.diem_mon_3 != null ? d.diem_mon_3 : '';
+            document.getElementById('edit-diem-ut').value = d.diem_ut != null ? d.diem_ut : '';
+            document.getElementById('edit-ut-quy-doi').value = d.ut_quy_doi != null ? d.ut_quy_doi : '';
+            document.getElementById('edit-diem-xt').value = d.diem_xt != null ? d.diem_xt : '';
+            
+            // Admission letter & enrollment
+            document.getElementById('edit-so-giay-bao').value = d.so_giay_bao || '';
+            document.getElementById('edit-thoi-gian-nhap').value = d.thoi_gian_nhap || '';
+            document.getElementById('edit-nganh-tt').value = d.nganh_tt || '';
+            document.getElementById('edit-ban-nhap-hoc').value = d.ban_nhap_hoc || '';
+            document.getElementById('edit-vi-tri-nhap-hoc').value = d.vi_tri_nhap_hoc || '';
+            document.getElementById('edit-gvcn').value = d.gvcn || '';
+            document.getElementById('edit-link-so-do').value = d.link_so_do || '';
+            document.getElementById('edit-kinh-phi').value = d.kinh_phi || '';
+            document.getElementById('edit-ghi-chu').value = d.ghi_chu || '';
+            
+            // Confirmations
+            document.getElementById('edit-xn-bo').checked = (d.xac_nhan_bo == 1 || d.xac_nhan_bo === true || d.xac_nhan_bo === 'true' || d.xac_nhan_nhap_hoc == 1 || d.is_confirm);
+            document.getElementById('edit-xn-truong').checked = (d.xac_nhan_truong == 1 || d.xac_nhan_truong === true || d.xac_nhan_truong === 'true');
+            
+            modal.classList.remove('hidden');
+        })
+        .catch(err => {
+            alert('Lỗi kết nối khi tải thông tin: ' + err.message);
+        });
+}
+
+function handleMajorChangeInEditModal(selectEl) {
+    const ma = selectEl.value;
+    document.getElementById('edit-ma-nganh').value = ma;
+    const selectedOpt = selectEl.options[selectEl.selectedIndex];
+    if (selectedOpt && ma) {
+        const ten = selectedOpt.getAttribute('data-ten') || '';
+        const khoa = selectedOpt.getAttribute('data-khoa') || '';
+        if (ten) document.getElementById('edit-ten-nganh').value = ten;
+        if (khoa) document.getElementById('edit-ten-khoa').value = khoa;
+    }
+}
+
+function calcDiemXtInModal() {
+    const m1 = parseFloat(document.getElementById('edit-diem-mon-1')?.value) || 0;
+    const m2 = parseFloat(document.getElementById('edit-diem-mon-2')?.value) || 0;
+    const m3 = parseFloat(document.getElementById('edit-diem-mon-3')?.value) || 0;
+    const utqd = parseFloat(document.getElementById('edit-ut-quy-doi')?.value) || 0;
+    
+    if (m1 > 0 || m2 > 0 || m3 > 0) {
+        const sum = m1 + m2 + m3 + utqd;
+        document.getElementById('edit-diem-xt').value = parseFloat(sum.toFixed(2));
+    }
+}
+
+function submitEditCandidate(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitEditCandidate');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+    btn.disabled = true;
+
+    const form = document.getElementById('formEditCandidate');
+    const formData = new FormData(form);
+
+    fetch('<?= url("/admin/admission/results/update-item") ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async r => {
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(text.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) || 'Lỗi phản hồi từ máy chủ');
+        }
+    })
+    .then(res => {
+        btn.innerHTML = oldText;
+        btn.disabled = false;
+        if (res.success) {
+            alert(res.message || 'Cập nhật thành công!');
+            closeModal('modal-edit-candidate');
+            reloadTable();
+        } else {
+            alert('Lỗi: ' + (res.message || 'Không thể lưu thay đổi!'));
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = oldText;
+        btn.disabled = false;
+        alert('Lỗi kết nối: ' + err.message);
+    });
+}
+
+function deleteCandidateItem(id, hoTen, cccd) {
+    if (!id) return;
+    const confirmMsg = `Bạn có chắc chắn muốn xóa kết quả trúng tuyển của thí sinh:\n\n- Họ tên: ${hoTen}\n- CCCD: ${cccd}\n\nThao tác này sẽ xóa bản ghi khỏi danh sách trúng tuyển.`;
+    if (!confirm(confirmMsg)) return;
+
+    fetch('<?= url("/admin/admission/results/delete-item") ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `id=${id}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`
+    })
+    .then(async r => {
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(text.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) || 'Lỗi phản hồi từ máy chủ');
+        }
+    })
+    .then(res => {
+        if (res.success) {
+            alert(res.message || 'Đã xóa thành công!');
+            selectedIds.delete(id);
+            updateSelectedCount();
+            reloadTable();
+        } else {
+            alert('Lỗi: ' + (res.message || 'Không thể xóa kết quả!'));
+        }
+    })
+    .catch(err => {
+        alert('Lỗi kết nối: ' + err.message);
+    });
+}
+
+function deleteSelectedCandidates() {
+    if (selectedIds.size === 0) {
+        alert('Vui lòng chọn ít nhất 1 thí sinh để xóa!');
+        return;
+    }
+    const count = selectedIds.size;
+    const confirmMsg = `Bạn có chắc chắn muốn xóa ${count} thí sinh trúng tuyển đã được chọn không?\n\nThao tác này không thể hoàn tác!`;
+    if (!confirm(confirmMsg)) return;
+
+    fetch('<?= url("/admin/admission/results/delete-selected") ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `ids=${JSON.stringify([...selectedIds])}&csrf_token=${encodeURIComponent(CSRF_TOKEN)}`
+    })
+    .then(async r => {
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(text.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) || 'Lỗi phản hồi từ máy chủ');
+        }
+    })
+    .then(res => {
+        if (res.success) {
+            alert(res.message || 'Đã xóa các thí sinh thành công!');
+            selectedIds.clear();
+            updateSelectedCount();
+            reloadTable();
+        } else {
+            alert('Lỗi: ' + (res.message || 'Không thể xóa các thí sinh được chọn!'));
+        }
+    })
+    .catch(err => {
+        alert('Lỗi kết nối: ' + err.message);
+    });
+}
 async function openPrintGiayBaoWordModal() {
     const modal = document.getElementById('modal-print-giay-bao-word');
     modal.classList.remove('hidden');

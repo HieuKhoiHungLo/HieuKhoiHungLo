@@ -219,7 +219,11 @@ class ThiSinhRepository
     public function restore($cccd)
     {
         $stmt = $this->db->prepare("UPDATE {$this->table} SET deleted_at = NULL WHERE so_cccd = ?");
-        return $stmt->execute([$cccd]);
+        $res = $stmt->execute([$cccd]);
+        try {
+            $this->db->prepare("UPDATE ho_so_xet_tuyen SET deleted_at = NULL WHERE so_cccd = ?")->execute([$cccd]);
+        } catch (\Exception $e) {}
+        return $res;
     }
 
     public function forceDelete($cccd)
@@ -453,7 +457,15 @@ class ThiSinhRepository
 
         $sql = "UPDATE thi_sinh SET deleted_at = NOW() WHERE so_cccd IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($cccds);
+        $res = $stmt->execute($cccds);
+
+        try {
+            // Đồng bộ đánh dấu deleted_at trên ho_so_xet_tuyen và reset trạng thái trúng tuyển lọc ảo
+            $this->db->prepare("UPDATE ho_so_xet_tuyen SET deleted_at = NOW() WHERE so_cccd IN ($placeholders)")->execute($cccds);
+            $this->db->prepare("UPDATE v_calc_summary SET trang_thai_trung_tuyen = FALSE, ket_qua_bo_gd_du_kien = NULL WHERE nguyen_vong_id IN (SELECT id FROM nguyen_vong WHERE so_cccd IN ($placeholders))")->execute($cccds);
+        } catch (\Exception $e) {}
+
+        return $res;
     }
 
     public function bulkRestore($cccds)
@@ -463,7 +475,13 @@ class ThiSinhRepository
 
         $sql = "UPDATE thi_sinh SET deleted_at = NULL WHERE so_cccd IN ($placeholders)";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute($cccds);
+        $res = $stmt->execute($cccds);
+
+        try {
+            $this->db->prepare("UPDATE ho_so_xet_tuyen SET deleted_at = NULL WHERE so_cccd IN ($placeholders)")->execute($cccds);
+        } catch (\Exception $e) {}
+
+        return $res;
     }
 
     public function bulkForceDelete($cccds)

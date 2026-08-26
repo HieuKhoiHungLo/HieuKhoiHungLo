@@ -98,6 +98,7 @@ class VirtualAdmissionController extends Controller {
                              ON bgd.so_cccd = nv.so_cccd 
                              AND bgd.dot_tuyen_sinh_id = nv.dot_tuyen_sinh_id 
                          WHERE nv.dot_tuyen_sinh_id = ?
+                         AND ts.deleted_at IS NULL
                          AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')";
             
             $searchSql = "";
@@ -118,6 +119,7 @@ class VirtualAdmissionController extends Controller {
                 FROM thi_sinh ts 
                 JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd 
                 WHERE nv.dot_tuyen_sinh_id = ? 
+                  AND ts.deleted_at IS NULL
                   AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')
             ");
             $stmtTotal->execute([$sessionId]);
@@ -133,7 +135,7 @@ class VirtualAdmissionController extends Controller {
             }
 
             // 5. Tính tổng số thí sinh duy nhất (Candidate Count) - Độc lập tìm kiếm
-            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')");
+            $stmtC = $this->db->prepare("SELECT COUNT(DISTINCT nv.so_cccd) FROM nguyen_vong nv JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện', 'approved') OR nv.trang_thai LIKE '%Đã duyệt%')");
             $stmtC->execute([$sessionId]);
             $candidateCount = $stmtC->fetchColumn() ?: 0;
 
@@ -445,8 +447,9 @@ class VirtualAdmissionController extends Controller {
         $academicRows = $this->db->prepare("
             SELECT * FROM ket_qua_hoc_tap 
             WHERE so_cccd IN (
-                SELECT DISTINCT so_cccd FROM nguyen_vong 
-                WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR trang_thai LIKE '%Đã duyệt%')
+                SELECT DISTINCT nv.so_cccd FROM nguyen_vong nv
+                JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')
             )
         ");
         $academicRows->execute([$sessionId]);
@@ -457,13 +460,12 @@ class VirtualAdmissionController extends Controller {
 
         // Pre-load SBD (số báo danh) for all candidates - tránh N+1 query
         $sbdStmt = $this->db->prepare("
-            SELECT DISTINCT ON (so_cccd) so_cccd, sbd
-            FROM diem_nang_khieu
-            WHERE so_cccd IN (
-                SELECT DISTINCT so_cccd FROM nguyen_vong
-                WHERE dot_tuyen_sinh_id = ?
-            )
-            ORDER BY so_cccd, id ASC
+            SELECT DISTINCT ON (nv.so_cccd) nv.so_cccd, nk.sbd
+            FROM diem_nang_khieu nk
+            JOIN nguyen_vong nv ON nk.so_cccd = nv.so_cccd
+            JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
+            WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL
+            ORDER BY nv.so_cccd, nk.id ASC
         ");
         $sbdStmt->execute([$sessionId]);
         $sbdMap = [];
@@ -473,11 +475,12 @@ class VirtualAdmissionController extends Controller {
 
         // Pre-load raw certificates from chung_chi_thi_sinh
         $certRows = $this->db->prepare("
-            SELECT so_cccd, loai_chung_chi, diem_chung_chi FROM chung_chi_thi_sinh 
-            WHERE so_cccd IN (
-                SELECT DISTINCT so_cccd FROM nguyen_vong 
-                WHERE dot_tuyen_sinh_id = ? AND (trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR trang_thai LIKE '%Đã duyệt%')
-            )
+            SELECT cc.so_cccd, cc.loai_chung_chi, cc.diem_chung_chi FROM chung_chi_thi_sinh cc
+            JOIN thi_sinh ts ON cc.so_cccd = ts.so_cccd
+            WHERE cc.so_cccd IN (
+                SELECT DISTINCT nv.so_cccd FROM nguyen_vong nv
+                WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')
+            ) AND ts.deleted_at IS NULL
         ");
         $certRows->execute([$sessionId]);
         $certMap = [];
@@ -491,8 +494,9 @@ class VirtualAdmissionController extends Controller {
 
         // Pre-load converted/admin-imported certificates from diem_chung_chi
         $diemCertRows = $this->db->prepare("
-            SELECT so_cccd, ghi_chu, diem FROM diem_chung_chi 
-            WHERE dot_tuyen_sinh_id = ?
+            SELECT d.so_cccd, d.ghi_chu, d.diem FROM diem_chung_chi d
+            JOIN thi_sinh ts ON d.so_cccd = ts.so_cccd
+            WHERE d.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL
         ");
         $diemCertRows->execute([$sessionId]);
         $diemCertMap = [];
@@ -505,7 +509,7 @@ class VirtualAdmissionController extends Controller {
         }
 
         // Xây dựng WHERE / ORDER BY / filename theo loại xuất
-        $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
+        $baseWhere = "WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND (nv.trang_thai IN ('DaDuyet', 'Trúng tuyển', 'Không đạt', 'Đủ điều kiện') OR nv.trang_thai LIKE '%Đã duyệt%')";
         $extraWhere = '';
         $orderBy    = 'ORDER BY nv.so_cccd, nv.thu_tu_nguyen_vong ASC';
         $params     = [$sessionId];
@@ -1043,19 +1047,20 @@ class VirtualAdmissionController extends Controller {
             $hasBgd = ((int)$stmtCheck->fetchColumn()) > 0;
 
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
-                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END)";
 
             $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
                                 COALESCE(ab.diem_chuan, 0) as diem_chuan,
-                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
-                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END) as so_trung_tuyen,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 AND ts.deleted_at IS NULL THEN 1 END) as nv1_admit,
                                 $doBoExpr as so_luong_do_bo,
-                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
-                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_thap_nhat
                               FROM public.dm_nganh n
                               LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = ?
                               LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                              LEFT JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd AND ts.deleted_at IS NULL
                               LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                               GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, ab.diem_chuan
                               ORDER BY n.ma_nganh";
@@ -1145,14 +1150,15 @@ class VirtualAdmissionController extends Controller {
 
             // 1. Thống kê lấp đầy các ngành
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
-                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END)";
 
             $majorSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
-                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END) as so_trung_tuyen,
                                 $doBoExpr as so_luong_do_bo
                          FROM public.dm_nganh n
                          LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = ?
+                         LEFT JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd AND ts.deleted_at IS NULL
                          LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                          GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu
                          ORDER BY n.ma_nganh";
@@ -1167,8 +1173,9 @@ class VirtualAdmissionController extends Controller {
                             COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3,
                             COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong > 3 THEN 1 END) as nv_khac
                          FROM public.nguyen_vong nv
+                         JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
                          LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                         WHERE nv.dot_tuyen_sinh_id = ?";
+                         WHERE nv.dot_tuyen_sinh_id = ? AND t.deleted_at IS NULL";
             $stmtStats = $this->db->prepare($statsSql);
             $stmtStats->execute([$sessionId]);
             $nvRow = $stmtStats->fetch(PDO::FETCH_ASSOC);
@@ -1185,7 +1192,7 @@ class VirtualAdmissionController extends Controller {
                         LEFT JOIN public.dm_truong_thpt dthpt ON t.ma_truong_lop_12 = dthpt.ma_truong 
                              AND COALESCE(NULLIF(t.ma_tinh_lop_12, ''), NULLIF(t.ma_tinh_ho_khau, ''), SUBSTRING(t.ma_truong_lop_12, 1, 2)) = dthpt.ma_tinh 
                              AND dthpt.is_active = TRUE
-                        WHERE nv.dot_tuyen_sinh_id = ? AND $admitCond";
+                        WHERE nv.dot_tuyen_sinh_id = ? AND t.deleted_at IS NULL AND $admitCond";
             $stmtDemo = $this->db->prepare($demoSql);
             $stmtDemo->execute([$sessionId]);
             $demoRows = $stmtDemo->fetchAll(PDO::FETCH_ASSOC);
@@ -1414,8 +1421,9 @@ class VirtualAdmissionController extends Controller {
 
         $sql = "SELECT nv.so_cccd, nv.thu_tu_nguyen_vong, nv.ma_nganh
                 FROM nguyen_vong nv
+                JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
                 JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                WHERE nv.dot_tuyen_sinh_id = ? AND cs.trang_thai_trung_tuyen = TRUE
+                WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND cs.trang_thai_trung_tuyen = TRUE
                 ORDER BY nv.so_cccd ASC, nv.thu_tu_nguyen_vong ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$sessionId]);
@@ -1449,7 +1457,7 @@ class VirtualAdmissionController extends Controller {
                 JOIN nguyen_vong nv ON ts.so_cccd = nv.so_cccd
                 LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
                 LEFT JOIN dm_nganh m ON nv.ma_nganh = m.ma_nganh
-                WHERE nv.dot_tuyen_sinh_id = ? AND nv.deleted_at IS NULL
+                WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND nv.deleted_at IS NULL
                 ORDER BY ts.so_cccd ASC, nv.thu_tu_nguyen_vong ASC";
         
         $stmt = $this->db->prepare($sql);
@@ -1607,19 +1615,21 @@ class VirtualAdmissionController extends Controller {
 
             // 1. Global Stats
             $statsSqlA = "SELECT 
-                            COUNT(DISTINCT so_cccd) as total_candidates,
-                            COUNT(id) as total_wishes
-                         FROM public.nguyen_vong 
-                         WHERE dot_tuyen_sinh_id = $intSessionId";
+                            COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                            COUNT(nv.id) as total_wishes
+                         FROM public.nguyen_vong nv
+                         JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                         WHERE nv.dot_tuyen_sinh_id = $intSessionId AND ts.deleted_at IS NULL";
             $statsStmtA = $this->db->query($statsSqlA);
             $statsA = $statsStmtA->fetch(\PDO::FETCH_ASSOC) ?: ['total_candidates' => 0, 'total_wishes' => 0];
 
             $statsSqlB = "SELECT 
-                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as total_admitted,
-                            COUNT(CASE WHEN $admitCond THEN 1 END) as total_do_bo
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END) as total_admitted,
+                            COUNT(CASE WHEN $admitCond AND ts.deleted_at IS NULL THEN 1 END) as total_do_bo
                          FROM public.nguyen_vong nv
+                         JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd
                          JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                         WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId";
+                         WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId AND ts.deleted_at IS NULL";
             $statsStmtB = $this->db->query($statsSqlB);
             $statsB = $statsStmtB->fetch(\PDO::FETCH_ASSOC) ?: ['total_admitted' => 0, 'total_do_bo' => 0];
 
@@ -1627,18 +1637,19 @@ class VirtualAdmissionController extends Controller {
 
             // 2. Per-major stats
             $doBoExpr = $hasBgd 
-                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
-                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+                ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
+                : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END)";
 
             $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu,
                                 COALESCE(ab.diem_chuan, 0) as diem_chuan,
-                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
+                                COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END) as so_trung_tuyen,
                                 $doBoExpr as so_luong_do_bo,
-                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
-                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                                MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                                MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_thap_nhat
                               FROM public.dm_nganh n
                               LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = $intSessionId
                               LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = $intSessionId
+                              LEFT JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd AND ts.deleted_at IS NULL
                               LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
                               GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, ab.diem_chuan
                               ORDER BY n.ma_nganh";
@@ -1722,21 +1733,23 @@ class VirtualAdmissionController extends Controller {
 
         // 1. Global Stats - Optimized by splitting into two fast index-based queries to avoid full Seq Scan on v_calc_summary
         $statsSqlA = "SELECT 
-                        COUNT(DISTINCT so_cccd) as total_candidates,
-                        COUNT(id) as total_wishes
-                     FROM public.nguyen_vong 
-                     WHERE dot_tuyen_sinh_id = $intSessionId";
+                        COUNT(DISTINCT nv.so_cccd) as total_candidates,
+                        COUNT(nv.id) as total_wishes
+                     FROM public.nguyen_vong nv
+                     JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd
+                     WHERE nv.dot_tuyen_sinh_id = $intSessionId AND ts.deleted_at IS NULL";
         $statsStmtA = $this->db->query($statsSqlA);
         $statsA = $statsStmtA->fetch(PDO::FETCH_ASSOC) ?: ['total_candidates' => 0, 'total_wishes' => 0];
 
         $statsSqlB = "SELECT 
-                        COUNT(CASE WHEN $admitCond THEN 1 END) as total_admitted,
-                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
-                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 2 THEN 1 END) as nv2_admit,
-                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 3 THEN 1 END) as nv3_admit
+                        COUNT(CASE WHEN $admitCond AND ts.deleted_at IS NULL THEN 1 END) as total_admitted,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 1 AND ts.deleted_at IS NULL THEN 1 END) as nv1_admit,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 2 AND ts.deleted_at IS NULL THEN 1 END) as nv2_admit,
+                        COUNT(CASE WHEN $admitCond AND nv.thu_tu_nguyen_vong = 3 AND ts.deleted_at IS NULL THEN 1 END) as nv3_admit
                      FROM public.nguyen_vong nv
+                     JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd
                      JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id
-                     WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId AND cs.trang_thai_trung_tuyen = TRUE";
+                     WHERE nv.dot_tuyen_sinh_id = $intSessionId AND cs.dot_tuyen_sinh_id = $intSessionId AND cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL";
         $statsStmtB = $this->db->query($statsSqlB);
         $statsB = $statsStmtB->fetch(PDO::FETCH_ASSOC) ?: ['total_admitted' => 0, 'nv1_admit' => 0, 'nv2_admit' => 0, 'nv3_admit' => 0];
 
@@ -1744,19 +1757,20 @@ class VirtualAdmissionController extends Controller {
 
         // 2. Per-major stats (admitted vs chi_tieu)  
         $doBoExpr = $hasBgd 
-            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
-            : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END)";
+            ? "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL AND COALESCE(cs.ket_qua_bo_gd_du_kien, cs.ket_qua_bo_gd) = 'Đỗ' THEN 1 END)" 
+            : "COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END)";
 
         $majorStatsSql = "SELECT n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh,
                             COALESCE(ab.diem_chuan, 0) as diem_chuan,
-                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN 1 END) as so_trung_tuyen,
-                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 THEN 1 END) as nv1_admit,
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN 1 END) as so_trung_tuyen,
+                            COUNT(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND nv.thu_tu_nguyen_vong = 1 AND ts.deleted_at IS NULL THEN 1 END) as nv1_admit,
                             $doBoExpr as so_luong_do_bo,
-                            MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
-                            MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE THEN cs.diem_xet_tuyen END) as diem_thap_nhat
+                            MAX(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_cao_nhat,
+                            MIN(CASE WHEN cs.trang_thai_trung_tuyen = TRUE AND ts.deleted_at IS NULL THEN cs.diem_xet_tuyen END) as diem_thap_nhat
                           FROM public.dm_nganh n
                           LEFT JOIN public.admission_benchmarks ab ON n.ma_nganh = ab.ma_nganh AND ab.session_id = $intSessionId
                           LEFT JOIN public.nguyen_vong nv ON n.ma_nganh = nv.ma_nganh AND nv.dot_tuyen_sinh_id = $intSessionId
+                          LEFT JOIN public.thi_sinh ts ON nv.so_cccd = ts.so_cccd AND ts.deleted_at IS NULL
                           LEFT JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
                           GROUP BY n.ma_nganh, n.ten_nganh, n.chi_tieu, n.nhom_nganh, ab.diem_chuan
                           ORDER BY n.ma_nganh";
@@ -1793,7 +1807,7 @@ class VirtualAdmissionController extends Controller {
                         FROM public.nguyen_vong nv
                         JOIN public.v_calc_summary cs ON nv.id = cs.nguyen_vong_id AND cs.dot_tuyen_sinh_id = $intSessionId
                         JOIN public.thi_sinh t ON nv.so_cccd = t.so_cccd
-                        WHERE nv.dot_tuyen_sinh_id = $intSessionId AND $admitCond";
+                        WHERE nv.dot_tuyen_sinh_id = $intSessionId AND t.deleted_at IS NULL AND $admitCond";
             $demoStmt = $this->db->query($demoSql);
             $demoRows = $demoStmt->fetchAll(PDO::FETCH_ASSOC);
 

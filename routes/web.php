@@ -297,6 +297,10 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->post('/admin/admission/results/save-template', 'AdmissionController@saveTemplate');
     $router->get('/admin/admission/results/download-sample', 'AdmissionController@downloadSampleExcel');
     $router->get('/admin/admission/results/download-result-file', 'AdmissionController@downloadResultFile');
+    $router->get('/admin/admission/results/get-item', 'AdmissionController@getResultItem');
+    $router->post('/admin/admission/results/update-item', 'AdmissionController@updateResultItem');
+    $router->post('/admin/admission/results/delete-item', 'AdmissionController@deleteResultItem');
+    $router->post('/admin/admission/results/delete-selected', 'AdmissionController@deleteSelectedResults');
     $router->post('/admin/admission/finalize', 'AdmissionController@finalize');
     $router->post('/admin/admission/notify', 'AdmissionController@notify');
 

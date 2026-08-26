@@ -147,8 +147,10 @@ class ScoreCalculationService {
         $sql = "
             SELECT DISTINCT nv.so_cccd 
             FROM nguyen_vong nv
+            JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd
             LEFT JOIN v_calc_summary cs ON nv.id = cs.nguyen_vong_id
             WHERE nv.dot_tuyen_sinh_id = ? 
+            AND ts.deleted_at IS NULL
             AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai = 'approved' OR nv.trang_thai LIKE '%Đã duyệt%')
         ";
 
@@ -657,7 +659,7 @@ class ScoreCalculationService {
         ];
 
         // 1. Get ALL approved candidates and their applications in this session
-        $stmt = $this->db->prepare("SELECT DISTINCT so_cccd FROM nguyen_vong WHERE dot_tuyen_sinh_id = ? AND (trang_thai = 'DaDuyet' OR trang_thai = 'approved' OR trang_thai LIKE '%Đã duyệt%')");
+        $stmt = $this->db->prepare("SELECT DISTINCT nv.so_cccd FROM nguyen_vong nv JOIN thi_sinh ts ON nv.so_cccd = ts.so_cccd WHERE nv.dot_tuyen_sinh_id = ? AND ts.deleted_at IS NULL AND (nv.trang_thai = 'DaDuyet' OR nv.trang_thai = 'approved' OR nv.trang_thai LIKE '%Đã duyệt%')");
         $stmt->execute([$sessionId]);
         $candidates = $stmt->fetchAll(PDO::FETCH_COLUMN);
         if (empty($candidates)) return;
