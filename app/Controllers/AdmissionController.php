@@ -1196,12 +1196,12 @@ class AdmissionController extends Controller {
         try {
             $db = \App\Core\Database::getInstance()->getConnection();
             
-            // Tìm tất cả thí sinh trúng tuyển có ảnh thẻ lưu local (bắt đầu bằng public/uploads/)
+            // Tìm tất cả thí sinh trúng tuyển có ảnh thẻ lưu local (bắt đầu bằng public/uploads/ hoặc uploads/)
             $stmt = $db->prepare("
                 SELECT ts.so_cccd, ts.anh_dai_dien 
                 FROM thi_sinh ts
                 JOIN ket_qua_trung_tuyen k ON ts.so_cccd = k.so_cccd
-                WHERE k.session_id = ? AND ts.anh_dai_dien LIKE 'public/uploads/%'
+                WHERE k.session_id = ? AND (ts.anh_dai_dien LIKE 'public/uploads/%' OR ts.anh_dai_dien LIKE 'uploads/%')
             ");
             $stmt->execute([$sessionId]);
             $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1216,7 +1216,11 @@ class AdmissionController extends Controller {
 
             foreach ($candidates as $c) {
                 $cccd = $c['so_cccd'];
-                $localPath = dirname(__DIR__, 2) . '/' . $c['anh_dai_dien'];
+                $rel = ltrim($c['anh_dai_dien'], '/');
+                $localPath = dirname(__DIR__, 2) . '/' . $rel;
+                if (!file_exists($localPath)) {
+                    $localPath = dirname(__DIR__, 2) . '/public/' . $rel;
+                }
                 if (file_exists($localPath)) {
                     $driveUrl = $service->uploadSingleLocalFileToDrive($localPath, $cccd, $sessionId);
                     if ($driveUrl) {

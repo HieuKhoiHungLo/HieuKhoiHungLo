@@ -747,13 +747,13 @@ ob_start();
                         <!-- PROFILE HEADER -->
                         <div class="ep-candidate-card">
                             <div class="ep-profile-header">
-                                <div class="ep-avatar" style="overflow:hidden;">
+                                <div class="ep-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.15);">
                                     <template x-if="selectedCandidate.anh_dai_dien">
-                                        <img :src="selectedCandidate.anh_dai_dien" alt="Avatar" style="width:100%;height:100%;object-fit:cover;">
+                                        <img :src="selectedCandidate.anh_dai_dien" alt="Avatar" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;" @error="$event.target.style.display='none'; if($event.target.parentElement.querySelector('.default-avatar-icon')) $event.target.parentElement.querySelector('.default-avatar-icon').style.display='flex'">
                                     </template>
-                                    <template x-if="!selectedCandidate.anh_dai_dien">
+                                    <div class="default-avatar-icon" :style="selectedCandidate.anh_dai_dien ? 'display:none;' : 'display:flex;'" style="align-items:center; justify-content:center; width:100%; height:100%; color:rgba(255,255,255,0.7); font-size:28px;">
                                         <i class="fas fa-user"></i>
-                                    </template>
+                                    </div>
                                 </div>
                                 <div style="flex:1;min-width:0;">
                                     <div class="ep-profile-name" x-text="selectedCandidate.ho_ten"></div>

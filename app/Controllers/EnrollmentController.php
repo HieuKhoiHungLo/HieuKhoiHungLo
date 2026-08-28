@@ -213,6 +213,17 @@ class EnrollmentController extends Controller {
             $candidate['dien_thoai'] = $candidate['dien_thoai_ts'] ?: $candidate['dien_thoai_kq'];
             $candidate['email'] = $candidate['email_ts'] ?: $candidate['email_kq'];
             $candidate['nam_tot_nghiep'] = $candidate['nam_tot_nghiep'] ?: '';
+
+            // Format avatar URL
+            if (!empty($candidate['anh_dai_dien'])) {
+                if (strpos($candidate['anh_dai_dien'], 'http') === 0) {
+                    $candidate['anh_dai_dien'] = google_drive_thumbnail_url($candidate['anh_dai_dien'], 'w400');
+                } else {
+                    $candidate['anh_dai_dien'] = asset($candidate['anh_dai_dien']);
+                }
+            } else {
+                $candidate['anh_dai_dien'] = '';
+            }
             
             // Default extras
             $candidate['extra_info'] = [
