@@ -229,6 +229,7 @@ class ImportService {
                     'ho_va_ten' => trim($row[2] ?? ''),
                     'ngay_sinh' => $this->parseDate(trim($row[4] ?? '')),
                     'gioi_tinh' => $this->parseGender(trim($row[5] ?? '')),
+                    'dan_toc' => $this->nullIfEmpty(trim($row[48] ?? '')) ?: 'Kinh',
                     'doi_tuong_uu_tien' => $maDT,
                     'khu_vuc_uu_tien' => $maKV,
                     'nam_tot_nghiep' => (int)trim($row[8] ?? date('Y')),
