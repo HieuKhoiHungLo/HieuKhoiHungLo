@@ -472,7 +472,7 @@ class ImportService {
 
             $this->db->commit();
             $this->updateProgress($token, $totalRows, $totalRows, "Hoàn thành: Đã nạp xong $success nguyện vọng.");
-            return ['status' => true, 'success' => $success, 'errors' => $errors];
+            return ['status' => true, 'count' => $totalRows, 'success' => $success, 'errors' => $errors];
 
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
@@ -598,7 +598,7 @@ class ImportService {
             if ($skipped > 0) $msg .= " (Đã bỏ qua $skipped thí sinh chưa có thông tin ở File 1)";
             $this->updateProgress($token, $totalRows, $totalRows, $msg);
             
-            return ['status' => true, 'success' => $success, 'skipped' => $skipped];
+            return ['status' => true, 'count' => $totalRows, 'success' => $success, 'skipped' => $skipped];
 
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();

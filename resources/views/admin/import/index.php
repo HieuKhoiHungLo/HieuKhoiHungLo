@@ -378,7 +378,7 @@ function importApp() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Hoàn tất nạp dữ liệu!',
-                            html: `<div class="text-sm mt-2 text-gray-600">Đã cập nhật thành công <b>${result.success}</b> / ${result.count} dòng.</div>`,
+                            html: `<div class="text-sm mt-2 text-gray-600">Đã cập nhật thành công <b>${result.success || 0}</b>${result.count ? ` / ${result.count}` : ''} dòng.${result.skipped ? `<br><span class="text-xs text-amber-600">(Đã bỏ qua ${result.skipped} dòng chưa có thông tin ở File 1)</span>` : ''}</div>`,
                             showConfirmButton: false,
                             timer: 2000
                         }).then(() => {
