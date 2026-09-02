@@ -193,14 +193,29 @@ class ReportController extends Controller {
         $this->exportService->toExcel($data, 'danh_sach_trung_tuyen_toan_bo_' . date('Ymd') . '.xls');
     }
 
-    public function downloadAptitudePhotos() {
+    public function downloadAllPhotos() {
         if (!$this->permissionService->can('report.export')) {
             die('Không có quyền xuất báo cáo.');
         }
 
-        set_time_limit(0);
-        ini_set('max_execution_time', '0');
-        ini_set('memory_limit', '1024M');
+        $filters = [
+            'session_id' => $_GET['session_id'] ?? null,
+            'status'     => $_GET['status'] ?? null,
+        ];
+
+        $list = $this->exportService->exportAllCandidatePhotos($filters);
+        if (empty($list)) {
+            die('Không có dữ liệu ảnh thẻ thí sinh để tải.');
+        }
+
+        $zipFileName = 'anh_the_tat_ca_thi_sinh_' . date('Ymd_His') . '.zip';
+        $this->processAvatarZipDownload($list, $zipFileName, 'Không tìm thấy tệp ảnh nào để nén.');
+    }
+
+    public function downloadAptitudePhotos() {
+        if (!$this->permissionService->can('report.export')) {
+            die('Không có quyền xuất báo cáo.');
+        }
 
         $filters = [
             'session_id' => $_GET['session_id'] ?? null,
@@ -213,6 +228,14 @@ class ReportController extends Controller {
         }
 
         $zipFileName = 'anh_the_nang_khieu_' . date('Ymd_His') . '.zip';
+        $this->processAvatarZipDownload($list, $zipFileName, 'Không tìm thấy tệp ảnh nào để nén.');
+    }
+
+    private function processAvatarZipDownload(array $list, string $zipFileName, string $emptyMsg) {
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '1024M');
+
         $zipFilePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipFileName;
 
         $zip = new \ZipArchive();
@@ -270,7 +293,7 @@ class ReportController extends Controller {
         $zip->close();
         if ($addedFiles === 0) {
             @unlink($zipFilePath);
-            die('Không tìm thấy tệp ảnh nào để nén.');
+            die($emptyMsg);
         }
 
         header('Content-Type: application/zip');

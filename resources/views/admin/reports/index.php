@@ -223,12 +223,26 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                         </td>
                     </tr>
 
-                    <!-- Row 6: Photo images -->
+                    <!-- Row 6: All Candidates Photo images -->
                     <tr>
                         <td class="tt-cell">6</td>
                         <td>
-                            <div class="font-semibold text-slate-800 text-sm">Download file ảnh thẻ</div>
-                            <div class="text-xs text-slate-400 mt-0.5">Tải toàn bộ ảnh thẻ của thí sinh năng khiếu theo đợt (định dạng ZIP)</div>
+                            <div class="font-semibold text-slate-800 text-sm">Download file ảnh thẻ toàn bộ thí sinh</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Tải toàn bộ ảnh thẻ của tất cả thí sinh có hồ sơ trong đợt xét tuyển (định dạng ZIP)</div>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="doExport('<?= url('/admin/reports/download-photos-all') ?>')" class="download-btn !background-[#0066FF] hover:!bg-[#0050CC]">
+                                <i class="fas fa-file-archive text-xs"></i> Download ZIP
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Row 7: Aptitude Candidates Photo images -->
+                    <tr>
+                        <td class="tt-cell">7</td>
+                        <td>
+                            <div class="font-semibold text-slate-800 text-sm">Download file ảnh thẻ thí sinh Năng khiếu</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Tải toàn bộ ảnh thẻ của thí sinh đăng ký dự thi năng khiếu theo đợt (định dạng ZIP)</div>
                         </td>
                         <td class="text-center">
                             <button onclick="doExport('<?= url('/admin/reports/download-photos-aptitude') ?>')" class="download-btn !background-[#0066FF] hover:!bg-[#0050CC]">
@@ -237,9 +251,9 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                         </td>
                     </tr>
 
-                    <!-- Row 7: Certificate images -->
+                    <!-- Row 8: Certificate images -->
                     <tr>
-                        <td class="tt-cell">7</td>
+                        <td class="tt-cell">8</td>
                         <td>
                             <div class="font-semibold text-slate-800 text-sm">Download file ảnh chứng chỉ ngoại ngữ</div>
                             <div class="text-xs text-slate-400 mt-0.5">Tải minh chứng ảnh chứng chỉ ngoại ngữ của thí sinh (định dạng ZIP)</div>
@@ -251,9 +265,9 @@ $allSessionsJson = json_encode(array_values(array_map(fn($s) => [
                         </td>
                     </tr>
 
-                    <!-- Row 8: Data Audit -->
+                    <!-- Row 9: Data Audit -->
                     <tr class="bg-slate-50/50">
-                        <td class="tt-cell">8</td>
+                        <td class="tt-cell">9</td>
                         <td>
                             <div class="font-semibold text-slate-700 text-sm">Kiểm tra dữ liệu hồ sơ</div>
                             <div class="text-xs text-slate-400 mt-1 mb-2">Chọn tiêu chí để lọc danh sách các thí sinh cần kiểm tra lại thông tin</div>

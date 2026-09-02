@@ -425,6 +425,36 @@ class ExportService {
         return $rows;
     }
 
+    /**
+     * Danh sách ảnh thẻ của tất cả thí sinh theo đợt.
+     */
+    public function exportAllCandidatePhotos($filters = []) {
+        $sql = "SELECT DISTINCT t.so_cccd AS \"Số CCCD\",
+                       t.ho_va_ten AS \"Họ và Tên\",
+                       t.anh_dai_dien
+                FROM thi_sinh t
+                JOIN ho_so_xet_tuyen h ON t.so_cccd = h.so_cccd
+                WHERE h.deleted_at IS NULL
+                  AND t.deleted_at IS NULL
+                  AND t.anh_dai_dien IS NOT NULL 
+                  AND t.anh_dai_dien != ''";
+
+        $params = [];
+        if (!empty($filters['session_id'])) {
+            $sql .= " AND h.dot_tuyen_sinh_id = ?";
+            $params[] = $filters['session_id'];
+        }
+        if (!empty($filters['status'])) {
+            $sql .= " AND h.trang_thai = ?";
+            $params[] = $filters['status'];
+        }
+        $sql .= " ORDER BY t.ho_va_ten";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     // ----------------------------------------------------------------
     // Statistics
     // ----------------------------------------------------------------

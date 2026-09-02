@@ -254,7 +254,6 @@ class ImportService {
                 }
 
                 $profileData['email'] = $this->nullIfEmpty(trim($row[12] ?? ''));
-                $profileData['so_dien_thoai'] = $this->nullIfEmpty(trim($row[11] ?? ''));
                 $profileData['mat_khau'] = $defaultHash;
 
                 $candidateBatch[] = $profileData;

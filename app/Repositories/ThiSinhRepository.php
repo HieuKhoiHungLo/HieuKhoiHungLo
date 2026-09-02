@@ -870,10 +870,23 @@ class ThiSinhRepository
         $sql = "INSERT INTO {$this->table} (" . implode(', ', $cols) . ") VALUES " . implode(', ', $placeholders);
         $sql .= " ON CONFLICT (so_cccd) DO UPDATE SET ";
         
+        // Personal fields entered by candidates: preserve existing values, only fill if currently empty
+        $preserveIfExists = [
+            'dien_thoai', 'email', 'mat_khau',
+            'anh_dai_dien', 'anh_cccd_truoc', 'anh_cccd_sau',
+            'file_minh_chung_kv', 'file_minh_chung_dt',
+            'ma_tinh_thuong_tru', 'ma_xa_thuong_tru', 'dia_chi_chi_tiet'
+        ];
+
         $updateCols = [];
         foreach ($cols as $col) {
-            if ($col !== 'so_cccd' && $col !== 'mat_khau' && $col !== 'email') { 
-                // Do not blindly overwrite password or email if they exist, but update other profile fields
+            if ($col === 'so_cccd') continue;
+            
+            if (in_array($col, $preserveIfExists)) {
+                // Keep existing value if non-empty, only fill when currently NULL or blank
+                $updateCols[] = "$col = COALESCE(NULLIF({$this->table}.$col, ''), EXCLUDED.$col)";
+            } else {
+                // MOET-authoritative fields (name, DOB, gender, priority, school...): always update
                 $updateCols[] = "$col = EXCLUDED.$col";
             }
         }
